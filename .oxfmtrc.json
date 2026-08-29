@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "sortTailwindcss": {},
+  "sortImports": {
+    "groups": [
+      "type-import",
+      ["value-builtin", "value-external"],
+      "type-internal",
+      "value-internal",
+      ["type-parent", "type-sibling", "type-index"],
+      ["value-parent", "value-sibling", "value-index"],
+      "unknown"
+    ],
+    "newlines-between": "always-and-inside-groups",
+    "newlines-between-types": "always-and-inside-groups",
+    "consolidateIslands": "inside-groups",
+    "distinctGroup": true,
+    "alphabetize": {
+      "order": "asc",
+      "orderImportKind": "asc",
+      "caseInsensitive": true
+    },
+    "named": { "enabled": true, "types": "types-last" },
+    "warnOnUnassignedImports": true
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "platform/target",
+    "platform/wasm/pkg",
+    ".output/",
+    ".data/",
+    ".nuxt/",
+    ".nitro/",
+    ".cache/",
+    ".wrangler/",
+    ".android/",
+    ".vercel/",
+    ".netlify/",
+    "app/assets/symbols.json",
+    "pnpm-lock.yaml"
+  ]
+}

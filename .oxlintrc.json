@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "plugins": ["typescript", "node", "vue"],
+  "categories": {
+    "correctness": "warn",
+    // "nursery": "warn",
+    // "pedantic": "warn",
+    "perf": "warn",
+    // "restriction": "warn",
+    // "style": "warn",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "typescript/unbound-method": "off"
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "platform/target",
+    "platform/wasm/pkg",
+    ".output/",
+    ".data/",
+    ".nuxt/",
+    ".nitro/",
+    ".cache/",
+    ".wrangler/",
+    ".android/",
+    ".vercel/",
+    ".netlify/",
+    "app/assets/symbols.json",
+    "pnpm-lock.yaml"
+  ]
+}
