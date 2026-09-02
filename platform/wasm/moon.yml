@@ -1,0 +1,30 @@
+language: "rust"
+stack: "systems"
+layer: "library"
+
+tasks:
+  build-dev:
+    script: "wasm-pack build --dev --target web -d pkg . --features wasm-simd && node postbuild.mjs"
+    inputs:
+      - "Cargo.toml"
+      - "postbuild.mjs"
+      - "pkg/package.json"
+      - "src/**/*"
+      - "build.rs"
+      - "/platform/Cargo.toml"
+      - "/platform/Cargo.lock"
+    outputs:
+      - "pkg/**/*"
+
+  build:
+    script: "wasm-pack build --release --target web -d pkg . --features wasm-simd && node postbuild.mjs"
+    inputs:
+      - "Cargo.toml"
+      - "postbuild.mjs"
+      - "pkg/package.json"
+      - "src/**/*"
+      - "build.rs"
+      - "/platform/Cargo.toml"
+      - "/platform/Cargo.lock"
+    outputs:
+      - "pkg/**/*"

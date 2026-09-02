@@ -1,0 +1,16 @@
+projects:
+  web: "."
+  wasm: "platform/wasm"
+  codemirror: "packages/codemirror"
+  typing: "packages/typing"
+  storage: "packages/storage"
+  spaces: "packages/spaces"
+
+defaultProject: "web"
+
+pipeline:
+  cacheLifetime: "7 days"
+
+vcs:
+  defaultBranch: "main"
+  provider: "github"

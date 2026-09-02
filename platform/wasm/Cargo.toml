@@ -1,0 +1,67 @@
+[package]
+name = "typst-wasm"
+
+# No `authors` here: wasm-pack 0.15.0 turns it into a `collaborators` array
+# in package.json and then fails to re-read its own output on the next build.
+categories.workspace = true
+description = "The Typst rendering and IDE engine for typbase, compiled to WebAssembly."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+wasm-simd = []
+# PDF publishing: pulls in typst-pdf, which adds a lot of wasm weight. Off by
+# default; a publish build (wasm:build:release --features pdf) ships it.
+pdf = ["dep:typst-pdf"]
+
+console_error_panic_hook = ["dep:console_error_panic_hook"]
+
+[dependencies]
+comemo = { version = "0.5.0" }
+console_error_panic_hook = { version = "0.1.7", optional = true }
+dashmap = { version = "6.1.0" }
+ecow = { version = "0.2.6" }
+flate2 = { version = "1.1.8" }
+indoc = { version = "2.0.7" }
+itertools = { version = "0.15.0" }
+js-sys = { version = "0.3", default-features = false }
+rustc-hash = { version = "2.1" }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+serde_bytes = "0.11"
+tar = { version = "0.4" }
+time = { version = "0.3", features = ["serde", "wasm-bindgen"] }
+# tiny-skia = { version = "0.11" }
+tsify = { version = "0.5.6", features = ["js"] }
+typst = { version = "0.15.1" }
+typst-html = { version = "0.15.1" }
+typst-ide = { version = "0.15.1" }
+typst-layout = { version = "0.15.1" }
+typst-macros = { version = "0.15.1" }
+typst-pdf = { version = "0.15.1", optional = true }
+# typst-render = { version = "0.15.1" }
+typst-svg = { version = "0.15.1" }
+typst-syntax = { version = "0.15.1" }
+typst-timing = { version = "0.15.1" }
+wasm-bindgen = { version = "0.2" }
+
+[dev-dependencies]
+criterion = { version = "0.8.1", features = ["html_reports"] }
+insta = { version = "1.46.3", features = ["yaml"] }
+walkdir = { version = "2.5.0" }
+wasm-bindgen-test = { version = "0.3" }
+
+[lints]
+workspace = true
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O4", "-all"]

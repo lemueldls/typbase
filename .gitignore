@@ -6,6 +6,12 @@
 .cache
 dist
 
+# Rust
+platform/target
+
+# moon
+.moon/cache
+
 # Node dependencies
 node_modules
 

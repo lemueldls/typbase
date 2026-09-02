@@ -1,0 +1,47 @@
+name: Publish Packages
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publish:
+    name: 📦 Publish to npm
+    runs-on: ubuntu-slim
+    permissions:
+      id-token: write
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: 🦀 Setup Rust
+        uses: moonrepo/setup-rust@abb2d32350334249b178c401e5ec5836e0cd88d3 # v1.3.0
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: 🌙 Setup moon
+        uses: ./.github/actions/setup-moon
+        with:
+          node-version: "26"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🦀 Build @typbase/wasm (release)
+        run: pnpm wasm:build:release
+
+      - name: 🔨 Build @typbase/codemirror
+        run: pnpm packages:build
+
+      - name: 📦 Publish @typbase/wasm
+        run: pnpm -C platform/wasm/pkg publish --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 📦 Publish @typbase/codemirror
+        run: pnpm -C packages/codemirror publish --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

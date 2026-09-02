@@ -1,0 +1,39 @@
+{
+  "name": "@typbase/storage",
+  "version": "0.1.0",
+  "description": "Local-first storage for typbase: OPFS/Memory backends and the Loro doc registry.",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lemueldls/typbase"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "build-dev": "tsdown --watch"
+  },
+  "dependencies": {
+    "@paralleldrive/cuid2": "^3.3.0",
+    "@typbase/typing": "workspace:*",
+    "loro-crdt": "^1.15.1"
+  },
+  "devDependencies": {
+    "tsdown": "0.22.14",
+    "typescript": "^5.9.3"
+  }
+}

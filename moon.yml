@@ -1,0 +1,66 @@
+language: "typescript"
+stack: "frontend"
+layer: "application"
+dependsOn:
+  - "wasm"
+  - "codemirror"
+  - "typing"
+  - "storage"
+  - "spaces"
+
+tasks:
+  dev:
+    command: "pnpm nuxt dev"
+    deps:
+      - "wasm:build-dev"
+      - "codemirror:build"
+      - "typing:build"
+      - "storage:build"
+      - "spaces:build"
+    options:
+      runInCI: false
+
+  build:
+    command: "pnpm nuxt build"
+    deps:
+      - "wasm:build"
+      - "codemirror:build"
+      - "typing:build"
+      - "storage:build"
+      - "spaces:build"
+    env:
+      NODE_OPTIONS: "--max-old-space-size=8192"
+    inputs:
+      - "app/**/*"
+      - "packages/**/*"
+      - "public/**/*"
+      - "server/**/*"
+      - "nuxt.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "$NUXT_*"
+      - "project://wasm"
+      - "project://codemirror"
+      - "project://typing"
+      - "project://storage"
+      - "project://spaces"
+    outputs:
+      - ".output/**/*"
+
+  generate:
+    command: "pnpm nuxt generate"
+    deps:
+      - "wasm:build"
+      - "codemirror:build"
+      - "typing:build"
+      - "storage:build"
+      - "spaces:build"
+
+  preview:
+    command: "pnpm nuxt preview"
+    deps:
+      - "build"
+    options:
+      runInCI: false

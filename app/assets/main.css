@@ -1,0 +1,401 @@
+/* Shared base for the workspace UI. Design tokens first, then the
+   cross-component primitives (buttons, reka-ui overlays) and the Typst
+   widget styling the CodeMirror inline previews rely on. */
+
+/* @import "./fonts.css"; */
+
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color-scheme: light;
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f3f4f6;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-text: #1f2328;
+  --color-text-secondary: #6b7280;
+  --color-accent: #1e5aa0;
+  --color-accent-soft: #e3edf8;
+  --color-danger: #b42828;
+  --color-ok: #2f6f4f;
+
+  --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__nuxt {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-surface-2);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.button--primary {
+  color: #fff;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.button--primary:hover {
+  background: #174b85;
+}
+
+.button--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.button--ghost:hover {
+  background: var(--color-surface-2);
+}
+
+.button--icon {
+  padding: 0.3rem 0.5rem;
+  line-height: 1;
+}
+
+.button--tiny {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+.button--small {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.35);
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.2);
+  z-index: 50;
+}
+
+.dialog__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.dialog__description {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.dialog__input {
+  padding: 0.4rem 0.55rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+}
+
+.dialog__path {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.dialog__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.popover {
+  width: min(320px, calc(100vw - 2rem));
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.15);
+  z-index: 50;
+}
+
+.popover__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.menu {
+  min-width: 10rem;
+  padding: 0.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu :deep([data-reka-menu-item]),
+.menu :deep([data-placeholder]) {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 0.3rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.menu :deep([data-reka-menu-item][data-highlighted]) {
+  background: var(--color-accent-soft);
+}
+
+.menu__danger {
+  color: var(--color-danger);
+}
+
+.menu__separator {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--color-border);
+}
+
+.cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.cm-scroller {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.cm-content {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  padding: 1rem 1.25rem;
+}
+
+.typst-render {
+  display: inline-block;
+  max-width: 100%;
+  overflow: visible;
+  vertical-align: top;
+  user-select: none;
+}
+
+.typst-render svg {
+  /* svg_in_html emits an inline "width: N em" style; without !important the
+     browser sizes the frame by the inherited font-size (N x 15px in the
+     editor). The widget sets the container height; the svg fills it. */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cm-content[contenteditable="true"] .typst-render {
+  border-radius: 0.25rem;
+  transition: background-color 0.15s;
+}
+
+.cm-content[contenteditable="true"] .typst-render:hover {
+  background-color: rgb(0 0 0 / 0.06);
+}
+
+.typ-comment {
+  color: #888;
+}
+
+.typ-punct,
+.typ-escape {
+  color: #555;
+}
+
+.typ-strong {
+  font-weight: bold;
+}
+
+.typ-emph {
+  font-style: italic;
+}
+
+.typ-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.typ-raw {
+  color: var(--color-ok);
+}
+
+.typ-label,
+.typ-ref {
+  color: #40485f;
+}
+
+.typ-heading {
+  color: #222;
+}
+
+.typ-heading-level-1 {
+  font-size: 1.8rem;
+  font-weight: 400;
+}
+
+.typ-heading-level-2 {
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.typ-heading-level-3 {
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.typ-marker,
+.typ-term {
+  font-weight: bold;
+}
+
+.typ-math-delim {
+  color: #555;
+}
+
+.typ-math-op,
+.typ-op {
+  color: #8c3f1f;
+}
+
+.typ-key {
+  color: var(--color-accent);
+}
+
+.typ-num,
+.typ-str {
+  color: var(--color-ok);
+}
+
+.typ-func {
+  color: #40485f;
+}
+
+.typ-pol {
+  color: #333;
+}
+
+.typ-error {
+  color: var(--color-danger);
+}
+
+.cm-tooltip {
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  padding: 0.5rem;
+}
+
+.typst-popup-render {
+  padding: 0.5rem;
+}
+
+.typst-popup-render div {
+  position: relative;
+}
+
+.typst-popup-render svg {
+  /* Same inline "width: N em" fight as .typst-render; the wrapper div sets
+     the popup box, the svg stretches to it. */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.typst-hints {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.typbase-remote-cursor {
+  background-color: color-mix(in srgb, var(--cursor-color) 25%, transparent);
+  border-bottom: 2px solid var(--cursor-color);
+}
+
+.typbase-remote-cursor-flag {
+  position: absolute;
+  transform: translate(-2px, -100%);
+  padding: 0 0.3rem;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  color: #fff;
+  background: var(--cursor-color);
+  border-radius: 0.25rem 0.25rem 0.25rem 0;
+  pointer-events: none;
+  white-space: nowrap;
+}

@@ -1,0 +1,28 @@
+language: "typescript"
+stack: "frontend"
+layer: "library"
+
+tasks:
+  build:
+    command: "pnpm build"
+    inputs:
+      - "src/**/*"
+      - "tsdown.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+    outputs:
+      - "dist/**/*"
+
+  build-dev:
+    command: "pnpm build-dev"
+    options:
+      runInCI: false
+    inputs:
+      - "src/**/*"
+      - "tsdown.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+    outputs:
+      - "dist/**/*"

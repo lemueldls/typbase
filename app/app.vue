@@ -1,6 +1,6 @@
 <template>
-  <div>
+  <div class="app-shell">
     <NuxtRouteAnnouncer />
-    <NuxtWelcome />
+    <NuxtPage />
   </div>
 </template>

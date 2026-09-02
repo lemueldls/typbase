@@ -1,0 +1,36 @@
+language: "typescript"
+stack: "frontend"
+layer: "library"
+dependsOn:
+  - "wasm"
+
+tasks:
+  build:
+    command: "pnpm build"
+    deps:
+      - "wasm:build-dev"
+    inputs:
+      - "src/**/*"
+      - "tsdown.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "project://wasm"
+    outputs:
+      - "dist/**/*"
+
+  build-dev:
+    command: "pnpm build-dev"
+    options:
+      runInCI: false
+    deps:
+      - "wasm:build-dev"
+    inputs:
+      - "src/**/*"
+      - "tsdown.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "project://wasm"
+    outputs:
+      - "dist/**/*"
