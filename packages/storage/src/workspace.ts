@@ -150,6 +150,15 @@ export class WorkspaceStore {
       ...DEFAULT_SETTINGS.search,
       ...decodeSetting<Partial<WorkspaceSettings["search"]>>(map.get("search")),
     };
+    const themeName = map.get("themeName");
+    settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
+    const themeCustom = decodeSetting<WorkspaceSettings["themeCustom"] | null>(
+      map.get("themeCustom"),
+    );
+    settings.themeCustom =
+      themeCustom && typeof themeCustom === "object" && Object.keys(themeCustom).length > 0
+        ? themeCustom
+        : DEFAULT_SETTINGS.themeCustom;
 
     return settings;
   }
@@ -161,6 +170,7 @@ export class WorkspaceStore {
       if (key === "publish") map.set("publish", encodeSetting(value));
       else if (key === "ai") map.set("ai", encodeSetting(value));
       else if (key === "search") map.set("search", encodeSetting(value));
+      else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
       else map.set(key, value);
     }
     this.doc.commit();

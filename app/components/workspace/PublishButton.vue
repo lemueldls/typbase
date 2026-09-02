@@ -63,14 +63,20 @@ async function onUnpublish() {
 <template>
   <div class="publish">
     <template v-if="atprotoStatus.signedIn">
-      <span v-if="meta?.publishedAt" class="publish__status" :title="meta.publishUri ?? ''">
+      <span
+        v-if="meta?.publishedAt"
+        class="publish__status"
+        :title="meta.publishUri ?? ''"
+        role="status"
+      >
+        <Icon name="lucide:globe" :size="12" aria-hidden="true" />
         Published {{ new Date(meta.publishedAt).toLocaleDateString() }}
       </span>
 
       <PopoverRoot v-model:open="menuOpen">
         <PopoverTrigger as-child>
           <button type="button" class="button button--small" :disabled="busy">
-            {{ busy ? "Working…" : meta?.publishedAt ? "Republish" : "Publish" }}
+            {{ busy ? "Working..." : meta?.publishedAt ? "Republish" : "Publish" }}
           </button>
         </PopoverTrigger>
         <PopoverPortal>
@@ -94,7 +100,7 @@ async function onUnpublish() {
         </PopoverPortal>
       </PopoverRoot>
 
-      <p v-if="error" class="publish__error">{{ error }}</p>
+      <p v-if="error" class="publish__error" role="alert">{{ error }}</p>
     </template>
   </div>
 </template>

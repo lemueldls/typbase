@@ -1,9 +1,9 @@
 import type { WorkspaceSettings } from "@typbase/typing";
-import type { FileId, ThemeColors, TypstState } from "@typbase/wasm";
+import type { FileId, ThemeColors } from "@typbase/wasm";
 
-import init, { TypstState as TypstStateImpl } from "@typbase/wasm";
+import init, { TypstState } from "@typbase/wasm";
 
-import { createDefaultTheme } from "~/lib/theme";
+import { currentThemeColors } from "~/composables/theme";
 
 export function getTypstFontImports() {
   return [
@@ -28,7 +28,7 @@ let statePromise: Promise<TypstState> | undefined;
  * leaves the old one unusable.
  */
 export async function createTypstState(): Promise<TypstState> {
-  const typstState = new TypstStateImpl();
+  const typstState = new TypstState();
 
   for (const fontImports of getTypstFontImports()) {
     // oxlint-disable-next-line no-await-in-loop
@@ -56,12 +56,6 @@ export async function createTypstState(): Promise<TypstState> {
 /**
  * One TypstState per page session. The WASM instance is expensive to build,
  * so it loads lazily the first time an editor mounts, on the client.
- *
- * Deliberately NOT createSharedComposable: a wasm instance is an
- * app-lifetime resource, not a per-view subscription. Disposing it when the
- * last consumer unmounts would re-download fonts and force full recompiles
- * on every navigation away from the workspace. Workspace and search
- * composables share the createSharedComposable pattern; useTypst does not.
  */
 export function useTypst() {
   statePromise ??= init().then(createTypstState);
@@ -141,13 +135,16 @@ export function applyWorkspaceStyle(
     font: string;
     mathFont: string | null;
     codeFont: string | null;
-    theme?: ThemeColors;
+    /** Renderer palette for the current workspace theme. */
+    themeColors: ThemeColors;
   },
 ): void {
   typstState.setFont(configId, settings.font);
   typstState.setMathFont(configId, settings.mathFont);
   typstState.setCodeFont(configId, settings.codeFont);
-  typstState.setTheme(configId, settings.theme ?? createDefaultTheme());
+  // Rendered pages follow the app theme: the palette derives from the same
+  // tokens the chrome uses.
+  typstState.setTheme(configId, settings.themeColors);
 }
 
 let workspaceConfigId: FileId | undefined;
@@ -163,7 +160,13 @@ export async function applyWorkspaceStyleToTypst(
 ): Promise<void> {
   const typstState = await useTypst();
   workspaceConfigId ??= typstState.createSourceId("typbase-config", workspaceId);
-  applyWorkspaceStyle(typstState, workspaceConfigId, store.getSettings());
+  const settings = store.getSettings();
+  applyWorkspaceStyle(typstState, workspaceConfigId, {
+    font: settings.font,
+    mathFont: settings.mathFont,
+    codeFont: settings.codeFont,
+    themeColors: currentThemeColors(settings),
+  });
 }
 
 /**

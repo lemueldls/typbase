@@ -86,7 +86,7 @@ async function submit() {
               <button type="button" class="button button--ghost">Cancel</button>
             </DialogClose>
             <button type="submit" class="button button--primary" :disabled="creating">
-              {{ creating ? "Creating…" : "Create" }}
+              {{ creating ? "Creating..." : "Create" }}
             </button>
           </div>
         </form>

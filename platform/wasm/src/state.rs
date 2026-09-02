@@ -10,7 +10,7 @@ use indoc::formatdoc;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tar::Archive;
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use typst::{
     compile,
     ecow::EcoString,
@@ -159,8 +159,13 @@ impl TypstState {
         self.world.insert_source(source_ctx.raw_id, String::new());
         self.source_context_map.insert(id_wrapper, source_ctx);
 
-        let space_ctx = SpaceContext::new();
-        self.space_context_map.insert(space_id, space_ctx);
+        // The space context is workspace-shared: fonts/theme are applied to it
+        // once. Creating another source id in the same workspace must keep the
+        // existing context (with its theme), or the styles silently reset and
+        // pages render default-black until something re-applies them.
+        self.space_context_map
+            .entry(space_id.clone())
+            .or_insert_with(SpaceContext::new);
 
         id_wrapper
     }
@@ -192,8 +197,9 @@ impl TypstState {
     }
 
     #[wasm_bindgen(js_name = "installPackage")]
-    pub fn install_package(&mut self, spec: &str, data: Vec<u8>) -> Result<(), TypstError> {
-        let package_spec = Some(PackageSpec::from_str(spec).map_err(TypstError)?);
+    pub fn install_package(&mut self, spec: &str, data: Vec<u8>) -> Result<(), JsValue> {
+        let package_spec =
+            Some(PackageSpec::from_str(spec).map_err(|e| JsValue::from_str(&e.to_string()))?);
 
         let data = Cursor::new(data);
         let data = flate2::read::GzDecoder::new(data);
@@ -236,7 +242,12 @@ impl TypstState {
     /// like a compile would, then verifies mapper invariants: anchors in
     /// bounds, raw->synth monotonic, synth->raw always inside the raw source.
     #[wasm_bindgen(js_name = "checkIndex")]
-    pub fn check_index(&mut self, id: &TypstFileId, text: &str, prelude: &str) -> IndexCheckReport {
+    pub fn check_index(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<IndexCheckReport>, JsError> {
         let SynthResult { synth, .. } =
             sync_source_state(id, text, prelude, RenderTarget::Svg, self);
 
@@ -379,12 +390,13 @@ impl TypstState {
             }
         }
 
-        IndexCheckReport {
+        Ok(IndexCheckReport {
             ok: mismatches.is_empty(),
             checked,
             mismatches,
             anchors: anchor_report,
         }
+        .into_ts()?)
     }
 
     fn process_requests(&self) -> Vec<TypstRequest> {
@@ -419,15 +431,16 @@ impl TypstState {
         id: &TypstFileId,
         text: &str,
         prelude: &str,
-    ) -> CompilePagedResult {
+    ) -> Result<Ts<CompilePagedResult>, JsError> {
         let result = render_svgs_by_items(id, text, prelude, self);
 
-        CompilePagedResult {
+        Ok(CompilePagedResult {
             frames: result.frames,
             tooltips: result.tooltips,
             diagnostics: result.diagnostics,
             requests: self.process_requests(),
         }
+        .into_ts()?)
     }
 
     #[wasm_bindgen(js_name = "compileHTML")]
@@ -436,31 +449,43 @@ impl TypstState {
         id: &TypstFileId,
         text: &str,
         prelude: &str,
-    ) -> CompileHTMLResult {
+    ) -> Result<Ts<CompileHTMLResult>, JsError> {
         let result = html::render(id, text, prelude, self);
 
-        CompileHTMLResult {
+        Ok(CompileHTMLResult {
             frames: result.frames,
             diagnostics: result.diagnostics,
             requests: self.process_requests(),
         }
+        .into_ts()?)
     }
 
     /// Plain-text flattening per block for the search index, plus the byte
     /// map back to raw source. Pure syntax pass; no state needed.
     #[wasm_bindgen(js_name = "flattenDocument")]
-    pub fn flatten_document(&self, text: &str) -> Vec<FlattenedBlock> {
-        crate::flatten::flatten_document(text)
+    pub fn flatten_document(&self, text: &str) -> Result<Vec<Ts<FlattenedBlock>>, JsError> {
+        Ok(crate::flatten::flatten_document(text)
+            .into_iter()
+            .map(|block| block.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Extracts `#typbase.section` spans for the page doc's sections list.
     #[wasm_bindgen(js_name = "extractSections")]
-    pub fn extract_sections(&self, text: &str) -> Vec<SectionSpan> {
-        crate::flatten::extract_sections(text)
+    pub fn extract_sections(&self, text: &str) -> Result<Vec<Ts<SectionSpan>>, JsError> {
+        Ok(crate::flatten::extract_sections(text)
+            .into_iter()
+            .map(|span| span.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
     }
 
     #[wasm_bindgen(js_name = "checkPaged")]
-    pub fn check_paged(&mut self, id: &TypstFileId, text: &str, prelude: &str) -> CheckResult {
+    pub fn check_paged(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<CheckResult>, JsError> {
         let SynthResult { synth, .. } =
             sync_source_state(id, text, prelude, RenderTarget::Svg, self);
 
@@ -497,14 +522,20 @@ impl TypstState {
             }
         }
 
-        CheckResult {
+        Ok(CheckResult {
             diagnostics,
             requests: self.process_requests(),
         }
+        .into_ts()?)
     }
 
     #[wasm_bindgen(js_name = "checkHTML")]
-    pub fn check_html(&mut self, id: &TypstFileId, text: &str, prelude: &str) -> CheckResult {
+    pub fn check_html(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<CheckResult>, JsError> {
         let SynthResult { synth, .. } =
             sync_source_state(id, text, prelude, RenderTarget::Html, self);
 
@@ -541,21 +572,26 @@ impl TypstState {
             }
         }
 
-        CheckResult {
+        Ok(CheckResult {
             diagnostics,
             requests: self.process_requests(),
         }
+        .into_ts()?)
     }
 
     #[wasm_bindgen]
-    pub fn highlight(&mut self, id: &TypstFileId, text: &str) -> Vec<TypstHighlight> {
+    pub fn highlight(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+    ) -> Result<Vec<Ts<TypstHighlight>>, JsError> {
         let Some(context) = self.source_context_map.get(id) else {
-            return Vec::new();
+            return Ok(Vec::new());
         };
 
         let root = typst_syntax::parse(text);
         let Some(raw_source) = context.raw_source_mut(&mut self.world) else {
-            return Vec::new();
+            return Ok(Vec::new());
         };
         raw_source.replace(text);
 
@@ -609,48 +645,70 @@ impl TypstState {
             }
         }
 
-        highlights
+        Ok(highlights
+            .into_iter()
+            .map(|highlight| highlight.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
     }
 
     #[wasm_bindgen(js_name = "jumpPaged")]
-    pub fn jump_paged(&mut self, id: &TypstFileId, x: f64, mut y: f64) -> Option<TypstJump> {
-        let context = self.source_context_map.get(id)?;
-        let document = context.paged_document.as_ref()?;
+    pub fn jump_paged(
+        &mut self,
+        id: &TypstFileId,
+        x: f64,
+        mut y: f64,
+    ) -> Result<Option<Ts<TypstJump>>, JsError> {
+        // The inner closure keeps the Option-returning body (with its `?`)
+        // intact; only the boundary is fallible now.
+        let jump: Option<TypstJump> = (|| {
+            let context = self.source_context_map.get(id)?;
+            let document = context.paged_document.as_ref()?;
 
-        let index = document
-            .pages()
-            .iter()
-            .rposition(|page| y >= page.frame.height().to_pt())
-            .unwrap_or_default();
+            let index = document
+                .pages()
+                .iter()
+                .rposition(|page| y >= page.frame.height().to_pt())
+                .unwrap_or_default();
 
-        let page_offset = document
-            .pages()
-            .iter()
-            .map(|page| page.frame.height().to_pt())
-            .rfind(|height| y >= *height)
-            .unwrap_or_default();
-        y -= page_offset;
+            let page_offset = document
+                .pages()
+                .iter()
+                .map(|page| page.frame.height().to_pt())
+                .rfind(|height| y >= *height)
+                .unwrap_or_default();
+            y -= page_offset;
 
-        let position = PagedPosition {
-            page: NonZeroUsize::new(index + 1).unwrap(),
-            point: Point::new(Abs::pt(x), Abs::pt(y)),
-        };
+            let position = PagedPosition {
+                page: NonZeroUsize::new(index + 1).unwrap(),
+                point: Point::new(Abs::pt(x), Abs::pt(y)),
+            };
 
-        typst_ide::jump_from_click(&self.world, document, &position)
-            .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
+            typst_ide::jump_from_click(&self.world, document, &position)
+                .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
+        })();
+
+        Ok(jump.map(|jump| jump.into_ts()).transpose()?)
     }
 
     #[wasm_bindgen(js_name = "jumpHTML")]
-    pub fn jump_html(&mut self, id: &TypstFileId, element: Vec<usize>) -> Option<TypstJump> {
-        let context = self.source_context_map.get(id)?;
-        let document = context.html_document.as_ref()?;
+    pub fn jump_html(
+        &mut self,
+        id: &TypstFileId,
+        element: Vec<usize>,
+    ) -> Result<Option<Ts<TypstJump>>, JsError> {
+        let jump: Option<TypstJump> = (|| {
+            let context = self.source_context_map.get(id)?;
+            let document = context.html_document.as_ref()?;
 
-        typst_ide::jump_from_click(
-            &self.world,
-            document,
-            &HtmlPosition::new(EcoVec::from(element)),
-        )
-        .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
+            typst_ide::jump_from_click(
+                &self.world,
+                document,
+                &HtmlPosition::new(EcoVec::from(element)),
+            )
+            .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
+        })();
+
+        Ok(jump.map(|jump| jump.into_ts()).transpose()?)
     }
 
     #[wasm_bindgen]
@@ -659,39 +717,38 @@ impl TypstState {
         id: &TypstFileId,
         raw_cursor_utf16: usize,
         explicit: bool,
-    ) -> Option<Autocomplete> {
-        let context = self.source_context_map.get(id)?;
+    ) -> Result<Option<Ts<Autocomplete>>, JsError> {
+        let result: Option<Autocomplete> = (|| {
+            let context = self.source_context_map.get(id)?;
 
-        let raw_source = context.raw_source(&self.world)?;
-        // let synth_source = context.synth_source(&self.world)?;
-        let synth_source = &Source::new(id.inner(), context.unstable_synth.clone());
+            let raw_source = context.raw_source(&self.world)?;
+            let synth_source = &Source::new(id.inner(), context.unstable_synth.clone());
 
-        let raw_lines = raw_source.lines();
-        let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-        let synth_cursor = context.map_raw_to_synth_from_left(raw_cursor);
+            let raw_lines = raw_source.lines();
+            let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
+            let synth_cursor = context.map_raw_to_synth_from_left(raw_cursor);
 
-        // let text = synth_source.text();
-        // let text = context.unstable_synth.as_str();
-        // crate::log!("{}|{}", &text[..synth_cursor], &text[synth_cursor..]);
+            let (synth_offset, completions) = typst_ide::autocomplete(
+                &self.world,
+                context.paged_document.as_ref(),
+                synth_source,
+                synth_cursor,
+                explicit,
+            )?;
 
-        let (synth_offset, completions) = typst_ide::autocomplete(
-            &self.world,
-            context.paged_document.as_ref(),
-            synth_source,
-            synth_cursor,
-            explicit,
-        )?;
+            let raw_offset = context.map_synth_to_raw_from_left(synth_offset);
+            let raw_offset_utf16 = raw_lines.byte_to_utf16(raw_offset)?;
 
-        let raw_offset = context.map_synth_to_raw_from_left(synth_offset);
-        let raw_offset_utf16 = raw_lines.byte_to_utf16(raw_offset)?;
+            Some(Autocomplete {
+                offset: raw_offset_utf16,
+                completions: completions
+                    .into_iter()
+                    .map(TypstCompletion::from)
+                    .collect::<Box<[_]>>(),
+            })
+        })();
 
-        Some(Autocomplete {
-            offset: raw_offset_utf16,
-            completions: completions
-                .into_iter()
-                .map(TypstCompletion::from)
-                .collect::<Box<[_]>>(),
-        })
+        Ok(result.map(|value| value.into_ts()).transpose()?)
     }
 
     #[wasm_bindgen]
@@ -753,7 +810,12 @@ impl TypstState {
     /// as a blob on `app.typbase.post`.
     #[cfg(feature = "pdf")]
     #[wasm_bindgen(js_name = "renderPdf")]
-    pub fn render_pdf(&mut self, id: &TypstFileId, text: &str, prelude: &str) -> RenderPdfResult {
+    pub fn render_pdf(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<RenderPdfResult>, JsError> {
         use typst_pdf::{PdfOptions, pdf};
 
         let SynthResult { synth, .. } =
@@ -794,11 +856,12 @@ impl TypstState {
             }
         };
 
-        RenderPdfResult {
+        Ok(RenderPdfResult {
             bytes,
             diagnostics,
             requests: self.process_requests(),
         }
+        .into_ts()?)
     }
 
     /// False when the shipped wasm build omits the pdf feature (the default).
@@ -809,7 +872,12 @@ impl TypstState {
     }
 
     #[wasm_bindgen(js_name = renderHtml)]
-    pub fn render_html(&mut self, id: &TypstFileId, text: &str, prelude: &str) -> RenderHtmlResult {
+    pub fn render_html(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<RenderHtmlResult>, JsError> {
         let SynthResult { synth, blocks, .. } =
             sync_source_state(id, text, prelude, RenderTarget::Html, self);
 
@@ -892,11 +960,12 @@ impl TypstState {
             ));
         }
 
-        RenderHtmlResult {
+        Ok(RenderHtmlResult {
             document,
             diagnostics,
             requests: self.process_requests(),
         }
+        .into_ts()?)
     }
 }
 
@@ -1035,7 +1104,6 @@ impl TypstState {
 
 /// Result of `TypstState::check_index`: a self-test of the raw/synth mapping.
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct IndexCheckReport {
     /// True when every checked invariant held.
     pub ok: bool,
@@ -1049,7 +1117,6 @@ pub struct IndexCheckReport {
 
 /// One anchor in the check report, labelled for humans.
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CheckedAnchor {
     pub raw: u32,
     pub synth: u32,
@@ -1057,7 +1124,6 @@ pub struct CheckedAnchor {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(tag = "type", content = "value", rename_all = "kebab-case")]
 pub enum TypstRequest {
     Source(PathBuf),
@@ -1070,11 +1136,9 @@ pub enum TypstRequest {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TypstError(EcoString);
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Autocomplete {
     pub offset: usize,
     pub completions: Box<[TypstCompletion]>,

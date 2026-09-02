@@ -4,6 +4,7 @@ import SearchPalette from "~/components/workspace/SearchPalette.vue";
 import Sidebar from "~/components/workspace/Sidebar.vue";
 import WorkspaceSwitcher from "~/components/workspace/WorkspaceSwitcher.vue";
 import { useSearch } from "~/composables/search";
+import { useTheme } from "~/composables/theme";
 import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { refreshSections, toSections } from "~/lib/ai/generators";
@@ -15,6 +16,8 @@ const loaded = ref(false);
 const currentPageId = ref<string>("");
 const mode = ref<ViewMode>("write");
 const paletteOpen = ref(false);
+/** Sidebar drawer state (mobile only). */
+const navOpen = ref(false);
 
 const { ensure: ensureSearch } = useSearch();
 
@@ -70,7 +73,12 @@ onMounted(async () => {
   await ensure();
   loaded.value = true;
 
-  const store = workspace.value!;
+  const store = workspace.value;
+  if (!store) return; // no workspaces; the chooser handles it
+
+  // Tokens + Typst renderer colors follow the workspace setting.
+  useTheme(store).refresh();
+
   const settings = store.getSettings();
 
   // Open the home page when there is one, else the first page.
@@ -102,6 +110,7 @@ watch(mode, (value) => {
 });
 
 function openPage(id: string) {
+  navOpen.value = false; // drawer interactions close after selection
   if (id) currentPageId.value = id;
   else {
     // Deleted the open page; fall back to home/first page.
@@ -154,9 +163,32 @@ definePageMeta({ ssr: false });
 
     <template v-else-if="workspace">
       <div :key="workspaceGeneration" class="app__content">
-        <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
+        <div
+          class="app__nav"
+          :class="{ 'app__nav--open': navOpen }"
+          :aria-hidden="navOpen ? 'false' : undefined"
+        >
+          <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
+        </div>
+
+        <button
+          v-if="navOpen"
+          type="button"
+          class="app__backdrop"
+          aria-label="Close navigation"
+          @click="navOpen = false"
+        />
 
         <div class="app__main">
+          <button
+            type="button"
+            class="app__nav-toggle"
+            aria-label="Open navigation"
+            @click="navOpen = true"
+          >
+            <Icon name="lucide:menu" :size="18" aria-hidden="true" />
+          </button>
+
           <PageView
             v-if="currentPageId"
             :key="currentPageId"
@@ -189,6 +221,7 @@ definePageMeta({ ssr: false });
 .app {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -200,6 +233,55 @@ definePageMeta({ ssr: false });
   flex: 1;
   display: grid;
   place-content: center;
+}
+
+.app__main {
+  position: relative;
+  min-width: 0;
+}
+
+/* Mobile-first: the sidebar becomes a drawer below the breakpoint. */
+.app__nav-toggle,
+.app__backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .app__nav-toggle {
+    display: inline-flex;
+    position: absolute;
+    top: 0.55rem;
+    left: 0.6rem;
+    z-index: 30;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .app__nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(84vw, 320px);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+  }
+
+  .app__nav--open {
+    transform: translateX(0);
+  }
+
+  .app__backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: var(--overlay);
+    border: none;
+  }
+
+  .page-view__toolbar {
+    padding-left: 3rem;
+  }
 }
 
 .app__loading,

@@ -68,6 +68,11 @@ export interface PublishSettings {
 
 /** Provider config for AI features. Keys never live here: they are in local.json. */
 export interface AiConfig {
+  /**
+   * AI features are opt-in: generators run nothing until a user turns this
+   * on. Keys alone do not enable anything either.
+   */
+  enabled: boolean;
   provider: "openai-compatible" | "anthropic" | "ollama";
   /** Base URL. Empty for the well-known host of the chosen provider. */
   baseUrl: string;
@@ -81,6 +86,30 @@ export interface SearchSettings {
   embeddingModel: string;
 }
 
+export type ThemeMode = "auto" | "light" | "dark";
+
+/**
+ * A theme palette as token -> CSS color. The renderer palette is derived
+ * from these, so a custom theme only needs the same tokens the app chrome
+ * uses. Union of TokenName keys; values are CSS color strings.
+ */
+export type ThemePaletteTokens = Record<
+  | "surface"
+  | "surface2"
+  | "surface3"
+  | "border"
+  | "borderStrong"
+  | "text"
+  | "textSecondary"
+  | "accent"
+  | "accentSoft"
+  | "danger"
+  | "dangerSoft"
+  | "ok"
+  | "warning",
+  string
+>;
+
 /** Workspace settings stored in the workspace doc's `settings` map. */
 export interface WorkspaceSettings {
   name: string;
@@ -91,6 +120,12 @@ export interface WorkspaceSettings {
   font: string;
   mathFont: string | null;
   codeFont: string | null;
+  /** Theme mode; "auto" follows the OS preference. Synced like everything else. */
+  theme: ThemeMode;
+  /** Named theme from the registry ("default", "catppuccin", "custom", ...). */
+  themeName: string;
+  /** Token map for the "custom" theme (or a complete override for any theme). */
+  themeCustom: ThemePaletteTokens | null;
   publish: PublishSettings;
   ai: AiConfig;
   search: SearchSettings;
@@ -109,12 +144,16 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   font: "Maple Mono",
   mathFont: "New Computer Modern Math",
   codeFont: null,
+  theme: "auto",
+  themeName: "default",
+  themeCustom: null,
   publish: {
     langs: ["en"],
     tags: [],
     includePdf: false,
   },
   ai: {
+    enabled: false,
     provider: "ollama",
     baseUrl: "",
     chatModel: "qwen2.5:7b",

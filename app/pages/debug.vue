@@ -77,7 +77,7 @@ async function runIndexMappingCheck() {
   try {
     await ensure();
     typstState.value ??= await useTypst();
-    indexCheck.value = await runIndexCheck(typstState.value, workspaceId, source.value);
+    indexCheck.value = await runIndexCheck(typstState.value, workspaceId.value, source.value);
   } catch (reason) {
     indexCheck.value = {
       ok: false,
@@ -102,11 +102,12 @@ async function runTypingSimulation() {
   typingRunning.value = true;
   try {
     const storeInstance = await ensure();
+    if (!storeInstance) throw new Error("No workspace is open.");
     typstState.value ??= await useTypst();
     typingReport.value = await typingSimulation(
       typstState.value,
       storeInstance,
-      workspaceId,
+      workspaceId.value,
       source.value,
     );
   } catch (reason) {
@@ -131,6 +132,7 @@ async function runRecoveryBattery() {
   const consoleCapture = captureConsole();
   try {
     const storeInstance = await ensure();
+    if (!storeInstance) throw new Error("No workspace is open.");
     typstState.value ??= await useTypst();
 
     for (const testCase of RECOVERY_CASES) {
@@ -139,7 +141,7 @@ async function runRecoveryBattery() {
         const compiled = await compileForLab(
           typstState.value,
           storeInstance,
-          workspaceId,
+          workspaceId.value,
           testCase.source,
         );
         result = {
@@ -179,8 +181,14 @@ async function run() {
   const consoleCapture = captureConsole();
   try {
     const storeInstance = await ensure();
+    if (!storeInstance) throw new Error("No workspace is open.");
     typstState.value ??= await useTypst();
-    report.value = await compileForLab(typstState.value, storeInstance, workspaceId, source.value);
+    report.value = await compileForLab(
+      typstState.value,
+      storeInstance,
+      workspaceId.value,
+      source.value,
+    );
     captured.value = consoleCapture.captured.slice(-120);
   } catch (reason) {
     error.value =
@@ -257,7 +265,7 @@ definePageMeta({ ssr: false });
       </label>
       <div class="lab__actions">
         <button type="button" class="button button--primary" :disabled="running" @click="run">
-          {{ running ? "Compiling…" : "Compile" }}
+          {{ running ? "Compiling..." : "Compile" }}
         </button>
         <button
           type="button"
@@ -265,10 +273,10 @@ definePageMeta({ ssr: false });
           :disabled="indexCheckRunning"
           @click="runIndexMappingCheck"
         >
-          {{ indexCheckRunning ? "Checking…" : "Check index" }}
+          {{ indexCheckRunning ? "Checking..." : "Check index" }}
         </button>
         <button type="button" class="button" :disabled="typingRunning" @click="runTypingSimulation">
-          {{ typingRunning ? "Typing…" : "Simulate typing" }}
+          {{ typingRunning ? "Typing..." : "Simulate typing" }}
         </button>
       </div>
     </section>
@@ -329,7 +337,7 @@ definePageMeta({ ssr: false });
       <div class="lab__actions">
         <h2>Recovery battery</h2>
         <button type="button" class="button" :disabled="batteryRunning" @click="runRecoveryBattery">
-          {{ batteryRunning ? "Running…" : `Run ${RECOVERY_CASES.length} cases` }}
+          {{ batteryRunning ? "Running..." : `Run ${RECOVERY_CASES.length} cases` }}
         </button>
       </div>
       <table v-if="battery.length" class="lab__table">

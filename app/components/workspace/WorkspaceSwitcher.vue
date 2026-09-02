@@ -103,14 +103,14 @@ function active(id: string | null): boolean {
         </button>
         <div class="ws-screen__actions">
           <button type="button" class="button button--ghost button--tiny" @click="onRename(info)">
-            Rename
+            <Icon name="lucide:pencil" :size="12" aria-hidden="true" /> Rename
           </button>
           <button
             type="button"
             class="button button--ghost button--tiny ws-screen__danger"
             @click="onDelete(info)"
           >
-            Delete
+            <Icon name="lucide:trash-2" :size="12" aria-hidden="true" /> Delete
           </button>
         </div>
       </li>
@@ -127,14 +127,16 @@ function active(id: string | null): boolean {
       <button type="submit" class="button button--primary" :disabled="busy">Create</button>
     </form>
 
-    <p v-if="error" class="ws-screen__error">{{ error }}</p>
+    <p v-if="error" class="ws-screen__error" role="alert">{{ error }}</p>
   </div>
 
   <template v-else>
     <PopoverRoot v-model:open="newOpen">
       <PopoverTrigger as-child>
         <slot>
-          <button type="button" class="button button--icon" aria-label="Switch workspace">⇄</button>
+          <button type="button" class="button button--icon" aria-label="Switch workspace">
+            <Icon name="lucide:arrow-left-right" :size="16" aria-hidden="true" />
+          </button>
         </slot>
       </PopoverTrigger>
       <PopoverPortal>
@@ -153,16 +155,18 @@ function active(id: string | null): boolean {
               <button
                 type="button"
                 class="button button--ghost button--tiny"
+                :aria-label="`Rename ${info.name}`"
                 @click.stop="onRename(info)"
               >
-                ⋯
+                <Icon name="lucide:pencil" :size="12" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 class="button button--ghost button--tiny ws-menu__danger"
+                :aria-label="`Delete ${info.name}`"
                 @click.stop="onDelete(info)"
               >
-                ✕
+                <Icon name="lucide:trash-2" :size="12" aria-hidden="true" />
               </button>
             </span>
           </button>
@@ -173,7 +177,7 @@ function active(id: string | null): boolean {
             <input
               v-model="newName"
               class="settings__input ws-menu__input"
-              placeholder="New workspace…"
+              placeholder="New workspace..."
               aria-label="New workspace name"
             />
             <button type="submit" class="button button--small button--primary" :disabled="busy">
@@ -181,7 +185,7 @@ function active(id: string | null): boolean {
             </button>
           </form>
 
-          <p v-if="error" class="ws-menu__error">{{ error }}</p>
+          <p v-if="error" class="ws-menu__error" role="alert">{{ error }}</p>
           <p class="ws-menu__hint">Each workspace syncs as its own space; data never mixes.</p>
         </PopoverContent>
       </PopoverPortal>

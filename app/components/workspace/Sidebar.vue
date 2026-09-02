@@ -126,11 +126,13 @@ function onCreated(page: PageMeta) {
       <span class="sidebar__name">{{ settings.name }}</span>
       <div class="sidebar__header-actions">
         <WorkspaceSwitcher mode="menu">
-          <button type="button" class="button button--icon" aria-label="Switch workspace">⇄</button>
+          <button type="button" class="button button--icon" aria-label="Switch workspace">
+            <Icon name="lucide:arrow-left-right" :size="16" />
+          </button>
         </WorkspaceSwitcher>
         <SettingsPopover :store="store">
           <button type="button" class="button button--icon" aria-label="Workspace settings">
-            ⚙
+            <Icon name="lucide:settings" :size="16" aria-hidden="true" />
           </button>
         </SettingsPopover>
       </div>
@@ -145,7 +147,8 @@ function onCreated(page: PageMeta) {
       </div>
 
       <button type="button" class="sidebar__row sidebar__row--today" @click="openToday">
-        ✳ Today
+        <Icon name="lucide:calendar-days" :size="14" aria-hidden="true" />
+        Today
       </button>
 
       <ul class="sidebar__list">
@@ -154,6 +157,7 @@ function onCreated(page: PageMeta) {
             type="button"
             class="sidebar__row"
             :class="{ 'sidebar__row--active': day.page?.id === currentPageId }"
+            :aria-current="day.page?.id === currentPageId ? 'page' : undefined"
             @click="selectDaily(day)"
           >
             <span class="sidebar__row-dot" :class="{ 'sidebar__row-dot--filled': !!day.page }" />
@@ -177,7 +181,8 @@ function onCreated(page: PageMeta) {
         class="sidebar__row sidebar__row--home"
         @click="emit('select', settings.homePageId)"
       >
-        ⌂ Home
+        <Icon name="lucide:house" :size="14" aria-hidden="true" />
+        Home
       </button>
 
       <div v-for="category in categories" :key="category.id" class="sidebar__group">
@@ -188,6 +193,7 @@ function onCreated(page: PageMeta) {
               type="button"
               class="sidebar__row"
               :class="{ 'sidebar__row--active': page.id === currentPageId }"
+              :aria-current="page.id === currentPageId ? 'page' : undefined"
               @click="emit('select', page.id)"
             >
               <span class="sidebar__row-label">{{ page.title }}</span>
@@ -195,8 +201,9 @@ function onCreated(page: PageMeta) {
                 v-if="settings.homePageId === page.id"
                 class="sidebar__row-home"
                 title="Home page"
-                >⌂</span
               >
+                <Icon name="lucide:house" :size="12" aria-hidden="true" />
+              </span>
             </button>
 
             <DropdownMenuRoot>
@@ -206,7 +213,7 @@ function onCreated(page: PageMeta) {
                   class="button button--icon button--tiny"
                   :aria-label="`Actions for ${page.title}`"
                 >
-                  ⋯
+                  <Icon name="lucide:ellipsis" :size="14" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
@@ -239,6 +246,7 @@ function onCreated(page: PageMeta) {
               type="button"
               class="sidebar__row"
               :class="{ 'sidebar__row--active': page.id === currentPageId }"
+              :aria-current="page.id === currentPageId ? 'page' : undefined"
               @click="emit('select', page.id)"
             >
               <span class="sidebar__row-label">{{ page.title }}</span>
@@ -246,8 +254,9 @@ function onCreated(page: PageMeta) {
                 v-if="settings.homePageId === page.id"
                 class="sidebar__row-home"
                 title="Home page"
-                >⌂</span
               >
+                <Icon name="lucide:house" :size="12" aria-hidden="true" />
+              </span>
             </button>
 
             <DropdownMenuRoot>
@@ -257,7 +266,7 @@ function onCreated(page: PageMeta) {
                   class="button button--icon button--tiny"
                   :aria-label="`Actions for ${page.title}`"
                 >
-                  ⋯
+                  <Icon name="lucide:ellipsis" :size="14" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
@@ -307,7 +316,10 @@ function onCreated(page: PageMeta) {
       </DialogPortal>
     </DialogRoot>
     <footer class="sidebar__footer">
-      <NuxtLink to="/debug" class="button button--ghost button--small">⛭ debug lab</NuxtLink>
+      <NuxtLink to="/debug" class="button button--ghost button--small">
+        <Icon name="lucide:flask-conical" :size="13" aria-hidden="true" />
+        debug lab
+      </NuxtLink>
     </footer>
   </aside>
 </template>

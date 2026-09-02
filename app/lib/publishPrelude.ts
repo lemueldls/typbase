@@ -1,6 +1,6 @@
 import type { WorkspaceSettings } from "@typbase/typing";
 
-import { createDefaultTheme } from "~/lib/theme";
+import { rendererPaletteFor, resolveTheme } from "~/lib/themes";
 
 /**
  * The prelude for published pages. It mirrors the editor prelude the wasm
@@ -9,7 +9,9 @@ import { createDefaultTheme } from "~/lib/theme";
  * TypstState has no context for this page, so the prelude comes from JS.
  */
 export function publishPrelude(settings: WorkspaceSettings): string {
-  const theme = createDefaultTheme();
+  // The same registry as the app chrome: named themes, custom overrides,
+  // renderer colors derived from the token map.
+  const theme = rendererPaletteFor(resolveTheme(settings));
   const font = settings.font;
   const mathFont = settings.mathFont ?? font;
   const codeFont = settings.codeFont ?? font;

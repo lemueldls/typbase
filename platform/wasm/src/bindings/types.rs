@@ -29,7 +29,6 @@ impl TypstFileId {
 }
 
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TypstDiagnostic {
     pub range: Range<usize>,
     pub severity: TypstDiagnosticSeverity,
@@ -145,7 +144,6 @@ pub fn map_raw_span(
 }
 
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "kebab-case")]
 pub enum TypstDiagnosticSeverity {
     Error,
@@ -165,14 +163,12 @@ impl TypstDiagnosticSeverity {
 }
 
 #[derive(Tsify, Serialize, Deserialize, Debug)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TypstHighlight {
     pub tag: String,
     pub range: Range<usize>,
 }
 
 #[derive(Tsify, Serialize, Deserialize, Debug)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(tag = "type")]
 pub enum TypstJump {
     File {
@@ -211,7 +207,6 @@ impl TypstJump {
 }
 
 #[derive(Tsify, Serialize, Deserialize, Debug)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "kebab-case")]
 pub enum TypstCompletionKind {
     Syntax,
@@ -227,7 +222,6 @@ pub enum TypstCompletionKind {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TypstCompletion {
     #[serde(rename = "type")]
     kind: TypstCompletionKind,

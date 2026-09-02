@@ -326,7 +326,7 @@ export class SearchManager {
     const from = Math.max(0, first[0] - 24);
     const to = Math.min(hit.plain.length, first[1] + 60);
 
-    return `${from > 0 ? "…" : ""}${hit.plain.slice(from, to)}${to < hit.plain.length ? "…" : ""}`;
+    return `${from > 0 ? "..." : ""}${hit.plain.slice(from, to)}${to < hit.plain.length ? "..." : ""}`;
   }
 
   private toItem(hit: SearchHit & { snippet: string }): SearchResultItem {

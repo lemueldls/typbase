@@ -3,7 +3,15 @@ export default defineNuxtConfig({
   compatibilityDate: "2026-08-31",
   devtools: { enabled: true },
   future: { compatibilityVersion: 5 },
-  modules: ["@vueuse/nuxt/module", "reka-ui/nuxt"],
+  modules: ["@nuxt/icon", "@vueuse/nuxt/module", "reka-ui/nuxt"],
+  icon: {
+    // Bundle the lucide set into the build so icons never hit the Iconify
+    // API at runtime (fully offline, matches the local-first story).
+    // clientBundle.scan inlines the used icons for static deploys (Pages),
+    // where there is no icon server endpoint.
+    serverBundle: { collections: ["lucide"] },
+    clientBundle: { scan: true },
+  },
   css: ["~/assets/main.css"],
   vite: {
     // experimental: { bundledDev: true },
@@ -17,14 +25,6 @@ export default defineNuxtConfig({
       //   "Cross-Origin-Embedder-Policy": "credentialless",
       // },
     },
-  },
-  // Cross-origin isolation for the SQLite OPFS VFS. credentialless (not
-  // require-corp) so PDS blob fetches and model downloads keep working.
-  devServer: {
-    // headers: {
-    //   "Cross-Origin-Opener-Policy": "same-origin",
-    //   "Cross-Origin-Embedder-Policy": "credentialless",
-    // },
   },
   runtimeConfig: {
     public: {

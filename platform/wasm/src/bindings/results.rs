@@ -8,7 +8,6 @@ use crate::{
 };
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CompilePagedResult {
     pub frames: Vec<SvgRangedFrame>,
     pub tooltips: Vec<SvgRangedFrame>,
@@ -17,7 +16,6 @@ pub struct CompilePagedResult {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CompileHTMLResult {
     pub frames: Vec<HTMLRangedFrame>,
     pub diagnostics: Vec<TypstDiagnostic>,
@@ -25,7 +23,6 @@ pub struct CompileHTMLResult {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CheckResult {
     pub diagnostics: Vec<TypstDiagnostic>,
     pub requests: Vec<TypstRequest>,
@@ -33,7 +30,6 @@ pub struct CheckResult {
 
 #[cfg(feature = "pdf")]
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RenderPdfResult {
     pub bytes: Option<Vec<u8>>,
     pub diagnostics: Vec<TypstDiagnostic>,

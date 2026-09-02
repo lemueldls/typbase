@@ -11,7 +11,7 @@ import { createTypstState, replaceTypstState } from "~/composables/typst";
  */
 
 export function tookPanic(state: TypstState): string | null {
-  return state.takePanic();
+  return state.takePanic() ?? null;
 }
 
 /** True when the error looks like a wasm trap (typed trap or runtime error). */

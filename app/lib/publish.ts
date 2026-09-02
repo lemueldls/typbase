@@ -181,5 +181,5 @@ export function summarize(source: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  return plain.length > 400 ? `${plain.slice(0, 397)}…` : plain;
+  return plain.length > 400 ? `${plain.slice(0, 397)}...` : plain;
 }

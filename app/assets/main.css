@@ -14,6 +14,7 @@
 
   --color-surface: #ffffff;
   --color-surface-2: #f3f4f6;
+  --color-surface-3: #e9ebee;
   --color-border: #e5e7eb;
   --color-border-strong: #d1d5db;
   --color-text: #1f2328;
@@ -21,9 +22,50 @@
   --color-accent: #1e5aa0;
   --color-accent-soft: #e3edf8;
   --color-danger: #b42828;
+  --color-danger-soft: #f9e3e3;
   --color-ok: #2f6f4f;
+  --color-warning: #96660f;
+  --color-overlay: rgb(0 0 0 / 0.35);
+
+  /* Short aliases; the majority of component styles use these. The
+     --color-* palette is the per-theme source of truth and the short
+     tokens just alias it, so a theme only ever redefines the palette. */
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-2);
+  --surface-3: var(--color-surface-3);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --text: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --accent: var(--color-accent);
+  --accent-soft: var(--color-accent-soft);
+  --danger: var(--color-danger);
+  --danger-soft: var(--color-danger-soft);
+  --ok: var(--color-ok);
+  --warning: var(--color-warning);
+  --overlay: var(--color-overlay);
+  --focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
 
   --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-surface: #1b1d21;
+  --color-surface-2: #24272c;
+  --color-surface-3: #2d3138;
+  --color-border: #363b42;
+  --color-border-strong: #4a5058;
+  --color-text: #e8eaed;
+  --color-text-secondary: #9aa1aa;
+  --color-accent: #6ea6e3;
+  --color-accent-soft: #223349;
+  --color-danger: #e08585;
+  --color-danger-soft: #4a2a2a;
+  --color-ok: #7cc49d;
+  --color-warning: #d3a54f;
+  --color-overlay: rgb(0 0 0 / 0.55);
 }
 
 * {
@@ -85,8 +127,17 @@ body {
 }
 
 .button--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.3rem 0.5rem;
   line-height: 1;
+}
+
+.button svg,
+.sidebar__row svg,
+.menu__item svg {
+  flex: none;
 }
 
 .button--tiny {
@@ -178,7 +229,7 @@ body {
 }
 
 .popover {
-  width: min(320px, calc(100vw - 2rem));
+  width: min(360px, calc(100vw - 2rem));
   padding: 1rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -227,6 +278,8 @@ body {
   background: var(--color-border);
 }
 
+/* ------------------ CodeMirror (reference: mnemo's editor) ------------------ */
+
 .cm-editor {
   height: 100%;
   outline: none;
@@ -237,44 +290,221 @@ body {
   overflow-y: auto;
 }
 
+.cm-scroller::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cm-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary);
+  background-clip: content-box;
+}
+
 .cm-content {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 16px;
   padding: 1rem 1.25rem;
+  caret-color: var(--accent) !important;
 }
 
-.typst-render {
-  display: inline-block;
-  max-width: 100%;
-  overflow: visible;
-  vertical-align: top;
-  user-select: none;
+.cm-line {
+  padding: 0 1px;
 }
 
-.typst-render svg {
-  /* svg_in_html emits an inline "width: N em" style; without !important the
-     browser sizes the frame by the inherited font-size (N x 15px in the
-     editor). The widget sets the container height; the svg fills it. */
-  width: 100% !important;
-  height: 100% !important;
+.cm-placeholder {
+  color: var(--text-secondary);
 }
 
-.cm-content[contenteditable="true"] .typst-render {
-  border-radius: 0.25rem;
-  transition: background-color 0.15s;
+.cm-selectionLayer {
+  z-index: 0;
 }
 
-.cm-content[contenteditable="true"] .typst-render:hover {
-  background-color: rgb(0 0 0 / 0.06);
+.cm-selectionBackground,
+.cm-content ::selection {
+  background-color: color-mix(in srgb, var(--accent) 26%, transparent) !important;
 }
 
+.cm-selectionMatch {
+  background-color: color-mix(in srgb, var(--warning) 24%, transparent) !important;
+}
+
+.cm-cursor {
+  border-left-color: var(--accent);
+}
+
+.cm-activeLine {
+  background-color: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.cm-lintRange {
+  background-image: none;
+  text-decoration: underline wavy;
+}
+
+.cm-lintRange-error {
+  text-decoration-color: var(--danger);
+}
+
+.cm-lintRange-warning {
+  text-decoration-color: var(--warning);
+}
+
+.cm-lintPoint-error::after {
+  border-bottom: 2px dotted var(--danger);
+}
+
+.cm-panels {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.cm-textfield {
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: transparent;
+}
+
+.cm-button {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 0.5rem;
+}
+
+.cm-gutters {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+}
+
+.cm-gutter-lint {
+  width: 1rem;
+}
+
+.cm-lint-marker {
+  width: 100%;
+  height: 100%;
+}
+
+.cm-lint-marker-error {
+  background: var(--danger);
+}
+
+.cm-lint-marker-warning {
+  background: var(--warning);
+}
+
+.cm-tooltip {
+  max-width: min(50vw, 28rem);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+  font-family: var(--font-mono);
+}
+
+.cm-tooltip-hover {
+  padding: 0.5rem;
+}
+
+.cm-tooltip-autocomplete {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.cm-tooltip-autocomplete > ul > li {
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.3rem;
+}
+
+.cm-tooltip-autocomplete li[aria-selected="true"] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.cm-completionIcon {
+  transform: translateY(0.5px);
+  opacity: 0.7;
+}
+
+.cm-completionIcon-syntax::after {
+  content: "#";
+}
+.cm-completionIcon-function::after {
+  content: "ƒ";
+}
+.cm-completionIcon-type::after {
+  content: "T";
+}
+.cm-completionIcon-param::after {
+  content: "p";
+}
+.cm-completionIcon-constant::after {
+  content: "C";
+}
+.cm-completionIcon-path::after {
+  content: "/";
+}
+.cm-completionIcon-package::after {
+  content: "P";
+}
+.cm-completionIcon-label::after {
+  content: "@";
+}
+.cm-completionIcon-font::after {
+  content: "F";
+}
+.cm-completionIcon-symbol::after {
+  content: "∑";
+}
+
+.cm-tooltip-lint .cm-diagnostic {
+  padding: 0.35rem 0.5rem;
+}
+
+.cm-diagnostic-error {
+  color: var(--danger);
+  border-left: 3px solid var(--danger);
+}
+
+.cm-diagnostic-warning {
+  color: var(--warning);
+  border-left: 3px solid var(--warning);
+}
+
+.cm-diagnostic-hint {
+  color: var(--text-secondary);
+  border-left: 3px solid var(--border-strong);
+}
+
+/* Typst syntax tags from the wasm highlighter, mapped to theme tokens. */
 .typ-comment {
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .typ-punct,
 .typ-escape {
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .typ-strong {
@@ -286,83 +516,131 @@ body {
 }
 
 .typ-link {
-  color: var(--color-accent);
+  color: var(--accent);
   text-decoration: underline;
 }
 
 .typ-raw {
-  color: var(--color-ok);
+  color: var(--warning);
 }
 
 .typ-label,
 .typ-ref {
-  color: #40485f;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
 
 .typ-heading {
-  color: #222;
+  color: var(--text);
 }
 
 .typ-heading-level-1 {
+  color: var(--accent);
   font-size: 1.8rem;
   font-weight: 400;
 }
 
 .typ-heading-level-2 {
+  color: var(--ok);
   font-size: 1.5rem;
   font-weight: 400;
 }
 
 .typ-heading-level-3 {
+  color: var(--warning);
   font-size: 1.25rem;
   font-weight: 400;
 }
 
-.typ-marker,
+.typ-heading-level-4 {
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.typ-heading-level-5 {
+  color: var(--ok);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.typ-heading-level-6 {
+  color: var(--warning);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.typ-marker {
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+
 .typ-term {
   font-weight: bold;
 }
 
 .typ-math-delim {
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .typ-math-op,
 .typ-op {
-  color: #8c3f1f;
+  color: var(--danger);
 }
 
 .typ-key {
-  color: var(--color-accent);
+  color: var(--accent);
 }
 
 .typ-num,
 .typ-str {
-  color: var(--color-ok);
+  color: var(--warning);
 }
 
 .typ-func {
-  color: #40485f;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
 
 .typ-pol {
-  color: #333;
+  color: var(--text);
 }
 
 .typ-error {
-  color: var(--color-danger);
+  color: var(--danger);
 }
 
-.cm-tooltip {
-  font-family: var(--font-mono);
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  background: var(--color-surface);
-  padding: 0.5rem;
+/* Inline rendered widgets (WYSIWYG) + hover popup renders. */
+.typst-render {
+  display: inline-block;
+  max-width: 100%;
+  overflow: visible;
+  vertical-align: top;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.typst-render svg {
+  /* svg_in_html emits an inline "width: N em" style; without !important the
+     browser sizes the frame by the inherited font-size (N x 16px in the
+     editor). The widget sets the container height; the svg fills it. */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cm-content[contenteditable="true"] .typst-render {
+  border-radius: 0.25rem;
+  transition: background-color 0.15s;
+}
+
+.cm-content[contenteditable="true"] .typst-render:hover {
+  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.cm-content[contenteditable="true"] .typst-render svg {
+  cursor: text;
 }
 
 .typst-popup-render {
-  padding: 0.5rem;
+  padding: 1rem;
 }
 
 .typst-popup-render div {
@@ -370,14 +648,12 @@ body {
 }
 
 .typst-popup-render svg {
-  /* Same inline "width: N em" fight as .typst-render; the wrapper div sets
-     the popup box, the svg stretches to it. */
   width: 100% !important;
   height: 100% !important;
 }
 
 .typst-hints {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.85rem;
 }
 
@@ -397,5 +673,39 @@ body {
   background: var(--cursor-color);
   border-radius: 0.25rem 0.25rem 0.25rem 0;
   pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ------------------------------ a11y base ------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
   white-space: nowrap;
 }

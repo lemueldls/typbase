@@ -32,6 +32,8 @@ import {
   typstSyntaxHighlighting,
 } from "@typbase/codemirror";
 
+import { typstEditorTheme } from "~/lib/cmTheme";
+
 const props = defineProps<{
   fileId: FileId;
   spaceId: string;
@@ -79,6 +81,10 @@ onBeforeUnmount(() => {
 
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
+
+  // Injected after CM's runtime base theme, so token-based colors win over
+  // the defaults (cursor, tooltip, selection, gutters).
+  extensions.push(typstEditorTheme());
 
   if (props.wysiwyg) {
     extensions.push(
@@ -129,7 +135,7 @@ function createStateConfig(): EditorStateConfig {
     rectangularSelection(),
     crosshairCursor(),
     highlightSelectionMatches(),
-    placeholder("Start typing…"),
+    placeholder("Start typing..."),
   );
 
   if (props.extensions) extensions.push(...props.extensions);

@@ -85,7 +85,7 @@ function useWorkspaceState() {
     error: null,
   });
   const atprotoReady = ref(false);
-  let ensurePromise: Promise<WorkspaceStore> | undefined;
+  let ensurePromise: Promise<WorkspaceStore | null> | undefined;
 
   /** Bumped whenever workspace-level data changes (pages, categories, settings). */
   const dataRevision = ref(0);
@@ -365,7 +365,8 @@ function useWorkspaceState() {
     await reg.save({ ...entry, name: trimmed });
     workspaces.value = await reg.list();
     if (id === activeWorkspaceId.value) {
-      await workspace.value?.updateSettings({ name: trimmed });
+      // updateSettings is synchronous (commits the Loro doc itself).
+      workspace.value?.updateSettings({ name: trimmed });
     }
   }
 

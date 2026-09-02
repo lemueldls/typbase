@@ -112,7 +112,7 @@ definePageMeta({ ssr: false });
       <p v-if="posts.length" class="profile__count">{{ posts.length }} published note(s)</p>
     </header>
 
-    <p v-if="loading" class="profile__status">Loading…</p>
+    <p v-if="loading" class="profile__status">Loading...</p>
     <p v-else-if="error" class="profile__error">{{ error }}</p>
     <p v-else-if="posts.length === 0" class="profile__status">Nothing published yet.</p>
 

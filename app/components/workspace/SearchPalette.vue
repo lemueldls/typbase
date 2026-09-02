@@ -76,14 +76,26 @@ function open(result: SearchResultItem) {
 <template>
   <div class="search-palette" @keydown="onKeydown" @click.self="emit('close')">
     <div class="search-palette__box" role="dialog" aria-label="Search">
-      <input
-        ref="input"
-        v-model="query"
-        class="search-palette__input"
-        placeholder="Search pages and blocks…"
-      />
-      <p v-if="searching" class="search-palette__hint">Searching…</p>
-      <ul v-else-if="results.length" class="search-palette__results" role="listbox">
+      <div class="search-palette__field">
+        <Icon name="lucide:search" :size="16" aria-hidden="true" class="search-palette__icon" />
+        <input
+          ref="input"
+          v-model="query"
+          class="search-palette__input"
+          placeholder="Search pages and blocks..."
+          aria-label="Search pages and blocks"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="search-results"
+        />
+      </div>
+      <p v-if="searching" class="search-palette__hint" role="status">Searching...</p>
+      <ul
+        v-else-if="results.length"
+        class="search-palette__results"
+        role="listbox"
+        id="search-results"
+      >
         <li
           v-for="(result, index) in results"
           :key="`${result.docId}:${result.blockIndex}`"
@@ -129,9 +141,22 @@ function open(result: SearchResultItem) {
   padding: 0.5rem;
 }
 
+.search-palette__field {
+  position: relative;
+}
+
+.search-palette__icon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
 .search-palette__input {
   width: 100%;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem 0.75rem 0.6rem 2.2rem;
   font-size: 1rem;
   font-family: inherit;
   border: 1px solid var(--border);

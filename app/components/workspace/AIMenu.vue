@@ -3,7 +3,6 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { Section } from "@typbase/typing";
 
 import { useTypst } from "~/composables/typst";
-import { useWorkspace } from "~/composables/workspace";
 import {
   createProviderFor,
   generateExplain,
@@ -29,6 +28,22 @@ const props = defineProps<{
 
 const busy = ref(false);
 const error = ref("");
+
+const aiEnabled = computed(() => props.store.getAiConfig().enabled);
+const menuOpen = ref(false);
+
+// AI features are opt-in: the first click on the menu offers to enable them,
+// then opens the picker. Nothing is generated or sent before that.
+async function onTrigger() {
+  if (busy.value) return;
+  if (!aiEnabled.value) {
+    if (!window.confirm("AI generation is off. Enable it and configure a provider in Settings?")) {
+      return;
+    }
+    props.store.updateSettings({ ai: { ...props.store.getAiConfig(), enabled: true } });
+  }
+  menuOpen.value = !menuOpen.value;
+}
 
 // Section extraction runs in wasm; the first call loads the instance.
 let extractor: Promise<(source: string) => Section[]> | undefined;
@@ -201,10 +216,18 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
 </script>
 
 <template>
-  <PopoverRoot>
+  <PopoverRoot v-model:open="menuOpen">
     <PopoverTrigger as-child>
-      <button type="button" class="button button--small" :disabled="busy" title="AI generators">
-        {{ busy ? "Working…" : "AI" }}
+      <button
+        type="button"
+        class="button button--small"
+        :class="{ 'button--muted': !aiEnabled }"
+        :disabled="busy"
+        title="AI generators"
+        @click="onTrigger"
+      >
+        <Icon name="lucide:sparkles" :size="14" aria-hidden="true" />
+        {{ busy ? "Working…" : aiEnabled ? "AI" : "AI (off)" }}
       </button>
     </PopoverTrigger>
     <PopoverPortal>
@@ -250,7 +273,7 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
           Study guide for category
         </button>
 
-        <p v-if="error" class="ai-menu__error">{{ error }}</p>
+        <p v-if="error" class="ai-menu__error" role="alert">{{ error }}</p>
         <p class="ai-menu__hint">
           Calls go direct to your configured provider. Keys live in local.json.
         </p>
@@ -262,6 +285,10 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
 <style scoped>
 .ai-menu {
   min-width: 13rem;
+}
+
+.button--muted {
+  opacity: 0.7;
 }
 
 .ai-menu__error {

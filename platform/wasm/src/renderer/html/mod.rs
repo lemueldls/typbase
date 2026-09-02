@@ -145,21 +145,18 @@ pub fn render(
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct HTMLRenderResult {
     pub frames: Vec<HTMLRangedFrame>,
     pub diagnostics: Vec<TypstDiagnostic>,
 }
 
 #[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct HTMLRangedFrame {
     pub range: Range<usize>,
     pub render: HTMLFrameRender,
 }
 
 #[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct HTMLFrameRender {
     html: String,
     hash: u32,
@@ -167,7 +164,6 @@ pub struct HTMLFrameRender {
 
 /// Result of rendering a Typst document to HTML.
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RenderHtmlResult {
     /// The rendered HTML document, if successful.
     pub document: Option<String>,

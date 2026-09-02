@@ -151,7 +151,6 @@ fn render_svg(
 
 /// Result of SVG rendering, containing SVG frames and diagnostics.
 #[derive(Debug, Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SvgRender {
     /// Rendered SVG frames for each chunk.
     pub frames: Vec<SvgRangedFrame>,
@@ -163,7 +162,6 @@ pub struct SvgRender {
 
 /// An SVG frame with its corresponding source range.
 #[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SvgRangedFrame {
     /// UTF-16 range in the source for this frame.
     pub range: Range<usize>,
@@ -180,7 +178,6 @@ impl SvgRangedFrame {
 
 /// Rendered SVG data for a frame, including metadata.
 #[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SvgFrameRender {
     /// SVG markup as a string.
     pub svg: String,

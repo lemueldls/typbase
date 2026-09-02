@@ -15,7 +15,6 @@ use typst_syntax::{
 /// One flattened source block. `map[i]` is the raw byte offset of plain byte
 /// `i`; FTS offsets in `plain` translate through it to editor positions.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct FlattenedBlock {
     pub kind: String,
     pub plain: String,
@@ -27,7 +26,6 @@ pub struct FlattenedBlock {
 /// A `#typbase.section(kind: ...)[...]` block. Ranges are raw source bytes;
 /// `content_start..content_end` is the markup inside the brackets.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SectionSpan {
     pub kind: String,
     pub content_start: usize,

@@ -1,3 +1,11 @@
+// `entries()` is part of the File System Access API but lib.dom does not
+// declare it for FileSystemDirectoryHandle yet (experimental surface).
+declare global {
+  interface FileSystemDirectoryHandle {
+    entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+  }
+}
+
 /**
  * Storage backends. The whole local tree is a flat set of byte-addressed
  * files; the registry decides what lives where.

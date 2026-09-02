@@ -140,7 +140,7 @@ defineExpose({ scroller, getFrameLayout });
 
 <template>
   <div ref="scroller" class="paged-preview">
-    <div v-if="rendering" class="paged-preview__status">rendering…</div>
+    <div v-if="rendering" class="paged-preview__status">rendering...</div>
     <div class="paged-preview__inner">
       <div v-for="(frame, index) in frames" :key="index" data-frame class="paged-preview__frame">
         <!-- eslint-disable-next-line vue/no-v-html -- the wasm engine produced this SVG markup -->

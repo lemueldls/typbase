@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 import type { FileId, TypstState } from "@typbase/wasm";
 
@@ -111,7 +112,7 @@ watch(
   { deep: false },
 );
 
-let store: Awaited<ReturnType<typeof ensure>>;
+let store: WorkspaceStore;
 let requestService: TypstRequestService | undefined;
 let unsubscribeSave: (() => void) | undefined;
 let unsubscribePage: (() => void) | undefined;
@@ -133,7 +134,12 @@ async function setupPage() {
   pageError.value = undefined;
   ready.value = false;
 
-  store = await ensure();
+  const opened = await ensure();
+  if (!opened) {
+    pageError.value = "No workspace is open.";
+    return;
+  }
+  store = opened;
 
   const page = store.getPage(props.pageId);
   if (!page) {
@@ -149,6 +155,8 @@ async function setupPage() {
   if (!typstState.value) {
     typstState.value = await useTypst();
     requestService = createTypstRequestService(typstState.value, store);
+    // The space context survives later createSourceId calls (see state.rs);
+    // this one call is what gives pages their fonts/theme.
     await applyWorkspaceStyleToTypst(workspaceId.value, store);
 
     // Query JSON goes stale when pages/categories/settings change. Re-apply
@@ -359,6 +367,16 @@ const modes: Array<{ id: ViewMode; label: string }> = [
   { id: "source", label: "Source" },
   { id: "read", label: "Read" },
 ];
+
+// Arrow keys move between view modes, per the tabs pattern.
+function onModeKeydown(event: KeyboardEvent) {
+  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+  event.preventDefault();
+  const index = modes.findIndex((mode) => mode.id === props.modelValue);
+  const delta = event.key === "ArrowRight" ? 1 : -1;
+  const next = modes[(index + delta + modes.length) % modes.length];
+  if (next) emit("update:modelValue", next.id);
+}
 </script>
 
 <template>
@@ -376,13 +394,20 @@ const modes: Array<{ id: ViewMode; label: string }> = [
           @open-page="emit('openPage', $event)"
         />
         <PublishButton v-if="store" :page-id="pageId" :store="store" />
-        <div class="page-view__modes" role="tablist" aria-label="View mode">
+        <div
+          class="page-view__modes"
+          role="tablist"
+          aria-label="View mode"
+          aria-orientation="horizontal"
+          @keydown="onModeKeydown"
+        >
           <button
             v-for="mode in modes"
             :key="mode.id"
             type="button"
             role="tab"
             :aria-selected="modelValue === mode.id"
+            :tabindex="modelValue === mode.id ? 0 : -1"
             class="page-view__mode"
             :class="{ 'page-view__mode--active': modelValue === mode.id }"
             :disabled="!ready"
@@ -451,7 +476,8 @@ const modes: Array<{ id: ViewMode; label: string }> = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
