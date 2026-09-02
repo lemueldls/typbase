@@ -160,6 +160,13 @@ export async function buildQueryJson(path: string, store: WorkspaceStore): Promi
       });
     }
     case "pages": {
+      if (query.filterName === "by-id" && query.filterValue) {
+        const page = pages.find((candidate) => candidate.id === query.filterValue);
+        // Typst's json() turns "null" into none; #typbase.page-link uses that
+        // for missing pages instead of failing the compile.
+        return page ? JSON.stringify(page) : "null";
+      }
+
       const list =
         query.filterName === "by-category" && query.filterValue
           ? pages.filter((page) => page.categoryId === query.filterValue)

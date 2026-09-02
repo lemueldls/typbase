@@ -1017,6 +1017,21 @@ const TYPBASE_LIB: &str = r#"
 }
 
 #let embed(id) = include("/typbase-src/" + str(id) + ".typ")
+
+// A navigable link to another page. Renders the page title (or the given
+// body) as a Typst link; the app intercepts `typbase://page/<id>` clicks in
+// the preview and opens that page for editing. Unlike embed, nothing is
+// compiled at link time, and a missing page renders a quiet placeholder
+// instead of failing the compile.
+#let page-link(page-id, body: none) = {
+  let meta = json("typbase-query/pages/by-id/" + str(page-id) + ".json")
+  if meta == none {
+    if body == none [none] else [#body]
+  } else {
+    let url = "typbase://page/" + str(page-id)
+    if body == none [#link(url)[#meta.title]] else [#link(url)[#body]]
+  }
+}
 "#;
 
 // The import and the request paths are root-absolute: pages compile from

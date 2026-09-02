@@ -4,6 +4,7 @@ import type { PageMeta } from "@typbase/typing";
 
 import { useWorkspace } from "~/composables/workspace";
 
+import CalendarDialog from "./CalendarDialog.vue";
 import CategoriesDialog from "./CategoriesDialog.vue";
 import NewPageDialog from "./NewPageDialog.vue";
 import SettingsPopover from "./SettingsPopover.vue";
@@ -38,7 +39,6 @@ const settings = computed(() => {
   return props.store.getSettings();
 });
 
-const dailyPages = computed(() => pages.value.filter((page) => page.path.startsWith("daily/")));
 const regularPages = computed(() => pages.value.filter((page) => !page.path.startsWith("daily/")));
 const uncategorized = computed(() => regularPages.value.filter((page) => !page.categoryId));
 
@@ -49,42 +49,14 @@ function pagesForCategory(categoryId: string) {
 const today = new Date();
 const todayISO = today.toISOString().slice(0, 10);
 
-const week = computed(() =>
-  Array.from({ length: 7 }, (_, index) => {
-    const offset = 6 - index;
-    const date = new Date(today);
-    date.setDate(date.getDate() - offset);
-    const iso = date.toISOString().slice(0, 10);
-    const label =
-      iso === todayISO
-        ? "Today"
-        : date.toLocaleDateString(undefined, {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
-
-    return {
-      iso,
-      label,
-      page: dailyPages.value.find((page) => page.path === `daily/${iso}.typ`),
-    };
-  }),
-);
-
 async function openToday() {
   const page = await props.store.createDailyNote(todayISO);
   emit("select", page.id);
 }
 
-async function selectDaily(day: { page: PageMeta | undefined; iso: string }) {
-  if (day.page) {
-    emit("select", day.page.id);
-    return;
-  }
-
-  const page = await props.store.createDailyNote(day.iso);
-  emit("select", page.id);
+/** A daily note was deleted from the calendar; fall back if it was open. */
+function onCalendarDeleted(pageId: string) {
+  if (props.currentPageId === pageId) emit("select", "");
 }
 
 const renameTarget = ref<PageMeta>();
@@ -151,20 +123,12 @@ function onCreated(page: PageMeta) {
         Today
       </button>
 
-      <ul class="sidebar__list">
-        <li v-for="day in week" :key="day.iso">
-          <button
-            type="button"
-            class="sidebar__row"
-            :class="{ 'sidebar__row--active': day.page?.id === currentPageId }"
-            :aria-current="day.page?.id === currentPageId ? 'page' : undefined"
-            @click="selectDaily(day)"
-          >
-            <span class="sidebar__row-dot" :class="{ 'sidebar__row-dot--filled': !!day.page }" />
-            {{ day.label }}
-          </button>
-        </li>
-      </ul>
+      <CalendarDialog :store="store" @select="emit('select', $event)" @deleted="onCalendarDeleted">
+        <button type="button" class="sidebar__row sidebar__row--calendar">
+          <Icon name="lucide:calendar" :size="14" aria-hidden="true" />
+          Calendar
+        </button>
+      </CalendarDialog>
     </div>
 
     <div class="sidebar__section sidebar__section--pages">
@@ -416,7 +380,8 @@ function onCreated(page: PageMeta) {
   background: var(--accent-soft);
 }
 
-.sidebar__row--today {
+.sidebar__row--today,
+.sidebar__row--calendar {
   font-weight: 600;
 }
 

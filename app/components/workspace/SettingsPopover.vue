@@ -131,6 +131,20 @@ const themeError = ref("");
 /** Settings tab; keeps the popover from becoming a scroll marathon. */
 const activeTab = ref<"general" | "publish" | "ai" | "search" | "sync">("general");
 
+// Typst sources that drive page structure: the daily template placeholders
+// (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
+// every compile. Both sync through settings like everything else.
+function onDailyTemplateChange(event: Event) {
+  props.store.updateSettings({
+    dailyNoteTemplate: (event.target as HTMLTextAreaElement).value,
+  });
+}
+function onPagePreludeChange(event: Event) {
+  props.store.updateSettings({
+    pagePrelude: (event.target as HTMLTextAreaElement).value,
+  });
+}
+
 function onCustomPaletteChange() {
   const palette = parseCustomPalette(customPaletteText.value);
   if (!palette) {
@@ -385,6 +399,37 @@ function onCodeFontChange(event: Event) {
             </span>
           </label>
           <p v-if="themeError" class="settings__error" role="alert">{{ themeError }}</p>
+
+          <label class="settings__field">
+            <span>Daily note template</span>
+            <textarea
+              class="settings__input settings__textarea"
+              :value="settings.dailyNoteTemplate"
+              rows="5"
+              spellcheck="false"
+              @change="onDailyTemplateChange"
+            />
+            <span class="settings__hint">
+              New daily notes render this Typst source. Placeholders: {"{date}"}, {"{weekday}"},
+              {"{yesterday}"} (nearest previous note) and {"{tomorrow}"} (nearest next note).
+            </span>
+          </label>
+
+          <label class="settings__field">
+            <span>Page prelude</span>
+            <textarea
+              class="settings__input settings__textarea"
+              :value="settings.pagePrelude ?? ''"
+              rows="4"
+              spellcheck="false"
+              placeholder="#set text(size: 11pt)  // runs before every page, after theme/fonts"
+              @change="onPagePreludeChange"
+            />
+            <span class="settings__hint">
+              Appended before every page compile (editor, previews, published pages). Use new Typst
+              functions or #set rules here to build custom views.
+            </span>
+          </label>
 
           <label class="settings__field">
             <span>Text font</span>

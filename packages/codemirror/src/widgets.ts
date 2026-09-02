@@ -78,6 +78,22 @@ class TypstWidget extends WidgetType {
 
   private handleMouseEvent(event: MouseEvent) {
     event.preventDefault();
+
+    const target = event.target as Element | null;
+    const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+    if (anchor) {
+      if (event.type !== "click") return;
+
+      const href = anchor.getAttribute("href") ?? "";
+      if (href.startsWith("typbase://")) return;
+
+      if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
+        window.open(href, "_blank", "noopener,noreferrer");
+      }
+
+      return;
+    }
+
     const { clientX, clientY } = event;
     this.handleJump(clientX, clientY);
   }

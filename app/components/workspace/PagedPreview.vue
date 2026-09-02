@@ -17,7 +17,30 @@ const props = defineProps<{
   onPanic?: () => void;
 }>();
 
-const emit = defineEmits<{ (e: "panic"): void }>();
+const emit = defineEmits<{ (e: "panic"): void; (e: "navigate", pageId: string): void }>();
+
+// App-internal links (typbase://page/<id>) open the page in the editor;
+// external links leave the app, so confirm first and open in a new tab.
+function onPreviewClick(event: MouseEvent) {
+  const target = event.target as Element | null;
+  const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+  if (!anchor) return;
+
+  const href = anchor.getAttribute("href") ?? "";
+  if (href.startsWith("typbase://page/")) {
+    event.preventDefault();
+    const pageId = href.slice("typbase://page/".length);
+    if (pageId) emit("navigate", pageId);
+    return;
+  }
+
+  if (/^(https?:|mailto:)/.test(href)) {
+    event.preventDefault();
+    if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
+  }
+}
 
 const scroller = useTemplateRef("scroller");
 const frames = ref<SvgRangedFrame[]>([]);
@@ -91,11 +114,13 @@ onMounted(() => {
     }
   });
   if (scroller.value) resizeObserver.observe(scroller.value);
+  scroller.value?.addEventListener("click", onPreviewClick);
 
   scheduleRender();
 });
 
 onBeforeUnmount(() => {
+  scroller.value?.removeEventListener("click", onPreviewClick);
   resizeObserver?.disconnect();
 });
 
@@ -155,7 +180,11 @@ defineExpose({ scroller, getFrameLayout });
   height: 100%;
   min-height: 0;
   overflow-y: auto;
-  background: #fff;
+  background: var(--surface);
+}
+
+.paged-preview :deep(a[href]) {
+  cursor: pointer;
 }
 
 .paged-preview__status {

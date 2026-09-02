@@ -17,6 +17,7 @@ import { createTypstRequestService, type TypstRequestService } from "~/lib/typst
 import AIMenu from "./AIMenu.vue";
 import EditablePane from "./EditablePane.vue";
 import PagedPreview from "./PagedPreview.vue";
+import PublishButton from "./PublishButton.vue";
 
 export type ViewMode = "write" | "split" | "source" | "read";
 
@@ -151,6 +152,9 @@ async function setupPage() {
   personaCache.value = (await atproto.value?.ensurePersona()) ?? personaCache.value;
 
   text.value = await store.loadPageText(props.pageId);
+  // The generated prelude (theme/fonts) is implicit; this is the user's own
+  // prelude, appended on every compile.
+  prelude.value = store.getSettings().pagePrelude ?? "";
 
   if (!typstState.value) {
     typstState.value = await useTypst();
@@ -166,6 +170,8 @@ async function setupPage() {
       void (async () => {
         await applyWorkspaceStyleToTypst(workspaceId.value, store);
         requestService?.purge();
+        // A prelude edit must recompile with the new text.
+        prelude.value = store.getSettings().pagePrelude ?? "";
         editorPane.value?.recompile();
         cleanupScrollSync();
         meta.value = store.getPage(props.pageId);
@@ -442,6 +448,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :revision="editorRevision"
         :extensions="extraExtensions"
         :on-panic="handlePanic"
+        :on-navigate="(pageId) => emit('openPage', pageId)"
       />
 
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
@@ -459,6 +466,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :render-revision="renderRevision"
         :on-requests="onRequests"
         :on-panic="handlePanic"
+        @navigate="emit('openPage', $event)"
       />
     </div>
   </div>

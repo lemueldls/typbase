@@ -49,6 +49,8 @@ const props = defineProps<{
   extensions?: Extension[];
   /** Fired when the plugin's compile trapped; the parent rebuilds the wasm state. */
   onPanic?: () => void;
+  /** Fired when a typbase link inside a rendered widget is clicked. */
+  onNavigate?: (pageId: string) => void;
 }>();
 
 const container = useTemplateRef("container");
@@ -64,7 +66,27 @@ const createView = () => {
   });
 };
 
-onMounted(createView);
+// typbase.page-link renders as <a href="typbase://page/<id>"> inside the
+// widget SVG; the widget no longer claims anchor clicks, so route them here.
+function onWidgetClick(event: MouseEvent) {
+  const anchor = (event.target as Element | null)?.closest?.(
+    'a[href^="typbase://page/"]',
+  ) as HTMLAnchorElement | null;
+  if (!anchor) return;
+  event.preventDefault();
+  const pageId = anchor.getAttribute("href")?.slice("typbase://page/".length);
+  if (pageId) props.onNavigate?.(pageId);
+}
+
+onMounted(() => {
+  createView();
+  container.value?.addEventListener("click", onWidgetClick);
+});
+
+onBeforeUnmount(() => {
+  container.value?.removeEventListener("click", onWidgetClick);
+  view.value?.destroy();
+});
 
 // Write vs source mode need different extension sets; rebuild on switch.
 watch(
@@ -74,10 +96,6 @@ watch(
     createView();
   },
 );
-
-onBeforeUnmount(() => {
-  view.value?.destroy();
-});
 
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];

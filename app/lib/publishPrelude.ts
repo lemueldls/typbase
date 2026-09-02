@@ -41,5 +41,8 @@ export function publishPrelude(settings: WorkspaceSettings): string {
     "",
     '#import "/typbase.typ" as typbase',
     "",
+    // The user's workspace prelude, same text the editor appends.
+    settings.pagePrelude ?? "",
+    "",
   ].join("\n");
 }

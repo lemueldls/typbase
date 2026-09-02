@@ -117,6 +117,12 @@ export interface WorkspaceSettings {
   homePageId: string | null;
   /** Typst source for newly created daily notes. */
   dailyNoteTemplate: string;
+  /**
+   * User prelude appended after the generated one on every compile (editor,
+   * previews, published pages). This is the escape hatch for custom styling
+   * and Typst-driven views; theme/fonts stay in their own settings.
+   */
+  pagePrelude: string;
   font: string;
   mathFont: string | null;
   codeFont: string | null;
@@ -137,10 +143,11 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   dailyNoteTemplate: [
     "= {date} ({weekday})",
     "",
-    'Yesterday: #typbase.embed("{yesterday}")',
+    'Yesterday: #typbase.page-link("{yesterday}")',
     "",
-    'Tomorrow: #typbase.embed("{tomorrow}")',
+    'Tomorrow: #typbase.page-link("{tomorrow}")',
   ].join("\n"),
+  pagePrelude: "",
   font: "Maple Mono",
   mathFont: "New Computer Modern Math",
   codeFont: null,

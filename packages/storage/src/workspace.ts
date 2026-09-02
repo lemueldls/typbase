@@ -358,20 +358,38 @@ export class WorkspaceStore {
     const title = this.formatDate(date);
     const settings = this.getSettings();
 
-    const yesterday = this.dailyPageId(this.shiftDate(date, -1));
-    const tomorrow = this.dailyPageId(this.shiftDate(date, 1));
+    // Neighbor links point at the nearest EXISTING daily note, not the raw
+    // next/prev calendar date, so a sparse journal still links to something
+    // navigable instead of "none".
+    const previous = this.nearestDailyPage(date, -1);
+    const next = this.nearestDailyPage(date, 1);
 
     const content = settings.dailyNoteTemplate
       .replaceAll("{date}", date)
       .replaceAll("{weekday}", this.weekdayName(date))
-      .replaceAll("{yesterday}", yesterday ?? "none")
-      .replaceAll("{tomorrow}", tomorrow ?? "none");
+      .replaceAll("{yesterday}", previous ?? "none")
+      .replaceAll("{tomorrow}", next ?? "none");
 
     return this.createPage({ title, path, content });
   }
 
-  private dailyPageId(date: string): string | undefined {
-    return this.listPages().find((page) => page.path === `daily/${date}.typ`)?.id;
+  /** Nearest existing daily note strictly before/after `date`, by path order. */
+  private nearestDailyPage(date: string, direction: -1 | 1): string | undefined {
+    let best: PageMeta | undefined;
+    for (const page of this.listPages()) {
+      const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
+      if (!match) continue;
+      const day = match[1]!;
+      if (direction === -1 && day >= date) continue;
+      if (direction === 1 && day <= date) continue;
+      if (!best) {
+        best = page;
+      } else {
+        const bestDay = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(best.path)![1]!;
+        if (direction === -1 ? day > bestDay : day < bestDay) best = page;
+      }
+    }
+    return best?.id;
   }
 
   private formatDate(date: string): string {
