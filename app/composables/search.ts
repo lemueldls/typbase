@@ -19,6 +19,12 @@ function useSearchState() {
   });
 
   function ensure(store: WorkspaceStore): Promise<SearchManager> {
+    // Workspace switched: the old manager indexes the previous workspace.
+    if (manager.value && manager.value.workspaceId !== store.workspaceId) {
+      manager.value.stop();
+      manager.value = undefined;
+      promise = undefined;
+    }
     if (manager.value) return Promise.resolve(manager.value);
     promise ??= (async () => {
       const instance = new SearchManager(store);

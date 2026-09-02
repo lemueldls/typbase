@@ -7,6 +7,7 @@ import { useWorkspace } from "~/composables/workspace";
 import CategoriesDialog from "./CategoriesDialog.vue";
 import NewPageDialog from "./NewPageDialog.vue";
 import SettingsPopover from "./SettingsPopover.vue";
+import WorkspaceSwitcher from "./WorkspaceSwitcher.vue";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -123,9 +124,16 @@ function onCreated(page: PageMeta) {
   <aside class="sidebar">
     <header class="sidebar__header">
       <span class="sidebar__name">{{ settings.name }}</span>
-      <SettingsPopover :store="store">
-        <button type="button" class="button button--icon" aria-label="Workspace settings">⚙</button>
-      </SettingsPopover>
+      <div class="sidebar__header-actions">
+        <WorkspaceSwitcher mode="menu">
+          <button type="button" class="button button--icon" aria-label="Switch workspace">⇄</button>
+        </WorkspaceSwitcher>
+        <SettingsPopover :store="store">
+          <button type="button" class="button button--icon" aria-label="Workspace settings">
+            ⚙
+          </button>
+        </SettingsPopover>
+      </div>
     </header>
 
     <div class="sidebar__section">
@@ -328,6 +336,12 @@ function onCreated(page: PageMeta) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sidebar__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .sidebar__section {

@@ -2,12 +2,14 @@
 import PageView, { type ViewMode } from "~/components/workspace/PageView.vue";
 import SearchPalette from "~/components/workspace/SearchPalette.vue";
 import Sidebar from "~/components/workspace/Sidebar.vue";
+import WorkspaceSwitcher from "~/components/workspace/WorkspaceSwitcher.vue";
 import { useSearch } from "~/composables/search";
 import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { refreshSections, toSections } from "~/lib/ai/generators";
 
-const { workspace, error, ensure, dataRevision, bootProgress, bootNote } = useWorkspace();
+const { workspace, error, ensure, dataRevision, bootProgress, bootNote, workspaceGeneration } =
+  useWorkspace();
 
 const loaded = ref(false);
 const currentPageId = ref<string>("");
@@ -35,6 +37,19 @@ watch(
   },
   { immediate: true },
 );
+
+// Switching workspaces swaps the store under the shell; the generation key
+// remounts Sidebar/PageView, so the page id must be re-selected first. The
+// watcher runs pre-render in the same tick as the bump.
+watch(workspaceGeneration, () => {
+  const store = workspace.value;
+  if (!store) {
+    currentPageId.value = "";
+    return;
+  }
+  const settings = store.getSettings();
+  currentPageId.value = settings.homePageId ?? store.listPages()[0]?.id ?? "";
+});
 
 // Section metadata should stay fresh even without the editor being open:
 // the store's page changes drive a re-extract on every page switch.
@@ -138,29 +153,35 @@ definePageMeta({ ssr: false });
     </div>
 
     <template v-else-if="workspace">
-      <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
+      <div :key="workspaceGeneration" class="app__content">
+        <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
 
-      <div class="app__main">
-        <PageView
-          v-if="currentPageId"
-          :key="currentPageId"
-          :page-id="currentPageId"
-          :model-value="mode"
-          @update:model-value="setMode"
-          @open-page="openPage"
-        />
-        <div v-else class="app__empty">
-          <p>No pages yet.</p>
-          <p class="app__empty-hint">Create one from the sidebar.</p>
+        <div class="app__main">
+          <PageView
+            v-if="currentPageId"
+            :key="currentPageId"
+            :page-id="currentPageId"
+            :model-value="mode"
+            @update:model-value="setMode"
+            @open-page="openPage"
+          />
+          <div v-else class="app__empty">
+            <p>No pages yet.</p>
+            <p class="app__empty-hint">Create one from the sidebar.</p>
+          </div>
         </div>
-      </div>
 
-      <SearchPalette
-        v-if="paletteOpen && workspace"
-        :store="workspace"
-        @close="paletteOpen = false"
-      />
+        <SearchPalette
+          v-if="paletteOpen && workspace"
+          :store="workspace"
+          @close="paletteOpen = false"
+        />
+      </div>
     </template>
+
+    <div v-else class="app__chooser">
+      <WorkspaceSwitcher mode="screen" />
+    </div>
   </main>
 </template>
 
@@ -169,6 +190,16 @@ definePageMeta({ ssr: false });
   display: flex;
   height: 100vh;
   overflow: hidden;
+}
+
+.app__content {
+  display: contents;
+}
+
+.app__chooser {
+  flex: 1;
+  display: grid;
+  place-content: center;
 }
 
 .app__loading,

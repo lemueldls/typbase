@@ -18,7 +18,7 @@ const props = defineProps<{
   store: WorkspaceStore;
 }>();
 
-const { workspaceId, dataRevision, atproto, atprotoStatus, atprotoReady } = useWorkspace();
+const { dataRevision, atproto, atprotoStatus, atprotoReady } = useWorkspace();
 
 // Publish defaults (stored in workspace settings so they sync).
 const publishDefaults = computed(() => props.store.getPublishSettings());

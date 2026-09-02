@@ -14,6 +14,11 @@ export interface StorageBackend {
   read(path: string): Promise<Uint8Array | null>;
   write(path: string, data: Uint8Array): Promise<void>;
   delete(path: string): Promise<void>;
+  /**
+   * Entry names (files and directories) directly under `path`. `""` lists the
+   * root. Used by the workspace registry to enumerate and remove workspaces.
+   */
+  list(path: string): Promise<string[]>;
 }
 
 export function pathSegments(path: string): string[] {
@@ -34,6 +39,18 @@ export class MemoryBackend implements StorageBackend {
 
   async delete(path: string): Promise<void> {
     this.files.delete(path);
+  }
+
+  async list(path: string): Promise<string[]> {
+    const prefix = path ? `${path}/` : "";
+    const names = new Set<string>();
+    for (const key of this.files.keys()) {
+      if (!key.startsWith(prefix)) continue;
+      const rest = key.slice(prefix.length);
+      const name = rest.split("/")[0];
+      if (name) names.add(name);
+    }
+    return [...names];
   }
 }
 
@@ -107,5 +124,21 @@ export class OPFSBackend implements StorageBackend {
     } catch {
       // Already gone; not worth surfacing.
     }
+  }
+
+  async list(path: string): Promise<string[]> {
+    const segments = pathSegments(path);
+    let dir: FileSystemDirectoryHandle;
+    try {
+      dir = await this.ensureDir(segments);
+    } catch {
+      return [];
+    }
+
+    const names: string[] = [];
+    for await (const [name] of dir.entries()) {
+      names.push(name);
+    }
+    return names;
   }
 }

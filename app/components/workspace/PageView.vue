@@ -62,11 +62,11 @@ async function handlePanic() {
     // The old request service pointed at a dead instance.
     requestService = createTypstRequestService(fresh, store);
     requestService.setCurrentPage(props.pageId);
-    await applyWorkspaceStyleToTypst(workspaceId, store);
+    await applyWorkspaceStyleToTypst(workspaceId.value, store);
 
     const page = store.getPage(props.pageId);
     if (page) {
-      fileId.value = fresh.createSourceId(page.path, workspaceId);
+      fileId.value = fresh.createSourceId(page.path, workspaceId.value);
       fresh.insertSource(fileId.value, text.value);
     }
 
@@ -149,14 +149,14 @@ async function setupPage() {
   if (!typstState.value) {
     typstState.value = await useTypst();
     requestService = createTypstRequestService(typstState.value, store);
-    await applyWorkspaceStyleToTypst(workspaceId, store);
+    await applyWorkspaceStyleToTypst(workspaceId.value, store);
 
     // Query JSON goes stale when pages/categories/settings change. Re-apply
     // fonts first (settings may have changed), purge the inserted files, then
     // recompile. Preview panes re-render off dataRevision on their own.
     unsubscribeStructure = store.onStructureChange(() => {
       void (async () => {
-        await applyWorkspaceStyleToTypst(workspaceId, store);
+        await applyWorkspaceStyleToTypst(workspaceId.value, store);
         requestService?.purge();
         editorPane.value?.recompile();
         cleanupScrollSync();
@@ -167,7 +167,7 @@ async function setupPage() {
 
   requestService!.setCurrentPage(props.pageId);
 
-  fileId.value = typstState.value.createSourceId(page.path, workspaceId);
+  fileId.value = typstState.value.createSourceId(page.path, workspaceId.value);
   typstState.value.insertSource(fileId.value, text.value);
 
   unsubscribeSave?.();

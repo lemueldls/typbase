@@ -29,6 +29,15 @@ export interface Category {
   name: string;
 }
 
+/** One workspace in the local registry (`workspaces.json`). */
+export interface WorkspaceInfo {
+  id: string;
+  /** Cache of the workspace doc's `settings.name`; refreshed on open/rename. */
+  name: string;
+  createdAt: number;
+  lastOpenedAt: number;
+}
+
 /** Typed-section metadata extracted from `#typbase.section(...)` blocks. */
 export interface Section {
   /** Stable-ish id: `${kind}:${rangeStart}`. */

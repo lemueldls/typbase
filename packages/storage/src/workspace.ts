@@ -35,11 +35,11 @@ export function slugify(text: string): string {
   return slug || "untitled";
 }
 
-function workspacePath(workspaceId: string): string {
+export function workspacePath(workspaceId: string): string {
   return `workspaces/${workspaceId}/workspace.loro`;
 }
 
-function pagePath(workspaceId: string, pageId: string): string {
+export function pagePath(workspaceId: string, pageId: string): string {
   return `workspaces/${workspaceId}/pages/${pageId}.loro`;
 }
 

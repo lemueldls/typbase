@@ -64,6 +64,11 @@ export class SearchManager {
 
   constructor(private readonly store: WorkspaceStore) {}
 
+  /** The workspace this index belongs to; switches rebuild the manager. */
+  get workspaceId(): string {
+    return this.store.workspaceId;
+  }
+
   get status(): SearchStatus {
     return this.statusValue;
   }
