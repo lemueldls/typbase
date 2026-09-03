@@ -392,18 +392,23 @@ export class WorkspaceStore {
     return best?.id;
   }
 
+  /** Locale-aware date label: "Wednesday, 2026-09-02" in the workspace locale. */
   private formatDate(date: string): string {
     const parsed = new Date(`${date}T00:00:00Z`);
-
     return `${this.weekdayName(date)}, ${parsed.toISOString().slice(0, 10)}`;
   }
 
+  /** Long weekday via Intl ("auto" locale = environment default, browser in app). */
   private weekdayName(date: string): string {
-    const weekday = new Date(`${date}T00:00:00Z`).toUTCString().slice(0, 3);
-    const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const full = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-    return full[names.indexOf(weekday)] ?? date;
+    const settings = this.getSettings();
+    const locale = settings.locale && settings.locale !== "auto" ? settings.locale : undefined;
+    try {
+      return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(
+        new Date(`${date}T00:00:00Z`),
+      );
+    } catch {
+      return date;
+    }
   }
 
   private shiftDate(date: string, days: number): string {

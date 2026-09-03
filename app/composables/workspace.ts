@@ -45,11 +45,11 @@ interface CursorLike {
   to: number;
 }
 
-function initialBootSteps(): BootStepState[] {
+function initialBootSteps(t: (key: string) => string): BootStepState[] {
   return [
-    { id: "storage", label: "Opening local storage", status: "pending" },
-    { id: "workspace", label: "Loading workspace documents", status: "pending" },
-    { id: "atproto", label: "Checking atproto session", status: "pending" },
+    { id: "storage", label: t("boot.storage"), status: "pending" },
+    { id: "workspace", label: t("boot.workspace"), status: "pending" },
+    { id: "atproto", label: t("boot.atproto"), status: "pending" },
   ];
 }
 
@@ -95,7 +95,8 @@ function useWorkspaceState() {
     new Map<string, { persona: { name: string; color: string }; cursor: CursorLike | null }>(),
   );
 
-  const bootProgress = ref<BootStepState[]>(initialBootSteps());
+  const { t } = useI18n();
+  const bootProgress = ref<BootStepState[]>(initialBootSteps((key) => t(key as never)));
   /** Non-fatal boot notes (OPFS fell back to memory, atproto disabled, ...). */
   const bootNote = ref("");
 
@@ -179,12 +180,12 @@ function useWorkspaceState() {
 
       updateBootStep("atproto", {
         status: "done",
-        detail: service.status.signedIn ? "sync available" : "guest workspace",
+        detail: service.status.signedIn ? t("boot.syncAvailable") : t("boot.guest"),
       });
     } catch (cause) {
       console.warn("[atproto] disabled:", cause);
       bootNote.value = `Sync unavailable (${cause instanceof Error ? cause.message : String(cause)}). The workspace runs as a guest.`;
-      updateBootStep("atproto", { status: "error", detail: "running without sync" });
+      updateBootStep("atproto", { status: "error", detail: t("boot.withoutSync") });
     }
   }
 
@@ -217,7 +218,7 @@ function useWorkspaceState() {
   async function openWorkspace(id: string): Promise<WorkspaceStore> {
     const token = ++openingSeq;
     teardownActive();
-    bootProgress.value = initialBootSteps();
+    bootProgress.value = initialBootSteps((key) => t(key as never));
     bootNote.value = "";
 
     const reg = await ensureRegistry();

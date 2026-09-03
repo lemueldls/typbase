@@ -32,6 +32,7 @@ const emit = defineEmits<{
 }>();
 
 const { workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
+const { t } = useI18n();
 
 const typstState = shallowRef<TypstState>();
 const fileId = shallowRef<FileId>();
@@ -121,6 +122,8 @@ let unsubscribeStructure: (() => void) | undefined;
 let detachScrollSync: (() => void) | undefined;
 let pageDisposed = false;
 
+const aiEnabled = computed(() => store.getAiConfig().enabled);
+
 const pushText = useThrottleFn((value: string) => {
   void store?.setPageText(props.pageId, value);
 }, 800);
@@ -137,14 +140,14 @@ async function setupPage() {
 
   const opened = await ensure();
   if (!opened) {
-    pageError.value = "No workspace is open.";
+    pageError.value = t("pageView.noWorkspace");
     return;
   }
   store = opened;
 
   const page = store.getPage(props.pageId);
   if (!page) {
-    pageError.value = `No page named ${props.pageId}`;
+    pageError.value = t("pageView.noPage", { id: props.pageId });
     return;
   }
 
@@ -367,11 +370,11 @@ function startSplitDrag(event: PointerEvent) {
   target.addEventListener("pointerup", onUp);
 }
 
-const modes: Array<{ id: ViewMode; label: string }> = [
-  { id: "write", label: "Write" },
-  { id: "split", label: "Split" },
-  { id: "source", label: "Source" },
-  { id: "read", label: "Read" },
+const modes: Array<{ id: ViewMode; key: string }> = [
+  { id: "write", key: "pageView.write" },
+  { id: "split", key: "pageView.split" },
+  { id: "source", key: "pageView.source" },
+  { id: "read", key: "pageView.read" },
 ];
 
 // Arrow keys move between view modes, per the tabs pattern.
@@ -392,7 +395,7 @@ function onModeKeydown(event: KeyboardEvent) {
 
       <div class="page-view__toolbar-actions">
         <AIMenu
-          v-if="store"
+          v-if="store && aiEnabled"
           :page-id="pageId"
           :store="store"
           :get-selection="getSelection"
@@ -419,7 +422,7 @@ function onModeKeydown(event: KeyboardEvent) {
             :disabled="!ready"
             @click="emit('update:modelValue', mode.id)"
           >
-            {{ mode.label }}
+            {{ $t(mode.key) }}
           </button>
         </div>
       </div>

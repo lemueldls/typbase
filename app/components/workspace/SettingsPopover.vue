@@ -2,6 +2,7 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
+import { useAppLocale } from "~/composables/appLocale";
 import { useSearch } from "~/composables/search";
 import { applyTheme, useTheme } from "~/composables/theme";
 import {
@@ -21,6 +22,8 @@ const props = defineProps<{
 }>();
 
 const { dataRevision, atproto, atprotoStatus, atprotoReady } = useWorkspace();
+const { t } = useI18n();
+const appLocale = useAppLocale(props.store);
 
 // Loro maps are not reactive; the workspace bumps dataRevision on any change.
 const settings = computed(() => {
@@ -129,11 +132,20 @@ function parseCustomPalette(text: string): ThemePaletteTokens | null {
 }
 const themeError = ref("");
 /** Settings tab; keeps the popover from becoming a scroll marathon. */
-const activeTab = ref<"general" | "publish" | "ai" | "search" | "sync">("general");
+const activeTab = ref<"general" | "appearance" | "publish" | "ai" | "search" | "sync">("general");
 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
 // every compile. Both sync through settings like everything else.
+function themeOptionLabel(id: string): string {
+  if (id === "custom") return t("settings.custom");
+  return THEME_OPTIONS.find((option) => option.id === id)?.label ?? id;
+}
+
+function onLocaleChange(event: Event) {
+  appLocale.set((event.target as HTMLSelectElement).value);
+}
+
 function onDailyTemplateChange(event: Event) {
   props.store.updateSettings({
     dailyNoteTemplate: (event.target as HTMLTextAreaElement).value,
@@ -231,13 +243,8 @@ function onThemeChange(event: Event) {
 }
 
 function formatAgo(timestamp: number): string {
-  if (!timestamp) return "never";
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-
-  return `${Math.floor(seconds / 86400)}d ago`;
+  if (!timestamp) return t("settings.syncNever");
+  return appLocale.formatAgo(timestamp);
 }
 
 function shortDid(did: string | null): string {
@@ -301,7 +308,7 @@ function onCodeFontChange(event: Event) {
 
     <PopoverPortal>
       <PopoverContent class="popover" :side-offset="8" align="start">
-        <h3 class="popover__title">Workspace settings</h3>
+        <h3 class="popover__title">{{ $t("settings.title") }}</h3>
         <div class="settings__tabs">
           <button
             type="button"
@@ -310,7 +317,16 @@ function onCodeFontChange(event: Event) {
             :class="{ 'settings__tab--active': activeTab === 'general' }"
             @click="activeTab = 'general'"
           >
-            General
+            {{ $t("settings.tabGeneral") }}
+          </button>
+          <button
+            type="button"
+            class="settings__tab"
+            data-tab="appearance"
+            :class="{ 'settings__tab--active': activeTab === 'appearance' }"
+            @click="activeTab = 'appearance'"
+          >
+            {{ $t("settings.tabAppearance") }}
           </button>
           <button
             type="button"
@@ -319,7 +335,7 @@ function onCodeFontChange(event: Event) {
             :class="{ 'settings__tab--active': activeTab === 'publish' }"
             @click="activeTab = 'publish'"
           >
-            Publish
+            {{ $t("settings.tabPublish") }}
           </button>
           <button
             type="button"
@@ -328,7 +344,7 @@ function onCodeFontChange(event: Event) {
             :class="{ 'settings__tab--active': activeTab === 'ai' }"
             @click="activeTab = 'ai'"
           >
-            AI
+            {{ $t("settings.tabAi") }}
           </button>
           <button
             type="button"
@@ -337,7 +353,7 @@ function onCodeFontChange(event: Event) {
             :class="{ 'settings__tab--active': activeTab === 'search' }"
             @click="activeTab = 'search'"
           >
-            Search
+            {{ $t("settings.tabSearch") }}
           </button>
           <button
             type="button"
@@ -346,44 +362,87 @@ function onCodeFontChange(event: Event) {
             :class="{ 'settings__tab--active': activeTab === 'sync' }"
             @click="activeTab = 'sync'"
           >
-            Sync
+            {{ $t("settings.tabSync") }}
           </button>
         </div>
 
         <section v-show="activeTab === 'general'" class="settings__tabpanel">
           <label class="settings__field">
-            <span>Name</span>
+            <span>{{ $t("settings.name") }}</span>
             <input class="settings__input" :value="settings.name" @change="renameWorkspace" />
           </label>
 
           <label class="settings__field">
-            <span>Theme</span>
+            <span>{{ $t("settings.language") }}</span>
+            <select
+              class="settings__input"
+              :value="settings.locale ?? 'auto'"
+              @change="onLocaleChange"
+            >
+              <option value="auto">{{ $t("settings.languageAuto") }}</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="fr">Français</option>
+              <option value="zh">中文</option>
+            </select>
+          </label>
+
+          <label class="settings__field">
+            <span>{{ $t("settings.template") }}</span>
+            <textarea
+              class="settings__input settings__textarea"
+              :value="settings.dailyNoteTemplate"
+              rows="5"
+              spellcheck="false"
+              @change="onDailyTemplateChange"
+            />
+            <span class="settings__hint">{{ $t("settings.templateHint") }}</span>
+          </label>
+
+          <label class="settings__field">
+            <span>{{ $t("settings.prelude") }}</span>
+            <textarea
+              class="settings__input settings__textarea"
+              :value="settings.pagePrelude ?? ''"
+              rows="4"
+              spellcheck="false"
+              placeholder="#set text(size: 11pt)  // runs before every page, after theme/fonts"
+              @change="onPagePreludeChange"
+            />
+            <span class="settings__hint">{{ $t("settings.preludeHint") }}</span>
+          </label>
+        </section>
+
+        <section v-show="activeTab === 'appearance'" class="settings__tabpanel">
+          <label class="settings__field">
+            <span>{{ $t("settings.theme") }}</span>
             <select
               class="settings__input"
               :value="settings.themeName ?? 'default'"
               @change="onThemeNameChange"
             >
               <option v-for="option in THEME_OPTIONS" :key="option.id" :value="option.id">
-                {{ option.label }}
+                {{ themeOptionLabel(option.id) }}
               </option>
             </select>
           </label>
 
           <label class="settings__field">
-            <span>Theme mode</span>
+            <span>{{ $t("settings.themeMode") }}</span>
             <select
               class="settings__input"
               :value="settings.theme ?? 'auto'"
               @change="onThemeChange"
             >
-              <option value="auto">Auto (system)</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
+              <option value="auto">{{ $t("settings.auto") }}</option>
+              <option value="light">{{ $t("settings.light") }}</option>
+              <option value="dark">{{ $t("settings.dark") }}</option>
             </select>
           </label>
 
           <label v-if="settings.themeName === 'custom'" class="settings__field">
-            <span>Custom palette (token → color JSON)</span>
+            <span>{{ $t("settings.customPalette") }}</span>
             <textarea
               v-model="customPaletteText"
               class="settings__input settings__textarea"
@@ -401,38 +460,7 @@ function onCodeFontChange(event: Event) {
           <p v-if="themeError" class="settings__error" role="alert">{{ themeError }}</p>
 
           <label class="settings__field">
-            <span>Daily note template</span>
-            <textarea
-              class="settings__input settings__textarea"
-              :value="settings.dailyNoteTemplate"
-              rows="5"
-              spellcheck="false"
-              @change="onDailyTemplateChange"
-            />
-            <span class="settings__hint">
-              New daily notes render this Typst source. Placeholders: {"{date}"}, {"{weekday}"},
-              {"{yesterday}"} (nearest previous note) and {"{tomorrow}"} (nearest next note).
-            </span>
-          </label>
-
-          <label class="settings__field">
-            <span>Page prelude</span>
-            <textarea
-              class="settings__input settings__textarea"
-              :value="settings.pagePrelude ?? ''"
-              rows="4"
-              spellcheck="false"
-              placeholder="#set text(size: 11pt)  // runs before every page, after theme/fonts"
-              @change="onPagePreludeChange"
-            />
-            <span class="settings__hint">
-              Appended before every page compile (editor, previews, published pages). Use new Typst
-              functions or #set rules here to build custom views.
-            </span>
-          </label>
-
-          <label class="settings__field">
-            <span>Text font</span>
+            <span>{{ $t("settings.textFont") }}</span>
             <select class="settings__input" :value="settings.font" @change="onFontChange">
               <option v-for="font in fontOptions" :key="font" :value="font">
                 {{ font }}
@@ -441,13 +469,13 @@ function onCodeFontChange(event: Event) {
           </label>
 
           <label class="settings__field">
-            <span>Math font</span>
+            <span>{{ $t("settings.mathFont") }}</span>
             <select
               class="settings__input"
               :value="settings.mathFont ?? 'New Computer Modern Math'"
               @change="onMathFontChange"
             >
-              <option value="">Same as text font</option>
+              <option value="">{{ $t("settings.sameAsText") }}</option>
               <option v-for="font in fontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
@@ -455,13 +483,13 @@ function onCodeFontChange(event: Event) {
           </label>
 
           <label class="settings__field">
-            <span>Code font</span>
+            <span>{{ $t("settings.codeFont") }}</span>
             <select
               class="settings__input"
               :value="settings.codeFont ?? ''"
               @change="onCodeFontChange"
             >
-              <option value="">Same as text font</option>
+              <option value="">{{ $t("settings.sameAsText") }}</option>
               <option v-for="font in fontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
@@ -485,21 +513,22 @@ function onCodeFontChange(event: Event) {
                 {{ systemFontsLoading ? "Loading..." : "Load system fonts" }}
               </button>
               <p v-if="systemFontsLoaded" class="settings__ok">
-                {{ systemFontFamilies.length }} system font families installed.
+                {{ $t("settings.systemFontsLoaded", { count: systemFontFamilies.length }) }}
               </p>
             </template>
-            <p v-else class="settings__hint">This browser cannot enumerate system fonts.</p>
+            <p v-else class="settings__hint">{{ $t("settings.cannotEnumerate") }}</p>
 
             <p v-if="systemFontsError" class="settings__error">
               {{ systemFontsError }}
             </p>
           </div>
         </section>
+
         <section v-show="activeTab === 'publish'" class="settings__tabpanel">
           <section class="settings__section">
             <h4 class="settings__heading">Publish defaults</h4>
             <label class="settings__field">
-              <span>Languages</span>
+              <span>{{ $t("settings.langs") }}</span>
               <input
                 class="settings__input"
                 :value="publishLangs"
@@ -508,17 +537,17 @@ function onCodeFontChange(event: Event) {
               />
             </label>
             <label class="settings__field">
-              <span>Tags</span>
+              <span>{{ $t("settings.tags") }}</span>
               <input
                 class="settings__input"
                 :value="publishTags"
-                placeholder="notes, journal"
+                :placeholder="$t('settings.tags')"
                 @change="publishTags = ($event.target as HTMLInputElement).value"
               />
             </label>
             <label class="settings__check">
               <input type="checkbox" :checked="publishDefaults.includePdf" @change="togglePdf" />
-              <span>Include a PDF</span>
+              <span>{{ $t("settings.includePdf") }}</span>
             </label>
           </section>
         </section>
@@ -531,14 +560,14 @@ function onCodeFontChange(event: Event) {
                 :checked="aiConfig.enabled"
                 @change="updateAiPatching({ enabled: ($event.target as HTMLInputElement).checked })"
               />
-              <span>Enable AI generation</span>
+              <span>{{ $t("settings.aiEnable") }}</span>
             </label>
             <p class="settings__hint">
               Off by default: nothing is generated or sent to a provider until you enable this.
             </p>
             <template v-if="aiConfig.enabled">
               <label class="settings__field">
-                <span>Provider</span>
+                <span>{{ $t("settings.provider") }}</span>
                 <select
                   class="settings__input"
                   :value="aiConfig.provider"
@@ -554,7 +583,7 @@ function onCodeFontChange(event: Event) {
                 </select>
               </label>
               <label class="settings__field">
-                <span>Base URL</span>
+                <span>{{ $t("settings.baseUrl") }}</span>
                 <input
                   class="settings__input"
                   :value="aiConfig.baseUrl"
@@ -573,7 +602,7 @@ function onCodeFontChange(event: Event) {
                 />
               </label>
               <label class="settings__field">
-                <span>Model</span>
+                <span>{{ $t("settings.model") }}</span>
                 <input
                   class="settings__input"
                   :value="aiConfig.chatModel"
@@ -586,7 +615,7 @@ function onCodeFontChange(event: Event) {
               </label>
               <template v-if="aiConfig.provider !== 'ollama'">
                 <label class="settings__field">
-                  <span>API key (device only)</span>
+                  <span>{{ $t("settings.apiKey") }}</span>
                   <input
                     class="settings__input"
                     type="password"
@@ -596,7 +625,7 @@ function onCodeFontChange(event: Event) {
                   />
                 </label>
               </template>
-              <p class="settings__hint">Keys stay in local.json, never in synced settings.</p>
+              <p class="settings__hint">{{ $t("settings.keysHint") }}</p>
             </template>
           </section>
         </section>
@@ -609,7 +638,7 @@ function onCodeFontChange(event: Event) {
                 :checked="props.store.getSearchSettings().semantic"
                 @change="toggleSemantic"
               />
-              <span>Semantic search (downloads a model)</span>
+              <span>{{ $t("settings.semantic") }}</span>
             </label>
             <p class="settings__hint">
               <template v-if="searchStatus">
@@ -638,7 +667,7 @@ function onCodeFontChange(event: Event) {
                   <input
                     v-model="signInIdentifier"
                     class="settings__input settings__input--grow"
-                    placeholder="handle or DID"
+                    :placeholder="$t('settings.syncSignInPlaceholder')"
                     @keydown.enter="onSignIn"
                   />
                   <button
@@ -653,22 +682,26 @@ function onCodeFontChange(event: Event) {
               </template>
 
               <template v-else>
-                <p class="settings__ok">Signed in as {{ shortDid(atprotoStatus.did) }}</p>
+                <p class="settings__ok">
+                  {{ $t("settings.signedInAs", { did: shortDid(atprotoStatus.did) }) }}
+                </p>
                 <p class="settings__hint">
-                  Status: {{ atprotoStatus.pendingUpdates }} pending
-                  <template v-if="atprotoStatus.pendingUpdates">, exporting...</template>
-                  <template v-else>in sync</template>
-                  · exported {{ formatAgo(atprotoStatus.lastExportAt) }} · imported
-                  {{ formatAgo(atprotoStatus.lastImportAt) }}
+                  {{
+                    $t("settings.syncStatus", {
+                      pending: atprotoStatus.pendingUpdates
+                        ? $t("settings.syncExporting")
+                        : atprotoStatus.pendingUpdates,
+                      exported: appLocale.formatAgo(atprotoStatus.lastExportAt),
+                      imported: appLocale.formatAgo(atprotoStatus.lastImportAt),
+                    })
+                  }}
                 </p>
                 <p class="settings__hint" :class="{ settings__error: atprotoStatus.error }">
-                  {{
-                    atprotoStatus.error ?? "Record data is plaintext to every member of the space."
-                  }}
+                  {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
                 </p>
 
                 <div v-if="atprotoStatus.members.length" class="settings__members">
-                  <p class="settings__hint">Members</p>
+                  <p class="settings__hint">{{ $t("settings.syncMembers") }}</p>
                   <ul>
                     <li v-for="member in atprotoStatus.members" :key="member.did">
                       {{ shortDid(member.did) }}
@@ -677,19 +710,16 @@ function onCodeFontChange(event: Event) {
                 </div>
 
                 <button type="button" class="button" :disabled="!atprotoReady" @click="onSignOut">
-                  Sign out
+                  {{ $t("settings.syncSignOut") }}
                 </button>
               </template>
 
               <p v-if="signInError" class="settings__error">{{ signInError }}</p>
               <p v-if="!atprotoStatus.relayConnected" class="settings__hint">
-                Live relay offline; edits still sync through the PDS.
+                {{ $t("settings.syncRelayOff") }}
               </p>
             </template>
-            <p v-else class="settings__hint">
-              Sync requires the app server (OAuth client metadata). Running a static build keeps
-              this workspace fully local.
-            </p>
+            <p v-else class="settings__hint">{{ $t("settings.syncRequiresServer") }}</p>
           </section>
         </section>
       </PopoverContent>

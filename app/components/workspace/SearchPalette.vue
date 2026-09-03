@@ -82,14 +82,16 @@ function open(result: SearchResultItem) {
           ref="input"
           v-model="query"
           class="search-palette__input"
-          placeholder="Search pages and blocks..."
-          aria-label="Search pages and blocks"
+          :placeholder="$t('palette.placeholder')"
+          :aria-label="$t('palette.label')"
           role="combobox"
           aria-expanded="true"
           aria-controls="search-results"
         />
       </div>
-      <p v-if="searching" class="search-palette__hint" role="status">Searching...</p>
+      <p v-if="searching" class="search-palette__hint" role="status">
+        {{ $t("palette.searching") }}
+      </p>
       <ul
         v-else-if="results.length"
         class="search-palette__results"
@@ -113,8 +115,8 @@ function open(result: SearchResultItem) {
           <div class="search-palette__snippet">{{ result.snippet }}</div>
         </li>
       </ul>
-      <p v-else-if="query.trim()" class="search-palette__hint">No matches.</p>
-      <p v-else class="search-palette__hint">Type to search every block in the workspace.</p>
+      <p v-else-if="query.trim()" class="search-palette__hint">{{ $t("palette.noMatches") }}</p>
+      <p v-else class="search-palette__hint">{{ $t("palette.prompt") }}</p>
     </div>
   </div>
 </template>

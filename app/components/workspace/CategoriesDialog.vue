@@ -48,7 +48,7 @@ async function remove(id: string) {
     <DialogPortal>
       <DialogOverlay class="dialog-overlay" />
       <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">Categories</DialogTitle>
+        <DialogTitle class="dialog__title">{{ $t("categories.title") }}</DialogTitle>
         <DialogDescription class="dialog__description">
           Pages group under categories; the sidebar lists them by category.
         </DialogDescription>
@@ -60,20 +60,22 @@ async function remove(id: string) {
             <button
               type="button"
               class="button button--icon"
-              :aria-label="`Remove ${category.name}`"
+              :aria-label="$t('categories.removeAria', { name: category.name })"
               @click="remove(category.id)"
             >
               ×
             </button>
           </li>
-          <li v-if="categories.length === 0" class="category-list__empty">No categories yet.</li>
+          <li v-if="categories.length === 0" class="category-list__empty">
+            {{ $t("categories.none") }}
+          </li>
         </ul>
 
         <form class="dialog__form" @submit.prevent="add">
           <div class="dialog__field">
-            <input v-model="newName" class="dialog__input" placeholder="New category" />
+            <input v-model="newName" class="dialog__input" :placeholder="$t('categories.label')" />
           </div>
-          <button type="submit" class="button button--primary">Add</button>
+          <button type="submit" class="button button--primary">{{ $t("categories.add") }}</button>
         </form>
         <p v-if="error" class="dialog__error">{{ error }}</p>
 

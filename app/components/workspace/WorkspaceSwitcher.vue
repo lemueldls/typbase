@@ -16,6 +16,10 @@ const {
   deleteWorkspace,
 } = useWorkspace();
 
+const { t, locale } = useI18n();
+function formatOpened(timestamp: number): string {
+  return new Intl.DateTimeFormat(locale.value).format(new Date(timestamp));
+}
 const busy = ref(false);
 const error = ref("");
 
@@ -54,7 +58,7 @@ async function onCreate() {
 }
 
 async function onRename(info: { id: string; name: string }) {
-  const name = window.prompt("Rename workspace", info.name);
+  const name = window.prompt(t("switcher.renamePrompt"), info.name);
   if (!name?.trim()) return;
   try {
     await renameWorkspace(info.id, name);
@@ -64,8 +68,7 @@ async function onRename(info: { id: string; name: string }) {
 }
 
 async function onDelete(info: { id: string; name: string }) {
-  if (!window.confirm(`Delete workspace "${info.name}" and all its pages? This cannot be undone.`))
-    return;
+  if (!window.confirm(t("switcher.deleteConfirm", { name: info.name }))) return;
   try {
     if (props.mode === "menu") newOpen.value = false;
     await deleteWorkspace(info.id);
@@ -81,7 +84,7 @@ function active(id: string | null): boolean {
 
 <template>
   <div v-if="mode === 'screen'" class="ws-screen">
-    <h1 class="ws-screen__title">Open a workspace</h1>
+    <h1 class="ws-screen__title">{{ $t("switcher.title") }}</h1>
 
     <ul v-if="workspaces.length" class="ws-screen__list">
       <li v-for="info in workspaces" :key="info.id" class="ws-screen__item">
@@ -96,8 +99,8 @@ function active(id: string | null): boolean {
           <span class="ws-screen__meta">
             {{
               active(info.id)
-                ? "current"
-                : `opened ${new Date(info.lastOpenedAt).toLocaleDateString()}`
+                ? $t("switcher.current")
+                : $t("switcher.opened", { date: formatOpened(info.lastOpenedAt) })
             }}
           </span>
         </button>
@@ -115,16 +118,18 @@ function active(id: string | null): boolean {
         </div>
       </li>
     </ul>
-    <p v-else class="ws-screen__hint">No workspaces yet. Create one below.</p>
+    <p v-else class="ws-screen__hint">{{ $t("switcher.noWorkspaces") }}</p>
 
     <form class="ws-screen__create" @submit.prevent="onCreate">
       <input
         v-model="newName"
         class="dialog__input ws-screen__input"
-        placeholder="New workspace name"
-        aria-label="New workspace name"
+        :placeholder="$t('switcher.newName')"
+        :aria-label="$t('switcher.newName')"
       />
-      <button type="submit" class="button button--primary" :disabled="busy">Create</button>
+      <button type="submit" class="button button--primary" :disabled="busy">
+        {{ $t("switcher.create") }}
+      </button>
     </form>
 
     <p v-if="error" class="ws-screen__error" role="alert">{{ error }}</p>
@@ -134,7 +139,7 @@ function active(id: string | null): boolean {
     <PopoverRoot v-model:open="newOpen">
       <PopoverTrigger as-child>
         <slot>
-          <button type="button" class="button button--icon" aria-label="Switch workspace">
+          <button type="button" class="button button--icon" :aria-label="$t('switcher.switchAria')">
             <Icon name="lucide:arrow-left-right" :size="16" aria-hidden="true" />
           </button>
         </slot>
@@ -155,7 +160,7 @@ function active(id: string | null): boolean {
               <button
                 type="button"
                 class="button button--ghost button--tiny"
-                :aria-label="`Rename ${info.name}`"
+                :aria-label="t('switcher.renameAria', { name: info.name })"
                 @click.stop="onRename(info)"
               >
                 <Icon name="lucide:pencil" :size="12" aria-hidden="true" />
@@ -163,7 +168,7 @@ function active(id: string | null): boolean {
               <button
                 type="button"
                 class="button button--ghost button--tiny ws-menu__danger"
-                :aria-label="`Delete ${info.name}`"
+                :aria-label="t('switcher.deleteAria', { name: info.name })"
                 @click.stop="onDelete(info)"
               >
                 <Icon name="lucide:trash-2" :size="12" aria-hidden="true" />
@@ -177,8 +182,8 @@ function active(id: string | null): boolean {
             <input
               v-model="newName"
               class="settings__input ws-menu__input"
-              placeholder="New workspace..."
-              aria-label="New workspace name"
+              :placeholder="$t('switcher.newName')"
+              :aria-label="$t('switcher.newName')"
             />
             <button type="submit" class="button button--small button--primary" :disabled="busy">
               New
@@ -186,7 +191,7 @@ function active(id: string | null): boolean {
           </form>
 
           <p v-if="error" class="ws-menu__error" role="alert">{{ error }}</p>
-          <p class="ws-menu__hint">Each workspace syncs as its own space; data never mixes.</p>
+          <p class="ws-menu__hint">{{ $t("switcher.hint") }}</p>
         </PopoverContent>
       </PopoverPortal>
     </PopoverRoot>

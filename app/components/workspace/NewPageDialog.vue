@@ -11,6 +11,7 @@ const emit = defineEmits<{
   (e: "created", page: PageMeta): void;
 }>();
 
+const { t } = useI18n();
 const open = defineModel<boolean>("open", { default: false });
 
 const title = ref("");
@@ -24,7 +25,7 @@ const pathPreview = computed(() => `pages/${slugify(title.value || "untitled")}.
 async function submit() {
   const trimmed = title.value.trim();
   if (!trimmed) {
-    error.value = "Give the page a title.";
+    error.value = t("newPage.givingTitle");
     return;
   }
 
@@ -57,21 +58,21 @@ async function submit() {
     <DialogPortal>
       <DialogOverlay class="dialog-overlay" />
       <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">New page</DialogTitle>
+        <DialogTitle class="dialog__title">{{ $t("newPage.title") }}</DialogTitle>
         <DialogDescription class="dialog__description">
           Pages are Typst sources. The path comes from the title.
         </DialogDescription>
 
         <form class="dialog__form" @submit.prevent="submit">
           <label class="dialog__field">
-            <span>Title</span>
+            <span>{{ $t("newPage.titleField") }}</span>
             <input v-model="title" class="dialog__input" placeholder="Project ideas" autofocus />
           </label>
 
           <label class="dialog__field">
-            <span>Category</span>
+            <span>{{ $t("newPage.category") }}</span>
             <select v-model="categoryId" class="dialog__input">
-              <option value="">No category</option>
+              <option value="">{{ $t("newPage.noCategory") }}</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
@@ -86,7 +87,7 @@ async function submit() {
               <button type="button" class="button button--ghost">Cancel</button>
             </DialogClose>
             <button type="submit" class="button button--primary" :disabled="creating">
-              {{ creating ? "Creating..." : "Create" }}
+              {{ creating ? $t("common.working") : $t("newPage.create") }}
             </button>
           </div>
         </form>

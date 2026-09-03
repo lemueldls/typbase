@@ -26,6 +26,7 @@ const props = defineProps<{
   insertBelowSelection: (from: number, to: number, text: string) => void;
 }>();
 
+const { t } = useI18n();
 const busy = ref(false);
 const error = ref("");
 
@@ -37,7 +38,7 @@ const menuOpen = ref(false);
 async function onTrigger() {
   if (busy.value) return;
   if (!aiEnabled.value) {
-    if (!window.confirm("AI generation is off. Enable it and configure a provider in Settings?")) {
+    if (!window.confirm(t("aiMenu.enableConfirm"))) {
       return;
     }
     props.store.updateSettings({ ai: { ...props.store.getAiConfig(), enabled: true } });
@@ -227,7 +228,7 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
         @click="onTrigger"
       >
         <Icon name="lucide:sparkles" :size="14" aria-hidden="true" />
-        {{ busy ? "Working…" : aiEnabled ? "AI" : "AI (off)" }}
+        {{ busy ? $t("common.working") : aiEnabled ? "AI" : $t("aiMenu.off") }}
       </button>
     </PopoverTrigger>
     <PopoverPortal>
@@ -237,14 +238,14 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
           class="menu__item"
           @click="scoped('page', (ctx) => generateSummary(ctx, 'page'))"
         >
-          Summarize page
+          {{ $t("aiMenu.summarize") }}
         </button>
         <button
           type="button"
           class="menu__item"
           @click="scoped('page', (ctx) => generateOutline(ctx, 'page'))"
         >
-          Outline page
+          {{ $t("aiMenu.outline") }}
         </button>
         <button
           type="button"
@@ -252,7 +253,7 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
           :disabled="!getSelection()"
           @click="scoped('selection', generateExplain)"
         >
-          Explain selection
+          {{ $t("aiMenu.explain") }}
         </button>
         <button
           type="button"
@@ -260,22 +261,24 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
           :disabled="!getSelection()"
           @click="scoped('selection', generateSimplify)"
         >
-          Simplify selection
+          {{ $t("aiMenu.simplify") }}
         </button>
 
         <div class="menu__separator" />
 
-        <button type="button" class="menu__item" @click="quizForPage">Quiz for page</button>
+        <button type="button" class="menu__item" @click="quizForPage">
+          {{ $t("aiMenu.quiz") }}
+        </button>
         <button type="button" class="menu__item" @click="flashcardsForCategory">
-          Flashcards for category
+          {{ $t("aiMenu.flashcards") }}
         </button>
         <button type="button" class="menu__item" @click="studyGuideForCategory">
-          Study guide for category
+          {{ $t("aiMenu.studyGuide") }}
         </button>
 
         <p v-if="error" class="ai-menu__error" role="alert">{{ error }}</p>
         <p class="ai-menu__hint">
-          Calls go direct to your configured provider. Keys live in local.json.
+          {{ $t("aiMenu.hint") }}
         </p>
       </PopoverContent>
     </PopoverPortal>

@@ -3,6 +3,7 @@ import PageView, { type ViewMode } from "~/components/workspace/PageView.vue";
 import SearchPalette from "~/components/workspace/SearchPalette.vue";
 import Sidebar from "~/components/workspace/Sidebar.vue";
 import WorkspaceSwitcher from "~/components/workspace/WorkspaceSwitcher.vue";
+import { useAppLocale } from "~/composables/appLocale";
 import { useSearch } from "~/composables/search";
 import { useTheme } from "~/composables/theme";
 import { useTypst } from "~/composables/typst";
@@ -78,6 +79,8 @@ onMounted(async () => {
 
   // Tokens + Typst renderer colors follow the workspace setting.
   useTheme(store).refresh();
+  // UI language follows the workspace setting; "auto" keeps the browser one.
+  useAppLocale(store);
 
   const settings = store.getSettings();
 
@@ -137,7 +140,7 @@ definePageMeta({ ssr: false });
 <template>
   <main class="app">
     <div v-if="!loaded" class="app__loading">
-      <h2 class="app__loading-title">Opening workspace</h2>
+      <h2 class="app__loading-title">{{ $t("boot.title") }}</h2>
 
       <ul class="boot-steps">
         <li
@@ -175,7 +178,7 @@ definePageMeta({ ssr: false });
           v-if="navOpen"
           type="button"
           class="app__backdrop"
-          aria-label="Close navigation"
+          :aria-label="$t('boot.closeNav')"
           @click="navOpen = false"
         />
 
@@ -183,7 +186,7 @@ definePageMeta({ ssr: false });
           <button
             type="button"
             class="app__nav-toggle"
-            aria-label="Open navigation"
+            :aria-label="$t('boot.openNav')"
             @click="navOpen = true"
           >
             <Icon name="lucide:menu" :size="18" aria-hidden="true" />
@@ -198,8 +201,8 @@ definePageMeta({ ssr: false });
             @open-page="openPage"
           />
           <div v-else class="app__empty">
-            <p>No pages yet.</p>
-            <p class="app__empty-hint">Create one from the sidebar.</p>
+            <p>{{ $t("sidebar.noPages") }}</p>
+            <p class="app__empty-hint">{{ $t("boot.createOne") }}</p>
           </div>
         </div>
 

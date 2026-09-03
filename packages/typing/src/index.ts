@@ -123,6 +123,8 @@ export interface WorkspaceSettings {
    * and Typst-driven views; theme/fonts stay in their own settings.
    */
   pagePrelude: string;
+  /** UI language and date formatting locale; "auto" follows the browser. */
+  locale: string;
   font: string;
   mathFont: string | null;
   codeFont: string | null;
@@ -148,6 +150,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     'Tomorrow: #typbase.page-link("{tomorrow}")',
   ].join("\n"),
   pagePrelude: "",
+  locale: "auto",
   font: "Maple Mono",
   mathFont: "New Computer Modern Math",
   codeFont: null,

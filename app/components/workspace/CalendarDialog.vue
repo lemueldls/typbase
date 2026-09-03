@@ -19,7 +19,14 @@ const emit = defineEmits<{
   (e: "deleted", pageId: string): void;
 }>();
 
+const { t, locale } = useI18n();
 const { dataRevision } = useWorkspace();
+
+function formatDayLabel(iso: string): string {
+  return new Intl.DateTimeFormat(locale.value, { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(`${iso}T00:00:00Z`),
+  );
+}
 const open = defineModel<boolean>("open", { default: false });
 
 // UTC month grid; daily note paths use UTC ISO dates, so stay in UTC.
@@ -54,13 +61,14 @@ const grid = computed<Cell[]>(() => {
 
   const cells: Cell[] = [];
   for (let i = 0; i < 42; i++) {
-    const day = i - startOffset + 1;
-    const iso = isoOf(year, month, day);
+    const offset = i - startOffset + 1;
+    const iso = isoOf(year, month, offset);
+    const date = new Date(Date.UTC(year, month, offset));
     cells.push({
       iso,
-      day,
+      day: date.getUTCDate(),
       page: dailyPages.value.get(iso),
-      outside: day < 1 || day > daysInMonth,
+      outside: offset < 1 || offset > daysInMonth,
     });
   }
   return cells;
@@ -102,7 +110,7 @@ async function deleteDay(cell: Cell) {
   if (!cell.page) return;
   const parsed = new Date(`${cell.iso}T00:00:00Z`);
   const label = parsed.toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
-  if (!window.confirm(`Delete the daily note for ${label}? This cannot be undone.`)) return;
+  if (!window.confirm(t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }))) return;
   await props.store.deletePage(cell.page.id);
   // The sidebar falls back to home/first if the open page was deleted.
   emit("deleted", cell.page.id);
@@ -120,17 +128,16 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
     <DialogPortal>
       <DialogOverlay class="dialog-overlay" />
       <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">Daily notes</DialogTitle>
+        <DialogTitle class="dialog__title">{{ $t("calendar.title") }}</DialogTitle>
         <DialogDescription class="dialog__description">
-          Pick a day to open or create its note. Days with notes are marked; use the trash to delete
-          one.
+          {{ $t("calendar.description") }}
         </DialogDescription>
 
         <div class="calendar__toolbar">
           <button
             type="button"
             class="button button--icon"
-            aria-label="Previous month"
+            :aria-label="$t('calendar.previousMonth')"
             @click="shiftMonth(-1)"
           >
             <Icon name="lucide:chevron-left" :size="16" aria-hidden="true" />
@@ -139,7 +146,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
           <button
             type="button"
             class="button button--icon"
-            aria-label="Next month"
+            :aria-label="$t('calendar.nextMonth')"
             @click="shiftMonth(1)"
           >
             <Icon name="lucide:chevron-right" :size="16" aria-hidden="true" />
@@ -169,7 +176,11 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
               'calendar__cell--outside': cell.outside,
               'calendar__cell--today': cell.iso === today.toISOString().slice(0, 10),
             }"
-            :aria-label="`${cell.iso}${cell.page ? ', has a note' : ', no note yet'}`"
+            :aria-label="
+              cell.page
+                ? t('calendar.cell', { date: cell.iso })
+                : t('calendar.cellEmpty', { date: cell.iso })
+            "
             :disabled="cell.outside"
             @click="openDay(cell)"
           >
@@ -179,7 +190,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
               v-if="cell.page"
               type="button"
               class="calendar__delete"
-              :aria-label="`Delete daily note for ${cell.iso}`"
+              :aria-label="t('calendar.deleteAria', { date: cell.iso })"
               @click.stop="deleteDay(cell)"
             >
               <Icon name="lucide:trash-2" :size="12" aria-hidden="true" />

@@ -9,6 +9,7 @@ const props = defineProps<{
   store: WorkspaceStore;
 }>();
 
+const { t, locale } = useI18n();
 const { atproto, atprotoStatus, dataRevision } = useWorkspace();
 
 const busy = ref(false);
@@ -22,9 +23,12 @@ const meta = computed(() => {
 
 const menuOpen = ref(false);
 
+function formatPublished(timestamp: number): string {
+  return new Intl.DateTimeFormat(locale.value).format(new Date(timestamp));
+}
+
 async function onPublish() {
   if (!atproto.value || busy.value) return;
-
   busy.value = true;
   error.value = "";
   try {
@@ -40,13 +44,7 @@ async function onPublish() {
 async function onUnpublish() {
   if (!atproto.value || busy.value) return;
 
-  if (
-    !window.confirm(
-      "Unpublish this note? Public records may be mirrored by firehose services and cannot be recalled.",
-    )
-  ) {
-    return;
-  }
+  if (!window.confirm(t("pageView.publishConfirm"))) return;
 
   busy.value = true;
   error.value = "";
@@ -70,19 +68,26 @@ async function onUnpublish() {
         role="status"
       >
         <Icon name="lucide:globe" :size="12" aria-hidden="true" />
-        Published {{ new Date(meta.publishedAt).toLocaleDateString() }}
+        {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
       </span>
 
       <PopoverRoot v-model:open="menuOpen">
         <PopoverTrigger as-child>
           <button type="button" class="button button--small" :disabled="busy">
-            {{ busy ? "Working..." : meta?.publishedAt ? "Republish" : "Publish" }}
+            {{
+              busy
+                ? t("pageView.publishWorking")
+                : meta?.publishedAt
+                  ? t("pageView.republish")
+                  : t("pageView.publish")
+            }}
           </button>
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent class="menu publish__menu" :side-offset="6" align="end">
             <button type="button" class="menu__item" @click="onPublish">
-              {{ meta?.publishedAt ? "Republish" : "Publish" }} to public atproto
+              {{ meta?.publishedAt ? t("pageView.republish") : t("pageView.publish") }}
+              · {{ t("pageView.publishToAtproto") }}
             </button>
             <button
               v-if="meta?.publishedAt"
@@ -90,12 +95,9 @@ async function onUnpublish() {
               class="menu__item menu__danger"
               @click="onUnpublish"
             >
-              Unpublish
+              {{ t("pageView.unpublish") }}
             </button>
-            <p class="publish__hint">
-              Public records are readable by anyone. Unpublishing deletes the record; firehose
-              mirrors may retain copies.
-            </p>
+            <p class="publish__hint">{{ t("pageView.publishHint") }}</p>
           </PopoverContent>
         </PopoverPortal>
       </PopoverRoot>

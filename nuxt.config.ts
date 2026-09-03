@@ -3,7 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: "2026-08-31",
   devtools: { enabled: true },
   future: { compatibilityVersion: 5 },
-  modules: ["@nuxt/icon", "@vueuse/nuxt/module", "reka-ui/nuxt"],
+  modules: ["@nuxt/icon", "@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
   icon: {
     // Bundle the lucide set into the build so icons never hit the Iconify
     // API at runtime (fully offline, matches the local-first story).
@@ -40,17 +40,29 @@ export default defineNuxtConfig({
     features: {
       // websocket: true,
     },
-    // prerender: {
-    //   routes: ["/"],
-    //   crawlLinks: true,
-    // },
-    // routeRules: {
-    //   "/**": {
-    //     headers: {
-    //       "Cross-Origin-Opener-Policy": "same-origin",
-    //       "Cross-Origin-Embedder-Policy": "credentialless",
-    //     },
-    //   },
-    // },
+    prerender: {
+      routes: ["/"],
+      crawlLinks: true,
+    },
+    routeRules: {
+      "/**": {
+        headers: {
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Cross-Origin-Embedder-Policy": "credentialless",
+        },
+      },
+    },
+  },
+  i18n: {
+    locales: [
+      { code: "en", name: "English", file: "en.json" },
+      { code: "es", name: "Español", file: "es.json" },
+      { code: "de", name: "Deutsch", file: "de.json" },
+      { code: "fr", name: "Français", file: "fr.json" },
+      { code: "zh", name: "中文", file: "zh.json" },
+    ],
+    defaultLocale: "en",
+    strategy: "no_prefix",
+    detectBrowserLanguage: { useCookie: false, redirectOn: "root" },
   },
 });

@@ -20,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const { dataRevision } = useWorkspace();
+const { t } = useI18n();
 
 const pages = computed(() => {
   void dataRevision.value;
@@ -112,30 +113,34 @@ function onCreated(page: PageMeta) {
 
     <div class="sidebar__section">
       <div class="sidebar__section-title">
-        <span>Daily</span>
+        <span>{{ $t("sidebar.daily") }}</span>
         <NewPageDialog :store="store" @created="onCreated">
-          <button type="button" class="button button--primary button--small">New page</button>
+          <button type="button" class="button button--primary button--small">
+            {{ $t("sidebar.newPage") }}
+          </button>
         </NewPageDialog>
       </div>
 
       <button type="button" class="sidebar__row sidebar__row--today" @click="openToday">
         <Icon name="lucide:calendar-days" :size="14" aria-hidden="true" />
-        Today
+        {{ $t("sidebar.today") }}
       </button>
 
       <CalendarDialog :store="store" @select="emit('select', $event)" @deleted="onCalendarDeleted">
         <button type="button" class="sidebar__row sidebar__row--calendar">
           <Icon name="lucide:calendar" :size="14" aria-hidden="true" />
-          Calendar
+          {{ $t("sidebar.calendar") }}
         </button>
       </CalendarDialog>
     </div>
 
     <div class="sidebar__section sidebar__section--pages">
       <div class="sidebar__section-title">
-        <span>Pages</span>
+        <span>{{ $t("sidebar.pages") }}</span>
         <CategoriesDialog :store="store">
-          <button type="button" class="button button--ghost button--small">Categories</button>
+          <button type="button" class="button button--ghost button--small">
+            {{ $t("sidebar.categories") }}
+          </button>
         </CategoriesDialog>
       </div>
 
@@ -146,7 +151,7 @@ function onCreated(page: PageMeta) {
         @click="emit('select', settings.homePageId)"
       >
         <Icon name="lucide:house" :size="14" aria-hidden="true" />
-        Home
+        {{ $t("sidebar.home") }}
       </button>
 
       <div v-for="category in categories" :key="category.id" class="sidebar__group">
@@ -164,7 +169,7 @@ function onCreated(page: PageMeta) {
               <span
                 v-if="settings.homePageId === page.id"
                 class="sidebar__row-home"
-                title="Home page"
+                :title="$t('sidebar.homePage')"
               >
                 <Icon name="lucide:house" :size="12" aria-hidden="true" />
               </span>
@@ -175,7 +180,7 @@ function onCreated(page: PageMeta) {
                 <button
                   type="button"
                   class="button button--icon button--tiny"
-                  :aria-label="`Actions for ${page.title}`"
+                  :aria-label="t('sidebar.actions', { title: page.title })"
                 >
                   <Icon name="lucide:ellipsis" :size="14" aria-hidden="true" />
                 </button>
@@ -190,10 +195,12 @@ function onCreated(page: PageMeta) {
                   >
                     Rename
                   </DropdownMenuItem>
-                  <DropdownMenuItem @select="setHome(page)">Set as home</DropdownMenuItem>
+                  <DropdownMenuItem @select="setHome(page)">{{
+                    $t("sidebar.setHome")
+                  }}</DropdownMenuItem>
                   <DropdownMenuSeparator class="menu__separator" />
                   <DropdownMenuItem class="menu__danger" @select="remove(page)">
-                    Delete
+                    {{ $t("sidebar.delete") }}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenuPortal>
@@ -203,7 +210,7 @@ function onCreated(page: PageMeta) {
       </div>
 
       <div v-if="uncategorized.length" class="sidebar__group">
-        <span class="sidebar__group-title">General</span>
+        <span class="sidebar__group-title">{{ $t("sidebar.general") }}</span>
         <ul class="sidebar__list">
           <li v-for="page in uncategorized" :key="page.id" class="sidebar__item">
             <button
@@ -217,7 +224,7 @@ function onCreated(page: PageMeta) {
               <span
                 v-if="settings.homePageId === page.id"
                 class="sidebar__row-home"
-                title="Home page"
+                :title="$t('sidebar.homePage')"
               >
                 <Icon name="lucide:house" :size="12" aria-hidden="true" />
               </span>
@@ -228,7 +235,7 @@ function onCreated(page: PageMeta) {
                 <button
                   type="button"
                   class="button button--icon button--tiny"
-                  :aria-label="`Actions for ${page.title}`"
+                  :aria-label="t('sidebar.actions', { title: page.title })"
                 >
                   <Icon name="lucide:ellipsis" :size="14" aria-hidden="true" />
                 </button>
@@ -243,10 +250,12 @@ function onCreated(page: PageMeta) {
                   >
                     Rename
                   </DropdownMenuItem>
-                  <DropdownMenuItem @select="setHome(page)">Set as home</DropdownMenuItem>
+                  <DropdownMenuItem @select="setHome(page)">{{
+                    $t("sidebar.setHome")
+                  }}</DropdownMenuItem>
                   <DropdownMenuSeparator class="menu__separator" />
                   <DropdownMenuItem class="menu__danger" @select="remove(page)">
-                    Delete
+                    {{ $t("sidebar.delete") }}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenuPortal>
@@ -255,7 +264,7 @@ function onCreated(page: PageMeta) {
         </ul>
       </div>
 
-      <p v-if="pages.length === 0" class="sidebar__empty">No pages yet.</p>
+      <p v-if="pages.length === 0" class="sidebar__empty">{{ $t("sidebar.noPages") }}</p>
     </div>
 
     <!-- rename dialog -->
@@ -263,17 +272,19 @@ function onCreated(page: PageMeta) {
       <DialogPortal>
         <DialogOverlay class="dialog-overlay" />
         <DialogContent class="dialog">
-          <DialogTitle class="dialog__title">Rename page</DialogTitle>
+          <DialogTitle class="dialog__title">{{ $t("sidebar.renameTitle") }}</DialogTitle>
           <form class="dialog__form" @submit.prevent="rename">
             <label class="dialog__field">
-              <span>Title</span>
+              <span>{{ $t("sidebar.title") }}</span>
               <input v-model="renameTitle" class="dialog__input" autofocus />
             </label>
             <div class="dialog__actions">
               <button type="button" class="button button--ghost" @click="renameTarget = undefined">
                 Cancel
               </button>
-              <button type="submit" class="button button--primary">Rename</button>
+              <button type="submit" class="button button--primary">
+                {{ $t("sidebar.rename") }}
+              </button>
             </div>
           </form>
         </DialogContent>
@@ -282,7 +293,7 @@ function onCreated(page: PageMeta) {
     <footer class="sidebar__footer">
       <NuxtLink to="/debug" class="button button--ghost button--small">
         <Icon name="lucide:flask-conical" :size="13" aria-hidden="true" />
-        debug lab
+        {{ $t("sidebar.debugLab") }}
       </NuxtLink>
     </footer>
   </aside>

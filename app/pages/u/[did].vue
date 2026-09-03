@@ -109,26 +109,30 @@ definePageMeta({ ssr: false });
     <header class="profile__header">
       <h1>{{ author.handle ?? author.did }}</h1>
       <p class="profile__sub">{{ author.did }}</p>
-      <p v-if="posts.length" class="profile__count">{{ posts.length }} published note(s)</p>
+      <p v-if="posts.length" class="profile__count">
+        {{ $t("profile.publishedCount", { count: posts.length }) }}
+      </p>
     </header>
 
     <p v-if="loading" class="profile__status">Loading...</p>
     <p v-else-if="error" class="profile__error">{{ error }}</p>
-    <p v-else-if="posts.length === 0" class="profile__status">Nothing published yet.</p>
+    <p v-else-if="posts.length === 0" class="profile__status">{{ $t("profile.nothing") }}</p>
 
     <section v-else class="profile__posts">
       <article v-for="post in posts" :key="post.uri" class="profile__post">
         <div class="profile__post-head">
           <h2>{{ post.value.title }}</h2>
           <div class="profile__meta">
-            <span v-if="post.value.updatedAt">Updated {{ formatDate(post.value.updatedAt) }}</span>
+            <span v-if="post.value.updatedAt">{{
+              $t("profile.updated", { date: formatDate(post.value.updatedAt) })
+            }}</span>
             <a
               v-if="post.value.sourceUri"
               class="profile__link"
               :href="String(post.value.sourceUri)"
               rel="noopener"
             >
-              view source
+              {{ $t("profile.viewSource") }}
             </a>
           </div>
         </div>
