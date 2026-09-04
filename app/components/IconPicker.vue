@@ -63,7 +63,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
         :title="entry.title"
         @click="pick(entry)"
       >
-        <MsIcon :name="entry.id" :size="18" />
+        <MsIcon :name="entry.id" :size="20" />
       </button>
     </div>
 

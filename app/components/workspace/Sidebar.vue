@@ -19,10 +19,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "select", pageId: string): void;
+  /** Collapses the desktop panel / closes the mobile drawer. */
+  (e: "collapseRequest"): void;
 }>();
 
 const { dataRevision, workspaces, activeWorkspaceId } = useWorkspace();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 /** The active workspace's registry icon; falls back to the default folder. */
 const workspaceIcon = computed<MaterialSymbol>(() => {
@@ -57,6 +59,30 @@ function pagesForCategory(categoryId: string) {
 
 const today = new Date();
 const todayISO = today.toISOString().slice(0, 10);
+
+/** Day notes except today's, newest first; the "Today" row covers today. */
+const recentDays = computed(() => {
+  void dataRevision.value;
+
+  return pages.value
+    .filter(
+      (page) =>
+        page.path.startsWith("daily/") &&
+        page.path.slice("daily/".length, "daily/".length + 10) !== todayISO,
+    )
+    .sort((a, b) => b.path.localeCompare(a.path))
+    .slice(0, 7);
+});
+
+function dayLabel(page: PageMeta): string {
+  const iso = page.path.slice("daily/".length, "daily/".length + 10);
+  const date = new Date(`${iso}T00:00:00`);
+  return new Intl.DateTimeFormat(locale.value, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
 
 async function openToday() {
   const page = await props.store.createDailyNote(todayISO);
@@ -105,39 +131,72 @@ function onCreated(page: PageMeta) {
   <aside class="sidebar">
     <header class="sidebar__header">
       <span class="sidebar__title-group">
-        <MsIcon :name="workspaceIcon" :size="18" class="sidebar__icon" />
+        <MsIcon :name="workspaceIcon" :size="20" class="sidebar__icon" />
         <span class="sidebar__name">{{ settings.name }}</span>
       </span>
       <div class="sidebar__header-actions">
         <WorkspaceSwitcher mode="menu">
           <button type="button" class="button button--icon" aria-label="Switch workspace">
-            <MsIcon name="swap_horiz" :size="16" />
+            <MsIcon name="swap_horiz" :size="20" />
           </button>
         </WorkspaceSwitcher>
         <SettingsPopover :store="store">
           <button type="button" class="button button--icon" aria-label="Workspace settings">
-            <MsIcon name="settings" :size="16" />
+            <MsIcon name="settings" :size="20" />
           </button>
         </SettingsPopover>
+        <button
+          type="button"
+          class="button button--icon sidebar__collapse"
+          :aria-label="$t('sidebar.hideSidebar')"
+          @click="emit('collapseRequest')"
+        >
+          <MsIcon name="chevron_left" :size="20" />
+        </button>
       </div>
     </header>
 
     <div class="sidebar__section">
       <div class="sidebar__section-title">
         <span>{{ $t("sidebar.daily") }}</span>
+        <div class="sidebar__section-actions">
+          <CalendarDialog
+            :store="store"
+            @select="emit('select', $event)"
+            @deleted="onCalendarDeleted"
+          >
+            <button
+              type="button"
+              class="button button--ghost button--icon"
+              :aria-label="$t('sidebar.calendar')"
+            >
+              <MsIcon name="calendar_month" :size="20" />
+            </button>
+          </CalendarDialog>
+        </div>
       </div>
 
       <button type="button" class="sidebar__row sidebar__row--today" @click="openToday">
-        <MsIcon name="calendar_today" :size="14" />
+        <MsIcon name="calendar_today" :size="16" />
         {{ $t("sidebar.today") }}
       </button>
 
-      <CalendarDialog :store="store" @select="emit('select', $event)" @deleted="onCalendarDeleted">
-        <button type="button" class="sidebar__row sidebar__row--calendar">
-          <MsIcon name="calendar_month" :size="14" />
-          {{ $t("sidebar.calendar") }}
-        </button>
-      </CalendarDialog>
+      <!-- Other day notes, most recent first. Tapping opens the note; today's
+           own row above creates it lazily on first tap. -->
+      <ul v-if="recentDays.length" class="sidebar__list sidebar__list--days">
+        <li v-for="day in recentDays" :key="day.id" class="sidebar__item">
+          <button
+            type="button"
+            class="sidebar__row"
+            :aria-current="day.id === currentPageId ? 'page' : undefined"
+            @click="emit('select', day.id)"
+          >
+            <MsIcon name="calendar_month" :size="16" />
+            <span class="sidebar__day-label">{{ dayLabel(day) }}</span>
+            <span v-if="day.id === currentPageId" class="sidebar__day-dot" aria-hidden="true" />
+          </button>
+        </li>
+      </ul>
     </div>
 
     <div class="sidebar__section sidebar__section--pages">
@@ -150,12 +209,16 @@ function onCreated(page: PageMeta) {
               class="button button--primary button--icon"
               :aria-label="$t('sidebar.newPage')"
             >
-              <MsIcon name="add" :size="14" />
+              <MsIcon name="add" :size="22" />
             </button>
           </NewPageDialog>
           <CategoriesDialog :store="store">
-            <button type="button" class="button button--ghost button--small">
-              {{ $t("sidebar.categories") }}
+            <button
+              type="button"
+              class="button button--icon"
+              :aria-label="$t('sidebar.categories')"
+            >
+              <MsIcon name="category" :size="20" />
             </button>
           </CategoriesDialog>
         </div>
@@ -167,7 +230,7 @@ function onCreated(page: PageMeta) {
         class="sidebar__row sidebar__row--home"
         @click="emit('select', settings.homePageId)"
       >
-        <MsIcon name="home" :size="14" />
+        <MsIcon name="home" :size="16" />
         {{ $t("sidebar.home") }}
       </button>
 
@@ -188,7 +251,7 @@ function onCreated(page: PageMeta) {
                 class="sidebar__row-home"
                 :title="$t('sidebar.homePage')"
               >
-                <MsIcon name="home" :size="12" />
+                <MsIcon name="home" :size="14" />
               </span>
             </button>
 
@@ -199,7 +262,7 @@ function onCreated(page: PageMeta) {
                   class="button button--icon button--tiny"
                   :aria-label="t('sidebar.actions', { title: page.title })"
                 >
-                  <MsIcon name="more_horiz" :size="14" />
+                  <MsIcon name="more_horiz" :size="16" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
@@ -243,7 +306,7 @@ function onCreated(page: PageMeta) {
                 class="sidebar__row-home"
                 :title="$t('sidebar.homePage')"
               >
-                <MsIcon name="home" :size="12" />
+                <MsIcon name="home" :size="14" />
               </span>
             </button>
 
@@ -254,7 +317,7 @@ function onCreated(page: PageMeta) {
                   class="button button--icon button--tiny"
                   :aria-label="t('sidebar.actions', { title: page.title })"
                 >
-                  <MsIcon name="more_horiz" :size="14" />
+                  <MsIcon name="more_horiz" :size="16" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
@@ -309,7 +372,7 @@ function onCreated(page: PageMeta) {
     </DialogRoot>
     <footer class="sidebar__footer">
       <NuxtLink to="/debug" class="button button--ghost button--small">
-        <MsIcon name="science" :size="13" />
+        <MsIcon name="science" :size="16" />
         {{ $t("sidebar.debugLab") }}
       </NuxtLink>
     </footer>
@@ -326,12 +389,14 @@ function onCreated(page: PageMeta) {
   background: var(--surface);
 }
 
+/* Matches the page toolbar's min-height so the app chrome lines up. */
 .sidebar__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.75rem 0.9rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.9rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -347,6 +412,7 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__name {
+  font-size: 1rem;
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
@@ -375,8 +441,8 @@ function onCreated(page: PageMeta) {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0 0.4rem 0.5rem;
-  font-size: 0.8rem;
+  padding: 0 0.4rem 0.6rem;
+  font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -386,13 +452,33 @@ function onCreated(page: PageMeta) {
 .sidebar__section-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
 .sidebar__list {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.sidebar__list--days {
+  margin-top: 0.15rem;
+}
+
+.sidebar__day-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__day-dot {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: auto;
+  background: var(--accent);
+  border-radius: 999px;
 }
 
 .sidebar__item {
@@ -404,11 +490,11 @@ function onCreated(page: PageMeta) {
 .sidebar__row {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   flex: 1;
   width: 100%;
   min-width: 0;
-  padding: 0.45rem 0.6rem;
+  padding: 0.5rem 0.6rem;
   font-size: 0.9rem;
   text-align: left;
   color: var(--text);

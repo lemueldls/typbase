@@ -7,6 +7,8 @@ import { EditorView, ViewUpdate } from "@codemirror/view";
 import { typstRecompileEffect } from "@typbase/codemirror";
 import { nextTick } from "vue";
 
+import type { EditCommand } from "~/lib/editorCommands";
+
 import { applyWorkspaceStyleToTypst, renderRevision, useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
@@ -16,6 +18,7 @@ import { createTypstRequestService, type TypstRequestService } from "~/lib/typst
 
 import AIMenu from "./AIMenu.vue";
 import EditablePane from "./EditablePane.vue";
+import EditToolbar from "./EditToolbar.vue";
 import PagedPreview from "./PagedPreview.vue";
 import PublishButton from "./PublishButton.vue";
 
@@ -45,6 +48,16 @@ const prelude = ref("");
 const meta = shallowRef<PageMeta>();
 const pageError = ref<string>();
 const ready = ref(false);
+
+/** The formatting bar can be collapsed entirely; the toggle remembers. */
+const formatOpen = ref(
+  typeof localStorage === "undefined" || localStorage.getItem("typbase:formatToolbar") !== "hidden",
+);
+watch(formatOpen, (open) => {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("typbase:formatToolbar", open ? "visible" : "hidden");
+  }
+});
 
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
 // this remount, so the editor plugin and preview bind to the fresh instance.
@@ -260,6 +273,10 @@ function insertBelowSelection(from: number, to: number, output: string): void {
   editorPane.value?.insertAt(at, `\n\n${output}\n`);
 }
 
+function onEditCommand(command: EditCommand) {
+  editorPane.value?.applyCommand(command);
+}
+
 function onRequests(requests: unknown[], spaceId: string) {
   return requestService!.handler(requests as never, spaceId);
 }
@@ -391,21 +408,11 @@ function onModeKeydown(event: KeyboardEvent) {
 <template>
   <div class="page-view">
     <div class="page-view__toolbar">
-      <!-- Mobile nav toggle, provided by the shell; flows inline so it never
-           covers the title. -->
-      <slot name="nav-toggle" />
-      <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
-
-      <div class="page-view__toolbar-actions">
-        <AIMenu
-          v-if="store && aiEnabled"
-          :page-id="pageId"
-          :store="store"
-          :get-selection="getSelection"
-          :insert-below-selection="insertBelowSelection"
-          @open-page="emit('openPage', $event)"
-        />
-        <PublishButton v-if="store" :page-id="pageId" :store="store" />
+      <div class="page-view__toolbar-main">
+        <!-- Mobile nav toggle, provided by the shell; flows inline so it never
+             covers the title. -->
+        <slot name="nav-toggle" />
+        <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
         <div
           class="page-view__modes"
           role="tablist"
@@ -429,6 +436,45 @@ function onModeKeydown(event: KeyboardEvent) {
           </button>
         </div>
       </div>
+
+      <div class="page-view__toolbar-actions">
+        <!-- Collapsed bar: the reopen toggle lives here, where it never adds a
+             second row while the bar is open. -->
+        <button
+          v-if="modelValue !== 'read' && !formatOpen"
+          type="button"
+          class="button button--icon page-view__format-toggle"
+          :aria-pressed="false"
+          :aria-label="$t('formatting.title')"
+          @click="formatOpen = true"
+        >
+          <MsIcon name="text_format" :size="20" />
+        </button>
+        <AIMenu
+          v-if="store && aiEnabled"
+          :page-id="pageId"
+          :store="store"
+          :get-selection="getSelection"
+          :insert-below-selection="insertBelowSelection"
+          @open-page="emit('openPage', $event)"
+        />
+        <PublishButton v-if="store" :page-id="pageId" :store="store" />
+      </div>
+    </div>
+
+    <!-- Formatting bar: its own full-width row so it never fights the
+         title/modes or the AI/publish actions for space. Scrolls sideways
+         when narrow; the chevron at its right edge collapses it entirely. -->
+    <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">
+      <EditToolbar :disabled="!ready" @command="onEditCommand" />
+      <button
+        type="button"
+        class="page-view__format-collapse"
+        :aria-label="$t('formatting.collapse')"
+        @click="formatOpen = false"
+      >
+        <MsIcon name="keyboard_arrow_up" :size="20" />
+      </button>
     </div>
 
     <div v-if="pageError" class="page-view__error">{{ pageError }}</div>
@@ -492,28 +538,137 @@ function onModeKeydown(event: KeyboardEvent) {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
+  min-height: 3.5rem;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
+.page-view__toolbar-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Modes ride the right edge of the main row at every breakpoint: space
+   between pushes them there while the title takes the flexible middle. */
+.page-view__toolbar-main .page-view__title {
+  flex: 1;
+}
+
 .page-view__title {
+  font-size: 1.05rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .page-view__toolbar-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
+  max-width: 100%;
+}
+
+.page-view__format-toggle[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Chevron pinned to the strip's right edge; matches the edit button size. */
+.page-view__format-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  padding: 0;
+  margin-left: auto;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.page-view__format-collapse:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* Full-width strip: the buttons ride inside it, left-aligned, scrolling
+   sideways when they do not fit. */
+.page-view__format {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-view__format::-webkit-scrollbar {
+  display: none;
+}
+
+.page-view__format > * {
+  flex: none;
+}
+
+/* Mobile: the toolbar stacks. Title + modes on top, then the AI/publish
+   actions as one horizontally scrollable row so nothing gets buried. */
+@media (max-width: 768px) {
+  .page-view__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    padding: 0.4rem 0.5rem;
+    min-height: 0;
+  }
+
+  .page-view__toolbar-main {
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .page-view__mode {
+    padding: 0.35rem 0.65rem;
+  }
+
+  .page-view__toolbar-actions {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-view__toolbar-actions > * {
+    flex: none;
+  }
+
+  .page-view__toolbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-view__format {
+    padding: 0.2rem 0.5rem;
+  }
 }
 
 .page-view__modes {
   display: flex;
   gap: 0.25rem;
   padding: 0.15rem;
+  flex: none;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
@@ -572,6 +727,27 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__body--read :deep(.paged-preview) {
   padding: 0 1.5rem;
   background: var(--surface-2);
+}
+
+/* Split view stacks on phones: side-by-side panes would give each ~190px.
+   The horizontal drag handle is hidden; editors/previews scroll on their own. */
+@media (max-width: 768px) {
+  .page-view__body--split {
+    grid-template-columns: 100%;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .page-view__handle {
+    display: none;
+  }
+
+  .page-view__body--split :deep(.paged-preview) {
+    box-shadow: 0 -1px 0 var(--border);
+  }
+
+  .page-view__body--read :deep(.paged-preview) {
+    padding: 0 0.5rem;
+  }
 }
 
 .page-view__handle {

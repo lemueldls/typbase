@@ -3,7 +3,7 @@ import type { TypstRequest } from "@typbase/wasm";
 import type { FileId, TypstState } from "@typbase/wasm";
 
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
-import { history } from "@codemirror/commands";
+import { history, redo as cmRedo, undo as cmUndo } from "@codemirror/commands";
 import {
   bracketMatching,
   defaultHighlightStyle,
@@ -31,6 +31,8 @@ import {
   typstRecompileEffect,
   typstSyntaxHighlighting,
 } from "@typbase/codemirror";
+
+import type { EditCommand } from "~/lib/editorCommands";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
 
@@ -194,7 +196,120 @@ function insertAt(position: number, text: string) {
   return pos + text.length;
 }
 
-defineExpose({ view, recompile, revealRange, insertAt });
+/** Inline wrappers map to one change: `*sel*`, `#strike[sel]`, `` `sel` ``. */
+function wrapSelection(before: string, after: string) {
+  const editor = view.value;
+  if (!editor) return;
+  const { state } = editor;
+  const { from, to } = state.selection.main;
+  const text = state.sliceDoc(from, to);
+
+  const editorChange = { from, to, insert: `${before}${text}${after}` };
+  const fromAfter = from + before.length;
+  const selection = { anchor: fromAfter, head: fromAfter + text.length };
+
+  editor.dispatch({ changes: [editorChange], selection });
+}
+
+/** Tag-based wrappers take the content inside a function call. */
+function wrapFunction(name: string, after = "") {
+  wrapSelection(`#${name}[`, `]${after}`);
+}
+
+/** Prefixes every selected line (headings, list items). */
+function prefixLines(prefix: string) {
+  const editor = view.value;
+  if (!editor) return;
+  const { state } = editor;
+  const { from, to } = state.selection.main;
+  const startLine = state.doc.lineAt(from);
+  const endLine = state.doc.lineAt(to);
+
+  const changes: { from: number; to: number; insert: string }[] = [];
+  let total = 0;
+  for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber++) {
+    const line = state.doc.line(lineNumber);
+    changes.push({ from: line.from, to: line.from, insert: prefix });
+    total += prefix.length;
+  }
+
+  editor.dispatch({
+    changes,
+    // The first line's shift applies to the anchor when it sits past the
+    // prefix; the last line's shift applies to the head.
+    selection: { anchor: from + prefix.length, head: to + total },
+  });
+}
+
+/** Link insertion gets the URL placeholder selected for immediate typing. */
+function insertLink() {
+  const editor = view.value;
+  if (!editor) return;
+  const { state } = editor;
+  const { from, to } = state.selection.main;
+  const text = state.sliceDoc(from, to);
+  const url = "https://";
+  const insert = `#link("${url}")[${text}]`;
+  const urlFrom = from + '#link("'.length;
+  const urlTo = urlFrom + url.length;
+
+  editor.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: urlFrom, head: urlTo },
+  });
+}
+
+function applyCommand(command: EditCommand) {
+  const editor = view.value;
+  if (!editor) return;
+  switch (command) {
+    case "undo":
+      cmUndo({ state: editor.state, dispatch: (tr) => editor.dispatch(tr) });
+      break;
+    case "redo":
+      cmRedo({ state: editor.state, dispatch: (tr) => editor.dispatch(tr) });
+      break;
+    case "bold":
+      wrapSelection("*", "*");
+      break;
+    case "italic":
+      wrapSelection("_", "_");
+      break;
+    case "underline":
+      wrapFunction("underline");
+      break;
+    case "strike":
+      wrapFunction("strike");
+      break;
+    case "code":
+      wrapSelection("`", "`");
+      break;
+    case "math":
+      wrapSelection("$", "$");
+      break;
+    case "link":
+      insertLink();
+      break;
+    case "heading1":
+      prefixLines("= ");
+      break;
+    case "heading2":
+      prefixLines("== ");
+      break;
+    case "heading3":
+      prefixLines("=== ");
+      break;
+    case "bulletList":
+      prefixLines("- ");
+      break;
+    case "orderedList":
+      prefixLines("+ ");
+      break;
+  }
+  editor.focus();
+}
+
+defineExpose({ view, recompile, revealRange, insertAt, applyCommand });
 </script>
 
 <template>

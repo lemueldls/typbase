@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
+import type { MaterialSymbol } from "material-symbols";
 
 import { useAppLocale } from "~/composables/appLocale";
 import { useSearch } from "~/composables/search";
@@ -16,12 +17,36 @@ import {
 } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { getAiKeys, setAiKeys } from "~/lib/ai/keys";
+import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 const props = defineProps<{
   store: WorkspaceStore;
 }>();
 
-const { dataRevision, workspaceId, atproto, atprotoStatus, atprotoReady } = useWorkspace();
+const {
+  dataRevision,
+  workspaceId,
+  atproto,
+  atprotoStatus,
+  atprotoReady,
+  workspaces,
+  activeWorkspaceId,
+  setWorkspaceIcon,
+} = useWorkspace();
+
+/** The active workspace's registry icon; setter writes it through the registry. */
+const workspaceIcon = computed({
+  get: () => {
+    const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
+    return (info?.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
+  },
+  set: (icon: MaterialSymbol) => {
+    if (!activeWorkspaceId.value) return;
+    void setWorkspaceIcon(activeWorkspaceId.value, icon).catch((cause) => {
+      console.error("[settings] failed to save workspace icon:", cause);
+    });
+  },
+});
 const { t } = useI18n();
 const appLocale = useAppLocale(props.store);
 
@@ -132,7 +157,9 @@ function parseCustomPalette(text: string): ThemePaletteTokens | null {
 }
 const themeError = ref("");
 /** Settings tab; keeps the popover from becoming a scroll marathon. */
-const activeTab = ref<"general" | "appearance" | "publish" | "ai" | "search" | "sync">("general");
+const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | "search" | "sync">(
+  "general",
+);
 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
@@ -334,6 +361,15 @@ function onTextSizeChange(event: Event) {
           <button
             type="button"
             class="settings__tab"
+            data-tab="content"
+            :class="{ 'settings__tab--active': activeTab === 'content' }"
+            @click="activeTab = 'content'"
+          >
+            {{ $t("settings.tabContent") }}
+          </button>
+          <button
+            type="button"
+            class="settings__tab"
             data-tab="appearance"
             :class="{ 'settings__tab--active': activeTab === 'appearance' }"
             @click="activeTab = 'appearance'"
@@ -384,6 +420,11 @@ function onTextSizeChange(event: Event) {
             <input class="settings__input" :value="settings.name" @change="renameWorkspace" />
           </label>
 
+          <div class="settings__field">
+            <span>{{ $t("switcher.iconLabel") }}</span>
+            <IconPicker v-model="workspaceIcon" :limit="200" />
+          </div>
+
           <label class="settings__field">
             <span>{{ $t("settings.language") }}</span>
             <select
@@ -399,7 +440,11 @@ function onTextSizeChange(event: Event) {
               <option value="zh">中文</option>
             </select>
           </label>
+        </section>
 
+        <!-- Long Typst-source textareas live on their own tab so General stays
+             a short form: name, icon, language. -->
+        <section v-show="activeTab === 'content'" class="settings__tabpanel">
           <label class="settings__field">
             <span>{{ $t("settings.template") }}</span>
             <textarea

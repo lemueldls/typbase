@@ -227,7 +227,7 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
         title="AI generators"
         @click="onTrigger"
       >
-        <MsIcon name="psychology" :size="14" />
+        <MsIcon name="psychology" :size="16" />
         {{ busy ? $t("common.working") : aiEnabled ? "AI" : $t("aiMenu.off") }}
       </button>
     </PopoverTrigger>

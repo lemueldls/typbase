@@ -38,6 +38,12 @@
   caret-color: var(--accent) !important;
 }
 
+@media (max-width: 768px) {
+  .cm-content {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
 .cm-line {
   padding: 0 1px;
 }
@@ -345,9 +351,6 @@
 }
 
 .typst-render svg {
-  /* svg_in_html emits an inline "width: N em" style; without !important the
-     browser sizes the frame by the inherited font-size (N x 16px in the
-     editor). The widget sets the container height; the svg fills it. */
   width: 100% !important;
   height: 100% !important;
 }

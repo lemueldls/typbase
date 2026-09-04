@@ -43,7 +43,9 @@
     "switchWorkspace": "Cambiar de espacio",
     "workspaceSettings": "Ajustes del espacio",
     "calendar": "Calendario",
-    "today": "Hoy"
+    "today": "Hoy",
+    "hideSidebar": "Ocultar barra lateral",
+    "showSidebar": "Mostrar barra lateral"
   },
   "pageView": {
     "write": "Escribir",
@@ -65,6 +67,7 @@
   "settings": {
     "title": "Ajustes del espacio",
     "tabGeneral": "General",
+    "tabContent": "Contenido",
     "tabPublish": "Publicar",
     "tabAi": "IA",
     "tabSearch": "Búsqueda",
@@ -82,7 +85,7 @@
     "customPaletteHint": "Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Los tokens ausentes usan el tema por defecto.",
     "themeError": "La paleta personalizada no es JSON válido de token -> color.",
     "template": "Plantilla de nota diaria",
-    "templateHint": "Las nuevas notas diarias renderizan este código Typst. Marcadores: {'{date}'} (fecha), {'{weekday}'} (día), {'{yesterday}'} (nota anterior más cercana) y {'{tomorrow}'} (nota siguiente más cercana).",
+    "templateHint": "Las nuevas notas diarias renderizan este código Typst. Marcadores: {'{date}'} (fecha), {'{weekday}'} (día), {'{previous}'} (nota anterior más cercana) y {'{next}'} (nota siguiente más cercana).",
     "prelude": "Preludio de página",
     "preludeHint": "Se añade antes de cada compilación (editor, previsualizaciones, páginas publicadas). Usa funciones Typst nuevas o reglas #set para crear vistas personalizadas.",
     "textFont": "Fuente de texto",
@@ -209,5 +212,23 @@
     "updated": "Actualizado el {date}",
     "viewSource": "ver fuente",
     "publishedCount": "{count} nota(s) publicada(s)"
+  },
+  "formatting": {
+    "title": "Formato",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "bold": "Negrita",
+    "italic": "Cursiva",
+    "underline": "Subrayado",
+    "strike": "Tachado",
+    "code": "Código en línea",
+    "math": "Matemáticas en línea",
+    "link": "Enlace",
+    "heading1": "Encabezado 1",
+    "heading2": "Encabezado 2",
+    "heading3": "Encabezado 3",
+    "bulletList": "Lista con viñetas",
+    "orderedList": "Lista numerada",
+    "collapse": "Contraer barra de formato"
   }
 }

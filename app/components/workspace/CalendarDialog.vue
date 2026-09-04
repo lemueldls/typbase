@@ -140,7 +140,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
             :aria-label="$t('calendar.previousMonth')"
             @click="shiftMonth(-1)"
           >
-            <MsIcon name="chevron_left" :size="16" />
+            <MsIcon name="chevron_left" :size="20" />
           </button>
           <span class="calendar__month">{{ monthLabel }}</span>
           <button
@@ -149,7 +149,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
             :aria-label="$t('calendar.nextMonth')"
             @click="shiftMonth(1)"
           >
-            <MsIcon name="chevron_right" :size="16" />
+            <MsIcon name="chevron_right" :size="20" />
           </button>
           <button type="button" class="button button--ghost button--tiny" @click="goToToday">
             Today
@@ -193,7 +193,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
               :aria-label="t('calendar.deleteAria', { date: cell.iso })"
               @click.stop="deleteDay(cell)"
             >
-              <MsIcon name="delete" :size="12" />
+              <MsIcon name="delete" :size="14" />
             </button>
           </button>
         </div>

@@ -67,7 +67,7 @@ async function onUnpublish() {
         :title="meta.publishUri ?? ''"
         role="status"
       >
-        <MsIcon name="public" :size="12" />
+        <MsIcon name="public" :size="14" />
         {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
       </span>
 

@@ -79,7 +79,7 @@ async function submit() {
 
         <div class="ws-dialog__preview" aria-hidden="true">
           <span class="ws-dialog__preview-icon">
-            <MsIcon :name="icon" :size="22" />
+            <MsIcon :name="icon" :size="24" />
           </span>
           <span class="ws-dialog__preview-name">
             {{ name.trim() || props.workspace?.name || t("switcher.createTitle") }}

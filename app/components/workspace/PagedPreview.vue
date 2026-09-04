@@ -205,13 +205,17 @@ defineExpose({ scroller, getFrameLayout });
   padding: 1rem 1.25rem 3rem;
 }
 
+@media (max-width: 768px) {
+  .paged-preview__inner {
+    padding: 0.75rem 0.75rem 2rem;
+  }
+}
+
 .paged-preview__frame {
   display: block;
 }
 
 .paged-preview__frame :deep(svg) {
-  /* !important beats the inline "width: N em" style svg_in_html emits; the
-     frame div is the box, height follows the viewBox aspect ratio. */
   display: block;
   width: 100% !important;
   height: auto !important;

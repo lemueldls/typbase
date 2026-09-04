@@ -43,7 +43,9 @@
     "switchWorkspace": "Switch workspace",
     "workspaceSettings": "Workspace settings",
     "calendar": "Calendar",
-    "today": "Today"
+    "today": "Today",
+    "hideSidebar": "Hide sidebar",
+    "showSidebar": "Show sidebar"
   },
   "pageView": {
     "write": "Write",
@@ -65,6 +67,7 @@
   "settings": {
     "title": "Workspace settings",
     "tabGeneral": "General",
+    "tabContent": "Content",
     "tabPublish": "Publish",
     "tabAi": "AI",
     "tabSearch": "Search",
@@ -82,7 +85,7 @@
     "customPaletteHint": "Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Missing tokens fall back to the default theme.",
     "themeError": "Custom palette is not valid JSON of token -> color.",
     "template": "Daily note template",
-    "templateHint": "New daily notes render this Typst source. Placeholders: {'{date}'}, {'{weekday}'}, {'{yesterday}'} (nearest previous note) and {'{tomorrow}'} (nearest next note).",
+    "templateHint": "New daily notes render this Typst source. Placeholders: {'{date}'}, {'{weekday}'}, {'{previous}'} (nearest previous note) and {'{next}'} (nearest next note).",
     "prelude": "Page prelude",
     "preludeHint": "Appended before every page compile (editor, previews, published pages). Use new Typst functions or #set rules here to build custom views.",
     "textFont": "Text font",
@@ -209,5 +212,23 @@
     "updated": "Updated {date}",
     "viewSource": "view source",
     "publishedCount": "{count} published note(s)"
+  },
+  "formatting": {
+    "title": "Formatting",
+    "undo": "Undo",
+    "redo": "Redo",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strike": "Strikethrough",
+    "code": "Inline code",
+    "math": "Inline math",
+    "link": "Link",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "heading3": "Heading 3",
+    "bulletList": "Bullet list",
+    "orderedList": "Numbered list",
+    "collapse": "Collapse formatting toolbar"
   }
 }

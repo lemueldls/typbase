@@ -43,7 +43,9 @@
     "switchWorkspace": "Changer d'espace",
     "workspaceSettings": "Paramètres de l'espace",
     "calendar": "Calendrier",
-    "today": "Aujourd'hui"
+    "today": "Aujourd'hui",
+    "hideSidebar": "Masquer la barre latérale",
+    "showSidebar": "Afficher la barre latérale"
   },
   "pageView": {
     "write": "Écrire",
@@ -65,6 +67,7 @@
   "settings": {
     "title": "Paramètres de l'espace",
     "tabGeneral": "Général",
+    "tabContent": "Contenu",
     "tabPublish": "Publier",
     "tabAi": "IA",
     "tabSearch": "Recherche",
@@ -82,7 +85,7 @@
     "customPaletteHint": "Jetons : surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Les jetons manquants retombent sur le thème par défaut.",
     "themeError": "La palette personnalisée n'est pas un JSON valide jeton -> couleur.",
     "template": "Modèle de note quotidienne",
-    "templateHint": "Les nouvelles notes quotidiennes rendent ce code Typst. Variables : {'{date}'} (date), {'{weekday}'} (jour), {'{yesterday}'} (note précédente la plus proche) et {'{tomorrow}'} (note suivante la plus proche).",
+    "templateHint": "Les nouvelles notes quotidiennes rendent ce code Typst. Variables : {'{date}'} (date), {'{weekday}'} (jour), {'{previous}'} (note précédente la plus proche) et {'{next}'} (note suivante la plus proche).",
     "prelude": "Prélude de page",
     "preludeHint": "Ajouté avant chaque compilation (éditeur, aperçus, pages publiées). Utilisez de nouvelles fonctions Typst ou des règles #set pour créer des vues personnalisées.",
     "textFont": "Police de texte",
@@ -209,5 +212,23 @@
     "updated": "Mis à jour le {date}",
     "viewSource": "voir la source",
     "publishedCount": "{count} note(s) publiée(s)"
+  },
+  "formatting": {
+    "title": "Mise en forme",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "bold": "Gras",
+    "italic": "Italique",
+    "underline": "Souligné",
+    "strike": "Barré",
+    "code": "Code en ligne",
+    "math": "Maths en ligne",
+    "link": "Lien",
+    "heading1": "Titre 1",
+    "heading2": "Titre 2",
+    "heading3": "Titre 3",
+    "bulletList": "Liste à puces",
+    "orderedList": "Liste numérotée",
+    "collapse": "Réduire la barre de mise en forme"
   }
 }

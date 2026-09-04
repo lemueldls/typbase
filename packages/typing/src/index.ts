@@ -152,9 +152,9 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   dailyNoteTemplate: [
     "= {date} ({weekday})",
     "",
-    'Yesterday: #typbase.page-link("{yesterday}")',
+    'Previous: #typbase.page-link("{previous}")',
     "",
-    'Tomorrow: #typbase.page-link("{tomorrow}")',
+    'Next: #typbase.page-link("{next}")',
   ].join("\n"),
   pagePrelude: "",
   locale: "auto",

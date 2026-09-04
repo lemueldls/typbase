@@ -43,7 +43,9 @@
     "switchWorkspace": "Arbeitsbereich wechseln",
     "workspaceSettings": "Arbeitsbereich-Einstellungen",
     "calendar": "Kalender",
-    "today": "Heute"
+    "today": "Heute",
+    "hideSidebar": "Seitenleiste ausblenden",
+    "showSidebar": "Seitenleiste einblenden"
   },
   "pageView": {
     "write": "Schreiben",
@@ -65,6 +67,7 @@
   "settings": {
     "title": "Arbeitsbereich-Einstellungen",
     "tabGeneral": "Allgemein",
+    "tabContent": "Inhalt",
     "tabPublish": "Veröffentlichen",
     "tabAi": "KI",
     "tabSearch": "Suche",
@@ -82,7 +85,7 @@
     "customPaletteHint": "Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Fehlende Tokens fallen auf das Standarddesign zurück.",
     "themeError": "Benutzerdefinierte Palette ist kein gültiges Token-zu-Farbe-JSON.",
     "template": "Tägliche Notiz-Vorlage",
-    "templateHint": "Neue Tagesnotizen rendern diesen Typst-Code. Platzhalter: {'{date}'} (Datum), {'{weekday}'} (Wochentag), {'{yesterday}'} (nächste vorherige Notiz) und {'{tomorrow}'} (nächste folgende Notiz).",
+    "templateHint": "Neue Tagesnotizen rendern diesen Typst-Code. Platzhalter: {'{date}'} (Datum), {'{weekday}'} (Wochentag), {'{previous}'} (nächste vorherige Notiz) und {'{next}'} (nächste folgende Notiz).",
     "prelude": "Seiten-Prelude",
     "preludeHint": "Wird vor jeder Kompilierung eingefügt (Editor, Vorschauen, veröffentlichte Seiten). Nutze neue Typst-Funktionen oder #set-Regeln für eigene Ansichten.",
     "textFont": "Textschrift",
@@ -209,5 +212,23 @@
     "updated": "Aktualisiert am {date}",
     "viewSource": "Quelle ansehen",
     "publishedCount": "{count} veröffentlichte Notiz(en)"
+  },
+  "formatting": {
+    "title": "Formatierung",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "underline": "Unterstrichen",
+    "strike": "Durchgestrichen",
+    "code": "Inline-Code",
+    "math": "Inline-Mathe",
+    "link": "Link",
+    "heading1": "Überschrift 1",
+    "heading2": "Überschrift 2",
+    "heading3": "Überschrift 3",
+    "bulletList": "Aufzählung",
+    "orderedList": "Nummerierte Liste",
+    "collapse": "Formatierungsleiste einklappen"
   }
 }

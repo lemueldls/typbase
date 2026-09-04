@@ -81,7 +81,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
     <ul v-if="workspaces.length" class="ws-screen__list">
       <li v-for="info in workspaces" :key="info.id" class="ws-screen__item">
         <span class="ws-screen__icon" aria-hidden="true">
-          <MsIcon :name="iconFor(info)" :size="20" />
+          <MsIcon :name="iconFor(info)" :size="22" />
         </span>
         <button
           type="button"
@@ -106,7 +106,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
             :aria-label="t('switcher.renameAria', { name: info.name })"
             @click="openRename(info)"
           >
-            <MsIcon name="edit" :size="12" /> Rename
+            <MsIcon name="edit" :size="14" /> Rename
           </button>
           <button
             type="button"
@@ -114,7 +114,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
             :aria-label="t('switcher.deleteAria', { name: info.name })"
             @click="onDelete(info)"
           >
-            <MsIcon name="delete" :size="12" /> Delete
+            <MsIcon name="delete" :size="14" /> Delete
           </button>
         </div>
       </li>
@@ -127,7 +127,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
       :disabled="busy"
       @click="openCreate"
     >
-      <MsIcon name="add" :size="16" />
+      <MsIcon name="add" :size="20" />
       {{ $t("switcher.add") }}
     </button>
 
@@ -139,7 +139,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
       <PopoverTrigger as-child>
         <slot>
           <button type="button" class="button button--icon" :aria-label="$t('switcher.switchAria')">
-            <MsIcon name="swap_horiz" :size="16" />
+            <MsIcon name="swap_horiz" :size="20" />
           </button>
         </slot>
       </PopoverTrigger>
@@ -155,7 +155,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
             @click="onSwitch(info.id)"
           >
             <span class="ws-menu__label">
-              <MsIcon :name="iconFor(info)" :size="16" class="ws-menu__icon" />
+              <MsIcon :name="iconFor(info)" :size="18" class="ws-menu__icon" />
               <span class="ws-menu__name">{{ info.name }}</span>
             </span>
             <span class="ws-menu__actions">
@@ -165,7 +165,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
                 :aria-label="t('switcher.renameAria', { name: info.name })"
                 @click.stop="openRename(info)"
               >
-                <MsIcon name="edit" :size="12" />
+                <MsIcon name="edit" :size="14" />
               </button>
               <button
                 type="button"
@@ -173,7 +173,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
                 :aria-label="t('switcher.deleteAria', { name: info.name })"
                 @click.stop="onDelete(info)"
               >
-                <MsIcon name="delete" :size="12" />
+                <MsIcon name="delete" :size="14" />
               </button>
             </span>
           </button>
@@ -181,7 +181,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
           <div class="menu__separator" />
 
           <button type="button" class="menu__item ws-menu__add" @click="openCreate">
-            <MsIcon name="add" :size="16" />
+            <MsIcon name="add" :size="20" />
             {{ $t("switcher.add") }}
           </button>
 

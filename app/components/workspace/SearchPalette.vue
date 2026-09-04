@@ -128,13 +128,13 @@ function open(result: SearchResultItem) {
   z-index: 90;
   display: flex;
   justify-content: center;
-  padding-top: 12vh;
+  padding-top: 10dvh;
   background: rgb(0 0 0 / 0.3);
 }
 
 .search-palette__box {
   width: min(560px, calc(100vw - 2rem));
-  max-height: 60vh;
+  max-height: 62dvh;
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);

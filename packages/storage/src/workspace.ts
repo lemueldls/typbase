@@ -367,8 +367,8 @@ export class WorkspaceStore {
     const content = settings.dailyNoteTemplate
       .replaceAll("{date}", date)
       .replaceAll("{weekday}", this.weekdayName(date))
-      .replaceAll("{yesterday}", previous ?? "none")
-      .replaceAll("{tomorrow}", next ?? "none");
+      .replaceAll("{previous}", previous ?? "none")
+      .replaceAll("{next}", next ?? "none");
 
     return this.createPage({ title, path, content });
   }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SplitterPanel as SplitterPanelComponent } from "reka-ui";
+
 import type { ViewMode } from "~/components/workspace/PageView.vue";
 
 import MainPane from "~/components/workspace/MainPane.vue";
@@ -23,6 +25,33 @@ const paletteOpen = ref(false);
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter; mobile keeps the drawer. */
 const isDesktop = useMediaQuery("(min-width: 769px)");
+
+/** Desktop sidebar collapse. Reka-ui persists the collapsed layout, so the
+ *  initial state is read from the panel rather than assumed. */
+const navPanel = ref<InstanceType<typeof SplitterPanelComponent>>();
+const sidebarCollapsed = ref(false);
+
+function syncSidebarCollapsed() {
+  const panel = navPanel.value;
+  if (panel) sidebarCollapsed.value = (panel.getSize() ?? 0) === 0;
+}
+
+onMounted(() => nextTick(syncSidebarCollapsed));
+watch(isDesktop, (desktop) => {
+  if (desktop) nextTick(syncSidebarCollapsed);
+});
+
+function toggleSidebar() {
+  const panel = navPanel.value;
+  if (!panel) return;
+  if (sidebarCollapsed.value) {
+    sidebarCollapsed.value = false;
+    panel.expand();
+  } else {
+    sidebarCollapsed.value = true;
+    panel.collapse();
+  }
+}
 
 const { ensure: ensureSearch } = useSearch();
 
@@ -180,16 +209,25 @@ definePageMeta({ ssr: false });
           class="app__splitter"
         >
           <SplitterPanel
+            ref="navPanel"
             class="app__nav-panel"
             size-unit="px"
             :default-size="264"
             :min-size="200"
             :max-size="480"
+            collapsible
+            :collapsed-size="0"
           >
-            <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
+            <Sidebar
+              :store="workspace"
+              :current-page-id="currentPageId"
+              @select="openPage"
+              @collapse-request="toggleSidebar"
+            />
           </SplitterPanel>
 
           <SplitterResizeHandle
+            v-show="!sidebarCollapsed"
             class="app__resize-handle"
             :aria-label="$t('sidebar.resizeSidebar')"
           />
@@ -203,13 +241,15 @@ definePageMeta({ ssr: false });
                 @open-page="openPage"
               >
                 <template #nav-toggle>
+                  <!-- Desktop: reappears only while the sidebar is collapsed. -->
                   <button
+                    v-if="sidebarCollapsed"
                     type="button"
-                    class="app__nav-toggle"
-                    :aria-label="$t('boot.openNav')"
-                    @click="navOpen = true"
+                    class="app__nav-toggle app__nav-toggle--desktop"
+                    :aria-label="$t('sidebar.showSidebar')"
+                    @click="toggleSidebar"
                   >
-                    <MsIcon name="menu" :size="18" />
+                    <MsIcon name="chevron_left" :size="20" />
                   </button>
                 </template>
               </MainPane>
@@ -224,7 +264,12 @@ definePageMeta({ ssr: false });
             :class="{ 'app__nav--open': navOpen }"
             :aria-hidden="navOpen ? 'false' : undefined"
           >
-            <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
+            <Sidebar
+              :store="workspace"
+              :current-page-id="currentPageId"
+              @select="openPage"
+              @collapse-request="navOpen = false"
+            />
           </div>
 
           <button
@@ -245,11 +290,11 @@ definePageMeta({ ssr: false });
               <template #nav-toggle>
                 <button
                   type="button"
-                  class="app__nav-toggle"
+                  class="button button--icon app__nav-toggle"
                   :aria-label="$t('boot.openNav')"
                   @click="navOpen = true"
                 >
-                  <MsIcon name="menu" :size="18" />
+                  <MsIcon name="menu" :size="24" />
                 </button>
               </template>
             </MainPane>
@@ -337,16 +382,37 @@ definePageMeta({ ssr: false });
 /* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
    in the toolbar flow (MainPane slot), so it pushes content rather than
    floating over it. Slot content is compiled in this component's scope, so
-   the toggle styles belong here, not in MainPane. */
+   the toggle styles belong here, not in MainPane.
+
+   The desktop variant only renders while the sidebar is collapsed (v-if in
+   the shell), so it is visible at any width. */
 .app__nav-toggle,
 .app__backdrop {
   display: none;
 }
 
+.app__nav-toggle--desktop {
+  display: inline-flex;
+  padding: 0.35rem 0.55rem;
+  margin-right: 0.25rem;
+}
+
+/* The toggle is a chrome control, not a form control: no outline ring. A
+   focus background keeps keyboard users oriented instead. */
+.app__nav-toggle,
+.app__nav-toggle--desktop {
+  outline: none;
+}
+
+.app__nav-toggle:focus-visible,
+.app__nav-toggle--desktop:focus-visible {
+  background: var(--surface-2);
+}
+
 @media (max-width: 768px) {
   .app__nav-toggle {
     display: inline-flex;
-    padding: 0.35rem 0.5rem;
+    padding: 0.45rem 0.65rem;
     margin-right: 0.25rem;
   }
 
