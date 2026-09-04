@@ -22,10 +22,9 @@ export type TypstRequestHandler = (
   spaceId: string,
 ) => Promise<boolean> | boolean;
 
-// Frame geometry arrives in Typst points (72/inch); the DOM and CodeMirror
-// measure in CSS pixels (96/inch). Convert where the two meet.
-export const PT_TO_PX = 96 / 72;
-export const PX_TO_PT = 72 / 96;
+// Frame geometry comes back in the app's display units: one Typst point per
+// CSS pixel, so pt values are used as px directly. Converting px <-> true pt
+// (96/72) would make frames render 4/3 larger than the editor's own text.
 
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
@@ -67,11 +66,11 @@ class TypstWidget extends WidgetType {
   }
 
   private syncRenderInfo(container: HTMLElement, frame: SvgRangedFrame) {
-    const widthKey = Math.round(frame.render.width * PT_TO_PX).toString();
+    const widthKey = Math.round(frame.render.width).toString();
 
     if (container.dataset.renderWidth !== widthKey) {
       container.dataset.renderWidth = widthKey;
-      container.style.height = frame.render.height * PT_TO_PX + "px";
+      container.style.height = frame.render.height + "px";
       container.setHTMLUnsafe(frame.render.svg);
     }
   }
@@ -102,9 +101,9 @@ class TypstWidget extends WidgetType {
     const { typstState, frame, view } = this;
     const { top, left } = this.container.getBoundingClientRect();
 
-    // The click arrives in CSS pixels; jumpPaged expects document points.
-    const x = (clientX - left) * PX_TO_PT;
-    const y = (clientY - top) * PX_TO_PT + frame.render.yOffset;
+    // App pt == screen px, so the click lands in document points as is.
+    const x = clientX - left;
+    const y = clientY - top + frame.render.yOffset;
 
     const jump = typstState.jumpPaged(this.fileId, x, y);
     const position = jump ? jump.position : frame.range.end;
@@ -126,7 +125,7 @@ class TypstWidget extends WidgetType {
   }
 
   public override get estimatedHeight() {
-    return this.frame.render.height * PT_TO_PX;
+    return this.frame.render.height;
   }
 }
 
@@ -272,7 +271,7 @@ function decorate({
           if (currentLine == startLine)
             style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
           if (currentLine == endLine)
-            style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${frame.render.height * PT_TO_PX - lineHeight}px`;
+            style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${frame.render.height - lineHeight}px`;
           else lineHeight += view.lineBlockAt(line.from).height;
 
           decorations.push(
@@ -326,93 +325,105 @@ export const typstViewPlugin = (
   typstState: TypstState,
   options: TypstViewPluginOptions = {},
 ) =>
-  ViewPlugin.define((_view) => ({
-    update(update: ViewUpdate) {
-      let widthChanged = false;
-      const forced = update.transactions.some((transaction) =>
-        transaction.effects.some((effect) => effect.is(typstRecompileEffect)),
-      );
+  ViewPlugin.define((_view) => {
+    // A freshly created view's first update never carries doc/selection/focus
+    // changes, and resize() reports false when the pane width already matches
+    // the stored one. That happens whenever the view is rebuilt for a mode
+    // switch (write -> source -> write): without this flag the render never
+    // runs until the user clicks or types.
+    let firstUpdate = true;
 
-      if (update.geometryChanged) {
-        const { scrollDOM, contentDOM } = update.view;
-
-        widthChanged = typstState.resize(
-          fileId,
-          contentDOM.clientWidth - 2,
-          locked ? scrollDOM.clientHeight : undefined,
-        );
-      }
-
-      if (
-        update.docChanged ||
-        update.selectionSet ||
-        update.focusChanged ||
-        widthChanged ||
-        forced
-      ) {
-        const { state } = update;
-        const currentDecorations = state.field(typstStateField);
-
-        let updateInWidget = false;
-
-        // Stop at the first frame that intersects the selection; the widget
-        // update path wants to know whether any active frame exists.
-        const cursor = currentDecorations.iter();
-        while (cursor.value) {
-          const from = cursor.from;
-          const to = cursor.to;
-
-          if (to > state.doc.length) break;
-
-          const { from: start } = state.doc.lineAt(from);
-          const { to: end } = state.doc.lineAt(to);
-
-          const active = state.selection.ranges.some(
-            (range) =>
-              (range.from >= start && range.from <= end) ||
-              (range.to >= start && range.to <= end) ||
-              (start >= range.from && start <= range.to) ||
-              (end >= range.from && end <= range.to),
+    return {
+      update(update: ViewUpdate) {
+        let widthChanged = false;
+        const forced =
+          firstUpdate ||
+          update.transactions.some((transaction) =>
+            transaction.effects.some((effect) => effect.is(typstRecompileEffect)),
           );
+        firstUpdate = false;
 
-          if (active) {
-            updateInWidget = true;
-            break;
-          }
+        if (update.geometryChanged) {
+          const { scrollDOM, contentDOM } = update.view;
 
-          cursor.next();
+          widthChanged = typstState.resize(
+            fileId,
+            contentDOM.clientWidth - 2,
+            locked ? scrollDOM.clientHeight : undefined,
+          );
         }
 
-        queueMicrotask(() => {
-          const result = decorate({
-            fileId,
-            spaceId,
-            path,
-            prelude: prelude.value,
-            locked,
-            update,
-            updateInWidget,
-            widthChanged,
-            forced,
-            typstState,
-            revision: options.revision,
-            onRequests: options.onRequests,
-            onPanic: options.onPanic,
+        if (
+          update.docChanged ||
+          update.selectionSet ||
+          update.focusChanged ||
+          widthChanged ||
+          forced
+        ) {
+          const { state } = update;
+          const currentDecorations = state.field(typstStateField);
+
+          let updateInWidget = false;
+
+          // Stop at the first frame that intersects the selection; the widget
+          // update path wants to know whether any active frame exists.
+          const cursor = currentDecorations.iter();
+          while (cursor.value) {
+            const from = cursor.from;
+            const to = cursor.to;
+
+            if (to > state.doc.length) break;
+
+            const { from: start } = state.doc.lineAt(from);
+            const { to: end } = state.doc.lineAt(to);
+
+            const active = state.selection.ranges.some(
+              (range) =>
+                (range.from >= start && range.from <= end) ||
+                (range.to >= start && range.to <= end) ||
+                (start >= range.from && start <= range.to) ||
+                (end >= range.from && end <= range.to),
+            );
+
+            if (active) {
+              updateInWidget = true;
+              break;
+            }
+
+            cursor.next();
+          }
+
+          queueMicrotask(() => {
+            const result = decorate({
+              fileId,
+              spaceId,
+              path,
+              prelude: prelude.value,
+              locked,
+              update,
+              updateInWidget,
+              widthChanged,
+              forced,
+              typstState,
+              revision: options.revision,
+              onRequests: options.onRequests,
+              onPanic: options.onPanic,
+            });
+
+            if (result) {
+              const effects = [
+                typstStateEffect.of({ decorations: result.decorations }),
+                tooltipsStateEffect.of(result.tooltips),
+              ];
+              update.view.dispatch({ effects });
+            }
           });
 
-          if (result) {
-            const effects = [
-              typstStateEffect.of({ decorations: result.decorations }),
-              tooltipsStateEffect.of(result.tooltips),
-            ];
-            update.view.dispatch({ effects });
-          }
-        });
-
-        if (update.docChanged) text.value = update.state.doc.toString();
-      }
-    },
-  }));
+          if (update.docChanged) text.value = update.state.doc.toString();
+        }
+      },
+    };
+  });
 
 function dispatchDiagnostics(
   typstDiagnostics: TypstDiagnostic[],

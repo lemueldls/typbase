@@ -391,6 +391,9 @@ function onModeKeydown(event: KeyboardEvent) {
 <template>
   <div class="page-view">
     <div class="page-view__toolbar">
+      <!-- Mobile nav toggle, provided by the shell; flows inline so it never
+           covers the title. -->
+      <slot name="nav-toggle" />
       <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
 
       <div class="page-view__toolbar-actions">

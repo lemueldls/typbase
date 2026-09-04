@@ -5,7 +5,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { ViewPlugin } from "@codemirror/view";
 import { showTooltip } from "@codemirror/view";
 
-import { PT_TO_PX, tooltipsStateField } from "./widgets";
+import { tooltipsStateField } from "./widgets";
 
 const tooltipStateEffect = StateEffect.define<Tooltip | null>();
 
@@ -49,9 +49,9 @@ export const tooltipViewPlugin = () =>
             container.classList.add("typst-popup-render");
 
             const svg = document.createElement("div");
-            svg.style.width = render.width * PT_TO_PX + "px";
-            svg.style.height = render.height * PT_TO_PX + "px";
-            svg.style.transform = `translateX(-${render.xOffset * PT_TO_PX}px)`;
+            svg.style.width = render.width + "px";
+            svg.style.height = render.height + "px";
+            svg.style.transform = `translateX(-${render.xOffset}px)`;
             svg.setHTMLUnsafe(render.svg);
 
             container.append(svg);

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import PageView, { type ViewMode } from "~/components/workspace/PageView.vue";
+import type { ViewMode } from "~/components/workspace/PageView.vue";
+
+import MainPane from "~/components/workspace/MainPane.vue";
 import SearchPalette from "~/components/workspace/SearchPalette.vue";
 import Sidebar from "~/components/workspace/Sidebar.vue";
 import WorkspaceSwitcher from "~/components/workspace/WorkspaceSwitcher.vue";
@@ -19,6 +21,8 @@ const mode = ref<ViewMode>("write");
 const paletteOpen = ref(false);
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
+/** Desktop gets a resizable splitter; mobile keeps the drawer. */
+const isDesktop = useMediaQuery("(min-width: 769px)");
 
 const { ensure: ensureSearch } = useSearch();
 
@@ -166,45 +170,91 @@ definePageMeta({ ssr: false });
 
     <template v-else-if="workspace">
       <div :key="workspaceGeneration" class="app__content">
-        <div
-          class="app__nav"
-          :class="{ 'app__nav--open': navOpen }"
-          :aria-hidden="navOpen ? 'false' : undefined"
+        <!-- Desktop: resizable sidebar via a reka-ui splitter. The nav panel is
+             pixel-sized so it keeps its width when the window grows; the saved
+             layout persists per workspace. Mobile: fixed drawer below. -->
+        <SplitterGroup
+          v-if="isDesktop"
+          direction="horizontal"
+          auto-save-id="typbase:sidebar"
+          class="app__splitter"
         >
-          <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
-        </div>
-
-        <button
-          v-if="navOpen"
-          type="button"
-          class="app__backdrop"
-          :aria-label="$t('boot.closeNav')"
-          @click="navOpen = false"
-        />
-
-        <div class="app__main">
-          <button
-            type="button"
-            class="app__nav-toggle"
-            :aria-label="$t('boot.openNav')"
-            @click="navOpen = true"
+          <SplitterPanel
+            class="app__nav-panel"
+            size-unit="px"
+            :default-size="264"
+            :min-size="200"
+            :max-size="480"
           >
-            <Icon name="lucide:menu" :size="18" aria-hidden="true" />
-          </button>
+            <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
+          </SplitterPanel>
 
-          <PageView
-            v-if="currentPageId"
-            :key="currentPageId"
-            :page-id="currentPageId"
-            :model-value="mode"
-            @update:model-value="setMode"
-            @open-page="openPage"
+          <SplitterResizeHandle
+            class="app__resize-handle"
+            :aria-label="$t('sidebar.resizeSidebar')"
           />
-          <div v-else class="app__empty">
-            <p>{{ $t("sidebar.noPages") }}</p>
-            <p class="app__empty-hint">{{ $t("boot.createOne") }}</p>
+
+          <SplitterPanel class="app__main-panel" :default-size="76">
+            <div class="app__main">
+              <MainPane
+                :page-id="currentPageId"
+                :model-value="mode"
+                @update:model-value="setMode"
+                @open-page="openPage"
+              >
+                <template #nav-toggle>
+                  <button
+                    type="button"
+                    class="app__nav-toggle"
+                    :aria-label="$t('boot.openNav')"
+                    @click="navOpen = true"
+                  >
+                    <MsIcon name="menu" :size="18" />
+                  </button>
+                </template>
+              </MainPane>
+            </div>
+          </SplitterPanel>
+        </SplitterGroup>
+
+        <!-- Mobile drawer + main pane. -->
+        <template v-else>
+          <div
+            class="app__nav"
+            :class="{ 'app__nav--open': navOpen }"
+            :aria-hidden="navOpen ? 'false' : undefined"
+          >
+            <Sidebar :store="workspace" :current-page-id="currentPageId" @select="openPage" />
           </div>
-        </div>
+
+          <button
+            v-if="navOpen"
+            type="button"
+            class="app__backdrop"
+            :aria-label="$t('boot.closeNav')"
+            @click="navOpen = false"
+          />
+
+          <div class="app__main">
+            <MainPane
+              :page-id="currentPageId"
+              :model-value="mode"
+              @update:model-value="setMode"
+              @open-page="openPage"
+            >
+              <template #nav-toggle>
+                <button
+                  type="button"
+                  class="app__nav-toggle"
+                  :aria-label="$t('boot.openNav')"
+                  @click="navOpen = true"
+                >
+                  <MsIcon name="menu" :size="18" />
+                </button>
+              </template>
+            </MainPane>
+          </div>
+        </template>
 
         <SearchPalette
           v-if="paletteOpen && workspace"
@@ -243,7 +293,51 @@ definePageMeta({ ssr: false });
   min-width: 0;
 }
 
-/* Mobile-first: the sidebar becomes a drawer below the breakpoint. */
+/* Desktop layout: the sidebar panel is px-sized, so it keeps its width when
+   the window resizes and only the main panel flexes. */
+.app__splitter {
+  flex: 1;
+  min-width: 0;
+}
+
+.app__nav-panel :deep(.sidebar) {
+  border-right: 0;
+}
+
+.app__main-panel .app__main {
+  height: 100%;
+}
+
+.app__resize-handle {
+  width: 6px;
+  flex: 0 0 6px;
+  position: relative;
+  cursor: col-resize;
+  outline: none;
+}
+
+.app__resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: var(--border);
+}
+
+.app__resize-handle:hover::before,
+.app__resize-handle:focus-visible::before,
+.app__resize-handle[data-resize-handle-active]::before {
+  width: 3px;
+  background: var(--accent);
+}
+
+/* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
+   in the toolbar flow (MainPane slot), so it pushes content rather than
+   floating over it. Slot content is compiled in this component's scope, so
+   the toggle styles belong here, not in MainPane. */
 .app__nav-toggle,
 .app__backdrop {
   display: none;
@@ -252,11 +346,8 @@ definePageMeta({ ssr: false });
 @media (max-width: 768px) {
   .app__nav-toggle {
     display: inline-flex;
-    position: absolute;
-    top: 0.55rem;
-    left: 0.6rem;
-    z-index: 30;
     padding: 0.35rem 0.5rem;
+    margin-right: 0.25rem;
   }
 
   .app__nav {
@@ -281,23 +372,15 @@ definePageMeta({ ssr: false });
     background: var(--overlay);
     border: none;
   }
-
-  .page-view__toolbar {
-    padding-left: 3rem;
-  }
 }
 
-.app__loading,
-.app__empty {
+.app__loading {
   flex: 1;
   display: grid;
   place-content: center;
   gap: 0.5rem;
   color: var(--text-secondary);
   text-align: center;
-}
-
-.app__loading {
   align-content: center;
 }
 
@@ -390,13 +473,5 @@ definePageMeta({ ssr: false });
   display: flex;
   flex-direction: column;
   background: var(--surface);
-}
-
-.app__empty {
-  color: var(--text-secondary);
-}
-
-.app__empty-hint {
-  margin: 0;
 }
 </style>

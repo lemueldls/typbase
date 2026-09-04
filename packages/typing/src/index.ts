@@ -34,6 +34,8 @@ export interface WorkspaceInfo {
   id: string;
   /** Cache of the workspace doc's `settings.name`; refreshed on open/rename. */
   name: string;
+  /** Material Symbols glyph name (e.g. "folder"); empty means the default. */
+  icon?: string;
   createdAt: number;
   lastOpenedAt: number;
 }
@@ -128,6 +130,11 @@ export interface WorkspaceSettings {
   font: string;
   mathFont: string | null;
   codeFont: string | null;
+  /**
+   * Body text size in pt. One app pt renders as one screen px (the editor
+   * shows 16px source text, so the default 16pt matches it).
+   */
+  textSize: number;
   /** Theme mode; "auto" follows the OS preference. Synced like everything else. */
   theme: ThemeMode;
   /** Named theme from the registry ("default", "catppuccin", "custom", ...). */
@@ -154,6 +161,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   font: "Maple Mono",
   mathFont: "New Computer Modern Math",
   codeFont: null,
+  textSize: 16,
   theme: "auto",
   themeName: "default",
   themeCustom: null,

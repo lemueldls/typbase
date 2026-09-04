@@ -1,0 +1,63 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color-scheme: light;
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f3f4f6;
+  --color-surface-3: #e9ebee;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-text: #1f2328;
+  --color-text-secondary: #6b7280;
+  --color-accent: #1e5aa0;
+  --color-accent-soft: #e3edf8;
+  --color-danger: #b42828;
+  --color-danger-soft: #f9e3e3;
+  --color-ok: #2f6f4f;
+  --color-warning: #96660f;
+  --color-overlay: rgb(0 0 0 / 0.35);
+
+  /* Short aliases; the majority of component styles use these. The
+     --color-* palette is the per-theme source of truth and the short
+     tokens just alias it, so a theme only ever redefines the palette. */
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-2);
+  --surface-3: var(--color-surface-3);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --text: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --accent: var(--color-accent);
+  --accent-soft: var(--color-accent-soft);
+  --danger: var(--color-danger);
+  --danger-soft: var(--color-danger-soft);
+  --ok: var(--color-ok);
+  --warning: var(--color-warning);
+  --overlay: var(--color-overlay);
+  --focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
+
+  --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-surface: #1b1d21;
+  --color-surface-2: #24272c;
+  --color-surface-3: #2d3138;
+  --color-border: #363b42;
+  --color-border-strong: #4a5058;
+  --color-text: #e8eaed;
+  --color-text-secondary: #9aa1aa;
+  --color-accent: #6ea6e3;
+  --color-accent-soft: #223349;
+  --color-danger: #e08585;
+  --color-danger-soft: #4a2a2a;
+  --color-ok: #7cc49d;
+  --color-warning: #d3a54f;
+  --color-overlay: rgb(0 0 0 / 0.55);
+}

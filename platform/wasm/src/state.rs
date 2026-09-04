@@ -105,6 +105,12 @@ impl TypstState {
         self.revision += 1;
     }
 
+    #[wasm_bindgen(js_name = "setTextSize")]
+    pub fn set_text_size(&mut self, id: &TypstFileId, text_size: f64) {
+        self.get_space_context_mut(id).text_size = text_size;
+        self.revision += 1;
+    }
+
     #[wasm_bindgen(js_name = "setLocale")]
     pub fn set_locale(&mut self, id: &TypstFileId, locale: String) {
         self.get_space_context_mut(id).locale = locale;
@@ -788,19 +794,19 @@ impl TypstState {
     pub fn resize(&mut self, id: &TypstFileId, width: Option<f64>, height: Option<f64>) -> bool {
         let context = self.source_context_map.get_mut(id).unwrap();
 
-        // Callers measure panes in CSS pixels (96 per inch); Typst lays out in
-        // points (72 per inch). Stamping "pt" onto raw pixels makes a 600px
-        // pane compile as a 600pt page, so every frame comes out 4/3 wider
-        // than the pane. Convert at the unit boundary, once.
-        let to_pt = |px: f64| px * 72.0 / 96.0;
-
+        // Callers measure panes in CSS pixels. The app treats a Typst point as
+        // one screen pixel: a 600px pane compiles as a 600pt page, and frames
+        // then render at 1px per pt inside the pane, so a 16pt body matches
+        // the editor's 16px. Converting px to true pt (x0.75) would lay out a
+        // 600pt page and stretch it back over 600px, rendering everything 4/3
+        // larger than the editor.
         let width = width
-            .map(|px| to_pt(px).to_string() + "pt")
+            .map(|px| px.to_string() + "pt")
             .unwrap_or_else(|| String::from("auto"));
         let width_changed = context.width != width;
 
         context.width = width;
-        context.height = height.map(to_pt);
+        context.height = height;
 
         width_changed
     }
@@ -1107,7 +1113,7 @@ impl TypstState {
                 {page_config}
             "#,
             typbase_prelude = TYPBASE_PRELUDE,
-            text_size = source_ctx.text_size,
+            text_size = space_ctx.text_size,
             font = space_ctx.font,
             math_font = space_ctx.math_font.as_ref().unwrap_or(&space_ctx.font),
             code_font = space_ctx.code_font.as_ref().unwrap_or(&space_ctx.font),

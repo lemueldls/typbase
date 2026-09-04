@@ -29,6 +29,7 @@
     "home": "主页",
     "categories": "分类",
     "newPage": "新建页面",
+    "resizeSidebar": "调整侧边栏大小",
     "general": "通用",
     "noPages": "暂时没有页面。",
     "actions": "{title} 的操作",
@@ -129,7 +130,9 @@
     "minutesAgo": "{count} 分钟前",
     "hoursAgo": "{count} 小时前",
     "daysAgo": "{count} 天前",
-    "tabAppearance": "外观"
+    "tabAppearance": "外观",
+    "textSize": "正文字号",
+    "textSizeHint": "基础正文字号（pt）。1 pt 显示为 1 px，16pt 与编辑器的 16px 文本对应。"
   },
   "aiMenu": {
     "off": "AI（关闭）",
@@ -150,12 +153,20 @@
     "noWorkspaces": "还没有工作区。请在下方创建一个。",
     "newName": "新工作区名称",
     "create": "创建",
-    "renamePrompt": "重命名工作区",
     "deleteConfirm": "删除工作区“{name}”及其所有页面？此操作无法撤销。",
     "renameAria": "重命名 {name}",
     "deleteAria": "删除 {name}",
     "hint": "每个工作区作为独立空间同步；数据绝不混淆。",
-    "switchAria": "切换工作区"
+    "switchAria": "切换工作区",
+    "iconSearch": "搜索图标…",
+    "iconMore": "显示 {shown} / {total} 个图标 - 请细化搜索",
+    "renameTitle": "重命名工作区",
+    "renameName": "工作区名称",
+    "renameSave": "保存",
+    "renameCancel": "取消",
+    "iconLabel": "图标",
+    "add": "新工作区",
+    "createTitle": "新工作区"
   },
   "palette": {
     "placeholder": "搜索页面和文本块…",

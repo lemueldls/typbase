@@ -1,18 +1,12 @@
+import { defineNuxtConfig } from "nuxt/config";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-31",
   devtools: { enabled: true },
   future: { compatibilityVersion: 5 },
-  modules: ["@nuxt/icon", "@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
-  icon: {
-    // Bundle the lucide set into the build so icons never hit the Iconify
-    // API at runtime (fully offline, matches the local-first story).
-    // clientBundle.scan inlines the used icons for static deploys (Pages),
-    // where there is no icon server endpoint.
-    serverBundle: { collections: ["lucide"] },
-    clientBundle: { scan: true },
-  },
-  css: ["~/assets/main.css"],
+  modules: ["@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
+  css: ["~/assets/css/main.css"],
   vite: {
     // experimental: { bundledDev: true },
     optimizeDeps: {
@@ -65,4 +59,7 @@ export default defineNuxtConfig({
     strategy: "no_prefix",
     detectBrowserLanguage: { useCookie: false, redirectOn: "root" },
   },
-});
+  // Module augmentations (i18n, vueuse, reka-ui) apply under tsc but not in
+  // oxlint's isolated resolution of config files; the cast keeps both quiet
+  // without changing the emitted config.
+} as Parameters<typeof defineNuxtConfig>[0]);

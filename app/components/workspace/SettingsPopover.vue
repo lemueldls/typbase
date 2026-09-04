@@ -21,7 +21,7 @@ const props = defineProps<{
   store: WorkspaceStore;
 }>();
 
-const { dataRevision, atproto, atprotoStatus, atprotoReady } = useWorkspace();
+const { dataRevision, workspaceId, atproto, atprotoStatus, atprotoReady } = useWorkspace();
 const { t } = useI18n();
 const appLocale = useAppLocale(props.store);
 
@@ -298,6 +298,18 @@ function onMathFontChange(event: Event) {
 function onCodeFontChange(event: Event) {
   updateFont({ codeFont: (event.target as HTMLSelectElement).value || null });
 }
+
+function onTextSizeChange(event: Event) {
+  const size = Number((event.target as HTMLInputElement).value);
+  if (!Number.isFinite(size) || size <= 0) return;
+
+  props.store.updateSettings({ textSize: size });
+  // Push the size into the wasm space context before the render revision
+  // triggers recompiles; the structure-change echo re-applies it anyway.
+  void applyWorkspaceStyleToTypst(workspaceId.value, props.store).then(() => {
+    bumpRenderRevision();
+  });
+}
 </script>
 
 <template>
@@ -458,6 +470,20 @@ function onCodeFontChange(event: Event) {
             </span>
           </label>
           <p v-if="themeError" class="settings__error" role="alert">{{ themeError }}</p>
+
+          <label class="settings__field">
+            <span>{{ $t("settings.textSize") }}</span>
+            <input
+              class="settings__input"
+              type="number"
+              min="8"
+              max="72"
+              step="1"
+              :value="settings.textSize"
+              @change="onTextSizeChange"
+            />
+            <span class="settings__hint">{{ $t("settings.textSizeHint") }}</span>
+          </label>
 
           <label class="settings__field">
             <span>{{ $t("settings.textFont") }}</span>

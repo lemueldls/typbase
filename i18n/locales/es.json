@@ -29,6 +29,7 @@
     "home": "Inicio",
     "categories": "Categorías",
     "newPage": "Nueva página",
+    "resizeSidebar": "Cambiar tamaño de la barra lateral",
     "general": "General",
     "noPages": "Aún no hay páginas.",
     "actions": "Acciones para {title}",
@@ -129,7 +130,9 @@
     "minutesAgo": "hace {count} min",
     "hoursAgo": "hace {count} h",
     "daysAgo": "hace {count} d",
-    "tabAppearance": "Apariencia"
+    "tabAppearance": "Apariencia",
+    "textSize": "Tamaño de texto",
+    "textSizeHint": "Tamaño base del texto en pt. 1 pt se muestra como 1 px, así que 16pt coincide con los 16px del editor."
   },
   "aiMenu": {
     "off": "IA (desactivada)",
@@ -150,12 +153,20 @@
     "noWorkspaces": "Aún no hay espacios. Crea uno abajo.",
     "newName": "Nombre del nuevo espacio",
     "create": "Crear",
-    "renamePrompt": "Renombrar espacio",
     "deleteConfirm": "¿Eliminar el espacio \"{name}\" y todas sus páginas? Esto no se puede deshacer.",
     "renameAria": "Renombrar {name}",
     "deleteAria": "Eliminar {name}",
     "hint": "Cada espacio se sincroniza como su propia espacio; los datos nunca se mezclan.",
-    "switchAria": "Cambiar de espacio"
+    "switchAria": "Cambiar de espacio",
+    "iconSearch": "Buscar iconos…",
+    "iconMore": "{shown} de {total} mostrados - refina tu búsqueda",
+    "renameTitle": "Renombrar espacio de trabajo",
+    "renameName": "Nombre del espacio de trabajo",
+    "renameSave": "Guardar",
+    "renameCancel": "Cancelar",
+    "iconLabel": "Icono",
+    "add": "Nuevo espacio de trabajo",
+    "createTitle": "Nuevo espacio de trabajo"
   },
   "palette": {
     "placeholder": "Buscar en páginas y bloques…",

@@ -342,11 +342,12 @@ function useWorkspaceState() {
     }
   }
 
-  async function createWorkspace(name: string): Promise<WorkspaceInfo> {
+  async function createWorkspace(name: string, icon?: string): Promise<WorkspaceInfo> {
     const reg = await ensureRegistry();
     const info: WorkspaceInfo = {
       id: createId(),
       name: name.trim() || "Untitled workspace",
+      icon: icon || undefined,
       createdAt: Date.now(),
       lastOpenedAt: Date.now(),
     };
@@ -369,6 +370,14 @@ function useWorkspaceState() {
       // updateSettings is synchronous (commits the Loro doc itself).
       workspace.value?.updateSettings({ name: trimmed });
     }
+  }
+
+  async function setWorkspaceIcon(id: string, icon: string): Promise<void> {
+    const reg = await ensureRegistry();
+    const entry = await reg.get(id);
+    if (!entry) return;
+    await reg.save({ ...entry, icon });
+    workspaces.value = await reg.list();
   }
 
   async function deleteWorkspace(id: string): Promise<void> {
@@ -414,6 +423,7 @@ function useWorkspaceState() {
     switchWorkspace,
     createWorkspace,
     renameWorkspace,
+    setWorkspaceIcon,
     deleteWorkspace,
     refreshWorkspaceList,
   };

@@ -135,6 +135,8 @@ export function applyWorkspaceStyle(
     font: string;
     mathFont: string | null;
     codeFont: string | null;
+    /** Body text size in pt (1 pt renders as 1 px, like the editor). */
+    textSize: number;
     /** Renderer palette for the current workspace theme. */
     themeColors: ThemeColors;
   },
@@ -142,6 +144,7 @@ export function applyWorkspaceStyle(
   typstState.setFont(configId, settings.font);
   typstState.setMathFont(configId, settings.mathFont);
   typstState.setCodeFont(configId, settings.codeFont);
+  typstState.setTextSize(configId, settings.textSize);
   // Rendered pages follow the app theme: the palette derives from the same
   // tokens the chrome uses.
   typstState.setTheme(configId, settings.themeColors);
@@ -165,6 +168,7 @@ export async function applyWorkspaceStyleToTypst(
     font: settings.font,
     mathFont: settings.mathFont,
     codeFont: settings.codeFont,
+    textSize: settings.textSize,
     themeColors: currentThemeColors(settings),
   });
 }

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
+import type { MaterialSymbol } from "material-symbols";
 
 import { useWorkspace } from "~/composables/workspace";
+import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 import CalendarDialog from "./CalendarDialog.vue";
 import CategoriesDialog from "./CategoriesDialog.vue";
@@ -19,8 +21,14 @@ const emit = defineEmits<{
   (e: "select", pageId: string): void;
 }>();
 
-const { dataRevision } = useWorkspace();
+const { dataRevision, workspaces, activeWorkspaceId } = useWorkspace();
 const { t } = useI18n();
+
+/** The active workspace's registry icon; falls back to the default folder. */
+const workspaceIcon = computed<MaterialSymbol>(() => {
+  const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
+  return (info?.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
+});
 
 const pages = computed(() => {
   void dataRevision.value;
@@ -96,16 +104,19 @@ function onCreated(page: PageMeta) {
 <template>
   <aside class="sidebar">
     <header class="sidebar__header">
-      <span class="sidebar__name">{{ settings.name }}</span>
+      <span class="sidebar__title-group">
+        <MsIcon :name="workspaceIcon" :size="18" class="sidebar__icon" />
+        <span class="sidebar__name">{{ settings.name }}</span>
+      </span>
       <div class="sidebar__header-actions">
         <WorkspaceSwitcher mode="menu">
           <button type="button" class="button button--icon" aria-label="Switch workspace">
-            <Icon name="lucide:arrow-left-right" :size="16" />
+            <MsIcon name="swap_horiz" :size="16" />
           </button>
         </WorkspaceSwitcher>
         <SettingsPopover :store="store">
           <button type="button" class="button button--icon" aria-label="Workspace settings">
-            <Icon name="lucide:settings" :size="16" aria-hidden="true" />
+            <MsIcon name="settings" :size="16" />
           </button>
         </SettingsPopover>
       </div>
@@ -114,21 +125,16 @@ function onCreated(page: PageMeta) {
     <div class="sidebar__section">
       <div class="sidebar__section-title">
         <span>{{ $t("sidebar.daily") }}</span>
-        <NewPageDialog :store="store" @created="onCreated">
-          <button type="button" class="button button--primary button--small">
-            {{ $t("sidebar.newPage") }}
-          </button>
-        </NewPageDialog>
       </div>
 
       <button type="button" class="sidebar__row sidebar__row--today" @click="openToday">
-        <Icon name="lucide:calendar-days" :size="14" aria-hidden="true" />
+        <MsIcon name="calendar_today" :size="14" />
         {{ $t("sidebar.today") }}
       </button>
 
       <CalendarDialog :store="store" @select="emit('select', $event)" @deleted="onCalendarDeleted">
         <button type="button" class="sidebar__row sidebar__row--calendar">
-          <Icon name="lucide:calendar" :size="14" aria-hidden="true" />
+          <MsIcon name="calendar_month" :size="14" />
           {{ $t("sidebar.calendar") }}
         </button>
       </CalendarDialog>
@@ -137,11 +143,22 @@ function onCreated(page: PageMeta) {
     <div class="sidebar__section sidebar__section--pages">
       <div class="sidebar__section-title">
         <span>{{ $t("sidebar.pages") }}</span>
-        <CategoriesDialog :store="store">
-          <button type="button" class="button button--ghost button--small">
-            {{ $t("sidebar.categories") }}
-          </button>
-        </CategoriesDialog>
+        <div class="sidebar__section-actions">
+          <NewPageDialog :store="store" @created="onCreated">
+            <button
+              type="button"
+              class="button button--primary button--icon"
+              :aria-label="$t('sidebar.newPage')"
+            >
+              <MsIcon name="add" :size="14" />
+            </button>
+          </NewPageDialog>
+          <CategoriesDialog :store="store">
+            <button type="button" class="button button--ghost button--small">
+              {{ $t("sidebar.categories") }}
+            </button>
+          </CategoriesDialog>
+        </div>
       </div>
 
       <button
@@ -150,7 +167,7 @@ function onCreated(page: PageMeta) {
         class="sidebar__row sidebar__row--home"
         @click="emit('select', settings.homePageId)"
       >
-        <Icon name="lucide:house" :size="14" aria-hidden="true" />
+        <MsIcon name="home" :size="14" />
         {{ $t("sidebar.home") }}
       </button>
 
@@ -171,7 +188,7 @@ function onCreated(page: PageMeta) {
                 class="sidebar__row-home"
                 :title="$t('sidebar.homePage')"
               >
-                <Icon name="lucide:house" :size="12" aria-hidden="true" />
+                <MsIcon name="home" :size="12" />
               </span>
             </button>
 
@@ -182,7 +199,7 @@ function onCreated(page: PageMeta) {
                   class="button button--icon button--tiny"
                   :aria-label="t('sidebar.actions', { title: page.title })"
                 >
-                  <Icon name="lucide:ellipsis" :size="14" aria-hidden="true" />
+                  <MsIcon name="more_horiz" :size="14" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
@@ -226,7 +243,7 @@ function onCreated(page: PageMeta) {
                 class="sidebar__row-home"
                 :title="$t('sidebar.homePage')"
               >
-                <Icon name="lucide:house" :size="12" aria-hidden="true" />
+                <MsIcon name="home" :size="12" />
               </span>
             </button>
 
@@ -237,7 +254,7 @@ function onCreated(page: PageMeta) {
                   class="button button--icon button--tiny"
                   :aria-label="t('sidebar.actions', { title: page.title })"
                 >
-                  <Icon name="lucide:ellipsis" :size="14" aria-hidden="true" />
+                  <MsIcon name="more_horiz" :size="14" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
@@ -292,7 +309,7 @@ function onCreated(page: PageMeta) {
     </DialogRoot>
     <footer class="sidebar__footer">
       <NuxtLink to="/debug" class="button button--ghost button--small">
-        <Icon name="lucide:flask-conical" :size="13" aria-hidden="true" />
+        <MsIcon name="science" :size="13" />
         {{ $t("sidebar.debugLab") }}
       </NuxtLink>
     </footer>
@@ -316,6 +333,17 @@ function onCreated(page: PageMeta) {
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
   border-bottom: 1px solid var(--border);
+}
+
+.sidebar__title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.sidebar__icon {
+  flex: none;
 }
 
 .sidebar__name {
@@ -355,6 +383,12 @@ function onCreated(page: PageMeta) {
   color: var(--text-secondary);
 }
 
+.sidebar__section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .sidebar__list {
   margin: 0;
   padding: 0;
@@ -372,8 +406,9 @@ function onCreated(page: PageMeta) {
   align-items: center;
   gap: 0.4rem;
   flex: 1;
+  width: 100%;
   min-width: 0;
-  padding: 0.35rem 0.45rem;
+  padding: 0.45rem 0.6rem;
   font-size: 0.9rem;
   text-align: left;
   color: var(--text);

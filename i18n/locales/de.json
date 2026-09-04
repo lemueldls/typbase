@@ -29,6 +29,7 @@
     "home": "Start",
     "categories": "Kategorien",
     "newPage": "Neue Seite",
+    "resizeSidebar": "Seitenleiste in der Größe ändern",
     "general": "Allgemein",
     "noPages": "Noch keine Seiten.",
     "actions": "Aktionen für {title}",
@@ -129,7 +130,9 @@
     "minutesAgo": "vor {count} Min.",
     "hoursAgo": "vor {count} Std.",
     "daysAgo": "vor {count} Tagen",
-    "tabAppearance": "Erscheinungsbild"
+    "tabAppearance": "Erscheinungsbild",
+    "textSize": "Textgröße",
+    "textSizeHint": "Basisschriftgröße in pt. 1 pt wird als 1 px angezeigt, 16pt entspricht also den 16px des Editors."
   },
   "aiMenu": {
     "off": "KI (aus)",
@@ -150,12 +153,20 @@
     "noWorkspaces": "Noch keine Arbeitsbereiche. Erstelle unten einen.",
     "newName": "Name des neuen Arbeitsbereichs",
     "create": "Erstellen",
-    "renamePrompt": "Arbeitsbereich umbenennen",
     "deleteConfirm": "Arbeitsbereich \"{name}\" und alle Seiten löschen? Das kann nicht rückgängig gemacht werden.",
     "renameAria": "{name} umbenennen",
     "deleteAria": "{name} löschen",
     "hint": "Jeder Arbeitsbereich synchronisiert als eigener Space; Daten vermischen sich nie.",
-    "switchAria": "Arbeitsbereich wechseln"
+    "switchAria": "Arbeitsbereich wechseln",
+    "iconSearch": "Symbole suchen…",
+    "iconMore": "{shown} von {total} angezeigt - Suche verfeinern",
+    "renameTitle": "Arbeitsbereich umbenennen",
+    "renameName": "Name des Arbeitsbereichs",
+    "renameSave": "Speichern",
+    "renameCancel": "Abbrechen",
+    "iconLabel": "Symbol",
+    "add": "Neuer Arbeitsbereich",
+    "createTitle": "Neuer Arbeitsbereich"
   },
   "palette": {
     "placeholder": "Seiten und Blöcke durchsuchen…",

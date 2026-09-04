@@ -77,7 +77,7 @@ function open(result: SearchResultItem) {
   <div class="search-palette" @keydown="onKeydown" @click.self="emit('close')">
     <div class="search-palette__box" role="dialog" aria-label="Search">
       <div class="search-palette__field">
-        <Icon name="lucide:search" :size="16" aria-hidden="true" class="search-palette__icon" />
+        <MsIcon name="search" :size="16" class="search-palette__icon" />
         <input
           ref="input"
           v-model="query"

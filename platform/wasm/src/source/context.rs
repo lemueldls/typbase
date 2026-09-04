@@ -5,7 +5,7 @@ use typst_syntax::{FileId, RootedPath, Source};
 use crate::{source::IndexMapper, theme::ThemeColors, world::TypstWorld};
 
 /// Per-space configuration for rendering (fonts, theme, locale).
-#[derive(Debug, Hash)]
+#[derive(Debug)]
 pub struct SpaceContext {
     /// Default font for this space.
     pub font: String,
@@ -17,6 +17,10 @@ pub struct SpaceContext {
     pub theme: ThemeColors,
     /// Locale for this space.
     pub locale: String,
+    /// Body text size in points. Drives `#set text(size: ...)` in the
+    /// generated prelude. One app pt is one screen px, so the default 16pt
+    /// matches the editor's 16px source text.
+    pub text_size: f64,
 }
 
 impl SpaceContext {
@@ -28,6 +32,7 @@ impl SpaceContext {
             code_font: Some(String::from("Maple Mono")),
             theme: ThemeColors::default(),
             locale: String::from("en"),
+            text_size: 16.0,
         }
     }
 }
@@ -85,10 +90,6 @@ pub struct SourceContext {
     /// Maximum render height in points, if the note is in a fixed-height
     /// context (e.g. a locked sticky note). `None` for scrolling notes.
     pub height: Option<f64>,
-
-    /// Body text size in points. Drives `#set text(size: ...)` in the
-    /// generated prelude.
-    pub text_size: f64,
 }
 
 impl SourceContext {
@@ -109,7 +110,6 @@ impl SourceContext {
             html_document: None,
             width: String::from("auto"),
             height: None,
-            text_size: 16.0,
         }
     }
 

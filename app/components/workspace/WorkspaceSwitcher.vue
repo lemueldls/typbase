@@ -1,20 +1,20 @@
 <script setup lang="ts">
+import type { WorkspaceInfo } from "@typbase/typing";
+import type { MaterialSymbol } from "material-symbols";
+
 import { useWorkspace } from "~/composables/workspace";
+import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
+
+import WorkspaceDialog from "./WorkspaceDialog.vue";
 
 /**
  * Workspace switching: a full chooser card when no workspace is open
- * (mode="screen") and a popover menu for the sidebar (mode="menu").
+ * (mode="screen") and a popover menu for the sidebar (mode="menu"). Create
+ * and edit go through WorkspaceDialog; delete stays a confirm.
  */
 const props = defineProps<{ mode: "screen" | "menu" }>();
 
-const {
-  workspaces,
-  activeWorkspaceId,
-  switchWorkspace,
-  createWorkspace,
-  renameWorkspace,
-  deleteWorkspace,
-} = useWorkspace();
+const { workspaces, activeWorkspaceId, switchWorkspace, deleteWorkspace } = useWorkspace();
 
 const { t, locale } = useI18n();
 function formatOpened(timestamp: number): string {
@@ -23,9 +23,23 @@ function formatOpened(timestamp: number): string {
 const busy = ref(false);
 const error = ref("");
 
-const creating = ref(false);
-const newName = ref("");
 const newOpen = defineModel<boolean>("open", { default: false });
+
+const dialogOpen = ref(false);
+const dialogMode = ref<"create" | "edit">("create");
+const editing = ref<WorkspaceInfo | null>(null);
+
+function openCreate() {
+  dialogMode.value = "create";
+  editing.value = null;
+  dialogOpen.value = true;
+}
+
+function openRename(info: WorkspaceInfo) {
+  dialogMode.value = "edit";
+  editing.value = info;
+  dialogOpen.value = true;
+}
 
 async function onSwitch(id: string) {
   if (id === activeWorkspaceId.value || busy.value) return;
@@ -41,33 +55,7 @@ async function onSwitch(id: string) {
   }
 }
 
-async function onCreate() {
-  if (busy.value) return;
-  busy.value = true;
-  error.value = "";
-  try {
-    await createWorkspace(newName.value);
-    newName.value = "";
-    creating.value = false;
-    if (props.mode === "menu") newOpen.value = false;
-  } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    busy.value = false;
-  }
-}
-
-async function onRename(info: { id: string; name: string }) {
-  const name = window.prompt(t("switcher.renamePrompt"), info.name);
-  if (!name?.trim()) return;
-  try {
-    await renameWorkspace(info.id, name);
-  } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause);
-  }
-}
-
-async function onDelete(info: { id: string; name: string }) {
+async function onDelete(info: WorkspaceInfo) {
   if (!window.confirm(t("switcher.deleteConfirm", { name: info.name }))) return;
   try {
     if (props.mode === "menu") newOpen.value = false;
@@ -80,6 +68,10 @@ async function onDelete(info: { id: string; name: string }) {
 function active(id: string | null): boolean {
   return id != null && id === activeWorkspaceId.value;
 }
+
+function iconFor(info: WorkspaceInfo): MaterialSymbol {
+  return (info.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
+}
 </script>
 
 <template>
@@ -88,6 +80,9 @@ function active(id: string | null): boolean {
 
     <ul v-if="workspaces.length" class="ws-screen__list">
       <li v-for="info in workspaces" :key="info.id" class="ws-screen__item">
+        <span class="ws-screen__icon" aria-hidden="true">
+          <MsIcon :name="iconFor(info)" :size="20" />
+        </span>
         <button
           type="button"
           class="ws-screen__open"
@@ -105,32 +100,36 @@ function active(id: string | null): boolean {
           </span>
         </button>
         <div class="ws-screen__actions">
-          <button type="button" class="button button--ghost button--tiny" @click="onRename(info)">
-            <Icon name="lucide:pencil" :size="12" aria-hidden="true" /> Rename
+          <button
+            type="button"
+            class="button button--ghost button--tiny"
+            :aria-label="t('switcher.renameAria', { name: info.name })"
+            @click="openRename(info)"
+          >
+            <MsIcon name="edit" :size="12" /> Rename
           </button>
           <button
             type="button"
             class="button button--ghost button--tiny ws-screen__danger"
+            :aria-label="t('switcher.deleteAria', { name: info.name })"
             @click="onDelete(info)"
           >
-            <Icon name="lucide:trash-2" :size="12" aria-hidden="true" /> Delete
+            <MsIcon name="delete" :size="12" /> Delete
           </button>
         </div>
       </li>
     </ul>
     <p v-else class="ws-screen__hint">{{ $t("switcher.noWorkspaces") }}</p>
 
-    <form class="ws-screen__create" @submit.prevent="onCreate">
-      <input
-        v-model="newName"
-        class="dialog__input ws-screen__input"
-        :placeholder="$t('switcher.newName')"
-        :aria-label="$t('switcher.newName')"
-      />
-      <button type="submit" class="button button--primary" :disabled="busy">
-        {{ $t("switcher.create") }}
-      </button>
-    </form>
+    <button
+      type="button"
+      class="button button--primary ws-screen__add"
+      :disabled="busy"
+      @click="openCreate"
+    >
+      <MsIcon name="add" :size="16" />
+      {{ $t("switcher.add") }}
+    </button>
 
     <p v-if="error" class="ws-screen__error" role="alert">{{ error }}</p>
   </div>
@@ -140,7 +139,7 @@ function active(id: string | null): boolean {
       <PopoverTrigger as-child>
         <slot>
           <button type="button" class="button button--icon" :aria-label="$t('switcher.switchAria')">
-            <Icon name="lucide:arrow-left-right" :size="16" aria-hidden="true" />
+            <MsIcon name="swap_horiz" :size="16" />
           </button>
         </slot>
       </PopoverTrigger>
@@ -155,15 +154,18 @@ function active(id: string | null): boolean {
             :disabled="busy"
             @click="onSwitch(info.id)"
           >
-            <span class="ws-menu__name">{{ info.name }}</span>
+            <span class="ws-menu__label">
+              <MsIcon :name="iconFor(info)" :size="16" class="ws-menu__icon" />
+              <span class="ws-menu__name">{{ info.name }}</span>
+            </span>
             <span class="ws-menu__actions">
               <button
                 type="button"
                 class="button button--ghost button--tiny"
                 :aria-label="t('switcher.renameAria', { name: info.name })"
-                @click.stop="onRename(info)"
+                @click.stop="openRename(info)"
               >
-                <Icon name="lucide:pencil" :size="12" aria-hidden="true" />
+                <MsIcon name="edit" :size="12" />
               </button>
               <button
                 type="button"
@@ -171,24 +173,17 @@ function active(id: string | null): boolean {
                 :aria-label="t('switcher.deleteAria', { name: info.name })"
                 @click.stop="onDelete(info)"
               >
-                <Icon name="lucide:trash-2" :size="12" aria-hidden="true" />
+                <MsIcon name="delete" :size="12" />
               </button>
             </span>
           </button>
 
           <div class="menu__separator" />
 
-          <form class="ws-menu__create" @submit.prevent="onCreate">
-            <input
-              v-model="newName"
-              class="settings__input ws-menu__input"
-              :placeholder="$t('switcher.newName')"
-              :aria-label="$t('switcher.newName')"
-            />
-            <button type="submit" class="button button--small button--primary" :disabled="busy">
-              New
-            </button>
-          </form>
+          <button type="button" class="menu__item ws-menu__add" @click="openCreate">
+            <MsIcon name="add" :size="16" />
+            {{ $t("switcher.add") }}
+          </button>
 
           <p v-if="error" class="ws-menu__error" role="alert">{{ error }}</p>
           <p class="ws-menu__hint">{{ $t("switcher.hint") }}</p>
@@ -196,6 +191,8 @@ function active(id: string | null): boolean {
       </PopoverPortal>
     </PopoverRoot>
   </template>
+
+  <WorkspaceDialog v-model:open="dialogOpen" :mode="dialogMode" :workspace="editing" />
 </template>
 
 <style scoped>
@@ -230,6 +227,17 @@ function active(id: string | null): boolean {
   border-radius: 0.6rem;
   padding: 0.5rem 0.75rem;
   background: var(--surface);
+}
+
+.ws-screen__icon {
+  display: grid;
+  place-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: none;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0.5rem;
 }
 
 .ws-screen__open {
@@ -275,14 +283,8 @@ function active(id: string | null): boolean {
   text-align: center;
 }
 
-.ws-screen__create {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.ws-screen__input {
-  flex: 1;
-  min-width: 0;
+.ws-screen__add {
+  justify-content: center;
 }
 
 .ws-screen__error,
@@ -308,6 +310,18 @@ function active(id: string | null): boolean {
   color: var(--accent);
 }
 
+.ws-menu__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ws-menu__icon {
+  flex: none;
+  color: var(--text-secondary);
+}
+
 .ws-menu__name {
   min-width: 0;
   overflow: hidden;
@@ -320,20 +334,13 @@ function active(id: string | null): boolean {
   gap: 0.1rem;
 }
 
-.ws-menu__create {
-  display: flex;
-  gap: 0.4rem;
-  padding: 0.35rem 0.6rem;
-}
-
-.ws-menu__input {
-  flex: 1;
-  min-width: 0;
+.ws-menu__add {
+  color: var(--accent);
 }
 
 .ws-menu__hint {
-  margin: 0.5rem 0 0;
-  padding: 0.4rem 0.6rem 0.2rem;
+  margin: 0;
+  padding: 0.35rem 0.6rem 0.5rem;
   font-size: 0.75rem;
   color: var(--text-secondary);
 }

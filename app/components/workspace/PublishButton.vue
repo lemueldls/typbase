@@ -67,7 +67,7 @@ async function onUnpublish() {
         :title="meta.publishUri ?? ''"
         role="status"
       >
-        <Icon name="lucide:globe" :size="12" aria-hidden="true" />
+        <MsIcon name="public" :size="12" />
         {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
       </span>
 

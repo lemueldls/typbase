@@ -1,283 +1,3 @@
-/* Shared base for the workspace UI. Design tokens first, then the
-   cross-component primitives (buttons, reka-ui overlays) and the Typst
-   widget styling the CodeMirror inline previews rely on. */
-
-/* @import "./fonts.css"; */
-
-:root {
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
-  color-scheme: light;
-
-  --color-surface: #ffffff;
-  --color-surface-2: #f3f4f6;
-  --color-surface-3: #e9ebee;
-  --color-border: #e5e7eb;
-  --color-border-strong: #d1d5db;
-  --color-text: #1f2328;
-  --color-text-secondary: #6b7280;
-  --color-accent: #1e5aa0;
-  --color-accent-soft: #e3edf8;
-  --color-danger: #b42828;
-  --color-danger-soft: #f9e3e3;
-  --color-ok: #2f6f4f;
-  --color-warning: #96660f;
-  --color-overlay: rgb(0 0 0 / 0.35);
-
-  /* Short aliases; the majority of component styles use these. The
-     --color-* palette is the per-theme source of truth and the short
-     tokens just alias it, so a theme only ever redefines the palette. */
-  --surface: var(--color-surface);
-  --surface-2: var(--color-surface-2);
-  --surface-3: var(--color-surface-3);
-  --border: var(--color-border);
-  --border-strong: var(--color-border-strong);
-  --text: var(--color-text);
-  --text-secondary: var(--color-text-secondary);
-  --accent: var(--color-accent);
-  --accent-soft: var(--color-accent-soft);
-  --danger: var(--color-danger);
-  --danger-soft: var(--color-danger-soft);
-  --ok: var(--color-ok);
-  --warning: var(--color-warning);
-  --overlay: var(--color-overlay);
-  --focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
-
-  --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --color-surface: #1b1d21;
-  --color-surface-2: #24272c;
-  --color-surface-3: #2d3138;
-  --color-border: #363b42;
-  --color-border-strong: #4a5058;
-  --color-text: #e8eaed;
-  --color-text-secondary: #9aa1aa;
-  --color-accent: #6ea6e3;
-  --color-accent-soft: #223349;
-  --color-danger: #e08585;
-  --color-danger-soft: #4a2a2a;
-  --color-ok: #7cc49d;
-  --color-warning: #d3a54f;
-  --color-overlay: rgb(0 0 0 / 0.55);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#__nuxt {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  background: var(--color-surface-2);
-  color: var(--color-text);
-}
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.85rem;
-  font-family: inherit;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
-  cursor: pointer;
-}
-
-.button:hover {
-  background: var(--color-surface-2);
-}
-
-.button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.button--primary {
-  color: #fff;
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.button--primary:hover {
-  background: #174b85;
-}
-
-.button--ghost {
-  background: transparent;
-  border-color: transparent;
-}
-
-.button--ghost:hover {
-  background: var(--color-surface-2);
-}
-
-.button--icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.3rem 0.5rem;
-  line-height: 1;
-}
-
-.button svg,
-.sidebar__row svg,
-.menu__item svg {
-  flex: none;
-}
-
-.button--tiny {
-  padding: 0.15rem 0.35rem;
-  font-size: 0.8rem;
-}
-
-.button--small {
-  padding: 0.2rem 0.5rem;
-  font-size: 0.75rem;
-}
-
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: rgb(0 0 0 / 0.35);
-}
-
-.dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(420px, calc(100vw - 2rem));
-  max-height: calc(100vh - 4rem);
-  overflow-y: auto;
-  padding: 1.25rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.2);
-  z-index: 50;
-}
-
-.dialog__title {
-  margin: 0 0 0.25rem;
-  font-size: 1.1rem;
-}
-
-.dialog__description {
-  margin: 0 0 1rem;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-}
-
-.dialog__form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.dialog__field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-}
-
-.dialog__input {
-  padding: 0.4rem 0.55rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
-}
-
-.dialog__path {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-}
-
-.dialog__error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-danger);
-}
-
-.dialog__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.popover {
-  width: min(360px, calc(100vw - 2rem));
-  padding: 1rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.15);
-  z-index: 50;
-}
-
-.popover__title {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-}
-
-.menu {
-  min-width: 10rem;
-  padding: 0.25rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-}
-
-.menu :deep([data-reka-menu-item]),
-.menu :deep([data-placeholder]) {
-  padding: 0.35rem 0.6rem;
-  font-size: 0.85rem;
-  border-radius: 0.3rem;
-  outline: none;
-  cursor: pointer;
-}
-
-.menu :deep([data-reka-menu-item][data-highlighted]) {
-  background: var(--color-accent-soft);
-}
-
-.menu__danger {
-  color: var(--color-danger);
-}
-
-.menu__separator {
-  height: 1px;
-  margin: 0.25rem 0;
-  background: var(--color-border);
-}
-
 /* ------------------ CodeMirror (reference: mnemo's editor) ------------------ */
 
 .cm-editor {
@@ -442,40 +162,46 @@ body {
   color: var(--text);
 }
 
+/* Autocomplete icons are Material Symbols ligatures, same font as MsIcon.
+   The ::after content holds the glyph name; the font turns it into a pictogram. */
 .cm-completionIcon {
+  font-family: var(--md-icon-font);
+  font-variation-settings:
+    "FILL" 0,
+    "wght" var(--md-icon-weight);
   transform: translateY(0.5px);
   opacity: 0.7;
 }
 
 .cm-completionIcon-syntax::after {
-  content: "#";
+  content: "code";
 }
 .cm-completionIcon-function::after {
-  content: "ƒ";
+  content: "function";
 }
 .cm-completionIcon-type::after {
-  content: "T";
+  content: "category";
 }
 .cm-completionIcon-param::after {
-  content: "p";
+  content: "settings";
 }
 .cm-completionIcon-constant::after {
-  content: "C";
+  content: "special_character";
 }
 .cm-completionIcon-path::after {
-  content: "/";
+  content: "folder";
 }
 .cm-completionIcon-package::after {
-  content: "P";
+  content: "package";
 }
 .cm-completionIcon-label::after {
-  content: "@";
+  content: "label";
 }
 .cm-completionIcon-font::after {
-  content: "F";
+  content: "font_download";
 }
 .cm-completionIcon-symbol::after {
-  content: "∑";
+  content: "tag";
 }
 
 .cm-tooltip-lint .cm-diagnostic {
@@ -673,39 +399,5 @@ body {
   background: var(--cursor-color);
   border-radius: 0.25rem 0.25rem 0.25rem 0;
   pointer-events: none;
-  white-space: nowrap;
-}
-
-/* ------------------------------ a11y base ------------------------------ */
-
-:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-:focus:not(:focus-visible) {
-  outline: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  overflow: hidden;
   white-space: nowrap;
 }

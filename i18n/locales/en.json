@@ -29,6 +29,7 @@
     "home": "Home",
     "categories": "Categories",
     "newPage": "New page",
+    "resizeSidebar": "Resize sidebar",
     "general": "General",
     "noPages": "No pages yet.",
     "actions": "Actions for {title}",
@@ -129,7 +130,9 @@
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago",
-    "tabAppearance": "Appearance"
+    "tabAppearance": "Appearance",
+    "textSize": "Text size",
+    "textSizeHint": "Base text size in pt. 1 pt renders as 1 px on screen, so 16pt matches the editor's 16px text."
   },
   "aiMenu": {
     "off": "AI (off)",
@@ -150,12 +153,20 @@
     "noWorkspaces": "No workspaces yet. Create one below.",
     "newName": "New workspace name",
     "create": "Create",
-    "renamePrompt": "Rename workspace",
     "deleteConfirm": "Delete workspace \"{name}\" and all its pages? This cannot be undone.",
     "renameAria": "Rename {name}",
     "deleteAria": "Delete {name}",
     "hint": "Each workspace syncs as its own space; data never mixes.",
-    "switchAria": "Switch workspace"
+    "switchAria": "Switch workspace",
+    "iconSearch": "Search icons…",
+    "iconMore": "{shown} of {total} shown - refine your search",
+    "renameTitle": "Rename workspace",
+    "renameName": "Workspace name",
+    "renameSave": "Save",
+    "renameCancel": "Cancel",
+    "iconLabel": "Icon",
+    "add": "New workspace",
+    "createTitle": "New workspace"
   },
   "palette": {
     "placeholder": "Search pages and blocks…",
