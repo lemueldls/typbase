@@ -25,7 +25,8 @@ export const tooltipStateField = StateField.define<Tooltip | null>({
 export const tooltipViewPlugin = () =>
   ViewPlugin.define((view) => ({
     update(update: ViewUpdate) {
-      if (!update.selectionSet && !update.docChanged && !update.focusChanged) return;
+      if (!update.selectionSet && !update.docChanged && !update.focusChanged)
+        return;
 
       queueMicrotask(() => {
         if (!view.hasFocus) {

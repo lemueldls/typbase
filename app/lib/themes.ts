@@ -273,7 +273,8 @@ export function resolveTheme(settings: {
   themeCustom?: ThemePaletteTokens | null;
 }): ResolvedTheme {
   const preferDark =
-    settings.theme === "dark" || (settings.theme === "auto" && prefersDarkScheme());
+    settings.theme === "dark" ||
+    (settings.theme === "auto" && prefersDarkScheme());
 
   const def = themeById(settings.themeName ?? "default") ?? null;
   let base: ThemePaletteTokens;
@@ -304,7 +305,8 @@ export function resolveTheme(settings: {
 
 function prefersDarkScheme(): boolean {
   return (
-    typeof window !== "undefined" && !!window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    typeof window !== "undefined" &&
+    !!window.matchMedia?.("(prefers-color-scheme: dark)").matches
   );
 }
 
@@ -320,16 +322,16 @@ export function applyThemeToDom(resolved: ResolvedTheme): void {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Last-applied settings cache. Workspace theme settings live in a Loro doc,
 // which is async and boot-time-slow; painting the correct palette on page
 // load needs it earlier. Every apply writes the settings here, and a client
 // plugin restores them before the first app frame.
-// ---------------------------------------------------------------------------
 
 const THEME_CACHE_KEY = "typbase:themeCache";
 
-export function cacheThemeSettings(settings: Parameters<typeof resolveTheme>[0]): void {
+export function cacheThemeSettings(
+  settings: Parameters<typeof resolveTheme>[0],
+): void {
   try {
     localStorage.setItem(
       THEME_CACHE_KEY,
@@ -349,23 +351,24 @@ export function restoreCachedTheme(): void {
   try {
     const raw = localStorage.getItem(THEME_CACHE_KEY);
     if (!raw) return;
+
     const cached = JSON.parse(raw) as Parameters<typeof resolveTheme>[0];
     if (!cached.theme) return;
+
     applyThemeToDom(resolveTheme(cached));
   } catch {
     // Corrupt cache: fall back to the defaults in main.css.
   }
 }
 
-// ---------------------------------------------------------------------------
 // Renderer palette derivation: the Typst theme is built from the same tokens,
 // so a custom theme automatically gets matching rendered pages. Contrast
 // colors are computed from the chrome surfaces rather than hardcoded.
-// ---------------------------------------------------------------------------
 
 function rgba(css: string): Rgb {
   const match = /^#([0-9a-f]{6})$/i.exec(css.trim());
   if (!match) return new Rgb(127, 127, 127);
+
   const hex = match[1]!;
   return new Rgb(
     parseInt(hex.slice(0, 2), 16),
@@ -378,6 +381,7 @@ function rgba(css: string): Rgb {
 function rgbChannels(rgb: Rgb): [number, number, number] {
   const match = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(rgb.toString());
   if (!match) return [127, 127, 127];
+
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 

@@ -1,4 +1,10 @@
-import type { AssetMeta, Category, PageMeta, Section, WorkspaceSettings } from "@typbase/typing";
+import type {
+  AssetMeta,
+  Category,
+  PageMeta,
+  Section,
+  WorkspaceSettings,
+} from "@typbase/typing";
 import type { LoroDoc, LoroList, LoroMap, VersionVector } from "loro-crdt";
 
 import { createId } from "@paralleldrive/cuid2";
@@ -17,6 +23,7 @@ function encodeSetting(value: unknown): string {
 
 function decodeSetting<T>(value: unknown): T {
   if (typeof value !== "string") return JSON.parse("{}") as T;
+
   try {
     return JSON.parse(value) as T;
   } catch {
@@ -140,7 +147,9 @@ export class WorkspaceStore {
     // last-write-wins per whole config without Loro container surgery.
     settings.publish = {
       ...DEFAULT_SETTINGS.publish,
-      ...decodeSetting<Partial<WorkspaceSettings["publish"]>>(map.get("publish")),
+      ...decodeSetting<Partial<WorkspaceSettings["publish"]>>(
+        map.get("publish"),
+      ),
     };
     settings.ai = {
       ...DEFAULT_SETTINGS.ai,
@@ -151,12 +160,15 @@ export class WorkspaceStore {
       ...decodeSetting<Partial<WorkspaceSettings["search"]>>(map.get("search")),
     };
     const themeName = map.get("themeName");
-    settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
+    settings.themeName =
+      typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
     const themeCustom = decodeSetting<WorkspaceSettings["themeCustom"] | null>(
       map.get("themeCustom"),
     );
     settings.themeCustom =
-      themeCustom && typeof themeCustom === "object" && Object.keys(themeCustom).length > 0
+      themeCustom &&
+      typeof themeCustom === "object" &&
+      Object.keys(themeCustom).length > 0
         ? themeCustom
         : DEFAULT_SETTINGS.themeCustom;
 
@@ -170,7 +182,8 @@ export class WorkspaceStore {
       if (key === "publish") map.set("publish", encodeSetting(value));
       else if (key === "ai") map.set("ai", encodeSetting(value));
       else if (key === "search") map.set("search", encodeSetting(value));
-      else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
+      else if (key === "themeCustom")
+        map.set("themeCustom", encodeSetting(value));
       else map.set(key, value);
     }
     this.doc.commit();
@@ -216,9 +229,13 @@ export class WorkspaceStore {
     // Older docs hold regular op-id children at these keys;
     // ensureMergeableMap throws on those. Reuse what exists, create
     // deterministic mergeable children only for fresh keys.
-    const map = (pages.get(meta.id) as LoroMap | undefined) ?? pages.ensureMergeableMap(meta.id);
+    const map =
+      (pages.get(meta.id) as LoroMap | undefined) ??
+      pages.ensureMergeableMap(meta.id);
 
-    const tags = (map.get("tags") as LoroList | undefined) ?? map.ensureMergeableList("tags");
+    const tags =
+      (map.get("tags") as LoroList | undefined) ??
+      map.ensureMergeableList("tags");
     for (let i = tags.length - 1; i >= 0; i--) tags.delete(i, 1);
     for (const tag of meta.tags) tags.push(tag);
 
@@ -322,10 +339,14 @@ export class WorkspaceStore {
     if (!trimmed) throw new Error("Category name is empty");
 
     const category: Category = { id: slugify(trimmed), name: trimmed };
-    if (this.listCategories().some((c) => c.id === category.id)) return category;
+    if (this.listCategories().some((c) => c.id === category.id))
+      return category;
 
     const list = this.doc.getList("categories");
-    const map = list.insertContainer(list.length, new this.loro.LoroMap()) as LoroMap;
+    const map = list.insertContainer(
+      list.length,
+      new this.loro.LoroMap(),
+    ) as LoroMap;
     map.set("id", category.id);
     map.set("name", category.name);
     this.doc.commit();
@@ -374,7 +395,10 @@ export class WorkspaceStore {
   }
 
   /** Nearest existing daily note strictly before/after `date`, by path order. */
-  private nearestDailyPage(date: string, direction: -1 | 1): string | undefined {
+  private nearestDailyPage(
+    date: string,
+    direction: -1 | 1,
+  ): string | undefined {
     let best: PageMeta | undefined;
     for (const page of this.listPages()) {
       const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
@@ -385,10 +409,13 @@ export class WorkspaceStore {
       if (!best) {
         best = page;
       } else {
-        const bestDay = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(best.path)![1]!;
+        const bestDay = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(
+          best.path,
+        )![1]!;
         if (direction === -1 ? day > bestDay : day < bestDay) best = page;
       }
     }
+
     return best?.id;
   }
 
@@ -401,11 +428,15 @@ export class WorkspaceStore {
   /** Long weekday via Intl ("auto" locale = environment default, browser in app). */
   private weekdayName(date: string): string {
     const settings = this.getSettings();
-    const locale = settings.locale && settings.locale !== "auto" ? settings.locale : undefined;
+    const locale =
+      settings.locale && settings.locale !== "auto"
+        ? settings.locale
+        : undefined;
     try {
-      return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(
-        new Date(`${date}T00:00:00Z`),
-      );
+      return new Intl.DateTimeFormat(locale, {
+        weekday: "long",
+        timeZone: "UTC",
+      }).format(new Date(`${date}T00:00:00Z`));
     } catch {
       return date;
     }
@@ -463,7 +494,10 @@ export class WorkspaceStore {
   }
 
   /** Subscribe to a page doc's changes (content or meta). */
-  async onPageDocChange(pageId: string, listener: () => void): Promise<() => void> {
+  async onPageDocChange(
+    pageId: string,
+    listener: () => void,
+  ): Promise<() => void> {
     await this.openPageDoc(pageId);
     let listeners = this.pageListeners.get(pageId);
     if (!listeners) {
@@ -490,6 +524,7 @@ export class WorkspaceStore {
   /** docId space: the workspace doc answers to the workspace id, page docs to page ids. */
   async getDocById(docId: string): Promise<LoroDoc | null> {
     if (docId === this.workspaceId) return this.doc;
+
     if (!this.getPage(docId)) return null;
 
     return this.openPageDoc(docId);
@@ -527,7 +562,9 @@ export class WorkspaceStore {
     return { bytes, version: this.versionToJson(doc) };
   }
 
-  async exportDocSnapshot(docId: string): Promise<{ bytes: Uint8Array; version: string }> {
+  async exportDocSnapshot(
+    docId: string,
+  ): Promise<{ bytes: Uint8Array; version: string }> {
     const doc = await this.getDocById(docId);
     if (!doc) throw new Error(`No doc named ${docId}`);
 
@@ -566,9 +603,13 @@ export class WorkspaceStore {
   private versionFromJson(json: string): VersionVector {
     const { VersionVector } = this.loro;
     try {
-      const entries = Object.entries(JSON.parse(json) as Record<string, number>);
+      const entries = Object.entries(
+        JSON.parse(json) as Record<string, number>,
+      );
 
-      return VersionVector.parseJSON(new Map(entries.map(([k, v]) => [k as never, v])));
+      return VersionVector.parseJSON(
+        new Map(entries.map(([k, v]) => [k as never, v])),
+      );
     } catch {
       // The wasm binding requires the argument (even for "none"); undefined
       // means an empty vector.
@@ -594,7 +635,8 @@ export class WorkspaceStore {
   async setAsset(pageId: string, ref: string, asset: AssetMeta): Promise<void> {
     const doc = await this.openPageDoc(pageId);
     const map = doc.getMap("assets");
-    const entry = (map.get(ref) as LoroMap | undefined) ?? map.ensureMergeableMap(ref);
+    const entry =
+      (map.get(ref) as LoroMap | undefined) ?? map.ensureMergeableMap(ref);
     for (const [key, value] of Object.entries(asset)) entry.set(key, value);
     doc.commit();
   }
@@ -618,7 +660,10 @@ export class WorkspaceStore {
     const list = doc.getList("sections");
     for (let i = list.length - 1; i >= 0; i--) list.delete(i, 1);
     for (const section of sections) {
-      const map = list.insertContainer(list.length, new this.loro.LoroMap()) as LoroMap;
+      const map = list.insertContainer(
+        list.length,
+        new this.loro.LoroMap(),
+      ) as LoroMap;
       for (const [k, v] of Object.entries(section)) map.set(k, v);
     }
     doc.commit();

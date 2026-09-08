@@ -37,7 +37,9 @@ const {
 /** The active workspace's registry icon; setter writes it through the registry. */
 const workspaceIcon = computed({
   get: () => {
-    const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
+    const info = workspaces.value.find(
+      (entry) => entry.id === activeWorkspaceId.value,
+    );
     return (info?.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
   },
   set: (icon: MaterialSymbol) => {
@@ -118,7 +120,11 @@ watch(
   () => settings.value.themeName,
   (name) => {
     if (name === CUSTOM_THEME_ID && !customPaletteText.value) {
-      customPaletteText.value = JSON.stringify(settings.value.themeCustom ?? {}, null, 2);
+      customPaletteText.value = JSON.stringify(
+        settings.value.themeCustom ?? {},
+        null,
+        2,
+      );
     }
   },
   { immediate: true },
@@ -132,6 +138,7 @@ function onThemeNameChange(event: Event) {
       themeError.value = "Custom palette is not valid JSON of token -> color.";
       return;
     }
+
     patch.themeCustom = palette;
   }
   themeError.value = "";
@@ -144,28 +151,33 @@ function onThemeNameChange(event: Event) {
 function parseCustomPalette(text: string): ThemePaletteTokens | null {
   try {
     const parsed = JSON.parse(text) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return null;
+
     const tokens = Object.fromEntries(
       Object.entries(parsed as Record<string, unknown>).filter(
         (entry) => typeof entry[1] === "string",
       ),
     );
-    return Object.keys(tokens).length > 0 ? (tokens as ThemePaletteTokens) : null;
+    return Object.keys(tokens).length > 0
+      ? (tokens as ThemePaletteTokens)
+      : null;
   } catch {
     return null;
   }
 }
 const themeError = ref("");
 /** Settings tab; keeps the popover from becoming a scroll marathon. */
-const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | "search" | "sync">(
-  "general",
-);
+const activeTab = ref<
+  "general" | "content" | "appearance" | "publish" | "ai" | "search" | "sync"
+>("general");
 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
 // every compile. Both sync through settings like everything else.
 function themeOptionLabel(id: string): string {
   if (id === "custom") return t("settings.custom");
+
   return THEME_OPTIONS.find((option) => option.id === id)?.label ?? id;
 }
 
@@ -187,9 +199,11 @@ function onPagePreludeChange(event: Event) {
 function onCustomPaletteChange() {
   const palette = parseCustomPalette(customPaletteText.value);
   if (!palette) {
-    themeError.value = "Keep it valid JSON of token -> color (e.g. surface, text, accent).";
+    themeError.value =
+      "Keep it valid JSON of token -> color (e.g. surface, text, accent).";
     return;
   }
+
   themeError.value = "";
   props.store.updateSettings({ themeCustom: palette });
   applyTheme(props.store.getSettings());
@@ -263,7 +277,8 @@ onMounted(() => {
 });
 
 function onThemeChange(event: Event) {
-  const mode = (event.target as HTMLSelectElement).value as "auto" | "light" | "dark";
+  const mode = (event.target as HTMLSelectElement).value as
+    "auto" | "light" | "dark";
   props.store.updateSettings({ theme: mode });
   applyTheme(props.store.getSettings());
   bumpRenderRevision();
@@ -271,6 +286,7 @@ function onThemeChange(event: Event) {
 
 function formatAgo(timestamp: number): string {
   if (!timestamp) return t("settings.syncNever");
+
   return appLocale.formatAgo(timestamp);
 }
 
@@ -417,7 +433,11 @@ function onTextSizeChange(event: Event) {
         <section v-show="activeTab === 'general'" class="settings__tabpanel">
           <label class="settings__field">
             <span>{{ $t("settings.name") }}</span>
-            <input class="settings__input" :value="settings.name" @change="renameWorkspace" />
+            <input
+              class="settings__input"
+              :value="settings.name"
+              @change="renameWorkspace"
+            />
           </label>
 
           <div class="settings__field">
@@ -454,7 +474,9 @@ function onTextSizeChange(event: Event) {
               spellcheck="false"
               @change="onDailyTemplateChange"
             />
-            <span class="settings__hint">{{ $t("settings.templateHint") }}</span>
+            <span class="settings__hint">{{
+              $t("settings.templateHint")
+            }}</span>
           </label>
 
           <label class="settings__field">
@@ -479,7 +501,11 @@ function onTextSizeChange(event: Event) {
               :value="settings.themeName ?? 'default'"
               @change="onThemeNameChange"
             >
-              <option v-for="option in THEME_OPTIONS" :key="option.id" :value="option.id">
+              <option
+                v-for="option in THEME_OPTIONS"
+                :key="option.id"
+                :value="option.id"
+              >
                 {{ themeOptionLabel(option.id) }}
               </option>
             </select>
@@ -509,12 +535,14 @@ function onTextSizeChange(event: Event) {
               @change="onCustomPaletteChange"
             />
             <span class="settings__hint">
-              Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary,
-              accent, accentSoft, danger, dangerSoft, ok, warning. Missing tokens fall back to the
-              default theme.
+              Tokens: surface, surface2, surface3, border, borderStrong, text,
+              textSecondary, accent, accentSoft, danger, dangerSoft, ok,
+              warning. Missing tokens fall back to the default theme.
             </span>
           </label>
-          <p v-if="themeError" class="settings__error" role="alert">{{ themeError }}</p>
+          <p v-if="themeError" class="settings__error" role="alert">
+            {{ themeError }}
+          </p>
 
           <label class="settings__field">
             <span>{{ $t("settings.textSize") }}</span>
@@ -527,12 +555,18 @@ function onTextSizeChange(event: Event) {
               :value="settings.textSize"
               @change="onTextSizeChange"
             />
-            <span class="settings__hint">{{ $t("settings.textSizeHint") }}</span>
+            <span class="settings__hint">{{
+              $t("settings.textSizeHint")
+            }}</span>
           </label>
 
           <label class="settings__field">
             <span>{{ $t("settings.textFont") }}</span>
-            <select class="settings__input" :value="settings.font" @change="onFontChange">
+            <select
+              class="settings__input"
+              :value="settings.font"
+              @change="onFontChange"
+            >
               <option v-for="font in fontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
@@ -569,8 +603,8 @@ function onTextSizeChange(event: Event) {
 
           <div class="settings__system-fonts">
             <p class="settings__hint">
-              Installs every system font into the Typst engine, so documents can use any installed
-              family.
+              Installs every system font into the Typst engine, so documents can
+              use any installed family.
             </p>
 
             <template v-if="supportsLocalFonts()">
@@ -584,10 +618,16 @@ function onTextSizeChange(event: Event) {
                 {{ systemFontsLoading ? "Loading..." : "Load system fonts" }}
               </button>
               <p v-if="systemFontsLoaded" class="settings__ok">
-                {{ $t("settings.systemFontsLoaded", { count: systemFontFamilies.length }) }}
+                {{
+                  $t("settings.systemFontsLoaded", {
+                    count: systemFontFamilies.length,
+                  })
+                }}
               </p>
             </template>
-            <p v-else class="settings__hint">{{ $t("settings.cannotEnumerate") }}</p>
+            <p v-else class="settings__hint">
+              {{ $t("settings.cannotEnumerate") }}
+            </p>
 
             <p v-if="systemFontsError" class="settings__error">
               {{ systemFontsError }}
@@ -604,7 +644,9 @@ function onTextSizeChange(event: Event) {
                 class="settings__input"
                 :value="publishLangs"
                 placeholder="en, de"
-                @change="publishLangs = ($event.target as HTMLInputElement).value"
+                @change="
+                  publishLangs = ($event.target as HTMLInputElement).value
+                "
               />
             </label>
             <label class="settings__field">
@@ -613,11 +655,17 @@ function onTextSizeChange(event: Event) {
                 class="settings__input"
                 :value="publishTags"
                 :placeholder="$t('settings.tags')"
-                @change="publishTags = ($event.target as HTMLInputElement).value"
+                @change="
+                  publishTags = ($event.target as HTMLInputElement).value
+                "
               />
             </label>
             <label class="settings__check">
-              <input type="checkbox" :checked="publishDefaults.includePdf" @change="togglePdf" />
+              <input
+                type="checkbox"
+                :checked="publishDefaults.includePdf"
+                @change="togglePdf"
+              />
               <span>{{ $t("settings.includePdf") }}</span>
             </label>
           </section>
@@ -629,12 +677,17 @@ function onTextSizeChange(event: Event) {
               <input
                 type="checkbox"
                 :checked="aiConfig.enabled"
-                @change="updateAiPatching({ enabled: ($event.target as HTMLInputElement).checked })"
+                @change="
+                  updateAiPatching({
+                    enabled: ($event.target as HTMLInputElement).checked,
+                  })
+                "
               />
               <span>{{ $t("settings.aiEnable") }}</span>
             </label>
             <p class="settings__hint">
-              Off by default: nothing is generated or sent to a provider until you enable this.
+              Off by default: nothing is generated or sent to a provider until
+              you enable this.
             </p>
             <template v-if="aiConfig.enabled">
               <label class="settings__field">
@@ -679,7 +732,9 @@ function onTextSizeChange(event: Event) {
                   :value="aiConfig.chatModel"
                   @change="
                     updateAiPatching({
-                      chatModel: ($event.target as HTMLInputElement).value.trim(),
+                      chatModel: (
+                        $event.target as HTMLInputElement
+                      ).value.trim(),
                     })
                   "
                 />
@@ -691,7 +746,11 @@ function onTextSizeChange(event: Event) {
                     class="settings__input"
                     type="password"
                     :value="aiKeys.openai ?? aiKeys.anthropic ?? ''"
-                    :placeholder="aiConfig.provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'"
+                    :placeholder="
+                      aiConfig.provider === 'anthropic'
+                        ? 'sk-ant-...'
+                        : 'sk-...'
+                    "
                     @change="onAiKeyChange"
                   />
                 </label>
@@ -713,13 +772,22 @@ function onTextSizeChange(event: Event) {
             </label>
             <p class="settings__hint">
               <template v-if="searchStatus">
-                Index: {{ searchStatus.docs }} pages · {{ searchStatus.blocks }} blocks ·
-                {{ searchStatus.mode === "opfs" ? "persistent" : "in-memory (no OPFS/isolation)" }}
+                Index: {{ searchStatus.docs }} pages ·
+                {{ searchStatus.blocks }} blocks ·
+                {{
+                  searchStatus.mode === "opfs"
+                    ? "persistent"
+                    : "in-memory (no OPFS/isolation)"
+                }}
                 <template v-if="searchStatus.semantic"> · model ready</template>
               </template>
               <template v-else>Index is starting...</template>
             </p>
-            <button type="button" class="button button--small" @click="onRebuildIndex">
+            <button
+              type="button"
+              class="button button--small"
+              @click="onRebuildIndex"
+            >
               Rebuild
             </button>
           </section>
@@ -731,8 +799,9 @@ function onTextSizeChange(event: Event) {
             <template v-if="atprotoReady && atproto">
               <template v-if="!atprotoStatus.signedIn">
                 <p class="settings__hint">
-                  Sign in with an atproto account to attach a space. The workspace keeps working
-                  offline; signing in only adds sync between devices.
+                  Sign in with an atproto account to attach a space. The
+                  workspace keeps working offline; signing in only adds sync
+                  between devices.
                 </p>
                 <div class="settings__row">
                   <input
@@ -754,7 +823,11 @@ function onTextSizeChange(event: Event) {
 
               <template v-else>
                 <p class="settings__ok">
-                  {{ $t("settings.signedInAs", { did: shortDid(atprotoStatus.did) }) }}
+                  {{
+                    $t("settings.signedInAs", {
+                      did: shortDid(atprotoStatus.did),
+                    })
+                  }}
                 </p>
                 <p class="settings__hint">
                   {{
@@ -767,30 +840,48 @@ function onTextSizeChange(event: Event) {
                     })
                   }}
                 </p>
-                <p class="settings__hint" :class="{ settings__error: atprotoStatus.error }">
+                <p
+                  class="settings__hint"
+                  :class="{ settings__error: atprotoStatus.error }"
+                >
                   {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
                 </p>
 
-                <div v-if="atprotoStatus.members.length" class="settings__members">
+                <div
+                  v-if="atprotoStatus.members.length"
+                  class="settings__members"
+                >
                   <p class="settings__hint">{{ $t("settings.syncMembers") }}</p>
                   <ul>
-                    <li v-for="member in atprotoStatus.members" :key="member.did">
+                    <li
+                      v-for="member in atprotoStatus.members"
+                      :key="member.did"
+                    >
                       {{ shortDid(member.did) }}
                     </li>
                   </ul>
                 </div>
 
-                <button type="button" class="button" :disabled="!atprotoReady" @click="onSignOut">
+                <button
+                  type="button"
+                  class="button"
+                  :disabled="!atprotoReady"
+                  @click="onSignOut"
+                >
                   {{ $t("settings.syncSignOut") }}
                 </button>
               </template>
 
-              <p v-if="signInError" class="settings__error">{{ signInError }}</p>
+              <p v-if="signInError" class="settings__error">
+                {{ signInError }}
+              </p>
               <p v-if="!atprotoStatus.relayConnected" class="settings__hint">
                 {{ $t("settings.syncRelayOff") }}
               </p>
             </template>
-            <p v-else class="settings__hint">{{ $t("settings.syncRequiresServer") }}</p>
+            <p v-else class="settings__hint">
+              {{ $t("settings.syncRequiresServer") }}
+            </p>
           </section>
         </section>
       </PopoverContent>

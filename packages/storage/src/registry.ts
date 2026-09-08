@@ -19,9 +19,11 @@ export class WorkspaceRegistry {
   async list(): Promise<WorkspaceInfo[]> {
     const bytes = await this.backend.read(REGISTRY_FILE);
     if (!bytes) return [];
+
     try {
       const parsed = JSON.parse(decoder.decode(bytes)) as unknown;
       if (!Array.isArray(parsed)) return [];
+
       return parsed.filter(
         (entry): entry is WorkspaceInfo =>
           !!entry &&
@@ -43,12 +45,18 @@ export class WorkspaceRegistry {
     const index = entries.findIndex((existing) => existing.id === entry.id);
     if (index === -1) entries.push(entry);
     else entries[index] = entry;
-    await this.backend.write(REGISTRY_FILE, encoder.encode(JSON.stringify(entries)));
+    await this.backend.write(
+      REGISTRY_FILE,
+      encoder.encode(JSON.stringify(entries)),
+    );
   }
 
   async remove(id: string): Promise<void> {
     const entries = (await this.list()).filter((entry) => entry.id !== id);
-    await this.backend.write(REGISTRY_FILE, encoder.encode(JSON.stringify(entries)));
+    await this.backend.write(
+      REGISTRY_FILE,
+      encoder.encode(JSON.stringify(entries)),
+    );
   }
 }
 
@@ -57,12 +65,18 @@ export class WorkspaceRegistry {
  * directory itself. OPFS treats directories as entries; the recursive walk
  * makes the same code work for the flat memory backend.
  */
-export async function removeWorkspace(backend: StorageBackend, workspaceId: string): Promise<void> {
+export async function removeWorkspace(
+  backend: StorageBackend,
+  workspaceId: string,
+): Promise<void> {
   const prefix = `workspaces/${workspaceId}`;
   await removeEntryRecursive(backend, prefix);
 }
 
-async function removeEntryRecursive(backend: StorageBackend, path: string): Promise<void> {
+async function removeEntryRecursive(
+  backend: StorageBackend,
+  path: string,
+): Promise<void> {
   const children = await backend.list(path);
   if (children.length > 0) {
     for (const child of children) {

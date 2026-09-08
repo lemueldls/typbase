@@ -58,6 +58,7 @@ export class MemoryBackend implements StorageBackend {
       const name = rest.split("/")[0];
       if (name) names.add(name);
     }
+
     return [...names];
   }
 }
@@ -76,7 +77,9 @@ export class OPFSBackend implements StorageBackend {
     return new OPFSBackend(dir);
   }
 
-  private async ensureDir(segments: string[]): Promise<FileSystemDirectoryHandle> {
+  private async ensureDir(
+    segments: string[],
+  ): Promise<FileSystemDirectoryHandle> {
     let dir = this.root;
     let prefix = "";
 
@@ -147,6 +150,7 @@ export class OPFSBackend implements StorageBackend {
     for await (const [name] of dir.entries()) {
       names.push(name);
     }
+
     return names;
   }
 }

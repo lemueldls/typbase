@@ -22,6 +22,7 @@ export function isWasmTrap(error: unknown): boolean {
       /unreachable|memory access out of bounds/i.test(error.message)
     );
   }
+
   return false;
 }
 

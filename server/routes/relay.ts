@@ -29,6 +29,7 @@ export default defineWebSocketHandler({
   open(peer) {
     const workspace = workspaceOf(peer.request);
     if (!workspace) return;
+
     // no room; the client reconnects with a workspace
     peer.subscribe(topic(workspace));
     peer.publish(topic(workspace), { t: "join", peer: peer.id });

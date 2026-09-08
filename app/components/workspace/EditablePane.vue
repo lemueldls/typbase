@@ -12,7 +12,11 @@ import {
 } from "@codemirror/language";
 import { lintGutter } from "@codemirror/lint";
 import { highlightSelectionMatches } from "@codemirror/search";
-import { EditorState, type EditorStateConfig, type Extension } from "@codemirror/state";
+import {
+  EditorState,
+  type EditorStateConfig,
+  type Extension,
+} from "@codemirror/state";
 import {
   EditorView,
   crosshairCursor,
@@ -45,7 +49,10 @@ const props = defineProps<{
   /** WYSIWYG (inline previews) vs plain source editing. */
   wysiwyg: boolean;
   typstState: TypstState;
-  onRequests?: (requests: TypstRequest[], spaceId: string) => Promise<boolean> | boolean;
+  onRequests?: (
+    requests: TypstRequest[],
+    spaceId: string,
+  ) => Promise<boolean> | boolean;
   revision?: () => string | number | undefined;
   /** Extra CodeMirror extensions (presence cursors, AI menus, search scroll). */
   extensions?: Extension[];
@@ -116,7 +123,11 @@ function createStateConfig(): EditorStateConfig {
         props.prelude,
         false,
         props.typstState,
-        { onRequests: props.onRequests, revision: props.revision, onPanic: props.onPanic },
+        {
+          onRequests: props.onRequests,
+          revision: props.revision,
+          onPanic: props.onPanic,
+        },
       ),
     );
   } else {
@@ -184,6 +195,7 @@ function revealRange(from: number, to: number) {
 function insertAt(position: number, text: string) {
   const editor = view.value;
   if (!editor) return -1;
+
   const doc = editor.state.doc;
   const pos = Math.max(0, Math.min(position, doc.length));
   const changes = { from: pos, insert: text };
@@ -200,6 +212,7 @@ function insertAt(position: number, text: string) {
 function wrapSelection(before: string, after: string) {
   const editor = view.value;
   if (!editor) return;
+
   const { state } = editor;
   const { from, to } = state.selection.main;
   const text = state.sliceDoc(from, to);
@@ -220,6 +233,7 @@ function wrapFunction(name: string, after = "") {
 function prefixLines(prefix: string) {
   const editor = view.value;
   if (!editor) return;
+
   const { state } = editor;
   const { from, to } = state.selection.main;
   const startLine = state.doc.lineAt(from);
@@ -227,7 +241,11 @@ function prefixLines(prefix: string) {
 
   const changes: { from: number; to: number; insert: string }[] = [];
   let total = 0;
-  for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber++) {
+  for (
+    let lineNumber = startLine.number;
+    lineNumber <= endLine.number;
+    lineNumber++
+  ) {
     const line = state.doc.line(lineNumber);
     changes.push({ from: line.from, to: line.from, insert: prefix });
     total += prefix.length;
@@ -245,6 +263,7 @@ function prefixLines(prefix: string) {
 function insertLink() {
   const editor = view.value;
   if (!editor) return;
+
   const { state } = editor;
   const { from, to } = state.selection.main;
   const text = state.sliceDoc(from, to);
@@ -262,6 +281,7 @@ function insertLink() {
 function applyCommand(command: EditCommand) {
   const editor = view.value;
   if (!editor) return;
+
   switch (command) {
     case "undo":
       cmUndo({ state: editor.state, dispatch: (tr) => editor.dispatch(tr) });

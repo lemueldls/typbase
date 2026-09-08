@@ -29,6 +29,7 @@ function formatPublished(timestamp: number): string {
 
 async function onPublish() {
   if (!atproto.value || busy.value) return;
+
   busy.value = true;
   error.value = "";
   try {
@@ -68,7 +69,9 @@ async function onUnpublish() {
         role="status"
       >
         <MsIcon name="public" :size="14" />
-        {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
+        {{
+          t("pageView.published", { date: formatPublished(meta.publishedAt) })
+        }}
       </span>
 
       <PopoverRoot v-model:open="menuOpen">
@@ -84,9 +87,17 @@ async function onUnpublish() {
           </button>
         </PopoverTrigger>
         <PopoverPortal>
-          <PopoverContent class="menu publish__menu" :side-offset="6" align="end">
+          <PopoverContent
+            class="menu publish__menu"
+            :side-offset="6"
+            align="end"
+          >
             <button type="button" class="menu__item" @click="onPublish">
-              {{ meta?.publishedAt ? t("pageView.republish") : t("pageView.publish") }}
+              {{
+                meta?.publishedAt
+                  ? t("pageView.republish")
+                  : t("pageView.publish")
+              }}
               · {{ t("pageView.publishToAtproto") }}
             </button>
             <button

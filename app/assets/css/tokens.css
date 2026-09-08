@@ -21,9 +21,6 @@
   --color-warning: #96660f;
   --color-overlay: rgb(0 0 0 / 0.35);
 
-  /* Short aliases; the majority of component styles use these. The
-     --color-* palette is the per-theme source of truth and the short
-     tokens just alias it, so a theme only ever redefines the palette. */
   --surface: var(--color-surface);
   --surface-2: var(--color-surface-2);
   --surface-3: var(--color-surface-3);

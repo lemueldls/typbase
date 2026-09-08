@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import type { MaterialSymbol } from "material-symbols";
 
-/**
- * Material Symbols icon. Material Symbols is a ligature font: the glyph name
- * rendered as text (e.g. "settings") becomes the icon, so this component is
- * just a styled span. The same font powers the CodeMirror completion icons
- * through CSS ::after content (see css/codemirror.css).
- */
-const props = withDefaults(
+withDefaults(
   defineProps<{
     name: MaterialSymbol;
     /** Icon size in px; the font is sized, not scaled. */
@@ -29,12 +23,12 @@ const props = withDefaults(
   <span
     class="ms-icon material-symbols-rounded"
     :style="{
-      'font-size': `${props.size}px`,
-      'font-variation-settings': `'FILL' ${props.fill ? 1 : 0}, 'wght' ${props.weight}`,
+      'font-size': `${size}px`,
+      'font-variation-settings': `'FILL' ${fill ? 1 : 0}, 'wght' ${weight}`,
     }"
     aria-hidden="true"
   >
-    {{ props.name.replaceAll("-", "_") }}
+    {{ name.replaceAll("-", "_") }}
   </span>
 </template>
 

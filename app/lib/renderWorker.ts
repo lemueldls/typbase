@@ -49,49 +49,59 @@ let pending = new Map<
 >();
 let requestStore: WorkspaceStore | undefined;
 
-export function setPublishRequestStore(store: WorkspaceStore | undefined): void {
+export function setPublishRequestStore(
+  store: WorkspaceStore | undefined,
+): void {
   requestStore = store;
 }
 
 function ensureWorker(): Worker {
   if (worker) return worker;
+
   worker = new Worker(new URL("../workers/render.worker.ts", import.meta.url), {
     type: "module",
   });
 
-  worker.addEventListener("message", (event: MessageEvent<RenderWorkerResponse>) => {
-    const message = event.data;
-    const entry = pending.get(message.id);
+  worker.addEventListener(
+    "message",
+    (event: MessageEvent<RenderWorkerResponse>) => {
+      const message = event.data;
+      const entry = pending.get(message.id);
 
-    if (message.type === "request") {
-      void answerRequests(message.id, message.requests ?? []);
-    } else if (message.type === "insert") {
-      if (!entry) return;
+      if (message.type === "request") {
+        void answerRequests(message.id, message.requests ?? []);
+      } else if (message.type === "insert") {
+        if (!entry) return;
 
-      // Not a real state; inserts are posted directly to the worker below.
-    } else if (message.type === "result") {
-      pending.delete(message.id);
-      if (message.ok) {
-        entry?.resolve({
-          html: message.html,
-          pdf: message.pdf,
-          diagnostics: message.diagnostics,
-        });
-      } else {
-        entry?.reject(new Error(message.error ?? "Render failed"));
+        // Not a real state; inserts are posted directly to the worker below.
+      } else if (message.type === "result") {
+        pending.delete(message.id);
+        if (message.ok) {
+          entry?.resolve({
+            html: message.html,
+            pdf: message.pdf,
+            diagnostics: message.diagnostics,
+          });
+        } else {
+          entry?.reject(new Error(message.error ?? "Render failed"));
+        }
       }
-    }
-  });
+    },
+  );
 
   worker.addEventListener("error", (event) => {
-    for (const [, entry] of pending) entry.reject(event.error ?? new Error("Worker crashed"));
+    for (const [, entry] of pending)
+      entry.reject(event.error ?? new Error("Worker crashed"));
     pending.clear();
   });
 
   return worker;
 }
 
-async function answerRequests(id: number, requests: TypstRequest[]): Promise<void> {
+async function answerRequests(
+  id: number,
+  requests: TypstRequest[],
+): Promise<void> {
   const w = worker;
   if (!w || !requestStore) return;
 

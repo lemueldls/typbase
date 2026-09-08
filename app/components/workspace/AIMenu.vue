@@ -41,7 +41,10 @@ async function onTrigger() {
     if (!window.confirm(t("aiMenu.enableConfirm"))) {
       return;
     }
-    props.store.updateSettings({ ai: { ...props.store.getAiConfig(), enabled: true } });
+
+    props.store.updateSettings({
+      ai: { ...props.store.getAiConfig(), enabled: true },
+    });
   }
   menuOpen.value = !menuOpen.value;
 }

@@ -26,6 +26,7 @@ export function resolveThemeMode(mode: ThemeMode): "light" | "dark" {
   if (mode === "auto") {
     return media?.matches ? "dark" : "light";
   }
+
   return mode;
 }
 
@@ -37,7 +38,9 @@ export function resolveAppTheme(settings: {
   return resolveTheme(settings);
 }
 
-export function applyTheme(settings: Parameters<typeof resolveAppTheme>[0]): ResolvedTheme {
+export function applyTheme(
+  settings: Parameters<typeof resolveAppTheme>[0],
+): ResolvedTheme {
   const resolved = resolveAppTheme(settings);
   applyThemeToDom(resolved);
   cacheThemeSettings(settings);
@@ -65,6 +68,8 @@ export function useTheme(store: WorkspaceStore) {
 }
 
 /** ThemeColors for the current settings, used when compiling previews. */
-export function currentThemeColors(settings: Parameters<typeof resolveAppTheme>[0]) {
+export function currentThemeColors(
+  settings: Parameters<typeof resolveAppTheme>[0],
+) {
   return rendererPaletteFor(resolveAppTheme(settings));
 }

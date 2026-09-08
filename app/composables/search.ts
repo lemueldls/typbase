@@ -26,6 +26,7 @@ function useSearchState() {
       promise = undefined;
     }
     if (manager.value) return Promise.resolve(manager.value);
+
     promise ??= (async () => {
       const instance = new SearchManager(store);
       await instance.start();

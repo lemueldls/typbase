@@ -14,8 +14,15 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { refreshSections, toSections } from "~/lib/ai/generators";
 
-const { workspace, error, ensure, dataRevision, bootProgress, bootNote, workspaceGeneration } =
-  useWorkspace();
+const {
+  workspace,
+  error,
+  ensure,
+  dataRevision,
+  bootProgress,
+  bootNote,
+  workspaceGeneration,
+} = useWorkspace();
 
 const loaded = ref(false);
 const currentPageId = ref<string>("");
@@ -44,6 +51,7 @@ watch(isDesktop, (desktop) => {
 function toggleSidebar() {
   const panel = navPanel.value;
   if (!panel) return;
+
   if (sidebarCollapsed.value) {
     sidebarCollapsed.value = false;
     panel.expand();
@@ -84,6 +92,7 @@ watch(workspaceGeneration, () => {
     currentPageId.value = "";
     return;
   }
+
   const settings = store.getSettings();
   currentPageId.value = settings.homePageId ?? store.listPages()[0]?.id ?? "";
 });
@@ -189,7 +198,9 @@ definePageMeta({ ssr: false });
             <template v-else>·</template>
           </span>
           <span class="boot-step__label">{{ step.label }}</span>
-          <span v-if="step.detail" class="boot-step__detail">{{ step.detail }}</span>
+          <span v-if="step.detail" class="boot-step__detail">{{
+            step.detail
+          }}</span>
         </li>
       </ul>
 
@@ -245,11 +256,11 @@ definePageMeta({ ssr: false });
                   <button
                     v-if="sidebarCollapsed"
                     type="button"
-                    class="app__nav-toggle app__nav-toggle--desktop"
+                    class="button button--icon app__nav-toggle app__nav-toggle--desktop"
                     :aria-label="$t('sidebar.showSidebar')"
                     @click="toggleSidebar"
                   >
-                    <MsIcon name="chevron_left" :size="20" />
+                    <MsIcon name="chevron_right" :size="20" />
                   </button>
                 </template>
               </MainPane>

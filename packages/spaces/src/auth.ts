@@ -106,6 +106,8 @@ export class SessionManager {
   private notify(session: OAuthSession | null): void {
     // pdsUrl is resolved lazily via DID documents: the OAuth client has no
     // authoritative service endpoint on the session's metadata.
-    this.onSession(session ? { did: session.did, handle: null, pdsUrl: "" } : null);
+    this.onSession(
+      session ? { did: session.did, handle: null, pdsUrl: "" } : null,
+    );
   }
 }

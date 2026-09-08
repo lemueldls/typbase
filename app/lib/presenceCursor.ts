@@ -1,5 +1,15 @@
-import { StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
-import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
+import {
+  StateEffect,
+  StateField,
+  type EditorState,
+  type Extension,
+} from "@codemirror/state";
+import {
+  Decoration,
+  EditorView,
+  WidgetType,
+  type DecorationSet,
+} from "@codemirror/view";
 
 /**
  * Renders remote cursors/selections for the current page. Presence data
@@ -32,12 +42,15 @@ export function presenceCursors(
     // viewport info here. Remote cursors are doc-wide raw offsets, so they
     // only need rebuilding when peers change or the doc changes length.
     update(decorations, transaction) {
-      const peersChanged = transaction.effects.some((effect) => effect.is(presenceRefreshEffect));
+      const peersChanged = transaction.effects.some((effect) =>
+        effect.is(presenceRefreshEffect),
+      );
       if (!peersChanged && !transaction.docChanged) return decorations;
 
       return buildDecorations(transaction.state, docId, getPeers());
     },
-    provide: (decorationsField) => EditorView.decorations.from(decorationsField),
+    provide: (decorationsField) =>
+      EditorView.decorations.from(decorationsField),
   });
 
   return field;

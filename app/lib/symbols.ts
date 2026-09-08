@@ -72,14 +72,23 @@ export function searchSymbols(query: string, limit = 300): SymbolSearchResult {
     const popular = POPULAR_WORKSPACE_ICONS.map((id) =>
       allSymbols.find((entry) => entry.id === id),
     ).filter((entry): entry is SymbolEntry => !!entry);
-    const rest = allSymbols.filter((entry) => !POPULAR_WORKSPACE_ICONS.includes(entry.id));
-    return { entries: [...popular, ...rest].slice(0, limit), total: allSymbols.length };
+    const rest = allSymbols.filter(
+      (entry) => !POPULAR_WORKSPACE_ICONS.includes(entry.id),
+    );
+    return {
+      entries: [...popular, ...rest].slice(0, limit),
+      total: allSymbols.length,
+    };
   }
 
   const entries = allSymbols.filter(({ id, title, synonyms }) => {
-    if (id.includes(needle) || title.toLowerCase().includes(needle)) return true;
-    if (synonyms?.some((tag) => tag.toLowerCase().includes(needle))) return true;
-    return title.split(/\s+/).some((word) => word.toLowerCase().startsWith(needle));
+    if (id.includes(needle) || title.toLowerCase().includes(needle))
+      return true;
+    if (synonyms?.some((tag) => tag.toLowerCase().includes(needle)))
+      return true;
+    return title
+      .split(/\s+/)
+      .some((word) => word.toLowerCase().startsWith(needle));
   });
 
   return { entries: entries.slice(0, limit), total: entries.length };

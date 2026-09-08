@@ -10,7 +10,12 @@ import type {
 
 import { setDiagnostics } from "@codemirror/lint";
 import { type Range, StateEffect, StateField } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
+import {
+  Decoration,
+  EditorView,
+  ViewPlugin,
+  WidgetType,
+} from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
 import type { TextRef } from "./types";
@@ -28,8 +33,60 @@ export type TypstRequestHandler = (
 
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
+/**
+ * The compiled size of an SVG frame, from the markup's viewBox. The viewBox
+ * is the page width the engine laid out at (pt), and the app renders one
+ * Typst point per CSS pixel, so the numbers map to px directly.
+ *
+ * `frame.render.width` is the chunk's bounding-box width, which does not
+ * change with the pane for fixed-size blocks (images, boxes) — the viewBox
+ * width is the correct resize key, and the size to pin: a render laid out
+ * for a wider pane must keep its size, not be stretched by CSS while a
+ * resize is in flight.
+ */
+function frameSize(frame: SvgRangedFrame): { width: number; height: number } {
+  const match = frame.render.svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+
+  return {
+    width: match ? Number(match[1]) : frame.render.width,
+    height: match ? Number(match[2]) : frame.render.height,
+  };
+}
+
+/**
+ * The width the page should compile at: the editor's text column, i.e. the
+ * scroller width minus every horizontal padding between it and the line the
+ * widget sits in (content + line padding).
+ *
+ * Measuring the actual boxes instead of subtracting a constant matters twice:
+ * the render then fills the column exactly at 1pt == 1px, and the widget never
+ * exceeds the line — an explicit width wider than the line makes CodeMirror's
+ * flex layout grow the content width forever (resize -> wider widget -> wider
+ * content -> ...).
+ *
+ * `scrollDOM` is used rather than `contentDOM`: the content element's width is
+ * driven by the widest line, so once an oversized widget inflated it, reading
+ * it would keep feeding the loop.
+ */
+function editorWidth(scrollDOM: HTMLElement, contentDOM: HTMLElement): number {
+  const paddingH = (element: HTMLElement, style: CSSStyleDeclaration) =>
+    parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+
+  const contentStyle = getComputedStyle(contentDOM);
+  const line = contentDOM.querySelector<HTMLElement>(".cm-line");
+  const linePad = line ? paddingH(line, getComputedStyle(line)) : 0;
+
+  return (
+    scrollDOM.clientWidth -
+    paddingH(scrollDOM, getComputedStyle(scrollDOM)) -
+    paddingH(contentDOM, contentStyle) -
+    linePad
+  );
+}
+
 class TypstWidget extends WidgetType {
   private container: HTMLElement;
+  private readonly size: { width: number; height: number };
 
   public constructor(
     private readonly view: EditorView,
@@ -40,6 +97,8 @@ class TypstWidget extends WidgetType {
   ) {
     super();
 
+    this.size = frameSize(frame);
+
     const cached = containerCache.get(frame.render.hash);
 
     // The content hash does not include pane width; a reused container may
@@ -47,7 +106,7 @@ class TypstWidget extends WidgetType {
     // geometry differs, so resizing the editor reflows the inline preview.
     if (cached?.isConnected) {
       this.container = cached;
-      this.syncRenderInfo(cached, frame);
+      this.syncRenderInfo(cached);
     } else {
       const container = document.createElement("div");
 
@@ -56,22 +115,34 @@ class TypstWidget extends WidgetType {
 
       if (!locked) {
         container.addEventListener("click", this.handleMouseEvent.bind(this));
-        container.addEventListener("mousedown", this.handleMouseEvent.bind(this));
+        container.addEventListener(
+          "mousedown",
+          this.handleMouseEvent.bind(this),
+        );
       }
 
       containerCache.set(frame.render.hash, container);
       this.container = container;
-      this.syncRenderInfo(container, frame);
+      this.syncRenderInfo(container);
     }
   }
 
-  private syncRenderInfo(container: HTMLElement, frame: SvgRangedFrame) {
-    const widthKey = Math.round(frame.render.width).toString();
+  private syncRenderInfo(container: HTMLElement) {
+    const widthKey = Math.round(this.size.width).toString();
 
     if (container.dataset.renderWidth !== widthKey) {
       container.dataset.renderWidth = widthKey;
-      container.style.height = frame.render.height + "px";
-      container.setHTMLUnsafe(frame.render.svg);
+      // Pin the SVG to the compiled frame size (via CSS variables). The
+      // container keeps max-width: 100% so it never exceeds the line — an
+      // explicit container width would make CodeMirror's flex layout grow
+      // the content width forever (resize -> wider widget -> wider content).
+      // The pinned SVG overflows the clamped container while the pane is
+      // narrower than the compiled width; the scroller clips it, so the
+      // render stays its size instead of scaling with the pane.
+      container.style.setProperty("--render-w", this.size.width + "px");
+      container.style.setProperty("--render-h", this.size.height + "px");
+      container.style.height = this.size.height + "px";
+      container.setHTMLUnsafe(this.frame.render.svg);
     }
   }
 
@@ -86,7 +157,11 @@ class TypstWidget extends WidgetType {
       const href = anchor.getAttribute("href") ?? "";
       if (href.startsWith("typbase://")) return;
 
-      if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
+      if (
+        window.confirm(
+          `Open external link?\n\n${href}\n\nIt opens in a new tab.`,
+        )
+      ) {
         window.open(href, "_blank", "noopener,noreferrer");
       }
 
@@ -115,8 +190,8 @@ class TypstWidget extends WidgetType {
   public override eq(other: TypstWidget) {
     return (
       other.frame.render.hash === this.frame.render.hash &&
-      other.frame.render.width === this.frame.render.width &&
-      other.frame.render.height === this.frame.render.height
+      other.size.width === this.size.width &&
+      other.size.height === this.size.height
     );
   }
 
@@ -202,7 +277,12 @@ function decorate({
   let frames: SvgRangedFrame[];
   let tooltips: SvgRangedFrame[];
 
-  if (forced || update.docChanged || widthChanged || !compileCache.has(cacheKey)) {
+  if (
+    forced ||
+    update.docChanged ||
+    widthChanged ||
+    !compileCache.has(cacheKey)
+  ) {
     if (isFlaggedForUpdate) updateFlagStore.delete(path);
     else updateFlagStore.add(path);
 
@@ -220,17 +300,19 @@ function decorate({
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
 
     if (compileResult.requests.length > 0 && onRequests) {
-      void Promise.resolve(onRequests(compileResult.requests, spaceId)).then((wasUpdated) => {
-        if (wasUpdated) {
-          const doc = update.view.state.doc.toString();
-          update.view.dispatch({
-            changes: { from: 0, to: doc.length, insert: doc },
-            // The cached result was compiled before the request was resolved;
-            // force a recompile instead of trusting it.
-            effects: typstRecompileEffect.of(null),
-          });
-        }
-      });
+      void Promise.resolve(onRequests(compileResult.requests, spaceId)).then(
+        (wasUpdated) => {
+          if (wasUpdated) {
+            const doc = update.view.state.doc.toString();
+            update.view.dispatch({
+              changes: { from: 0, to: doc.length, insert: doc },
+              // The cached result was compiled before the request was resolved;
+              // force a recompile instead of trusting it.
+              effects: typstRecompileEffect.of(null),
+            });
+          }
+        },
+      );
     }
 
     ({ frames, tooltips } = compileResult);
@@ -265,11 +347,16 @@ function decorate({
         const { number: startLine } = state.doc.lineAt(start);
         const { number: endLine } = state.doc.lineAt(end);
 
-        for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
+        for (
+          let currentLine = startLine;
+          currentLine <= endLine;
+          currentLine++
+        ) {
           const line = state.doc.line(currentLine);
           let style = "";
           if (currentLine == startLine)
-            style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
+            style +=
+              "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
           if (currentLine == endLine)
             style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${frame.render.height - lineHeight}px`;
           else lineHeight += view.lineBlockAt(line.from).height;
@@ -332,6 +419,7 @@ export const typstViewPlugin = (
     // switch (write -> source -> write): without this flag the render never
     // runs until the user clicks or types.
     let firstUpdate = true;
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 
     return {
       update(update: ViewUpdate) {
@@ -339,7 +427,9 @@ export const typstViewPlugin = (
         const forced =
           firstUpdate ||
           update.transactions.some((transaction) =>
-            transaction.effects.some((effect) => effect.is(typstRecompileEffect)),
+            transaction.effects.some((effect) =>
+              effect.is(typstRecompileEffect),
+            ),
           );
         firstUpdate = false;
 
@@ -348,16 +438,27 @@ export const typstViewPlugin = (
 
           widthChanged = typstState.resize(
             fileId,
-            contentDOM.clientWidth - 2,
+            editorWidth(scrollDOM, contentDOM),
             locked ? scrollDOM.clientHeight : undefined,
           );
+        }
+
+        if (widthChanged) {
+          // Reflow once the pane width settles instead of on every resize
+          // tick: recompiling per pointermove swaps the widget size mid-drag
+          // and blocks the main thread. Until the recompile lands, widgets
+          // keep their compiled size (see TypstWidget), so the render stays
+          // consistent while the pane moves.
+          clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(() => {
+            update.view.dispatch({ effects: typstRecompileEffect.of(null) });
+          }, 150);
         }
 
         if (
           update.docChanged ||
           update.selectionSet ||
           update.focusChanged ||
-          widthChanged ||
           forced
         ) {
           const { state } = update;
@@ -421,6 +522,9 @@ export const typstViewPlugin = (
 
           if (update.docChanged) text.value = update.state.doc.toString();
         }
+      },
+      destroy() {
+        clearTimeout(resizeTimer);
       },
     };
   });

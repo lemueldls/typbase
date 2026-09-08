@@ -12,12 +12,18 @@ const props = defineProps<{
   dataRevision: number;
   /** Bumped when rendering state changed (e.g. system fonts installed). */
   renderRevision: number;
-  onRequests?: (requests: unknown[], spaceId: string) => Promise<boolean> | boolean;
+  onRequests?: (
+    requests: unknown[],
+    spaceId: string,
+  ) => Promise<boolean> | boolean;
   /** Fired when a compile call trapped; the parent rebuilds the wasm state. */
   onPanic?: () => void;
 }>();
 
-const emit = defineEmits<{ (e: "panic"): void; (e: "navigate", pageId: string): void }>();
+const emit = defineEmits<{
+  (e: "panic"): void;
+  (e: "navigate", pageId: string): void;
+}>();
 
 // App-internal links (typbase://page/<id>) open the page in the editor;
 // external links leave the app, so confirm first and open in a new tab.
@@ -34,9 +40,11 @@ function onPreviewClick(event: MouseEvent) {
     return;
   }
 
-  if (/^(https?:|mailto:)/.test(href)) {
+  if (/^(https?|mailto):/.test(href)) {
     event.preventDefault();
-    if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
+    if (
+      window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)
+    ) {
       window.open(href, "_blank", "noopener,noreferrer");
     }
   }
@@ -49,13 +57,22 @@ const rendering = ref(false);
 const renderNow = async () => {
   // Hidden panes (write/source modes) skip; the ResizeObserver re-triggers
   // when the pane becomes visible again.
-  if (!props.typstState || !scroller.value || scroller.value.offsetParent === null) return;
+  if (
+    !props.typstState ||
+    !scroller.value ||
+    scroller.value.offsetParent === null
+  )
+    return;
 
   rendering.value = true;
   try {
     let result;
     try {
-      result = props.typstState.compilePaged(props.fileId, props.text.value, props.prelude.value);
+      result = props.typstState.compilePaged(
+        props.fileId,
+        props.text.value,
+        props.prelude.value,
+      );
     } catch (error) {
       // wasm panic => the instance is dead. Keep the last good frames and
       // ask the parent to rebuild + remount us.
@@ -102,7 +119,24 @@ function measureWidth(): number {
 
   const style = getComputedStyle(inner);
 
-  return inner.clientWidth - (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight));
+  return (
+    inner.clientWidth -
+    (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight))
+  );
+}
+
+/**
+ * Size the frame's SVG at the width the engine compiled it at (viewBox in
+ * pt == px), not the pane's current width. Otherwise an in-flight render is
+ * stretched/squeezed by `width: 100%` for the whole split drag, and only
+ * reflows once the debounced recompile lands.
+ */
+function frameStyle(frame: SvgRangedFrame): Record<string, string> {
+  const match = frame.render.svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  const width = match ? Number(match[1]) : frame.render.width;
+  const height = match ? Number(match[2]) : frame.render.height;
+
+  return { "--frame-w": `${width}px`, "--frame-h": `${height}px` };
 }
 
 onMounted(() => {
@@ -147,14 +181,19 @@ interface FrameLayout {
 }
 
 function getFrameLayout(): FrameLayout {
-  const els = scroller.value?.querySelectorAll<HTMLElement>("[data-frame]") ?? [];
+  const els =
+    scroller.value?.querySelectorAll<HTMLElement>("[data-frame]") ?? [];
   const tops: number[] = [];
   const ranges: Array<{ start: number; end: number }> = [];
 
   for (const [index, el] of Array.from(els).entries()) {
     tops.push(el.offsetTop);
     const frame = frames.value[index];
-    ranges.push(frame ? { start: frame.range.start, end: frame.range.end } : { start: 0, end: 0 });
+    ranges.push(
+      frame
+        ? { start: frame.range.start, end: frame.range.end }
+        : { start: 0, end: 0 },
+    );
   }
 
   return { tops, topsEnd: tops.at(-1) ?? 0, ranges };
@@ -167,7 +206,13 @@ defineExpose({ scroller, getFrameLayout });
   <div ref="scroller" class="paged-preview">
     <div v-if="rendering" class="paged-preview__status">rendering...</div>
     <div class="paged-preview__inner">
-      <div v-for="(frame, index) in frames" :key="index" data-frame class="paged-preview__frame">
+      <div
+        v-for="(frame, index) in frames"
+        :key="index"
+        data-frame
+        class="paged-preview__frame"
+        :style="frameStyle(frame)"
+      >
         <!-- eslint-disable-next-line vue/no-v-html -- the wasm engine produced this SVG markup -->
         <div v-html="frame.render.svg" />
       </div>
@@ -213,11 +258,14 @@ defineExpose({ scroller, getFrameLayout });
 
 .paged-preview__frame {
   display: block;
+  /* Clip a render that is wider than the pane (mid-resize) instead of
+     stretching it or growing a horizontal scrollbar. */
+  overflow: hidden;
 }
 
 .paged-preview__frame :deep(svg) {
   display: block;
-  width: 100% !important;
-  height: auto !important;
+  width: var(--frame-w) !important;
+  height: var(--frame-h) !important;
 }
 </style>

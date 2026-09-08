@@ -40,8 +40,9 @@ export function insertTabLike(view: EditorView) {
     ? indentMore(view)
     : (view.dispatch(
         view.state.changeByRange(({ from: pos }) => {
-          const line = view.state.doc.lineAt(pos),
-            spaces = countColumn(line.text, 2, pos - line.from) % 2 == 0 ? "  " : " ";
+          const line = view.state.doc.lineAt(pos);
+          const spaces =
+            countColumn(line.text, 2, pos - line.from) % 2 == 0 ? "  " : " ";
 
           return {
             changes: {
@@ -82,7 +83,15 @@ export function toggleCode(view: EditorView) {
 }
 
 export function insertFontFamily(n: EditorView, font: string) {
-  return (wrapOrInsert(n, `#text(font: "${font}")[`, "]", `#set text(font: "${font}")\n`), true);
+  return (
+    wrapOrInsert(
+      n,
+      `#text(font: "${font}")[`,
+      "]",
+      `#set text(font: "${font}")\n`,
+    ),
+    true
+  );
 }
 
 export function cycleHeading(view: EditorView) {
@@ -142,15 +151,20 @@ export function cycleHeading(view: EditorView) {
         const f = state.doc.lineAt(o);
         let g;
         const v = f.from === 0 ? undefined : state.doc.lineAt(f.from - 1),
-          y = v === undefined || state.sliceDoc(v.from, v.to).trim().length === 0;
-        if (f.from === o || state.sliceDoc(f.from, o).trim().length === 0) g = y ? 0 : 1;
+          y =
+            v === undefined || state.sliceDoc(v.from, v.to).trim().length === 0;
+        if (f.from === o || state.sliceDoc(f.from, o).trim().length === 0)
+          g = y ? 0 : 1;
         else {
           g = 2;
           if (!y) g++;
         }
         const E = f.text.match(/^\s*/)?.[0] ?? "",
           N = state.sliceDoc(o, c).split("\n"),
-          _ = N.length > 1 && !N[0]!.startsWith("#[") && !N[N.length - 1]!.endsWith("]"),
+          _ =
+            N.length > 1 &&
+            !N[0]!.startsWith("#[") &&
+            !N[N.length - 1]!.endsWith("]"),
           T = (g > 0 ? "\n".repeat(g) + E : "") + "= ",
           M = E + "  ";
         let O = N.map((U, J) =>
@@ -168,7 +182,8 @@ export function cycleHeading(view: EditorView) {
         const P = state.doc.length === c ? undefined : state.doc.lineAt(c + 1);
 
         if (!P || P.from >= c)
-          if (P && state.sliceDoc(P.from, P.to).match(/^\s*$/) === null) W += "\n";
+          if (P && state.sliceDoc(P.from, P.to).match(/^\s*$/) === null)
+            W += "\n";
 
         return {
           range: r.empty
@@ -203,7 +218,12 @@ export function insertAtCursor(n: EditorView, e: string) {
   });
 }
 
-export function wrapOrInsert(view: EditorView, prefix: string, suffix: string, insert: string) {
+export function wrapOrInsert(
+  view: EditorView,
+  prefix: string,
+  suffix: string,
+  insert: string,
+) {
   if (view.state.facet(EditorState.readOnly)) return;
 
   const c = view.state;
@@ -275,7 +295,10 @@ export function toggleAroundSelection(
 
           // Check prefix
           if (typeof prefix === "string") {
-            beforeText = state.sliceDoc(Math.max(selRange.from - prefix.length, 0), selRange.from);
+            beforeText = state.sliceDoc(
+              Math.max(selRange.from - prefix.length, 0),
+              selRange.from,
+            );
             isMatch = beforeText === prefix;
           } else {
             const beforeContext = state.sliceDoc(
@@ -286,7 +309,8 @@ export function toggleAroundSelection(
             if (prefixMatch) {
               beforeText = prefixMatch[1]!;
               beforeOffset =
-                beforeContext.length - (beforeText.length + beforeContext.indexOf(beforeText));
+                beforeContext.length -
+                (beforeText.length + beforeContext.indexOf(beforeText));
               isMatch = true;
             } else isMatch = false;
           }
@@ -341,8 +365,14 @@ export function toggleAroundSelection(
             if (i + 1 < prefixes.length) {
               const nextPrefix = prefixes[i + 1]!,
                 nextSuffix = suffixes[i + 1]!,
-                newPrefix = typeof nextPrefix === "string" ? nextPrefix : nextPrefix.replacement,
-                newSuffix = typeof nextSuffix === "string" ? nextSuffix : nextSuffix.replacement,
+                newPrefix =
+                  typeof nextPrefix === "string"
+                    ? nextPrefix
+                    : nextPrefix.replacement,
+                newSuffix =
+                  typeof nextSuffix === "string"
+                    ? nextSuffix
+                    : nextSuffix.replacement,
                 prefixOffset = newPrefix.length - before.length;
 
               return {
@@ -392,8 +422,14 @@ export function toggleAroundSelection(
         // Apply first level of delimiters if no matches
         const firstPrefix = prefixes[0]!,
           firstSuffix = suffixes[0]!,
-          prefixText = typeof firstPrefix === "string" ? firstPrefix : firstPrefix.replacement,
-          suffixText = typeof firstSuffix === "string" ? firstSuffix : firstSuffix.replacement;
+          prefixText =
+            typeof firstPrefix === "string"
+              ? firstPrefix
+              : firstPrefix.replacement,
+          suffixText =
+            typeof firstSuffix === "string"
+              ? firstSuffix
+              : firstSuffix.replacement;
 
         return {
           range: EditorSelection.range(
@@ -447,9 +483,15 @@ export function toggleListLike(view: EditorView, prefix: string) {
         pos: number,
         change: { from: number; to: number; insert: string },
       ) =>
-        change.from <= pos ? change.insert.length - (Math.min(change.to, pos) - change.from) : 0;
+        change.from <= pos
+          ? change.insert.length - (Math.min(change.to, pos) - change.from)
+          : 0;
 
-      const addChange = (change: { from: number; to: number; insert: string }) => {
+      const addChange = (change: {
+        from: number;
+        to: number;
+        insert: string;
+      }) => {
         changes.push(change);
         fromOffset += calculateOffset(range.from, change);
         toOffset += calculateOffset(range.to, change);
@@ -491,7 +533,11 @@ export function toggleListLike(view: EditorView, prefix: string) {
         }
       } else {
         // Add list markers
-        for (let lineNum = startLine.number; lineNum <= endLine.number; lineNum++) {
+        for (
+          let lineNum = startLine.number;
+          lineNum <= endLine.number;
+          lineNum++
+        ) {
           const lineStart = getLineStart(lineNum);
           addChange({
             from: lineStart,
@@ -502,7 +548,10 @@ export function toggleListLike(view: EditorView, prefix: string) {
       }
 
       return {
-        range: EditorSelection.range(range.from + fromOffset, range.to + toOffset),
+        range: EditorSelection.range(
+          range.from + fromOffset,
+          range.to + toOffset,
+        ),
         changes,
       };
     }),
@@ -517,12 +566,18 @@ export function cursorAddVertical(view: EditorView, offset: number) {
 
   for (const range of state.selection.ranges) {
     const currentLine = state.doc.lineAt(range.from),
-      currentColumn = countColumn(currentLine.text, state.tabSize, range.from - currentLine.from),
+      currentColumn = countColumn(
+        currentLine.text,
+        state.tabSize,
+        range.from - currentLine.from,
+      ),
       targetLineNum = currentLine.number + offset;
 
     if (targetLineNum >= 1 && targetLineNum <= state.doc.lines) {
       const targetLine = state.doc.line(currentLine.number + offset),
-        targetPos = targetLine.from + findColumn(targetLine.text, currentColumn, state.tabSize);
+        targetPos =
+          targetLine.from +
+          findColumn(targetLine.text, currentColumn, state.tabSize);
       newCursors.push(EditorSelection.cursor(targetPos));
     }
   }

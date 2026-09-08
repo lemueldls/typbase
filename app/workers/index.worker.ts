@@ -59,7 +59,8 @@ type WorkerRequest =
 
 type WorkerResponse = {
   id?: number;
-  type: "status" | "query" | "semantic-query" | "vectors" | "upserted" | "error";
+  type:
+    "status" | "query" | "semantic-query" | "vectors" | "upserted" | "error";
   status?: IndexStatus;
   hits?: SearchHit[];
   blockIds?: number[];
@@ -108,7 +109,9 @@ async function ensureDb(dbName: string): Promise<void> {
     CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(plain);
   `);
   try {
-    opened.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS vec USING vec0(embedding float[384])`);
+    opened.exec(
+      `CREATE VIRTUAL TABLE IF NOT EXISTS vec USING vec0(embedding float[384])`,
+    );
     vecReady = true;
   } catch {
     // sqlite-vec unavailable in this build: semantic search degrades to FTS.
@@ -120,6 +123,7 @@ async function handle(request: WorkerRequest): Promise<void> {
   if (request.type === "init") {
     await ensureDb(request.dbName);
     post({ type: "status", status: status() });
+
     return;
   }
 
@@ -130,15 +134,25 @@ async function handle(request: WorkerRequest): Promise<void> {
       const blockIds: number[] = [];
       db.exec("BEGIN");
       try {
-        db.exec("DELETE FROM fts WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)", {
+        db.exec(
+          "DELETE FROM fts WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)",
+          {
+            bind: [request.docId],
+          },
+        );
+        db.exec("DELETE FROM blocks WHERE doc_id = ?", {
           bind: [request.docId],
         });
-        db.exec("DELETE FROM blocks WHERE doc_id = ?", { bind: [request.docId] });
         db.exec(
           "INSERT INTO pages(doc_id, path, title, updated_at) VALUES(?, ?, ?, ?) " +
             "ON CONFLICT(doc_id) DO UPDATE SET path=excluded.path, title=excluded.title, updated_at=excluded.updated_at",
           {
-            bind: [request.docId, request.path, request.title, request.updatedAt],
+            bind: [
+              request.docId,
+              request.path,
+              request.title,
+              request.updatedAt,
+            ],
           },
         );
         for (const [i, block] of request.blocks.entries()) {
@@ -172,9 +186,12 @@ async function handle(request: WorkerRequest): Promise<void> {
       break;
     }
     case "delete": {
-      db.exec("DELETE FROM fts WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)", {
-        bind: [request.docId],
-      });
+      db.exec(
+        "DELETE FROM fts WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)",
+        {
+          bind: [request.docId],
+        },
+      );
       db.exec("DELETE FROM blocks WHERE doc_id = ?", { bind: [request.docId] });
       db.exec("DELETE FROM pages WHERE doc_id = ?", { bind: [request.docId] });
       break;
@@ -192,7 +209,16 @@ async function handle(request: WorkerRequest): Promise<void> {
       );
       const hitMap = new Map<string, SearchHit>();
       for (const row of rows) {
-        const [docId, blockIndex, kind, plain, rangeStart, rangeEnd, score, offs] = row as [
+        const [
+          docId,
+          blockIndex,
+          kind,
+          plain,
+          rangeStart,
+          rangeEnd,
+          score,
+          offs,
+        ] = row as [
           string,
           number,
           string,
@@ -217,7 +243,10 @@ async function handle(request: WorkerRequest): Promise<void> {
           bm25: Number(score),
         };
         if (!existing || existing.bm25 > hit.bm25) {
-          const meta = db.selectArrays("SELECT path, title FROM pages WHERE doc_id = ?", [docId]);
+          const meta = db.selectArrays(
+            "SELECT path, title FROM pages WHERE doc_id = ?",
+            [docId],
+          );
           const m = meta[0];
           hit.path = String(m?.[0] ?? "");
           hit.title = String(m?.[1] ?? "");
@@ -226,7 +255,9 @@ async function handle(request: WorkerRequest): Promise<void> {
       }
 
       // Keep the single best block per page, richer across pages.
-      const hits = [...hitMap.values()].sort((a, b) => a.bm25 - b.bm25).slice(0, request.limit);
+      const hits = [...hitMap.values()]
+        .sort((a, b) => a.bm25 - b.bm25)
+        .slice(0, request.limit);
       post({ type: "query", hits });
       break;
     }
@@ -294,7 +325,9 @@ async function handle(request: WorkerRequest): Promise<void> {
       break;
     }
     case "wipe": {
-      db.exec("DELETE FROM fts; DELETE FROM blocks; DELETE FROM pages; DELETE FROM vec;");
+      db.exec(
+        "DELETE FROM fts; DELETE FROM blocks; DELETE FROM pages; DELETE FROM vec;",
+      );
       break;
     }
     case "status": {
@@ -306,6 +339,7 @@ async function handle(request: WorkerRequest): Promise<void> {
 
 function status(): IndexStatus {
   if (!db) return { mode, docs: 0, blocks: 0, vecReady };
+
   const pages = db.selectArrays("SELECT COUNT(*) FROM pages")[0]?.[0] ?? 0;
   const blocks = db.selectArrays("SELECT COUNT(*) FROM blocks")[0]?.[0] ?? 0;
 

@@ -9,12 +9,23 @@ import { nextTick } from "vue";
 
 import type { EditCommand } from "~/lib/editorCommands";
 
-import { applyWorkspaceStyleToTypst, renderRevision, useTypst } from "~/composables/typst";
+import {
+  applyWorkspaceStyleToTypst,
+  renderRevision,
+  useTypst,
+} from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
-import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
+import {
+  presenceCursors,
+  refreshPresence,
+  type PresencePeer,
+} from "~/lib/presenceCursor";
 import { revealRequests } from "~/lib/reveal";
 import { recreateTypstState } from "~/lib/typstRecovery";
-import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
+import {
+  createTypstRequestService,
+  type TypstRequestService,
+} from "~/lib/typstRequests";
 
 import AIMenu from "./AIMenu.vue";
 import EditablePane from "./EditablePane.vue";
@@ -51,7 +62,8 @@ const ready = ref(false);
 
 /** The formatting bar can be collapsed entirely; the toggle remembers. */
 const formatOpen = ref(
-  typeof localStorage === "undefined" || localStorage.getItem("typbase:formatToolbar") !== "hidden",
+  typeof localStorage === "undefined" ||
+    localStorage.getItem("typbase:formatToolbar") !== "hidden",
 );
 watch(formatOpen, (open) => {
   if (typeof localStorage !== "undefined") {
@@ -67,9 +79,12 @@ let recovering = false;
 async function handlePanic() {
   if (recovering) return;
   recovering = true;
+
   try {
     const message = (typstState.value?.takePanic() ?? "").trim();
-    console.error(`[typst] renderer panicked, rebuilding state${message ? `: ${message}` : ""}`);
+    console.error(
+      `[typst] renderer panicked, rebuilding state${message ? `: ${message}` : ""}`,
+    );
 
     const fresh = await recreateTypstState();
     typstState.value = fresh;
@@ -100,7 +115,10 @@ const extraExtensions = computed(() => {
   if (!fileId.value) return [];
 
   return [
-    presenceCursors(props.pageId, () => presence.value as Map<string, PresencePeer>),
+    presenceCursors(
+      props.pageId,
+      () => presence.value as Map<string, PresencePeer>,
+    ),
     EditorView.updateListener.of((update) => {
       if (!update.selectionSet && !update.docChanged) return;
 
@@ -165,7 +183,8 @@ async function setupPage() {
   }
 
   meta.value = page;
-  personaCache.value = (await atproto.value?.ensurePersona()) ?? personaCache.value;
+  personaCache.value =
+    (await atproto.value?.ensurePersona()) ?? personaCache.value;
 
   text.value = await store.loadPageText(props.pageId);
   // The generated prelude (theme/fonts) is implicit; this is the user's own
@@ -247,7 +266,9 @@ const previewPane = useTemplateRef("previewPane");
 watch(
   revealRequests,
   (requests) => {
-    const mine = requests.find((request) => request.pageId === props.pageId && !request.consumed);
+    const mine = requests.find(
+      (request) => request.pageId === props.pageId && !request.consumed,
+    );
     if (!mine) return;
 
     mine.consumed = true;
@@ -326,7 +347,8 @@ function syncFromEditor(view: EditorView, scroller: HTMLElement) {
   const pos = block ? block.from : 0;
 
   const index = layout.ranges.findIndex(
-    (range) => pos >= range.start && pos <= Math.max(range.start, range.end - 1),
+    (range) =>
+      pos >= range.start && pos <= Math.max(range.start, range.end - 1),
   );
   const top = layout.tops[index];
   if (top === undefined || Math.abs(scroller.scrollTop - top) < 4) return;
@@ -482,7 +504,11 @@ function onModeKeydown(event: KeyboardEvent) {
     <div
       v-else
       class="page-view__body"
-      :class="modelValue === 'split' ? 'page-view__body--split' : 'page-view__body--single'"
+      :class="
+        modelValue === 'split'
+          ? 'page-view__body--split'
+          : 'page-view__body--single'
+      "
       :style="{ '--split-left': `${splitLeft}%` }"
     >
       <EditablePane
@@ -503,7 +529,11 @@ function onModeKeydown(event: KeyboardEvent) {
         :on-navigate="(pageId) => emit('openPage', pageId)"
       />
 
-      <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
+      <div
+        v-if="modelValue === 'split'"
+        class="page-view__handle"
+        @pointerdown="startSplitDrag"
+      />
 
       <PagedPreview
         v-if="boundFileId"

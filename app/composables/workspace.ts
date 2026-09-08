@@ -23,11 +23,9 @@ const LAST_WORKSPACE_KEY = "typbase:lastWorkspace";
 /** Set once the user deletes every workspace, so a reload shows the chooser. */
 const WORKSPACES_EMPTY_KEY = "typbase:workspacesEmpty";
 
-// ---------------------------------------------------------------------------
 // Boot progress. The load gate waits only for storage + the workspace doc;
 // the atproto session boots in the background (bootAtproto) bounded by a
 // timeout, so a slow OAuth init can never hold the editor hostage.
-// ---------------------------------------------------------------------------
 
 export type BootStepId = "storage" | "workspace" | "atproto";
 
@@ -55,7 +53,9 @@ function initialBootSteps(t: (key: string) => string): BootStepState[] {
 
 function appUrl(): string {
   const origin = window.location.origin;
-  return origin && window.location.protocol !== "file:" ? origin : "http://localhost:3000";
+  return origin && window.location.protocol !== "file:"
+    ? origin
+    : "http://localhost:3000";
 }
 
 /**
@@ -92,11 +92,16 @@ function useWorkspaceState() {
 
   /** Presence state: peer -> { persona, cursor }. Filled by the relay. */
   const presence = shallowRef(
-    new Map<string, { persona: { name: string; color: string }; cursor: CursorLike | null }>(),
+    new Map<
+      string,
+      { persona: { name: string; color: string }; cursor: CursorLike | null }
+    >(),
   );
 
   const { t } = useI18n();
-  const bootProgress = ref<BootStepState[]>(initialBootSteps((key) => t(key as never)));
+  const bootProgress = ref<BootStepState[]>(
+    initialBootSteps((key) => t(key as never)),
+  );
   /** Non-fatal boot notes (OPFS fell back to memory, atproto disabled, ...). */
   const bootNote = ref("");
 
@@ -125,6 +130,7 @@ function useWorkspaceState() {
 
   async function ensureBackend(): Promise<StorageBackend> {
     if (backend) return backend;
+
     updateBootStep("storage", { status: "active" });
     try {
       backend = await OPFSBackend.open();
@@ -144,11 +150,17 @@ function useWorkspaceState() {
   }
 
   /** atproto boot, off the critical path and bounded. */
-  async function bootAtproto(store: WorkspaceStore, activeBackend: StorageBackend): Promise<void> {
+  async function bootAtproto(
+    store: WorkspaceStore,
+    activeBackend: StorageBackend,
+  ): Promise<void> {
     const token = ++openingSeq;
     updateBootStep("atproto", { status: "active", detail: "in background" });
     try {
-      const local = new LocalState(activeBackend, localStatePath(store.workspaceId));
+      const local = new LocalState(
+        activeBackend,
+        localStatePath(store.workspaceId),
+      );
       localState.value = local;
 
       // AI keys are device-only state. Load once; writes go through the
@@ -180,12 +192,17 @@ function useWorkspaceState() {
 
       updateBootStep("atproto", {
         status: "done",
-        detail: service.status.signedIn ? t("boot.syncAvailable") : t("boot.guest"),
+        detail: service.status.signedIn
+          ? t("boot.syncAvailable")
+          : t("boot.guest"),
       });
     } catch (cause) {
       console.warn("[atproto] disabled:", cause);
       bootNote.value = `Sync unavailable (${cause instanceof Error ? cause.message : String(cause)}). The workspace runs as a guest.`;
-      updateBootStep("atproto", { status: "error", detail: t("boot.withoutSync") });
+      updateBootStep("atproto", {
+        status: "error",
+        detail: t("boot.withoutSync"),
+      });
     }
   }
 
@@ -226,7 +243,8 @@ function useWorkspaceState() {
     if (!info) throw new Error(`No workspace named ${id}`);
 
     await reg.save({ ...info, lastOpenedAt: Date.now() });
-    if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
+    if (token !== openingSeq)
+      throw new Error("Superseded by another workspace switch");
 
     updateBootStep("workspace", { status: "active" });
     const store = await WorkspaceStore.open(backend!, id);
@@ -234,7 +252,8 @@ function useWorkspaceState() {
 
     // Keep the registry name in sync with the workspace doc.
     const name = store.getSettings().name;
-    if (name !== info.name) await reg.save({ ...info, lastOpenedAt: Date.now(), name });
+    if (name !== info.name)
+      await reg.save({ ...info, lastOpenedAt: Date.now(), name });
     updateBootStep("workspace", {
       status: "done",
       detail: `${store.listPages().length} page(s)`,
@@ -320,6 +339,7 @@ function useWorkspaceState() {
       const reg = await ensureRegistry();
       const id = await chooseWorkspaceId(reg);
       if (!id) return null; // nothing to open; the shell shows the chooser
+
       return openWorkspace(id);
     })().catch((reason) => {
       error.value = reason;
@@ -342,7 +362,10 @@ function useWorkspaceState() {
     }
   }
 
-  async function createWorkspace(name: string, icon?: string): Promise<WorkspaceInfo> {
+  async function createWorkspace(
+    name: string,
+    icon?: string,
+  ): Promise<WorkspaceInfo> {
     const reg = await ensureRegistry();
     const info: WorkspaceInfo = {
       id: createId(),
@@ -362,8 +385,10 @@ function useWorkspaceState() {
     const reg = await ensureRegistry();
     const entry = await reg.get(id);
     if (!entry) return;
+
     const trimmed = name.trim();
     if (!trimmed) return;
+
     await reg.save({ ...entry, name: trimmed });
     workspaces.value = await reg.list();
     if (id === activeWorkspaceId.value) {
@@ -376,6 +401,7 @@ function useWorkspaceState() {
     const reg = await ensureRegistry();
     const entry = await reg.get(id);
     if (!entry) return;
+
     await reg.save({ ...entry, icon });
     workspaces.value = await reg.list();
   }
@@ -393,7 +419,8 @@ function useWorkspaceState() {
       workspaceGeneration.value += 1;
       localStorage.removeItem(LAST_WORKSPACE_KEY);
       ensurePromise = undefined;
-      if (workspaces.value.length === 0) localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
+      if (workspaces.value.length === 0)
+        localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
 
       // Boot the next workspace that exists (if any); the shell falls back to
       // the chooser when none do.

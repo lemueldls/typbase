@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Client } from "@atproto/lex-client";
-import { createIdResolver, resolveIdentifier, resolvePds } from "@typbase/spaces";
+import {
+  createIdResolver,
+  resolveIdentifier,
+  resolvePds,
+} from "@typbase/spaces";
 
 import { fetchPublishedPosts } from "~/lib/publish";
 
@@ -30,6 +34,7 @@ function blobCidOf(refValue: unknown): string | null {
   if (!refValue) return null;
 
   if (typeof refValue === "string") return refValue;
+
   if (typeof refValue === "object") {
     const ref = (refValue as { ref?: unknown }).ref;
 
@@ -43,6 +48,7 @@ watchImmediate(routeDid, async (input) => {
   if (!input) {
     error.value = "Missing DID";
     loading.value = false;
+
     return;
   }
 
@@ -52,7 +58,9 @@ watchImmediate(routeDid, async (input) => {
     author.value = {
       did,
       handle:
-        doc?.alsoKnownAs?.find((value) => value.startsWith("at://"))?.slice("at://".length) ?? null,
+        doc?.alsoKnownAs
+          ?.find((value) => value.startsWith("at://"))
+          ?.slice("at://".length) ?? null,
     };
     const pdsUrl = await resolvePds(did, resolver, {
       getPdsUrl: () => undefined,
@@ -61,9 +69,9 @@ watchImmediate(routeDid, async (input) => {
 
     const records = await fetchPublishedPosts(did, pdsUrl);
     const byNewest = [...records].sort((a, b) => {
-      const aTime = String(a.value.updatedAt ?? a.value.createdAt ?? "").localeCompare(
-        String(b.value.updatedAt ?? b.value.createdAt ?? ""),
-      );
+      const aTime = String(
+        a.value.updatedAt ?? a.value.createdAt ?? "",
+      ).localeCompare(String(b.value.updatedAt ?? b.value.createdAt ?? ""));
 
       return -aTime;
     });
@@ -116,7 +124,9 @@ definePageMeta({ ssr: false });
 
     <p v-if="loading" class="profile__status">Loading...</p>
     <p v-else-if="error" class="profile__error">{{ error }}</p>
-    <p v-else-if="posts.length === 0" class="profile__status">{{ $t("profile.nothing") }}</p>
+    <p v-else-if="posts.length === 0" class="profile__status">
+      {{ $t("profile.nothing") }}
+    </p>
 
     <section v-else class="profile__posts">
       <article v-for="post in posts" :key="post.uri" class="profile__post">
@@ -140,7 +150,11 @@ definePageMeta({ ssr: false });
           {{ post.value.summary }}
         </div>
         <div class="profile__tags">
-          <span v-for="tag in tagList(post.value.tags)" :key="tag" class="profile__tag">
+          <span
+            v-for="tag in tagList(post.value.tags)"
+            :key="tag"
+            class="profile__tag"
+          >
             #{{ tag }}
           </span>
         </div>

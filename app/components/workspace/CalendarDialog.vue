@@ -23,9 +23,10 @@ const { t, locale } = useI18n();
 const { dataRevision } = useWorkspace();
 
 function formatDayLabel(iso: string): string {
-  return new Intl.DateTimeFormat(locale.value, { dateStyle: "medium", timeZone: "UTC" }).format(
-    new Date(`${iso}T00:00:00Z`),
-  );
+  return new Intl.DateTimeFormat(locale.value, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(`${iso}T00:00:00Z`));
 }
 const open = defineModel<boolean>("open", { default: false });
 
@@ -41,6 +42,7 @@ const dailyPages = computed(() => {
     const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
     if (match) map.set(match[1]!, page);
   }
+
   return map;
 });
 
@@ -71,6 +73,7 @@ const grid = computed<Cell[]>(() => {
       outside: offset < 1 || offset > daysInMonth,
     });
   }
+
   return cells;
 });
 
@@ -80,11 +83,14 @@ function isoOf(year: number, month: number, day: number): string {
 }
 
 const monthLabel = computed(() =>
-  new Date(Date.UTC(viewYear.value, viewMonth.value, 1)).toLocaleDateString(undefined, {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }),
+  new Date(Date.UTC(viewYear.value, viewMonth.value, 1)).toLocaleDateString(
+    undefined,
+    {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    },
+  ),
 );
 
 function shiftMonth(delta: number) {
@@ -101,6 +107,7 @@ function goToToday() {
 
 async function openDay(cell: Cell) {
   if (cell.outside) return;
+
   const page = await props.store.createDailyNote(cell.iso);
   open.value = false;
   emit("select", page.id);
@@ -108,9 +115,19 @@ async function openDay(cell: Cell) {
 
 async function deleteDay(cell: Cell) {
   if (!cell.page) return;
+
   const parsed = new Date(`${cell.iso}T00:00:00Z`);
-  const label = parsed.toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
-  if (!window.confirm(t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }))) return;
+  const label = parsed.toLocaleDateString(undefined, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  });
+  if (
+    !window.confirm(
+      t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }),
+    )
+  )
+    return;
+
   await props.store.deletePage(cell.page.id);
   // The sidebar falls back to home/first if the open page was deleted.
   emit("deleted", cell.page.id);
@@ -128,7 +145,9 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
     <DialogPortal>
       <DialogOverlay class="dialog-overlay" />
       <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">{{ $t("calendar.title") }}</DialogTitle>
+        <DialogTitle class="dialog__title">{{
+          $t("calendar.title")
+        }}</DialogTitle>
         <DialogDescription class="dialog__description">
           {{ $t("calendar.description") }}
         </DialogDescription>
@@ -151,7 +170,11 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
           >
             <MsIcon name="chevron_right" :size="20" />
           </button>
-          <button type="button" class="button button--ghost button--tiny" @click="goToToday">
+          <button
+            type="button"
+            class="button button--ghost button--tiny"
+            @click="goToToday"
+          >
             Today
           </button>
         </div>
@@ -174,7 +197,8 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
             class="calendar__cell"
             :class="{
               'calendar__cell--outside': cell.outside,
-              'calendar__cell--today': cell.iso === today.toISOString().slice(0, 10),
+              'calendar__cell--today':
+                cell.iso === today.toISOString().slice(0, 10),
             }"
             :aria-label="
               cell.page

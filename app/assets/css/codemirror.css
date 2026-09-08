@@ -1,5 +1,3 @@
-/* ------------------ CodeMirror (reference: mnemo's editor) ------------------ */
-
 .cm-editor {
   height: 100%;
   outline: none;
@@ -58,11 +56,19 @@
 
 .cm-selectionBackground,
 .cm-content ::selection {
-  background-color: color-mix(in srgb, var(--accent) 26%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--accent) 26%,
+    transparent
+  ) !important;
 }
 
 .cm-selectionMatch {
-  background-color: color-mix(in srgb, var(--warning) 24%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--warning) 24%,
+    transparent
+  ) !important;
 }
 
 .cm-cursor {
@@ -340,7 +346,11 @@
   color: var(--danger);
 }
 
-/* Inline rendered widgets (WYSIWYG) + hover popup renders. */
+/* Inline rendered widgets (WYSIWYG) + hover popup renders. The SVG is pinned
+   to its compiled size via --render-w/--render-h (set by the widget), so a
+   stale render keeps its size while the pane resizes instead of scaling with
+   it. max-width keeps the widget inside the line: an explicit width wider
+   than the line would make CodeMirror grow the content width forever. */
 .typst-render {
   display: inline-block;
   max-width: 100%;
@@ -351,8 +361,8 @@
 }
 
 .typst-render svg {
-  width: 100% !important;
-  height: 100% !important;
+  width: var(--render-w) !important;
+  height: var(--render-h) !important;
 }
 
 .cm-content[contenteditable="true"] .typst-render {

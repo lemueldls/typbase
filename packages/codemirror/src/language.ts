@@ -24,7 +24,8 @@ export async function autocomplete(
   return {
     from: offset,
     options: completions.map((completion) => {
-      const type = typeof completion.type === "object" ? "symbol" : completion.type;
+      const type =
+        typeof completion.type === "object" ? "symbol" : completion.type;
       const complete: Completion = {
         type,
         apply: completion.apply,
