@@ -1,0 +1,21 @@
+{
+  "name": "@typbase/wasm",
+  "type": "module",
+  "description": "The Typst rendering and IDE engine for typbase, compiled to WebAssembly.",
+  "version": "0.1.0",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lemueldls/typbase"
+  },
+  "files": [
+    "typst_wasm_bg.wasm",
+    "typst_wasm.js",
+    "typst_wasm.d.ts"
+  ],
+  "main": "typst_wasm.js",
+  "types": "typst_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
