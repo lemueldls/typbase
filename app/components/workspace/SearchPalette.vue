@@ -136,8 +136,8 @@ function open(result: SearchResultItem) {
   width: min(560px, calc(100vw - 2rem));
   max-height: 62dvh;
   overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   box-shadow: 0 24px 70px rgb(0 0 0 / 0.3);
   padding: 0.5rem;
@@ -152,7 +152,7 @@ function open(result: SearchResultItem) {
   left: 0.7rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   pointer-events: none;
 }
 
@@ -161,21 +161,21 @@ function open(result: SearchResultItem) {
   padding: 0.6rem 0.75rem 0.6rem 2.2rem;
   font-size: 1rem;
   font-family: inherit;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--color-surface-2);
+  color: var(--color-text);
   outline: none;
 }
 
 .search-palette__input:focus {
-  border-color: var(--accent);
+  border-color: var(--color-accent);
 }
 
 .search-palette__hint {
   margin: 0.6rem;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .search-palette__results {
@@ -191,7 +191,7 @@ function open(result: SearchResultItem) {
 }
 
 .search-palette__result--active {
-  background: var(--accent-soft);
+  background: var(--color-accent-soft);
 }
 
 .search-palette__title {
@@ -205,12 +205,12 @@ function open(result: SearchResultItem) {
 .search-palette__kind {
   font-weight: 400;
   font-size: 0.7rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .search-palette__snippet {
   margin-top: 0.15rem;
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 </style>

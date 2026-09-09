@@ -173,21 +173,21 @@ definePageMeta({ ssr: false });
 
 .profile__sub {
   margin: 0.15rem 0 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
 }
 
 .profile__count {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 
 .profile__status {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .profile__error {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .profile__posts {
@@ -198,10 +198,10 @@ definePageMeta({ ssr: false });
 }
 
 .profile__post {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
   padding: 1rem;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .profile__post-head {
@@ -220,16 +220,16 @@ definePageMeta({ ssr: false });
   display: flex;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .profile__link {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .profile__summary {
   margin: 0.4rem 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -242,12 +242,12 @@ definePageMeta({ ssr: false });
 
 .profile__tag {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .profile__frame {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.4rem;
   background: #fff;
   min-height: 300px;

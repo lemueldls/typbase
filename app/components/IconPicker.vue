@@ -86,9 +86,9 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.55rem;
-  color: var(--text-secondary);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 0.4rem;
 }
 
@@ -97,7 +97,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   min-width: 0;
   font-size: 0.875rem;
   font-family: inherit;
-  color: var(--text);
+  color: var(--color-text);
   background: transparent;
   border: none;
   outline: none;
@@ -110,7 +110,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   max-height: 14rem;
   overflow-y: auto;
   padding: 0.25rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.4rem;
 }
 
@@ -119,7 +119,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   place-content: center;
   aspect-ratio: 1;
   padding: 0.25rem;
-  color: var(--text);
+  color: var(--color-text);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 0.35rem;
@@ -127,17 +127,17 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
 }
 
 .icon-picker__cell:hover {
-  background: var(--surface-3);
+  background: var(--color-surface-3);
 }
 
 .icon-picker__cell--selected {
-  background: var(--accent-soft);
-  border-color: var(--accent);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
 }
 
 .icon-picker__hint {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 </style>

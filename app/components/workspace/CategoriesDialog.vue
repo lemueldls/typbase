@@ -110,17 +110,17 @@ async function remove(id: string) {
 }
 
 .category-list__row:hover {
-  background: var(--surface-2);
+  background: var(--color-surface-2);
 }
 
 .category-list__count {
   margin-left: auto;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
 }
 
 .category-list__empty {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   padding: 0.5rem 0.2rem;
 }
 </style>

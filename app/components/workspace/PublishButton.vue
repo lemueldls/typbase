@@ -117,7 +117,7 @@ async function onUnpublish() {
 
 .publish__status {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .publish__menu {
@@ -128,13 +128,13 @@ async function onUnpublish() {
   margin: 0.5rem 0 0;
   padding: 0.5rem 0.6rem 0.25rem;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .publish__error {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--danger);
+  color: var(--color-danger);
   max-width: 12rem;
 }
 </style>

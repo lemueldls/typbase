@@ -18,14 +18,14 @@
 }
 
 .cm-scroller::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: var(--color-border-strong);
   border: 2px solid transparent;
   border-radius: 999px;
   background-clip: content-box;
 }
 
 .cm-scroller::-webkit-scrollbar-thumb:hover {
-  background-color: var(--text-secondary);
+  background-color: var(--color-text-secondary);
   background-clip: content-box;
 }
 
@@ -33,7 +33,7 @@
   font-family: var(--font-mono);
   font-size: 16px;
   padding: 1rem 1.25rem;
-  caret-color: var(--accent) !important;
+  caret-color: var(--color-accent) !important;
 }
 
 @media (max-width: 768px) {
@@ -47,7 +47,7 @@
 }
 
 .cm-placeholder {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .cm-selectionLayer {
@@ -56,19 +56,19 @@
 
 .cm-selectionBackground,
 .cm-content ::selection {
-  background-color: color-mix(in srgb, var(--accent) 26%, transparent) !important;
+  background-color: color-mix(in srgb, var(--color-accent) 26%, transparent) !important;
 }
 
 .cm-selectionMatch {
-  background-color: color-mix(in srgb, var(--warning) 24%, transparent) !important;
+  background-color: color-mix(in srgb, var(--color-warning) 24%, transparent) !important;
 }
 
 .cm-cursor {
-  border-left-color: var(--accent);
+  border-left-color: var(--color-accent);
 }
 
 .cm-activeLine {
-  background-color: color-mix(in srgb, var(--text) 5%, transparent);
+  background-color: color-mix(in srgb, var(--color-text) 5%, transparent);
 }
 
 .cm-lintRange {
@@ -77,41 +77,41 @@
 }
 
 .cm-lintRange-error {
-  text-decoration-color: var(--danger);
+  text-decoration-color: var(--color-danger);
 }
 
 .cm-lintRange-warning {
-  text-decoration-color: var(--warning);
+  text-decoration-color: var(--color-warning);
 }
 
 .cm-lintPoint-error::after {
-  border-bottom: 2px dotted var(--danger);
+  border-bottom: 2px dotted var(--color-danger);
 }
 
 .cm-panels {
-  background: var(--surface-2);
-  color: var(--text);
-  border-color: var(--border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 
 .cm-textfield {
-  color: var(--text);
-  border: 1px solid var(--border);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   background: transparent;
 }
 
 .cm-button {
-  background: var(--surface-3);
-  border: 1px solid var(--border);
-  color: var(--text);
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   border-radius: 0.5rem;
 }
 
 .cm-gutters {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .cm-gutter-lint {
@@ -124,11 +124,11 @@
 }
 
 .cm-lint-marker-error {
-  background: var(--danger);
+  background: var(--color-danger);
 }
 
 .cm-lint-marker-warning {
-  background: var(--warning);
+  background: var(--color-warning);
 }
 
 .cm-tooltip {
@@ -136,9 +136,9 @@
   margin: 0;
   padding: 0;
   overflow: auto;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
   font-family: var(--font-mono);
@@ -162,8 +162,8 @@
 }
 
 .cm-tooltip-autocomplete li[aria-selected="true"] {
-  background: var(--accent-soft);
-  color: var(--text);
+  background: var(--color-accent-soft);
+  color: var(--color-text);
 }
 
 /* Autocomplete icons are Material Symbols ligatures, same font as MsIcon.
@@ -213,28 +213,28 @@
 }
 
 .cm-diagnostic-error {
-  color: var(--danger);
-  border-left: 3px solid var(--danger);
+  color: var(--color-danger);
+  border-left: 3px solid var(--color-danger);
 }
 
 .cm-diagnostic-warning {
-  color: var(--warning);
-  border-left: 3px solid var(--warning);
+  color: var(--color-warning);
+  border-left: 3px solid var(--color-warning);
 }
 
 .cm-diagnostic-hint {
-  color: var(--text-secondary);
-  border-left: 3px solid var(--border-strong);
+  color: var(--color-text-secondary);
+  border-left: 3px solid var(--color-border-strong);
 }
 
 /* Typst syntax tags from the wasm highlighter, mapped to theme tokens. */
 .typ-comment {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .typ-punct,
 .typ-escape {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .typ-strong {
@@ -246,61 +246,61 @@
 }
 
 .typ-link {
-  color: var(--accent);
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
 .typ-raw {
-  color: var(--warning);
+  color: var(--color-warning);
 }
 
 .typ-label,
 .typ-ref {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
 }
 
 .typ-heading {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .typ-heading-level-1 {
-  color: var(--accent);
+  color: var(--color-accent);
   font-size: 1.8rem;
   font-weight: 400;
 }
 
 .typ-heading-level-2 {
-  color: var(--ok);
+  color: var(--color-ok);
   font-size: 1.5rem;
   font-weight: 400;
 }
 
 .typ-heading-level-3 {
-  color: var(--warning);
+  color: var(--color-warning);
   font-size: 1.25rem;
   font-weight: 400;
 }
 
 .typ-heading-level-4 {
-  color: var(--accent);
+  color: var(--color-accent);
   font-size: 1.1rem;
   font-weight: 400;
 }
 
 .typ-heading-level-5 {
-  color: var(--ok);
+  color: var(--color-ok);
   font-size: 1rem;
   font-weight: 500;
 }
 
 .typ-heading-level-6 {
-  color: var(--warning);
+  color: var(--color-warning);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .typ-marker {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-weight: bold;
 }
 
@@ -309,33 +309,33 @@
 }
 
 .typ-math-delim {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .typ-math-op,
 .typ-op {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .typ-key {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .typ-num,
 .typ-str {
-  color: var(--warning);
+  color: var(--color-warning);
 }
 
 .typ-func {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
 }
 
 .typ-pol {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .typ-error {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 /* Inline rendered widgets (WYSIWYG) + hover popup renders. The SVG is pinned
@@ -363,7 +363,7 @@
 }
 
 .cm-content[contenteditable="true"] .typst-render:hover {
-  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
 }
 
 .cm-content[contenteditable="true"] .typst-render svg {
@@ -384,7 +384,7 @@
 }
 
 .typst-hints {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 

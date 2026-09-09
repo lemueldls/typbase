@@ -203,7 +203,7 @@ defineExpose({ scroller, getFrameLayout });
   height: 100%;
   min-height: 0;
   overflow-y: auto;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .paged-preview :deep(a[href]) {
@@ -218,9 +218,9 @@ defineExpose({ scroller, getFrameLayout });
   padding: 0.2rem 0.6rem;
   width: fit-content;
   font-size: 0.75rem;
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border: 1px solid var(--border);
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
 }
 

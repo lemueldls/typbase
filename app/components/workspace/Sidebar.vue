@@ -385,8 +385,8 @@ function onCreated(page: PageMeta) {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 /* Matches the page toolbar's min-height so the app chrome lines up. */
@@ -397,7 +397,7 @@ function onCreated(page: PageMeta) {
   gap: 0.5rem;
   min-height: 3.5rem;
   padding: 0.5rem 0.9rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .sidebar__title-group {
@@ -427,7 +427,7 @@ function onCreated(page: PageMeta) {
 
 .sidebar__section {
   padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
   overflow-y: auto;
 }
 
@@ -446,7 +446,7 @@ function onCreated(page: PageMeta) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .sidebar__section-actions {
@@ -477,7 +477,7 @@ function onCreated(page: PageMeta) {
   width: 0.45rem;
   height: 0.45rem;
   margin-left: auto;
-  background: var(--accent);
+  background: var(--color-accent);
   border-radius: 999px;
 }
 
@@ -497,7 +497,7 @@ function onCreated(page: PageMeta) {
   padding: 0.5rem 0.6rem;
   font-size: 0.9rem;
   text-align: left;
-  color: var(--text);
+  color: var(--color-text);
   background: transparent;
   border: none;
   border-radius: 0.35rem;
@@ -505,11 +505,11 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__row:hover {
-  background: var(--surface-2);
+  background: var(--color-surface-2);
 }
 
 .sidebar__row--active {
-  background: var(--accent-soft);
+  background: var(--color-accent-soft);
 }
 
 .sidebar__row--today,
@@ -525,7 +525,7 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__row-home {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -533,12 +533,12 @@ function onCreated(page: PageMeta) {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 999px;
-  background: var(--border-strong);
+  background: var(--color-border-strong);
   flex-shrink: 0;
 }
 
 .sidebar__row-dot--filled {
-  background: var(--accent);
+  background: var(--color-accent);
 }
 
 .sidebar__group {
@@ -550,18 +550,18 @@ function onCreated(page: PageMeta) {
   padding: 0.4rem 0.45rem 0.2rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .sidebar__empty {
   padding: 0.5rem 0.45rem;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .sidebar__footer {
   padding: 0.5rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
 }

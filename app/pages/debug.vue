@@ -253,7 +253,7 @@ definePageMeta({ ssr: false });
           <dd>{{ wasmMemoryMB }} MB</dd>
         </div>
       </dl>
-      <button type="button" class="button button--danger" @click="resetWorkspace">
+      <button type="button" class="button button--color-danger" @click="resetWorkspace">
         Reset workspace (OPFS) and reload
       </button>
     </section>
@@ -436,7 +436,7 @@ definePageMeta({ ssr: false });
 
 .lab__hint {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -444,10 +444,10 @@ definePageMeta({ ssr: false });
 .lab__run,
 .lab__report,
 .lab__console {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
   padding: 1rem;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .lab__facts {
@@ -458,7 +458,7 @@ definePageMeta({ ssr: false });
 
 .lab__facts dt {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .lab__facts dd {
@@ -466,9 +466,9 @@ definePageMeta({ ssr: false });
   font-weight: 600;
 }
 
-.button--danger {
-  color: var(--danger);
-  border-color: var(--danger);
+.button--color-danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .lab__field {
@@ -480,14 +480,14 @@ definePageMeta({ ssr: false });
 
 .lab__field span {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .lab__input {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   padding: 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.4rem;
   resize: vertical;
 }
@@ -503,26 +503,26 @@ definePageMeta({ ssr: false });
 }
 
 .lab__check {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
   padding: 1rem;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .lab__check--fail {
-  border-color: var(--danger);
+  border-color: var(--color-danger);
 }
 
 .lab__check ul {
   font-size: 0.8rem;
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .lab__battery {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
   padding: 1rem;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .lab__table {
@@ -536,12 +536,12 @@ definePageMeta({ ssr: false });
 .lab__table td {
   text-align: left;
   padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
   vertical-align: top;
 }
 
 .lab__table-row--fail td {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .lab__crash {
@@ -550,7 +550,7 @@ definePageMeta({ ssr: false });
 }
 
 .lab__error {
-  color: var(--danger);
+  color: var(--color-danger);
   white-space: pre-wrap;
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -571,11 +571,11 @@ definePageMeta({ ssr: false });
 }
 
 .lab__sev--error {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .lab__hint {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .lab__pre {

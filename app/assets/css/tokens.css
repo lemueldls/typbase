@@ -1,10 +1,9 @@
 :root {
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
-  color-scheme: light;
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-surface: #ffffff;
   --color-surface-2: #f3f4f6;
@@ -20,29 +19,14 @@
   --color-ok: #2f6f4f;
   --color-warning: #96660f;
   --color-overlay: rgb(0 0 0 / 0.35);
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
 
-  --surface: var(--color-surface);
-  --surface-2: var(--color-surface-2);
-  --surface-3: var(--color-surface-3);
-  --border: var(--color-border);
-  --border-strong: var(--color-border-strong);
-  --text: var(--color-text);
-  --text-secondary: var(--color-text-secondary);
-  --accent: var(--color-accent);
-  --accent-soft: var(--color-accent-soft);
-  --danger: var(--color-danger);
-  --danger-soft: var(--color-danger-soft);
-  --ok: var(--color-ok);
-  --warning: var(--color-warning);
-  --overlay: var(--color-overlay);
-  --focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  color-scheme: light;
 
-  --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-sans);
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
-
   --color-surface: #1b1d21;
   --color-surface-2: #24272c;
   --color-surface-3: #2d3138;
@@ -57,4 +41,7 @@
   --color-ok: #7cc49d;
   --color-warning: #d3a54f;
   --color-overlay: rgb(0 0 0 / 0.55);
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
+
+  color-scheme: dark;
 }

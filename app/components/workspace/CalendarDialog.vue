@@ -235,7 +235,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 .calendar__weekday {
   text-align: center;
   font-size: 0.7rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   padding: 0.15rem 0;
 }
 
@@ -252,12 +252,12 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   border: 1px solid transparent;
   border-radius: 0.4rem;
   cursor: pointer;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .calendar__cell:hover {
-  background: var(--surface-2);
-  border-color: var(--border);
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
 }
 
 .calendar__cell--outside {
@@ -266,7 +266,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 }
 
 .calendar__cell--today {
-  border-color: var(--accent);
+  border-color: var(--color-accent);
 }
 
 .calendar__day {
@@ -278,7 +278,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--color-accent);
 }
 
 .calendar__delete {
@@ -289,9 +289,9 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   align-items: center;
   justify-content: center;
   padding: 0.1rem;
-  color: var(--danger);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  color: var(--color-danger);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 0.3rem;
 }
 

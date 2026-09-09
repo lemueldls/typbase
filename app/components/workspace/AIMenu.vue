@@ -301,13 +301,13 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
   margin: 0.5rem 0 0;
   padding: 0 0.6rem;
   font-size: 0.75rem;
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .ai-menu__hint {
   margin: 0.5rem 0 0;
   padding: 0.5rem 0.6rem 0.25rem;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 </style>

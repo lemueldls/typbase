@@ -371,14 +371,14 @@ definePageMeta({ ssr: false });
   left: 50%;
   transform: translateX(-50%);
   width: 1px;
-  background: var(--border);
+  background: var(--color-border);
 }
 
 .app__resize-handle:hover::before,
 .app__resize-handle:focus-visible::before,
 .app__resize-handle[data-resize-handle-active]::before {
   width: 3px;
-  background: var(--accent);
+  background: var(--color-accent);
 }
 
 /* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
@@ -408,7 +408,7 @@ definePageMeta({ ssr: false });
 
 .app__nav-toggle:focus-visible,
 .app__nav-toggle--desktop:focus-visible {
-  background: var(--surface-2);
+  background: var(--color-surface-2);
 }
 
 @media (max-width: 768px) {
@@ -437,7 +437,7 @@ definePageMeta({ ssr: false });
     position: fixed;
     inset: 0;
     z-index: 55;
-    background: var(--overlay);
+    background: var(--color-overlay);
     border: none;
   }
 }
@@ -447,7 +447,7 @@ definePageMeta({ ssr: false });
   display: grid;
   place-content: center;
   gap: 0.5rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   text-align: center;
   align-content: center;
 }
@@ -455,11 +455,11 @@ definePageMeta({ ssr: false });
 .app__loading-title {
   margin: 0 0 0.75rem;
   font-size: 1.05rem;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .app__error {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .app__note {
@@ -484,19 +484,19 @@ definePageMeta({ ssr: false });
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .boot-step--active {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .boot-step--done {
-  color: var(--ok);
+  color: var(--color-ok);
 }
 
 .boot-step--error {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .boot-step__marker {
@@ -512,7 +512,7 @@ definePageMeta({ ssr: false });
 
 .boot-step__detail {
   font-size: 0.78rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -522,7 +522,7 @@ definePageMeta({ ssr: false });
   display: inline-block;
   width: 0.8em;
   height: 0.8em;
-  border: 2px solid var(--text-secondary);
+  border: 2px solid var(--color-text-secondary);
   border-top-color: transparent;
   border-radius: 50%;
   animation: boot-spin 0.8s linear infinite;
@@ -540,6 +540,6 @@ definePageMeta({ ssr: false });
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 </style>

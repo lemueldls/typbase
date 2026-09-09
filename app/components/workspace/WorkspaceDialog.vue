@@ -126,8 +126,8 @@ async function submit() {
   gap: 0.6rem;
   margin-bottom: 1rem;
   padding: 0.6rem 0.75rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
 }
 
@@ -137,8 +137,8 @@ async function submit() {
   width: 2.2rem;
   height: 2.2rem;
   flex: none;
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
   border-radius: 0.5rem;
 }
 
@@ -152,6 +152,6 @@ async function submit() {
 
 .dialog__field-label {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 </style>

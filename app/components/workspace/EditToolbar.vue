@@ -76,7 +76,7 @@ const groups: Array<Array<{ command: EditCommand; icon: MaterialSymbol; label: s
   width: 1.9rem;
   height: 1.9rem;
   padding: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: 0.35rem;
@@ -84,8 +84,8 @@ const groups: Array<Array<{ command: EditCommand; icon: MaterialSymbol; label: s
 }
 
 .edit-toolbar__button:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--surface-3);
+  color: var(--color-text);
+  background: var(--color-surface-3);
 }
 
 .edit-toolbar__button:disabled {
@@ -97,6 +97,6 @@ const groups: Array<Array<{ command: EditCommand; icon: MaterialSymbol; label: s
   width: 1px;
   height: 1.2rem;
   margin: 0 0.3rem;
-  background: var(--border);
+  background: var(--color-border);
 }
 </style>

@@ -223,10 +223,10 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.6rem;
   padding: 0.5rem 0.75rem;
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .ws-screen__icon {
@@ -235,8 +235,8 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
   width: 2.2rem;
   height: 2.2rem;
   flex: none;
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
   border-radius: 0.5rem;
 }
 
@@ -252,11 +252,11 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
   border: none;
   cursor: pointer;
   text-align: left;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .ws-screen__open--active .ws-screen__name {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .ws-screen__name {
@@ -265,7 +265,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
 
 .ws-screen__meta {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .ws-screen__actions {
@@ -275,11 +275,11 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
 
 .ws-screen__danger,
 .ws-menu__danger {
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .ws-screen__hint {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   text-align: center;
 }
 
@@ -290,7 +290,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
 .ws-screen__error,
 .ws-menu__error {
   margin: 0;
-  color: var(--danger);
+  color: var(--color-danger);
   font-size: 0.85rem;
 }
 
@@ -307,7 +307,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
 }
 
 .ws-menu__item--active .ws-menu__name {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .ws-menu__label {
@@ -319,7 +319,7 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
 
 .ws-menu__icon {
   flex: none;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .ws-menu__name {
@@ -335,13 +335,13 @@ function iconFor(info: WorkspaceInfo): MaterialSymbol {
 }
 
 .ws-menu__add {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .ws-menu__hint {
   margin: 0;
   padding: 0.35rem 0.6rem 0.5rem;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 </style>

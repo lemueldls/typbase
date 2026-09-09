@@ -541,8 +541,8 @@ function onModeKeydown(event: KeyboardEvent) {
   gap: 0.5rem 1rem;
   min-height: 3.5rem;
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .page-view__toolbar-main {
@@ -576,8 +576,8 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__format-toggle[aria-pressed="true"] {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 /* Chevron pinned to the strip's right edge; matches the edit button size. */
@@ -590,7 +590,7 @@ function onModeKeydown(event: KeyboardEvent) {
   flex: none;
   padding: 0;
   margin-left: auto;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: 0.35rem;
@@ -598,8 +598,8 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__format-collapse:hover {
-  color: var(--text);
-  background: var(--surface-2);
+  color: var(--color-text);
+  background: var(--color-surface-2);
 }
 
 /* Full-width strip: the buttons ride inside it, left-aligned, scrolling
@@ -610,8 +610,8 @@ function onModeKeydown(event: KeyboardEvent) {
   gap: 0.5rem;
   width: 100%;
   padding: 0.25rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -670,15 +670,15 @@ function onModeKeydown(event: KeyboardEvent) {
   gap: 0.25rem;
   padding: 0.15rem;
   flex: none;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
 }
 
 .page-view__mode {
   padding: 0.25rem 0.7rem;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: 0.35rem;
@@ -686,18 +686,18 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__mode:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .page-view__mode--active {
-  color: var(--text);
-  background: var(--surface);
+  color: var(--color-text);
+  background: var(--color-surface);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
 .page-view__error {
   padding: 1rem;
-  color: var(--danger);
+  color: var(--color-danger);
 }
 
 .page-view__body {
@@ -722,12 +722,12 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__body--split :deep(.paged-preview) {
-  box-shadow: -1px 0 0 var(--border);
+  box-shadow: -1px 0 0 var(--color-border);
 }
 
 .page-view__body--read :deep(.paged-preview) {
   padding: 0 1.5rem;
-  background: var(--surface-2);
+  background: var(--color-surface-2);
 }
 
 /* Split view stacks on phones: side-by-side panes would give each ~190px.
@@ -743,7 +743,7 @@ function onModeKeydown(event: KeyboardEvent) {
   }
 
   .page-view__body--split :deep(.paged-preview) {
-    box-shadow: 0 -1px 0 var(--border);
+    box-shadow: 0 -1px 0 var(--color-border);
   }
 
   .page-view__body--read :deep(.paged-preview) {
@@ -761,7 +761,7 @@ function onModeKeydown(event: KeyboardEvent) {
   content: "";
   position: absolute;
   inset: 0 2px;
-  background: var(--border);
+  background: var(--color-border);
   opacity: 0;
   transition: opacity 0.15s;
 }

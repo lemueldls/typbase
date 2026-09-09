@@ -830,15 +830,15 @@ function onTextSizeChange(event: Event) {
   gap: 0.15rem;
   padding: 0.15rem;
   margin-bottom: 0.75rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
 }
 
 .settings__tab {
   padding: 0.25rem 0.55rem;
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: 0.35rem;
@@ -846,12 +846,12 @@ function onTextSizeChange(event: Event) {
 }
 
 .settings__tab:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .settings__tab--active {
-  color: var(--text);
-  background: var(--surface);
+  color: var(--color-text);
+  background: var(--color-surface);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
@@ -906,7 +906,7 @@ function onTextSizeChange(event: Event) {
   margin: 0.25rem 0 0;
   padding-left: 1rem;
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .settings__field {
@@ -918,39 +918,39 @@ function onTextSizeChange(event: Event) {
 
 .settings__field > span {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .settings__input {
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 0.35rem;
-  background: var(--surface);
+  background: var(--color-surface);
   color: inherit;
   font-size: 0.9rem;
 }
 
 .settings__divider {
   height: 1px;
-  background: var(--border);
+  background: var(--color-border);
   margin: 0.75rem 0;
 }
 
 .settings__hint {
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .settings__ok {
   margin: 0.5rem 0 0;
   font-size: 0.8rem;
-  color: var(--ok);
+  color: var(--color-ok);
 }
 
 .settings__error {
   margin: 0.5rem 0 0;
   font-size: 0.8rem;
-  color: var(--danger);
+  color: var(--color-danger);
 }
 </style>
