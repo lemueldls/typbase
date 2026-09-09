@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { Client } from "@atproto/lex-client";
-import {
-  createIdResolver,
-  resolveIdentifier,
-  resolvePds,
-} from "@typbase/spaces";
+import { createIdResolver, resolveIdentifier, resolvePds } from "@typbase/spaces";
 
 import { fetchPublishedPosts } from "~/lib/publish";
 
@@ -58,9 +54,7 @@ watchImmediate(routeDid, async (input) => {
     author.value = {
       did,
       handle:
-        doc?.alsoKnownAs
-          ?.find((value) => value.startsWith("at://"))
-          ?.slice("at://".length) ?? null,
+        doc?.alsoKnownAs?.find((value) => value.startsWith("at://"))?.slice("at://".length) ?? null,
     };
     const pdsUrl = await resolvePds(did, resolver, {
       getPdsUrl: () => undefined,
@@ -69,9 +63,9 @@ watchImmediate(routeDid, async (input) => {
 
     const records = await fetchPublishedPosts(did, pdsUrl);
     const byNewest = [...records].sort((a, b) => {
-      const aTime = String(
-        a.value.updatedAt ?? a.value.createdAt ?? "",
-      ).localeCompare(String(b.value.updatedAt ?? b.value.createdAt ?? ""));
+      const aTime = String(a.value.updatedAt ?? a.value.createdAt ?? "").localeCompare(
+        String(b.value.updatedAt ?? b.value.createdAt ?? ""),
+      );
 
       return -aTime;
     });
@@ -150,11 +144,7 @@ definePageMeta({ ssr: false });
           {{ post.value.summary }}
         </div>
         <div class="profile__tags">
-          <span
-            v-for="tag in tagList(post.value.tags)"
-            :key="tag"
-            class="profile__tag"
-          >
+          <span v-for="tag in tagList(post.value.tags)" :key="tag" class="profile__tag">
             #{{ tag }}
           </span>
         </div>

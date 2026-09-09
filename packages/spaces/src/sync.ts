@@ -29,9 +29,7 @@ export interface SyncHost {
     docId: string,
     sinceVersion: string | null,
   ): Promise<{ bytes: Uint8Array; version: string } | null>;
-  exportSnapshot(
-    docId: string,
-  ): Promise<{ bytes: Uint8Array; version: string }>;
+  exportSnapshot(docId: string): Promise<{ bytes: Uint8Array; version: string }>;
   /** Apply a remote update. Order does not matter: Loro merges by version. */
   importUpdate(docId: string, bytes: Uint8Array): Promise<void>;
   /** Replace local state with a full snapshot. */
@@ -144,10 +142,7 @@ export class TypbaseSync {
     private readonly options: TypbaseSyncOptions = {},
   ) {}
 
-  async start(
-    spaceUri: string | null,
-    authorityDid: string | null,
-  ): Promise<void> {
+  async start(spaceUri: string | null, authorityDid: string | null): Promise<void> {
     await this.load();
     this.state.spaceUri = spaceUri;
     this.state.authorityDid = authorityDid;
@@ -215,10 +210,7 @@ export class TypbaseSync {
     // internal docs are never synced
 
     const doc = this.docState(docId);
-    const latest = await this.host.exportUpdatesSince(
-      docId,
-      doc.exportedVersion,
-    );
+    const latest = await this.host.exportUpdatesSince(docId, doc.exportedVersion);
     if (!latest) return;
 
     doc.exportedVersion = latest.version;
@@ -308,8 +300,7 @@ export class TypbaseSync {
         const member = this.state.members[repoDid];
         if (!member) continue;
         try {
-          const pdsUrl =
-            member.pdsUrl || (await this.resolveMemberPds(repoDid));
+          const pdsUrl = member.pdsUrl || (await this.resolveMemberPds(repoDid));
           member.pdsUrl = pdsUrl;
           const client = credential.client(pdsUrl);
 
@@ -326,8 +317,7 @@ export class TypbaseSync {
             });
             for (const op of page.ops) {
               if (op.cid === null) continue; // a delete: nothing to import
-              const value = op.value as
-                Record<string, unknown> | null | undefined;
+              const value = op.value as Record<string, unknown> | null | undefined;
               if (!value || typeof value !== "object") continue;
               const docId = typeof value.docId === "string" ? value.docId : "";
               if (!docId) continue;
@@ -336,9 +326,7 @@ export class TypbaseSync {
                 const bytes = base64ToBytes(String(value.snapshot ?? ""));
                 const version = String(value.version ?? "");
                 const doc = this.docState(docId);
-                if (
-                  !versionCovers(await this.host.localVersion(docId), version)
-                ) {
+                if (!versionCovers(await this.host.localVersion(docId), version)) {
                   await this.host.importSnapshot(docId, bytes);
                   doc.importedVersion = version;
                   changed.add(docId);
@@ -348,10 +336,7 @@ export class TypbaseSync {
                 const bytes = base64ToBytes(String(value.update ?? ""));
                 const version = String(value.version ?? "");
                 const doc = this.docState(docId);
-                const coveredByLocal = versionCovers(
-                  await this.host.localVersion(docId),
-                  version,
-                );
+                const coveredByLocal = versionCovers(await this.host.localVersion(docId), version);
                 const coveredBySnapshot = doc.importedVersion
                   ? versionCovers(doc.importedVersion, version)
                   : false;
@@ -370,10 +355,7 @@ export class TypbaseSync {
           member.cursor = null;
           member.rev = rev;
         } catch (error) {
-          this.host.engineLog(
-            "warn",
-            `pull failed for ${repoDid}: ${String(error)}`,
-          );
+          this.host.engineLog("warn", `pull failed for ${repoDid}: ${String(error)}`);
         }
       }
 
@@ -496,9 +478,7 @@ export class TypbaseSync {
 
   private async load(): Promise<void> {
     const value = await this.store.get("sync");
-    this.state = value
-      ? { ...emptyState(), ...(value as SyncState) }
-      : emptyState();
+    this.state = value ? { ...emptyState(), ...(value as SyncState) } : emptyState();
   }
 
   private async save(): Promise<void> {

@@ -48,10 +48,7 @@ export async function resolveRequestPayloads(
 
   for (const request of requests) {
     if (typeof request.value !== "string") {
-      console.warn(
-        `[typbase] package requests are not supported yet:`,
-        request,
-      );
+      console.warn(`[typbase] package requests are not supported yet:`, request);
       continue;
     }
 
@@ -109,17 +106,11 @@ export function createTypstRequestService(
 
     for (const payload of payloads) {
       if (payload.type === "source") {
-        typstState.insertSource(
-          typstState.createFileId(payload.path),
-          payload.text,
-        );
+        typstState.insertSource(typstState.createFileId(payload.path), payload.text);
         insertedSources.add(payload.path);
         changed = true;
       } else {
-        typstState.insertFile(
-          typstState.createFileId(payload.path),
-          payload.bytes,
-        );
+        typstState.insertFile(typstState.createFileId(payload.path), payload.bytes);
         insertedFiles.add(payload.path);
         changed = true;
       }
@@ -151,10 +142,7 @@ export function createTypstRequestService(
   };
 }
 
-export async function buildQueryJson(
-  path: string,
-  store: WorkspaceStore,
-): Promise<string | null> {
+export async function buildQueryJson(path: string, store: WorkspaceStore): Promise<string | null> {
   const query = parseQueryPath(path);
   if (!query) return null;
 
@@ -173,9 +161,7 @@ export async function buildQueryJson(
     }
     case "pages": {
       if (query.filterName === "by-id" && query.filterValue) {
-        const page = pages.find(
-          (candidate) => candidate.id === query.filterValue,
-        );
+        const page = pages.find((candidate) => candidate.id === query.filterValue);
         // Typst's json() turns "null" into none; #typbase.page-link uses that
         // for missing pages instead of failing the compile.
         return page ? JSON.stringify(page) : "null";
@@ -193,9 +179,7 @@ export async function buildQueryJson(
     case "daily": {
       const list =
         query.filterName === "by-month" && query.filterValue
-          ? daily.filter((page) =>
-              page.path.startsWith(`daily/${query.filterValue}-`),
-            )
+          ? daily.filter((page) => page.path.startsWith(`daily/${query.filterValue}-`))
           : daily;
 
       return JSON.stringify(list);

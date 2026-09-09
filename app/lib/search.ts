@@ -49,10 +49,7 @@ export class SearchManager {
   private blockIds = new Map<string, number[]>();
   // Debounce via the global useDebounceFn; outside a component scope it never
   // auto-disposes, which is fine: the manager lives for the app's lifetime.
-  private flushIndexDebounced = useDebounceFn(
-    () => void this.flushIndex(),
-    INDEX_DEBOUNCE_MS,
-  );
+  private flushIndexDebounced = useDebounceFn(() => void this.flushIndex(), INDEX_DEBOUNCE_MS);
   private statusValue: SearchStatus = {
     ready: false,
     mode: "starting",
@@ -77,12 +74,9 @@ export class SearchManager {
   }
 
   async start(): Promise<void> {
-    this.worker = new Worker(
-      new URL("../workers/index.worker.ts", import.meta.url),
-      {
-        type: "module",
-      },
-    );
+    this.worker = new Worker(new URL("../workers/index.worker.ts", import.meta.url), {
+      type: "module",
+    });
     this.worker.addEventListener("message", (event: MessageEvent) =>
       this.handleWorkerMessage(event.data),
     );
@@ -142,9 +136,7 @@ export class SearchManager {
 
     const text = await this.store.loadPageText(docId);
 
-    const blocks = typstState.flattenDocument(
-      text,
-    ) as unknown as IndexedBlock[];
+    const blocks = typstState.flattenDocument(text) as unknown as IndexedBlock[];
     const maps = new Map<number, Uint8Array>();
     for (const [i, block] of blocks.entries()) {
       const map = new Uint8Array(new Uint32Array(block.map).buffer);
@@ -178,16 +170,11 @@ export class SearchManager {
     await this.rebuild();
   }
 
-  private async embedAndStore(
-    docId: string,
-    blocks: IndexedBlock[],
-  ): Promise<void> {
+  private async embedAndStore(docId: string, blocks: IndexedBlock[]): Promise<void> {
     const rowIds = this.blockIds.get(docId);
     if (!rowIds || rowIds.length === 0 || !this.ensureEmbedWorker()) return;
 
-    const vectors = await this.requestVectors(
-      blocks.map((block) => block.plain),
-    );
+    const vectors = await this.requestVectors(blocks.map((block) => block.plain));
     if (!vectors) return;
 
     for (let i = 0; i < blocks.length && i < vectors.length; i++) {
@@ -207,12 +194,9 @@ export class SearchManager {
     if (!settings.semantic) return false;
 
     if (!this.embedWorker) {
-      this.embedWorker = new Worker(
-        new URL("../workers/embed.worker.ts", import.meta.url),
-        {
-          type: "module",
-        },
-      );
+      this.embedWorker = new Worker(new URL("../workers/embed.worker.ts", import.meta.url), {
+        type: "module",
+      });
       this.embedWorker.addEventListener("message", (event: MessageEvent) => {
         const message = event.data as {
           id: number;
@@ -282,10 +266,7 @@ export class SearchManager {
     return fused.map((hit) => this.toItem(hit));
   }
 
-  private queryWorker<T>(
-    channel: "query" | "semantic-query",
-    request: unknown,
-  ): Promise<T> {
+  private queryWorker<T>(channel: "query" | "semantic-query", request: unknown): Promise<T> {
     return new Promise((resolve) => {
       const onMessage = (event: MessageEvent) => {
         const message = event.data as {
@@ -336,9 +317,7 @@ export class SearchManager {
     fts.forEach((hit, index) => add(hit, index, "fts"));
     semantic.forEach((hit, index) => add(hit, index, "sem"));
 
-    return [...map.values()]
-      .sort((a, b) => b.combined - a.combined)
-      .slice(0, limit);
+    return [...map.values()].sort((a, b) => b.combined - a.combined).slice(0, limit);
   }
 
   private snippetFor(hit: SearchHit): string {
@@ -358,11 +337,7 @@ export class SearchManager {
     if (first && maps) {
       const map = maps.get(hit.blockIndex);
       if (map) {
-        const u32 = new Uint32Array(
-          map.buffer,
-          map.byteOffset,
-          map.byteLength / 4,
-        );
+        const u32 = new Uint32Array(map.buffer, map.byteOffset, map.byteLength / 4);
         const from = u32[Math.min(first[0], u32.length - 1)];
         const to = u32[Math.min(first[1] - 1, u32.length - 1)];
         if (from !== undefined && to !== undefined) {
@@ -429,9 +404,7 @@ export class SearchManager {
     const text = await this.store.loadPageText(docId);
     this.typst ??= useTypst();
     const typstState = await this.typst;
-    const blocks = typstState.flattenDocument(
-      text,
-    ) as unknown as IndexedBlock[];
+    const blocks = typstState.flattenDocument(text) as unknown as IndexedBlock[];
     await this.embedAndStore(docId, blocks);
   }
 

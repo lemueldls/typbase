@@ -14,15 +14,8 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { refreshSections, toSections } from "~/lib/ai/generators";
 
-const {
-  workspace,
-  error,
-  ensure,
-  dataRevision,
-  bootProgress,
-  bootNote,
-  workspaceGeneration,
-} = useWorkspace();
+const { workspace, error, ensure, dataRevision, bootProgress, bootNote, workspaceGeneration } =
+  useWorkspace();
 
 const loaded = ref(false);
 const currentPageId = ref<string>("");
@@ -198,9 +191,7 @@ definePageMeta({ ssr: false });
             <template v-else>·</template>
           </span>
           <span class="boot-step__label">{{ step.label }}</span>
-          <span v-if="step.detail" class="boot-step__detail">{{
-            step.detail
-          }}</span>
+          <span v-if="step.detail" class="boot-step__detail">{{ step.detail }}</span>
         </li>
       </ul>
 

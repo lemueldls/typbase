@@ -83,14 +83,11 @@ function isoOf(year: number, month: number, day: number): string {
 }
 
 const monthLabel = computed(() =>
-  new Date(Date.UTC(viewYear.value, viewMonth.value, 1)).toLocaleDateString(
-    undefined,
-    {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    },
-  ),
+  new Date(Date.UTC(viewYear.value, viewMonth.value, 1)).toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }),
 );
 
 function shiftMonth(delta: number) {
@@ -121,12 +118,7 @@ async function deleteDay(cell: Cell) {
     dateStyle: "medium",
     timeZone: "UTC",
   });
-  if (
-    !window.confirm(
-      t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }),
-    )
-  )
-    return;
+  if (!window.confirm(t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }))) return;
 
   await props.store.deletePage(cell.page.id);
   // The sidebar falls back to home/first if the open page was deleted.
@@ -145,9 +137,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
     <DialogPortal>
       <DialogOverlay class="dialog-overlay" />
       <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">{{
-          $t("calendar.title")
-        }}</DialogTitle>
+        <DialogTitle class="dialog__title">{{ $t("calendar.title") }}</DialogTitle>
         <DialogDescription class="dialog__description">
           {{ $t("calendar.description") }}
         </DialogDescription>
@@ -170,11 +160,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
           >
             <MsIcon name="chevron_right" :size="20" />
           </button>
-          <button
-            type="button"
-            class="button button--ghost button--tiny"
-            @click="goToToday"
-          >
+          <button type="button" class="button button--ghost button--tiny" @click="goToToday">
             Today
           </button>
         </div>
@@ -197,8 +183,7 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
             class="calendar__cell"
             :class="{
               'calendar__cell--outside': cell.outside,
-              'calendar__cell--today':
-                cell.iso === today.toISOString().slice(0, 10),
+              'calendar__cell--today': cell.iso === today.toISOString().slice(0, 10),
             }"
             :aria-label="
               cell.page

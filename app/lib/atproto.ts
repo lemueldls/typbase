@@ -92,17 +92,14 @@ export class AtprotoService {
 
   private async restore(): Promise<void> {
     const origin = this.opts.appUrl.replace(/\/$/, "");
-    this.sessions = new SessionManager(
-      `${origin}/client-metadata`,
-      (session) => {
-        void this.local.set("identity", session);
-        if (!session) {
-          this.statusDid = null;
-          this.detach();
-        }
-        this.emit();
-      },
-    );
+    this.sessions = new SessionManager(`${origin}/client-metadata`, (session) => {
+      void this.local.set("identity", session);
+      if (!session) {
+        this.statusDid = null;
+        this.detach();
+      }
+      this.emit();
+    });
 
     // The OAuth client init touches IndexedDB and fetches the client
     // metadata; in an odd browser context it can stall. Bounded here so a
@@ -216,10 +213,7 @@ export class AtprotoService {
    * (or a later member) has a starting point. The engine then exports only
    * the delta from here on.
    */
-  private async bootstrapSnapshots(
-    spaceUri: string,
-    authorityDid: string,
-  ): Promise<void> {
+  private async bootstrapSnapshots(spaceUri: string, authorityDid: string): Promise<void> {
     if (!this.sessionRef) return;
 
     try {
@@ -250,10 +244,7 @@ export class AtprotoService {
     }
   }
 
-  private async startSync(
-    spaceUri: string,
-    authorityDid: string,
-  ): Promise<void> {
+  private async startSync(spaceUri: string, authorityDid: string): Promise<void> {
     const session = await this.requireSession().catch(() => null);
     const memberDid = session?.did ?? authorityDid;
     const syncHost = createSyncHost(
@@ -287,10 +278,7 @@ export class AtprotoService {
 
     try {
       const since = this.relayVersions.get(docId);
-      const exported = await this.store.exportUpdatesSince(
-        docId,
-        since ?? null,
-      );
+      const exported = await this.store.exportUpdatesSince(docId, since ?? null);
       if (!exported) return;
 
       this.relayVersions.set(docId, exported.version);
@@ -349,18 +337,12 @@ export class AtprotoService {
       return this.credential;
     }
     if (!this.sessionRef) throw new Error("Not signed in");
-    const spaceUri =
-      this.attachedSpaceUri ??
-      (await this.local.get<string | null>("spaceUri"));
+    const spaceUri = this.attachedSpaceUri ?? (await this.local.get<string | null>("spaceUri"));
     if (!spaceUri) throw new Error("No space attached");
     const authority = parseWorkspaceSpaceUri(spaceUri)?.authorityDid;
     if (!authority) throw new Error("Invalid space uri");
     const authorityPds = await this.resolveMemberPds(authority);
-    this.credential = await mintSpaceCredential(
-      this.sessionRef,
-      spaceUri,
-      authorityPds,
-    );
+    this.credential = await mintSpaceCredential(this.sessionRef, spaceUri, authorityPds);
     this.credentialAt = now;
 
     return this.credential;
@@ -405,14 +387,7 @@ export class AtprotoService {
       return stored;
     }
 
-    const colors = [
-      "#e8555f",
-      "#e8a13f",
-      "#57c08c",
-      "#4f9ddb",
-      "#8d6fd8",
-      "#d85fb4",
-    ];
+    const colors = ["#e8555f", "#e8a13f", "#57c08c", "#4f9ddb", "#8d6fd8", "#d85fb4"];
     const name = `Device ${Math.random().toString(36).slice(2, 5)}`;
     const hash = [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
     const persona: Persona = {
@@ -479,8 +454,7 @@ export class AtprotoService {
 
 function b64encode(bytes: Uint8Array): string {
   let binary = "";
-  for (let i = 0; i < bytes.length; i++)
-    binary += String.fromCharCode(bytes[i] ?? 0);
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i] ?? 0);
 
   return btoa(binary);
 }

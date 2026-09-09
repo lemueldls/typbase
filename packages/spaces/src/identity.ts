@@ -35,10 +35,7 @@ export async function resolvePds(
 }
 
 /** Resolves a handle (or passes a DID through) to a DID. */
-export async function resolveIdentifier(
-  identifier: string,
-  resolver: IdResolver,
-): Promise<string> {
+export async function resolveIdentifier(identifier: string, resolver: IdResolver): Promise<string> {
   if (identifier.startsWith("did:")) return identifier;
 
   const handle = identifier.replace(/^@/, "");

@@ -12,8 +12,7 @@ function toDate(value: string | number | Date): Date {
   if (typeof value === "string") {
     // ISO date-only strings are UTC days; keep the calendar stable across
     // timezones (daily notes are UTC-keyed).
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value))
-      return new Date(`${value}T00:00:00Z`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(`${value}T00:00:00Z`);
     return new Date(value);
   }
 
@@ -27,8 +26,7 @@ export function formatDate(
   locale?: string,
 ): string {
   const date = toDate(value);
-  const isDateOnly =
-    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const isDateOnly = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
   const resolved: Intl.DateTimeFormatOptions = {
     timeZone: isDateOnly ? "UTC" : undefined,
     ...options,
@@ -69,10 +67,7 @@ export function formatAgo(timestamp: number, locale?: string): string {
     ["hour", 3_600_000],
     ["minute", 60_000],
   ];
-  const [unit, spanMs] = units.find(([, millis]) => abs >= millis) ?? [
-    "minute",
-    60_000,
-  ];
+  const [unit, spanMs] = units.find(([, millis]) => abs >= millis) ?? ["minute", 60_000];
   return rtf.format(Math.round(diff / spanMs), unit);
 }
 

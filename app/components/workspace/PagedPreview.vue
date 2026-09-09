@@ -12,10 +12,7 @@ const props = defineProps<{
   dataRevision: number;
   /** Bumped when rendering state changed (e.g. system fonts installed). */
   renderRevision: number;
-  onRequests?: (
-    requests: unknown[],
-    spaceId: string,
-  ) => Promise<boolean> | boolean;
+  onRequests?: (requests: unknown[], spaceId: string) => Promise<boolean> | boolean;
   /** Fired when a compile call trapped; the parent rebuilds the wasm state. */
   onPanic?: () => void;
 }>();
@@ -42,9 +39,7 @@ function onPreviewClick(event: MouseEvent) {
 
   if (/^(https?|mailto):/.test(href)) {
     event.preventDefault();
-    if (
-      window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)
-    ) {
+    if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
       window.open(href, "_blank", "noopener,noreferrer");
     }
   }
@@ -57,22 +52,13 @@ const rendering = ref(false);
 const renderNow = async () => {
   // Hidden panes (write/source modes) skip; the ResizeObserver re-triggers
   // when the pane becomes visible again.
-  if (
-    !props.typstState ||
-    !scroller.value ||
-    scroller.value.offsetParent === null
-  )
-    return;
+  if (!props.typstState || !scroller.value || scroller.value.offsetParent === null) return;
 
   rendering.value = true;
   try {
     let result;
     try {
-      result = props.typstState.compilePaged(
-        props.fileId,
-        props.text.value,
-        props.prelude.value,
-      );
+      result = props.typstState.compilePaged(props.fileId, props.text.value, props.prelude.value);
     } catch (error) {
       // wasm panic => the instance is dead. Keep the last good frames and
       // ask the parent to rebuild + remount us.
@@ -119,10 +105,7 @@ function measureWidth(): number {
 
   const style = getComputedStyle(inner);
 
-  return (
-    inner.clientWidth -
-    (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight))
-  );
+  return inner.clientWidth - (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight));
 }
 
 /**
@@ -181,19 +164,14 @@ interface FrameLayout {
 }
 
 function getFrameLayout(): FrameLayout {
-  const els =
-    scroller.value?.querySelectorAll<HTMLElement>("[data-frame]") ?? [];
+  const els = scroller.value?.querySelectorAll<HTMLElement>("[data-frame]") ?? [];
   const tops: number[] = [];
   const ranges: Array<{ start: number; end: number }> = [];
 
   for (const [index, el] of Array.from(els).entries()) {
     tops.push(el.offsetTop);
     const frame = frames.value[index];
-    ranges.push(
-      frame
-        ? { start: frame.range.start, end: frame.range.end }
-        : { start: 0, end: 0 },
-    );
+    ranges.push(frame ? { start: frame.range.start, end: frame.range.end } : { start: 0, end: 0 });
   }
 
   return { tops, topsEnd: tops.at(-1) ?? 0, ranges };

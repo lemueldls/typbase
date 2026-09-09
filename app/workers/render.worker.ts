@@ -6,10 +6,7 @@ import mapleMono from "~~/public/fonts/maple/MapleMono-Regular.ttf?url";
 import newcmMathBold from "~~/public/fonts/math/NewCMMath-Bold.otf?url";
 import newcmMath from "~~/public/fonts/math/NewCMMath-Regular.otf?url";
 
-import type {
-  RenderWorkerRequest,
-  RenderWorkerResponse,
-} from "~/lib/renderWorker";
+import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWorker";
 
 /**
  * Worker entry: owns one TypstState for publish renders. The page source and
@@ -52,15 +49,9 @@ self.addEventListener(
 
     if (message.type === "insert" && state) {
       if (message.payload?.type === "source") {
-        state.insertSource(
-          state.createFileId(message.payload.path),
-          message.payload.text,
-        );
+        state.insertSource(state.createFileId(message.payload.path), message.payload.text);
       } else if (message.payload?.type === "file") {
-        state.insertFile(
-          state.createFileId(message.payload.path),
-          message.payload.bytes,
-        );
+        state.insertFile(state.createFileId(message.payload.path), message.payload.bytes);
       }
 
       return;
@@ -90,8 +81,7 @@ self.addEventListener(
             id: currentId,
             type: "result",
             ok: false,
-            error:
-              "This build has no PDF support (rebuild with the pdf feature).",
+            error: "This build has no PDF support (rebuild with the pdf feature).",
           } satisfies RenderWorkerResponse);
 
           return;
@@ -157,9 +147,7 @@ self.addEventListener(
   },
 );
 
-async function requestLoop(
-  requests: import("@typbase/wasm").TypstRequest[],
-): Promise<void> {
+async function requestLoop(requests: import("@typbase/wasm").TypstRequest[]): Promise<void> {
   postMessage({
     id: currentId,
     type: "request",

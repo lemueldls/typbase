@@ -10,12 +10,7 @@ import type {
 
 import { setDiagnostics } from "@codemirror/lint";
 import { type Range, StateEffect, StateField } from "@codemirror/state";
-import {
-  Decoration,
-  EditorView,
-  ViewPlugin,
-  WidgetType,
-} from "@codemirror/view";
+import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
 import type { TextRef } from "./types";
@@ -115,10 +110,7 @@ class TypstWidget extends WidgetType {
 
       if (!locked) {
         container.addEventListener("click", this.handleMouseEvent.bind(this));
-        container.addEventListener(
-          "mousedown",
-          this.handleMouseEvent.bind(this),
-        );
+        container.addEventListener("mousedown", this.handleMouseEvent.bind(this));
       }
 
       containerCache.set(frame.render.hash, container);
@@ -157,11 +149,7 @@ class TypstWidget extends WidgetType {
       const href = anchor.getAttribute("href") ?? "";
       if (href.startsWith("typbase://")) return;
 
-      if (
-        window.confirm(
-          `Open external link?\n\n${href}\n\nIt opens in a new tab.`,
-        )
-      ) {
+      if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
         window.open(href, "_blank", "noopener,noreferrer");
       }
 
@@ -277,12 +265,7 @@ function decorate({
   let frames: SvgRangedFrame[];
   let tooltips: SvgRangedFrame[];
 
-  if (
-    forced ||
-    update.docChanged ||
-    widthChanged ||
-    !compileCache.has(cacheKey)
-  ) {
+  if (forced || update.docChanged || widthChanged || !compileCache.has(cacheKey)) {
     if (isFlaggedForUpdate) updateFlagStore.delete(path);
     else updateFlagStore.add(path);
 
@@ -300,19 +283,17 @@ function decorate({
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
 
     if (compileResult.requests.length > 0 && onRequests) {
-      void Promise.resolve(onRequests(compileResult.requests, spaceId)).then(
-        (wasUpdated) => {
-          if (wasUpdated) {
-            const doc = update.view.state.doc.toString();
-            update.view.dispatch({
-              changes: { from: 0, to: doc.length, insert: doc },
-              // The cached result was compiled before the request was resolved;
-              // force a recompile instead of trusting it.
-              effects: typstRecompileEffect.of(null),
-            });
-          }
-        },
-      );
+      void Promise.resolve(onRequests(compileResult.requests, spaceId)).then((wasUpdated) => {
+        if (wasUpdated) {
+          const doc = update.view.state.doc.toString();
+          update.view.dispatch({
+            changes: { from: 0, to: doc.length, insert: doc },
+            // The cached result was compiled before the request was resolved;
+            // force a recompile instead of trusting it.
+            effects: typstRecompileEffect.of(null),
+          });
+        }
+      });
     }
 
     ({ frames, tooltips } = compileResult);
@@ -347,16 +328,11 @@ function decorate({
         const { number: startLine } = state.doc.lineAt(start);
         const { number: endLine } = state.doc.lineAt(end);
 
-        for (
-          let currentLine = startLine;
-          currentLine <= endLine;
-          currentLine++
-        ) {
+        for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
           const line = state.doc.line(currentLine);
           let style = "";
           if (currentLine == startLine)
-            style +=
-              "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
+            style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
           if (currentLine == endLine)
             style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${frame.render.height - lineHeight}px`;
           else lineHeight += view.lineBlockAt(line.from).height;
@@ -427,9 +403,7 @@ export const typstViewPlugin = (
         const forced =
           firstUpdate ||
           update.transactions.some((transaction) =>
-            transaction.effects.some((effect) =>
-              effect.is(typstRecompileEffect),
-            ),
+            transaction.effects.some((effect) => effect.is(typstRecompileEffect)),
           );
         firstUpdate = false;
 
@@ -455,12 +429,7 @@ export const typstViewPlugin = (
           }, 150);
         }
 
-        if (
-          update.docChanged ||
-          update.selectionSet ||
-          update.focusChanged ||
-          forced
-        ) {
+        if (update.docChanged || update.selectionSet || update.focusChanged || forced) {
           const { state } = update;
           const currentDecorations = state.field(typstStateField);
 

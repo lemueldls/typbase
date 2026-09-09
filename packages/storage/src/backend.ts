@@ -77,9 +77,7 @@ export class OPFSBackend implements StorageBackend {
     return new OPFSBackend(dir);
   }
 
-  private async ensureDir(
-    segments: string[],
-  ): Promise<FileSystemDirectoryHandle> {
+  private async ensureDir(segments: string[]): Promise<FileSystemDirectoryHandle> {
     let dir = this.root;
     let prefix = "";
 

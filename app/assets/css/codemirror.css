@@ -56,19 +56,11 @@
 
 .cm-selectionBackground,
 .cm-content ::selection {
-  background-color: color-mix(
-    in srgb,
-    var(--accent) 26%,
-    transparent
-  ) !important;
+  background-color: color-mix(in srgb, var(--accent) 26%, transparent) !important;
 }
 
 .cm-selectionMatch {
-  background-color: color-mix(
-    in srgb,
-    var(--warning) 24%,
-    transparent
-  ) !important;
+  background-color: color-mix(in srgb, var(--warning) 24%, transparent) !important;
 }
 
 .cm-cursor {

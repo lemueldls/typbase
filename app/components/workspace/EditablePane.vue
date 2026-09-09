@@ -12,11 +12,7 @@ import {
 } from "@codemirror/language";
 import { lintGutter } from "@codemirror/lint";
 import { highlightSelectionMatches } from "@codemirror/search";
-import {
-  EditorState,
-  type EditorStateConfig,
-  type Extension,
-} from "@codemirror/state";
+import { EditorState, type EditorStateConfig, type Extension } from "@codemirror/state";
 import {
   EditorView,
   crosshairCursor,
@@ -49,10 +45,7 @@ const props = defineProps<{
   /** WYSIWYG (inline previews) vs plain source editing. */
   wysiwyg: boolean;
   typstState: TypstState;
-  onRequests?: (
-    requests: TypstRequest[],
-    spaceId: string,
-  ) => Promise<boolean> | boolean;
+  onRequests?: (requests: TypstRequest[], spaceId: string) => Promise<boolean> | boolean;
   revision?: () => string | number | undefined;
   /** Extra CodeMirror extensions (presence cursors, AI menus, search scroll). */
   extensions?: Extension[];
@@ -241,11 +234,7 @@ function prefixLines(prefix: string) {
 
   const changes: { from: number; to: number; insert: string }[] = [];
   let total = 0;
-  for (
-    let lineNumber = startLine.number;
-    lineNumber <= endLine.number;
-    lineNumber++
-  ) {
+  for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber++) {
     const line = state.doc.line(lineNumber);
     changes.push({ from: line.from, to: line.from, insert: prefix });
     total += prefix.length;

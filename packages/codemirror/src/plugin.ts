@@ -14,11 +14,7 @@ import { typstHoverTooltip } from "./hover";
 import { typstKeymap } from "./keymap";
 import { autocomplete, typstLanguageData } from "./language";
 import { tooltipStateField, tooltipViewPlugin } from "./tooltip";
-import {
-  typstStateField,
-  typstViewPlugin,
-  tooltipsStateField,
-} from "./widgets";
+import { typstStateField, typstViewPlugin, tooltipsStateField } from "./widgets";
 
 export interface TypstPluginOptions {
   /**
@@ -49,16 +45,7 @@ export const typstPlugin = (
 ): Extension => [
   typstStateField,
   tooltipsStateField,
-  typstViewPlugin(
-    fileId,
-    spaceId,
-    path,
-    text,
-    prelude,
-    locked,
-    typstState,
-    options,
-  ),
+  typstViewPlugin(fileId, spaceId, path, text, prelude, locked, typstState, options),
   tooltipViewPlugin(),
   tooltipStateField,
 
@@ -83,30 +70,22 @@ export const typstPlugin = (
   }),
 ];
 
-const addSpaceBeforeClosingBracket = EditorView.inputHandler.of(
-  (view, from, to, text) => {
-    if (text === " ") {
-      const { state } = view;
-      const pos = from;
-      const bracketPairs = { "(": ")", "[": "]", "{": "}", $: "$" };
-      const before = state.doc.sliceString(
-        pos - 1,
-        pos,
-      ) as keyof typeof bracketPairs;
-      const after = state.doc.sliceString(
-        pos,
-        pos + 1,
-      ) as keyof typeof bracketPairs;
+const addSpaceBeforeClosingBracket = EditorView.inputHandler.of((view, from, to, text) => {
+  if (text === " ") {
+    const { state } = view;
+    const pos = from;
+    const bracketPairs = { "(": ")", "[": "]", "{": "}", $: "$" };
+    const before = state.doc.sliceString(pos - 1, pos) as keyof typeof bracketPairs;
+    const after = state.doc.sliceString(pos, pos + 1) as keyof typeof bracketPairs;
 
-      if (bracketPairs[before] && after === bracketPairs[before]) {
-        // Insert a space before the closing bracket
-        view.dispatch({
-          changes: { from: pos, to: pos, insert: " " },
-          selection: { anchor: pos + 1 },
-        });
-      }
+    if (bracketPairs[before] && after === bracketPairs[before]) {
+      // Insert a space before the closing bracket
+      view.dispatch({
+        changes: { from: pos, to: pos, insert: " " },
+        selection: { anchor: pos + 1 },
+      });
     }
+  }
 
-    return false;
-  },
-);
+  return false;
+});

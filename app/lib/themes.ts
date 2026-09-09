@@ -273,8 +273,7 @@ export function resolveTheme(settings: {
   themeCustom?: ThemePaletteTokens | null;
 }): ResolvedTheme {
   const preferDark =
-    settings.theme === "dark" ||
-    (settings.theme === "auto" && prefersDarkScheme());
+    settings.theme === "dark" || (settings.theme === "auto" && prefersDarkScheme());
 
   const def = themeById(settings.themeName ?? "default") ?? null;
   let base: ThemePaletteTokens;
@@ -305,8 +304,7 @@ export function resolveTheme(settings: {
 
 function prefersDarkScheme(): boolean {
   return (
-    typeof window !== "undefined" &&
-    !!window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    typeof window !== "undefined" && !!window.matchMedia?.("(prefers-color-scheme: dark)").matches
   );
 }
 
@@ -329,9 +327,7 @@ export function applyThemeToDom(resolved: ResolvedTheme): void {
 
 const THEME_CACHE_KEY = "typbase:themeCache";
 
-export function cacheThemeSettings(
-  settings: Parameters<typeof resolveTheme>[0],
-): void {
+export function cacheThemeSettings(settings: Parameters<typeof resolveTheme>[0]): void {
   try {
     localStorage.setItem(
       THEME_CACHE_KEY,

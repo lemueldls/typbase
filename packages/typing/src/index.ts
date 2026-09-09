@@ -203,16 +203,10 @@ export type QueryCategories = Category[];
 /** `typbase-query/daily.json` (optionally filtered by `YYYY-MM`). */
 export type QueryDaily = PageMeta[];
 
-export {
-  OAUTH_SCOPES,
-  SPACE_COLLECTIONS,
-  APP_SPACE_TYPE,
-  POST_COLLECTION,
-} from "./atproto";
+export { OAUTH_SCOPES, SPACE_COLLECTIONS, APP_SPACE_TYPE, POST_COLLECTION } from "./atproto";
 
 /** Kinds `#typbase.query` supports. */
-export type QueryKind =
-  "config" | "pages" | "categories" | "daily" | "backlinks" | "sections";
+export type QueryKind = "config" | "pages" | "categories" | "daily" | "backlinks" | "sections";
 
 export interface ParsedQuery {
   kind: QueryKind;
@@ -227,21 +221,11 @@ export interface ParsedQuery {
  * are `<name>/<value>` pairs, e.g. `typbase-query/pages/by-category/work.json`.
  */
 export function parseQueryPath(path: string): ParsedQuery | null {
-  const match =
-    /^typbase-query\/([a-z-]+)(?:\/([\w-]+)\/([\w-]+))?\.json$/.exec(path);
+  const match = /^typbase-query\/([a-z-]+)(?:\/([\w-]+)\/([\w-]+))?\.json$/.exec(path);
   if (!match) return null;
 
   const kind = match[1] as QueryKind;
-  if (
-    ![
-      "config",
-      "pages",
-      "categories",
-      "daily",
-      "backlinks",
-      "sections",
-    ].includes(kind)
-  ) {
+  if (!["config", "pages", "categories", "daily", "backlinks", "sections"].includes(kind)) {
     return null;
   }
 
