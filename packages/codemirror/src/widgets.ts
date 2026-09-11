@@ -412,7 +412,8 @@ export const typstViewPlugin = (
 
           widthChanged = typstState.resize(
             fileId,
-            editorWidth(scrollDOM, contentDOM),
+            contentDOM.clientWidth - 16,
+            // editorWidth(scrollDOM, contentDOM),
             locked ? scrollDOM.clientHeight : undefined,
           );
         }
