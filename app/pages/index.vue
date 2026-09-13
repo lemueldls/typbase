@@ -6,6 +6,7 @@ import type { ViewMode } from "~/components/workspace/PageView.vue";
 import MainPane from "~/components/workspace/MainPane.vue";
 import SearchPalette from "~/components/workspace/SearchPalette.vue";
 import Sidebar from "~/components/workspace/Sidebar.vue";
+import StorageSetup from "~/components/workspace/StorageSetup.vue";
 import WorkspaceSwitcher from "~/components/workspace/WorkspaceSwitcher.vue";
 import { useAppLocale } from "~/composables/appLocale";
 import { useSearch } from "~/composables/search";
@@ -14,8 +15,16 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { refreshSections, toSections } from "~/lib/ai/generators";
 
-const { workspace, error, ensure, dataRevision, bootProgress, bootNote, workspaceGeneration } =
-  useWorkspace();
+const {
+  workspace,
+  error,
+  ensure,
+  dataRevision,
+  bootProgress,
+  bootNote,
+  workspaceGeneration,
+  storageSetup,
+} = useWorkspace();
 
 const loaded = ref(false);
 const currentPageId = ref<string>("");
@@ -198,6 +207,8 @@ definePageMeta({ ssr: false });
       <p v-if="bootNote" class="app__note">{{ bootNote }}</p>
       <p v-if="error" class="app__error">{{ error }}</p>
     </div>
+
+    <StorageSetup v-else-if="storageSetup" :setup="storageSetup" />
 
     <template v-else-if="workspace">
       <div :key="workspaceGeneration" class="app__content">

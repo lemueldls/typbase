@@ -135,7 +135,10 @@
     "daysAgo": "{count}d ago",
     "tabAppearance": "Appearance",
     "textSize": "Text size",
-    "textSizeHint": "Base text size in pt. 1 pt renders as 1 px on screen, so 16pt matches the editor's 16px text."
+    "textSizeHint": "Base text size in pt. 1 pt renders as 1 px on screen, so 16pt matches the editor's 16px text.",
+    "storage": "Storage location",
+    "changeStorage": "Change",
+    "storageHint": "Where this device keeps workspaces. Changing it shows that location's own workspace list."
   },
   "aiMenu": {
     "off": "AI (off)",
@@ -230,5 +233,46 @@
     "bulletList": "Bullet list",
     "orderedList": "Numbered list",
     "collapse": "Collapse formatting toolbar"
+  },
+  "storage": {
+    "setupTitle": "Choose storage location",
+    "setupIntroNative": "Pick where typbase keeps your workspaces. You can change this later in settings.",
+    "setupIntroBrowser": "Pick where this browser keeps your workspaces. You can change this later in settings.",
+    "reconnectTitle": "Reconnect folder",
+    "reconnectIntro": "The browser needs permission to use “{name}” again.",
+    "reconnectAction": "Reconnect",
+    "modeApp": "App storage",
+    "modeAppHint": "Private to the app, together with its settings.",
+    "modeDevice": "Device storage",
+    "modeDeviceHint": "A folder in your documents, visible to other apps.",
+    "modeCustom": "Choose a folder",
+    "modeCustomHint": "Any folder you can write to. The app keeps its files there.",
+    "modeFolder": "Chosen folder",
+    "modeFolderHint": "A folder you picked on this device.",
+    "modeBrowser": "Browser storage",
+    "modeBrowserHint": "Managed by the browser itself (OPFS).",
+    "modeTemporary": "Temporary session",
+    "chooseFolder": "Choose folder…",
+    "working": "Preparing storage…",
+    "cancel": "Cancel",
+    "reconnectMissing": "That folder is no longer available in this browser.",
+    "reconnectDenied": "The browser did not grant access to that folder."
+  },
+  "explorer": {
+    "title": "Storage explorer",
+    "tabData": "Workspaces",
+    "tabFiles": "Files",
+    "refresh": "Refresh",
+    "refreshing": "Loading…",
+    "reveal": "Reveal",
+    "noWorkspaces": "No workspaces in this location.",
+    "opened": "opened {when}",
+    "active": "active",
+    "upload": "Upload file",
+    "directory": "folder",
+    "deletePageConfirm": "Delete page “{title}”? Its document file is removed too.",
+    "deleteWorkspaceConfirm": "Delete workspace “{name}” and every page in it? This cannot be undone.",
+    "deleteFileConfirm": "Delete file “{path}”? Raw deletes can break a workspace.",
+    "hint": "Files are Loro snapshots and app data; deleting them directly can break a workspace."
   }
 }

@@ -135,7 +135,10 @@
     "daysAgo": "{count} 天前",
     "tabAppearance": "外观",
     "textSize": "正文字号",
-    "textSizeHint": "基础正文字号（pt）。1 pt 显示为 1 px，16pt 与编辑器的 16px 文本对应。"
+    "textSizeHint": "基础正文字号（pt）。1 pt 显示为 1 px，16pt 与编辑器的 16px 文本对应。",
+    "storage": "存储位置",
+    "changeStorage": "更改",
+    "storageHint": "此设备保存工作区的位置。更改后会显示该位置自己的工作区列表。"
   },
   "aiMenu": {
     "off": "AI（关闭）",
@@ -230,5 +233,46 @@
     "bulletList": "项目符号列表",
     "orderedList": "编号列表",
     "collapse": "收起格式工具栏"
+  },
+  "storage": {
+    "setupTitle": "选择存储位置",
+    "setupIntroNative": "选择 typbase 保存工作区的位置。之后可在设置中更改。",
+    "setupIntroBrowser": "选择此浏览器保存工作区的位置。之后可在设置中更改。",
+    "reconnectTitle": "重新连接文件夹",
+    "reconnectIntro": "浏览器需要重新授权使用“{name}”。",
+    "reconnectAction": "重新连接",
+    "modeApp": "应用存储",
+    "modeAppHint": "应用私有，与设置放在一起。",
+    "modeDevice": "设备存储",
+    "modeDeviceHint": "位于文档中的文件夹，其他应用可见。",
+    "modeCustom": "选择文件夹",
+    "modeCustomHint": "任何可写入的文件夹，应用会把文件放在那里。",
+    "modeFolder": "已选文件夹",
+    "modeFolderHint": "你在此设备上选择的文件夹。",
+    "modeBrowser": "浏览器存储",
+    "modeBrowserHint": "由浏览器自身管理（OPFS）。",
+    "modeTemporary": "临时会话",
+    "chooseFolder": "选择文件夹…",
+    "working": "正在准备存储…",
+    "cancel": "取消",
+    "reconnectMissing": "此文件夹在浏览器中已不可用。",
+    "reconnectDenied": "浏览器未授予访问该文件夹的权限。"
+  },
+  "explorer": {
+    "title": "存储浏览器",
+    "tabData": "工作区",
+    "tabFiles": "文件",
+    "refresh": "刷新",
+    "refreshing": "加载中…",
+    "reveal": "在文件管理器中显示",
+    "noWorkspaces": "此位置没有工作区。",
+    "opened": "最后打开于 {when}",
+    "active": "当前",
+    "upload": "上传文件",
+    "directory": "文件夹",
+    "deletePageConfirm": "删除页面“{title}”？其文档文件也会被删除。",
+    "deleteWorkspaceConfirm": "删除工作区“{name}”及其所有页面？此操作无法撤销。",
+    "deleteFileConfirm": "删除文件“{path}”？直接删除可能会损坏工作区。",
+    "hint": "这些文件是 Loro 快照和应用数据，直接删除可能会损坏工作区。"
   }
 }

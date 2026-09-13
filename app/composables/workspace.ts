@@ -1,15 +1,27 @@
-import type { StorageBackend } from "@typbase/storage";
+import type { StorageBackend, TauriStorageMode, TauriStorageState } from "@typbase/storage";
 import type { WorkspaceInfo } from "@typbase/typing";
 
 import {
+  FileSystemAccessBackend,
   LocalState,
-  localStatePath,
   MemoryBackend,
   OPFSBackend,
+  TauriBackend,
   WorkspaceRegistry,
   WorkspaceStore,
+  configureTauriStorage,
   createId,
+  directoryPermission,
+  forgetDirectoryHandle,
+  isFsaSupported,
+  isTauri,
+  localStatePath,
+  pickDirectory,
+  pickTauriDirectory,
   removeWorkspace,
+  requestDirectoryPermission,
+  storedDirectoryHandle,
+  tauriStorageState,
   workspacePath,
 } from "@typbase/storage";
 
@@ -22,6 +34,43 @@ import { withTimeout } from "~/lib/timeout";
 const LAST_WORKSPACE_KEY = "typbase:lastWorkspace";
 /** Set once the user deletes every workspace, so a reload shows the chooser. */
 const WORKSPACES_EMPTY_KEY = "typbase:workspacesEmpty";
+/** Browser storage choice: OPFS (default) or a picked folder handle. */
+const STORAGE_MODE_KEY = "typbase:storageMode";
+
+export type StorageEnvironment = "native" | "browser" | "opfs" | "memory";
+
+export interface StorageLocation {
+  environment: StorageEnvironment;
+  /** Localized label for the active root. */
+  label: string;
+  /** Native root path, picked folder name, or "OPFS". */
+  path: string | null;
+  canPickFolder: boolean;
+}
+
+export interface StorageSetupState {
+  environment: "native" | "browser";
+  reason: "choose" | "reconnect";
+  /** False on first run: the setup screen has no valid state to return to. */
+  canCancel: boolean;
+  native?: TauriStorageState;
+  folderName?: string;
+}
+
+export type StorageSetupChoice =
+  | { kind: "native"; mode: TauriStorageMode; path?: string }
+  | { kind: "native-folder" }
+  | { kind: "browser-folder" }
+  | { kind: "browser-reconnect" }
+  | { kind: "browser-opfs" };
+
+/** Thrown through the boot chain when the setup screen must resolve storage. */
+class StorageSetupPending extends Error {
+  constructor() {
+    super("storage setup required");
+    this.name = "StorageSetupPending";
+  }
+}
 
 // Boot progress. The load gate waits only for storage + the workspace doc;
 // the atproto session boots in the background (bootAtproto) bounded by a
@@ -58,13 +107,15 @@ function appUrl(): string {
 
 /**
  * The local workspaces: one Loro workspace doc plus one doc per page per
- * workspace, all under OPFS. Signing in attaches a space to the active
+ * workspace, on whichever backend the platform offers (Tauri commands, a
+ * picked folder, OPFS, or memory). Signing in attaches a space to the active
  * workspace; a signing guest keeps the identical pipeline minus atproto.
  *
  * Shared via createSharedComposable: every consumer sees the same active
  * store, and the setup is torn down when the last consumer unmounts.
  * Switching workspaces disposes the previous store service and re-opens the
- * next from OPFS; `workspaceGeneration` is the remount key for the shell.
+ * next from the active backend; `workspaceGeneration` is the remount key for
+ * the shell.
  */
 function useWorkspaceState() {
   const workspace = shallowRef<WorkspaceStore>();
@@ -95,7 +146,7 @@ function useWorkspaceState() {
 
   const { t } = useI18n();
   const bootProgress = ref<BootStepState[]>(initialBootSteps((key) => t(key as never)));
-  /** Non-fatal boot notes (OPFS fell back to memory, atproto disabled, ...). */
+  /** Non-fatal boot notes (storage fell back to memory, atproto disabled, ...). */
   const bootNote = ref("");
 
   const workspaces = ref<WorkspaceInfo[]>([]);
@@ -103,10 +154,20 @@ function useWorkspaceState() {
   /** Bumped whenever the active workspace changes; key the shell on it. */
   const workspaceGeneration = ref(0);
 
-  let backend: StorageBackend | undefined;
+  const backendRef = shallowRef<StorageBackend>();
   let registry: WorkspaceRegistry | undefined;
   let openingSeq = 0;
   let disposed = false;
+  /** The picked browser folder, kept so permission can be re-requested. */
+  let folderHandle: FileSystemDirectoryHandle | null = null;
+
+  const storageSetup = shallowRef<StorageSetupState>();
+  const storageLocation = shallowRef<StorageLocation>({
+    environment: "memory",
+    label: "Temporary session",
+    path: null,
+    canPickFolder: false,
+  });
 
   onScopeDispose(() => {
     disposed = true;
@@ -121,25 +182,212 @@ function useWorkspaceState() {
     );
   }
 
+  function nativeLocation(state: TauriStorageState): StorageLocation {
+    const keys: Record<TauriStorageMode, string> = {
+      app: "storage.modeApp",
+      device: "storage.modeDevice",
+      custom: "storage.modeCustom",
+    };
+
+    return {
+      environment: "native",
+      label: t(keys[state.mode] as never),
+      path: state.root,
+      canPickFolder: state.canPickFolder,
+    };
+  }
+
+  function browserFolderLocation(handle: FileSystemDirectoryHandle): StorageLocation {
+    return {
+      environment: "browser",
+      label: t("storage.modeFolder" as never),
+      path: handle.name,
+      canPickFolder: true,
+    };
+  }
+
+  function opfsLocation(): StorageLocation {
+    return {
+      environment: "opfs",
+      label: t("storage.modeBrowser" as never),
+      path: "OPFS",
+      canPickFolder: isFsaSupported(),
+    };
+  }
+
+  /** Browser boot: a picked folder when one is authorized, else OPFS. */
+  async function openBrowserBackend(): Promise<StorageBackend> {
+    const mode = localStorage.getItem(STORAGE_MODE_KEY);
+
+    if (mode === "folder" && isFsaSupported()) {
+      const handle = await storedDirectoryHandle();
+      if (handle) {
+        if ((await directoryPermission(handle)) === "granted") {
+          folderHandle = handle;
+          storageLocation.value = browserFolderLocation(handle);
+
+          return new FileSystemAccessBackend(handle);
+        }
+        // The handle survived but needs a fresh permission gesture.
+        storageSetup.value = {
+          environment: "browser",
+          reason: "reconnect",
+          canCancel: false,
+          folderName: handle.name,
+        };
+        throw new StorageSetupPending();
+      }
+      // The handle is gone (cleared site data); fall back to OPFS.
+      localStorage.removeItem(STORAGE_MODE_KEY);
+    }
+
+    const backend = await OPFSBackend.open();
+
+    // First run in a Chromium browser gets the same choice as the desktop
+    // shell. Existing data or a previous choice skips straight to OPFS.
+    const hasData =
+      (await backend.read("workspaces.json")) !== null ||
+      (await backend.read(workspacePath("local"))) !== null ||
+      localStorage.getItem(LAST_WORKSPACE_KEY) !== null ||
+      localStorage.getItem(WORKSPACES_EMPTY_KEY) !== null;
+
+    if (!mode && !hasData && isFsaSupported()) {
+      storageSetup.value = {
+        environment: "browser",
+        reason: "choose",
+        canCancel: false,
+      };
+      throw new StorageSetupPending();
+    }
+
+    storageLocation.value = opfsLocation();
+    return backend;
+  }
+
   async function ensureBackend(): Promise<StorageBackend> {
-    if (backend) return backend;
+    if (backendRef.value) return backendRef.value;
 
     updateBootStep("storage", { status: "active" });
+
     try {
-      backend = await OPFSBackend.open();
-    } catch {
+      if (isTauri()) {
+        const state = await tauriStorageState();
+        if (!state.configured) {
+          storageSetup.value = {
+            environment: "native",
+            reason: "choose",
+            canCancel: false,
+            native: state,
+          };
+          throw new StorageSetupPending();
+        }
+        backendRef.value = await TauriBackend.open();
+        storageLocation.value = nativeLocation(state);
+      } else {
+        backendRef.value = await openBrowserBackend();
+      }
+    } catch (reason) {
+      if (reason instanceof StorageSetupPending) throw reason;
+
       // Privacy contexts can deny OPFS; a memory backend keeps the app
       // runnable at the cost of durability.
-      backend = new MemoryBackend();
-      bootNote.value = "OPFS is unavailable; this session is not persisted.";
+      console.warn("[storage] persistent storage unavailable:", reason);
+      backendRef.value = new MemoryBackend();
+      bootNote.value = "Persistent storage is unavailable; this session is not saved.";
+      storageLocation.value = {
+        environment: "memory",
+        label: t("storage.modeTemporary" as never),
+        path: null,
+        canPickFolder: false,
+      };
     }
+
     updateBootStep("storage", { status: "done" });
-    return backend;
+    return backendRef.value;
   }
 
   async function ensureRegistry(): Promise<WorkspaceRegistry> {
     if (!registry) registry = new WorkspaceRegistry(await ensureBackend());
     return registry;
+  }
+
+  /** Restarts storage after a location change: flush, drop, and re-open. */
+  async function afterStorageChange(): Promise<void> {
+    teardownActive();
+    workspace.value = undefined;
+    backendRef.value = undefined;
+    registry = undefined;
+    ensurePromise = undefined;
+    activeWorkspaceId.value = null;
+    workspaceGeneration.value += 1;
+
+    // The setup screen stays up (busy) until the new root has a workspace,
+    // so a failed root shows its error in place instead of flashing the
+    // chooser.
+    await ensure();
+    storageSetup.value = undefined;
+  }
+
+  async function configureStorage(choice: StorageSetupChoice): Promise<void> {
+    error.value = undefined;
+
+    if (choice.kind === "native") {
+      storageLocation.value = nativeLocation(await configureTauriStorage(choice.mode, choice.path));
+    } else if (choice.kind === "native-folder") {
+      const path = await pickTauriDirectory();
+      if (!path) return; // cancelled picker: keep the setup screen
+      storageLocation.value = nativeLocation(await configureTauriStorage("custom", path));
+    } else if (choice.kind === "browser-folder") {
+      const handle = await pickDirectory();
+      if (!handle) return;
+      folderHandle = handle;
+      localStorage.setItem(STORAGE_MODE_KEY, "folder");
+      storageLocation.value = browserFolderLocation(handle);
+    } else if (choice.kind === "browser-reconnect") {
+      const handle = folderHandle ?? (await storedDirectoryHandle());
+      if (!handle) throw new Error(t("storage.reconnectMissing" as never));
+      if ((await requestDirectoryPermission(handle)) !== "granted") {
+        throw new Error(t("storage.reconnectDenied" as never));
+      }
+      folderHandle = handle;
+      storageLocation.value = browserFolderLocation(handle);
+    } else {
+      localStorage.setItem(STORAGE_MODE_KEY, "opfs");
+      folderHandle = null;
+      await forgetDirectoryHandle();
+      storageLocation.value = opfsLocation();
+    }
+
+    await afterStorageChange();
+  }
+
+  /** Opens the location picker from settings without restarting storage. */
+  async function openStorageSetup(): Promise<void> {
+    if (isTauri()) {
+      try {
+        storageSetup.value = {
+          environment: "native",
+          reason: "choose",
+          canCancel: true,
+          native: await tauriStorageState(),
+        };
+      } catch (reason) {
+        error.value = reason;
+      }
+
+      return;
+    }
+
+    storageSetup.value = {
+      environment: "browser",
+      reason: "choose",
+      canCancel: true,
+      folderName: folderHandle?.name,
+    };
+  }
+
+  function cancelStorageSetup(): void {
+    storageSetup.value = undefined;
   }
 
   /** atproto boot, off the critical path and bounded. */
@@ -231,7 +479,7 @@ function useWorkspaceState() {
     if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
 
     updateBootStep("workspace", { status: "active" });
-    const store = await WorkspaceStore.open(backend!, id);
+    const store = await WorkspaceStore.open(backendRef.value!, id);
     if (token !== openingSeq) return store;
 
     // Keep the registry name in sync with the workspace doc.
@@ -254,7 +502,7 @@ function useWorkspaceState() {
     void refreshWorkspaceList();
 
     // atproto boots in the background, never gating the editor.
-    void bootAtproto(store, backend!);
+    void bootAtproto(store, backendRef.value!);
 
     if (import.meta.dev) {
       // Console access for debugging (mirrors __typstState in typst.ts).
@@ -291,9 +539,9 @@ function useWorkspaceState() {
 
     // First run: adopt the legacy single-workspace data under "local",
     // otherwise that id becomes the first fresh workspace.
-    const legacyExists = (await backend!.read(workspacePath("local"))) !== null;
+    const legacyExists = (await backendRef.value!.read(workspacePath("local"))) !== null;
     if (legacyExists) {
-      const store = await WorkspaceStore.open(backend!, "local");
+      const store = await WorkspaceStore.open(backendRef.value!, "local");
       const info: WorkspaceInfo = {
         id: "local",
         name: store.getSettings().name,
@@ -325,6 +573,12 @@ function useWorkspaceState() {
 
       return openWorkspace(id);
     })().catch((reason) => {
+      if (reason instanceof StorageSetupPending) {
+        // The shell renders the setup screen; `configureStorage` restarts
+        // the boot once a location is chosen.
+        return null;
+      }
+
       error.value = reason;
       throw reason;
     });
@@ -388,7 +642,7 @@ function useWorkspaceState() {
 
   async function deleteWorkspace(id: string): Promise<void> {
     const reg = await ensureRegistry();
-    await removeWorkspace(backend!, id);
+    await removeWorkspace(backendRef.value!, id);
     await reg.remove(id);
     workspaces.value = await reg.list();
 
@@ -406,6 +660,31 @@ function useWorkspaceState() {
       const next = workspaces.value[0];
       if (next) await switchWorkspace(next.id);
     }
+  }
+
+  /** Deletes every workspace on the active backend (debug tool). */
+  async function wipeStorage(): Promise<void> {
+    const active = backendRef.value;
+    if (!active) return;
+
+    teardownActive();
+    workspace.value = undefined;
+    activeWorkspaceId.value = null;
+    workspaceGeneration.value += 1;
+    localStorage.removeItem(LAST_WORKSPACE_KEY);
+    localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
+
+    const reg = await ensureRegistry();
+    for (const entry of await reg.list()) {
+      await removeWorkspace(active, entry.id);
+      await reg.remove(entry.id);
+    }
+
+    await active.delete("workspaces.json").catch(() => {
+      // A missing registry is the goal, not an error.
+    });
+    workspaces.value = [];
+    ensurePromise = undefined;
   }
 
   const workspaceId = computed(() => activeWorkspaceId.value ?? "");
@@ -432,6 +711,13 @@ function useWorkspaceState() {
     setWorkspaceIcon,
     deleteWorkspace,
     refreshWorkspaceList,
+    backend: backendRef,
+    storageSetup,
+    storageLocation,
+    configureStorage,
+    openStorageSetup,
+    cancelStorageSetup,
+    wipeStorage,
   };
 }
 

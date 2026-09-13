@@ -135,7 +135,10 @@
     "daysAgo": "hace {count} d",
     "tabAppearance": "Apariencia",
     "textSize": "Tamaño de texto",
-    "textSizeHint": "Tamaño base del texto en pt. 1 pt se muestra como 1 px, así que 16pt coincide con los 16px del editor."
+    "textSizeHint": "Tamaño base del texto en pt. 1 pt se muestra como 1 px, así que 16pt coincide con los 16px del editor.",
+    "storage": "Ubicación de almacenamiento",
+    "changeStorage": "Cambiar",
+    "storageHint": "Dónde guarda los espacios de trabajo este dispositivo. Al cambiarlo se muestra la lista propia de esa ubicación."
   },
   "aiMenu": {
     "off": "IA (desactivada)",
@@ -230,5 +233,46 @@
     "bulletList": "Lista con viñetas",
     "orderedList": "Lista numerada",
     "collapse": "Contraer barra de formato"
+  },
+  "storage": {
+    "setupTitle": "Elegir ubicación de almacenamiento",
+    "setupIntroNative": "Elige dónde guarda typbase tus espacios de trabajo. Puedes cambiarlo después en ajustes.",
+    "setupIntroBrowser": "Elige dónde guarda este navegador tus espacios de trabajo. Puedes cambiarlo después en ajustes.",
+    "reconnectTitle": "Reconectar carpeta",
+    "reconnectIntro": "El navegador necesita permiso para usar «{name}» de nuevo.",
+    "reconnectAction": "Reconectar",
+    "modeApp": "Almacenamiento de la app",
+    "modeAppHint": "Privado de la app, junto con sus ajustes.",
+    "modeDevice": "Almacenamiento del dispositivo",
+    "modeDeviceHint": "Una carpeta en tus documentos, visible para otras apps.",
+    "modeCustom": "Elegir una carpeta",
+    "modeCustomHint": "Cualquier carpeta con permiso de escritura. La app guarda sus archivos ahí.",
+    "modeFolder": "Carpeta elegida",
+    "modeFolderHint": "Una carpeta que elegiste en este dispositivo.",
+    "modeBrowser": "Almacenamiento del navegador",
+    "modeBrowserHint": "Gestionado por el propio navegador (OPFS).",
+    "modeTemporary": "Sesión temporal",
+    "chooseFolder": "Elegir carpeta…",
+    "working": "Preparando el almacenamiento…",
+    "cancel": "Cancelar",
+    "reconnectMissing": "Esa carpeta ya no está disponible en este navegador.",
+    "reconnectDenied": "El navegador no concedió acceso a esa carpeta."
+  },
+  "explorer": {
+    "title": "Explorador de almacenamiento",
+    "tabData": "Espacios",
+    "tabFiles": "Archivos",
+    "refresh": "Actualizar",
+    "refreshing": "Cargando…",
+    "reveal": "Mostrar",
+    "noWorkspaces": "No hay espacios de trabajo en esta ubicación.",
+    "opened": "abierto {when}",
+    "active": "activo",
+    "upload": "Subir archivo",
+    "directory": "carpeta",
+    "deletePageConfirm": "¿Eliminar la página «{title}»? También se borra su documento.",
+    "deleteWorkspaceConfirm": "¿Eliminar el espacio «{name}» y todas sus páginas? No se puede deshacer.",
+    "deleteFileConfirm": "¿Eliminar el archivo «{path}»? Un borrado directo puede romper un espacio.",
+    "hint": "Los archivos son instantáneas de Loro y datos de la app; borrarlos directamente puede romper un espacio."
   }
 }

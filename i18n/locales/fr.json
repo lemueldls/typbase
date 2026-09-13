@@ -135,7 +135,10 @@
     "daysAgo": "il y a {count} j",
     "tabAppearance": "Apparence",
     "textSize": "Taille du texte",
-    "textSizeHint": "Taille de base du texte en pt. 1 pt s'affiche comme 1 px, donc 16pt correspond aux 16px de l'éditeur."
+    "textSizeHint": "Taille de base du texte en pt. 1 pt s'affiche comme 1 px, donc 16pt correspond aux 16px de l'éditeur.",
+    "storage": "Emplacement de stockage",
+    "changeStorage": "Modifier",
+    "storageHint": "Où cet appareil garde les espaces de travail. Le changer affiche la liste propre à cet emplacement."
   },
   "aiMenu": {
     "off": "IA (désactivée)",
@@ -230,5 +233,46 @@
     "bulletList": "Liste à puces",
     "orderedList": "Liste numérotée",
     "collapse": "Réduire la barre de mise en forme"
+  },
+  "storage": {
+    "setupTitle": "Choisir l'emplacement de stockage",
+    "setupIntroNative": "Choisissez où typbase garde vos espaces de travail. Modifiable plus tard dans les réglages.",
+    "setupIntroBrowser": "Choisissez où ce navigateur garde vos espaces de travail. Modifiable plus tard dans les réglages.",
+    "reconnectTitle": "Reconnecter le dossier",
+    "reconnectIntro": "Le navigateur a de nouveau besoin de l'autorisation d'utiliser « {name} ».",
+    "reconnectAction": "Reconnecter",
+    "modeApp": "Stockage de l'app",
+    "modeAppHint": "Privé à l'app, avec ses réglages.",
+    "modeDevice": "Stockage de l'appareil",
+    "modeDeviceHint": "Un dossier dans vos documents, visible par les autres apps.",
+    "modeCustom": "Choisir un dossier",
+    "modeCustomHint": "N'importe quel dossier accessible en écriture. L'app y garde ses fichiers.",
+    "modeFolder": "Dossier choisi",
+    "modeFolderHint": "Un dossier choisi sur cet appareil.",
+    "modeBrowser": "Stockage du navigateur",
+    "modeBrowserHint": "Géré par le navigateur lui-même (OPFS).",
+    "modeTemporary": "Session temporaire",
+    "chooseFolder": "Choisir un dossier…",
+    "working": "Préparation du stockage…",
+    "cancel": "Annuler",
+    "reconnectMissing": "Ce dossier n'est plus disponible dans ce navigateur.",
+    "reconnectDenied": "Le navigateur n'a pas accordé l'accès à ce dossier."
+  },
+  "explorer": {
+    "title": "Explorateur de stockage",
+    "tabData": "Espaces",
+    "tabFiles": "Fichiers",
+    "refresh": "Actualiser",
+    "refreshing": "Chargement…",
+    "reveal": "Afficher",
+    "noWorkspaces": "Aucun espace de travail à cet emplacement.",
+    "opened": "ouvert {when}",
+    "active": "actif",
+    "upload": "Importer un fichier",
+    "directory": "dossier",
+    "deletePageConfirm": "Supprimer la page « {title} » ? Son document sera aussi supprimé.",
+    "deleteWorkspaceConfirm": "Supprimer l'espace « {name} » et toutes ses pages ? Action irréversible.",
+    "deleteFileConfirm": "Supprimer le fichier « {path} » ? Une suppression directe peut casser un espace.",
+    "hint": "Les fichiers sont des instantanés Loro et des données de l'app ; les supprimer directement peut casser un espace."
   }
 }

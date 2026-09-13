@@ -32,6 +32,8 @@ const {
   workspaces,
   activeWorkspaceId,
   setWorkspaceIcon,
+  storageLocation,
+  openStorageSetup,
 } = useWorkspace();
 
 /** The active workspace's registry icon; setter writes it through the registry. */
@@ -445,6 +447,22 @@ function onTextSizeChange(event: Event) {
               <option value="zh">中文</option>
             </select>
           </label>
+
+          <div class="settings__field">
+            <span>{{ $t("settings.storage") }}</span>
+            <div class="settings__storage">
+              <span class="settings__storage-info">
+                <span class="settings__storage-label">{{ storageLocation.label }}</span>
+                <span v-if="storageLocation.path" class="settings__storage-path">
+                  {{ storageLocation.path }}
+                </span>
+              </span>
+              <button type="button" class="button button--tiny" @click="openStorageSetup">
+                {{ $t("settings.changeStorage") }}
+              </button>
+            </div>
+            <span class="settings__hint">{{ $t("settings.storageHint") }}</span>
+          </div>
         </section>
 
         <!-- Long Typst-source textareas live on their own tab so General stays
@@ -940,6 +958,33 @@ function onTextSizeChange(event: Event) {
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
   color: var(--color-text-secondary);
+}
+
+.settings__storage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.settings__storage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.settings__storage-label {
+  font-size: 0.9rem;
+}
+
+.settings__storage-path {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 14rem;
 }
 
 .settings__ok {

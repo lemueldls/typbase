@@ -1,7 +1,7 @@
 {
   "name": "@typbase/storage",
   "version": "0.1.0",
-  "description": "Local-first storage for typbase: OPFS/Memory backends and the Loro doc registry.",
+  "description": "Local-first storage for typbase: OPFS, picked-folder, Tauri, and memory backends plus the Loro doc registry.",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",

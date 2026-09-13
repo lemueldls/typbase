@@ -135,7 +135,10 @@
     "daysAgo": "vor {count} Tagen",
     "tabAppearance": "Erscheinungsbild",
     "textSize": "Textgröße",
-    "textSizeHint": "Basisschriftgröße in pt. 1 pt wird als 1 px angezeigt, 16pt entspricht also den 16px des Editors."
+    "textSizeHint": "Basisschriftgröße in pt. 1 pt wird als 1 px angezeigt, 16pt entspricht also den 16px des Editors.",
+    "storage": "Speicherort",
+    "changeStorage": "Ändern",
+    "storageHint": "Wo dieses Gerät Arbeitsbereiche ablegt. Beim Wechsel erscheint die eigene Liste des Speicherorts."
   },
   "aiMenu": {
     "off": "KI (aus)",
@@ -230,5 +233,46 @@
     "bulletList": "Aufzählung",
     "orderedList": "Nummerierte Liste",
     "collapse": "Formatierungsleiste einklappen"
+  },
+  "storage": {
+    "setupTitle": "Speicherort wählen",
+    "setupIntroNative": "Wähle, wo typbase deine Arbeitsbereiche ablegt. Später in den Einstellungen änderbar.",
+    "setupIntroBrowser": "Wähle, wo dieser Browser deine Arbeitsbereiche ablegt. Später in den Einstellungen änderbar.",
+    "reconnectTitle": "Ordner neu verbinden",
+    "reconnectIntro": "Der Browser braucht erneut die Berechtigung für „{name}“.",
+    "reconnectAction": "Neu verbinden",
+    "modeApp": "App-Speicher",
+    "modeAppHint": "Privat für die App, zusammen mit ihren Einstellungen.",
+    "modeDevice": "Gerätespeicher",
+    "modeDeviceHint": "Ein Ordner in deinen Dokumenten, sichtbar für andere Apps.",
+    "modeCustom": "Ordner wählen",
+    "modeCustomHint": "Ein beliebiger Ordner mit Schreibzugriff. Die App legt ihre Dateien dort ab.",
+    "modeFolder": "Gewählter Ordner",
+    "modeFolderHint": "Ein Ordner, den du auf diesem Gerät gewählt hast.",
+    "modeBrowser": "Browser-Speicher",
+    "modeBrowserHint": "Vom Browser selbst verwaltet (OPFS).",
+    "modeTemporary": "Temporäre Sitzung",
+    "chooseFolder": "Ordner wählen…",
+    "working": "Speicher wird vorbereitet…",
+    "cancel": "Abbrechen",
+    "reconnectMissing": "Dieser Ordner ist in diesem Browser nicht mehr verfügbar.",
+    "reconnectDenied": "Der Browser hat keinen Zugriff auf diesen Ordner gewährt."
+  },
+  "explorer": {
+    "title": "Speicher-Explorer",
+    "tabData": "Arbeitsbereiche",
+    "tabFiles": "Dateien",
+    "refresh": "Aktualisieren",
+    "refreshing": "Lädt…",
+    "reveal": "Anzeigen",
+    "noWorkspaces": "Keine Arbeitsbereiche an diesem Ort.",
+    "opened": "geöffnet {when}",
+    "active": "aktiv",
+    "upload": "Datei hochladen",
+    "directory": "Ordner",
+    "deletePageConfirm": "Seite „{title}“ löschen? Ihr Dokument wird ebenfalls entfernt.",
+    "deleteWorkspaceConfirm": "Arbeitsbereich „{name}“ und alle Seiten löschen? Das kann nicht rückgängig gemacht werden.",
+    "deleteFileConfirm": "Datei „{path}“ löschen? Direktes Löschen kann einen Arbeitsbereich beschädigen.",
+    "hint": "Dateien sind Loro-Snapshots und App-Daten; direktes Löschen kann einen Arbeitsbereich beschädigen."
   }
 }

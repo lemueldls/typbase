@@ -3,17 +3,31 @@ use std::str::FromStr;
 #[allow(unused_imports)]
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, window::Color};
 
+mod storage;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
+            storage::storage_state,
+            storage::storage_configure,
+            storage::storage_pick_directory,
+            storage::storage_export,
+            storage::storage_read,
+            storage::storage_write,
+            storage::storage_delete,
+            storage::storage_list,
+            storage::storage_stat,
+        ]);
 
     #[cfg(desktop)]
     {
         builder = builder
             .plugin(tauri_plugin_cli::init())
+            .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
                 let _ = app
                     .get_webview_window("main")
@@ -31,6 +45,11 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
+            // Storage roots must be resolved before the webview can ask for
+            // them; `load` never fails on a broken root (the setup screen
+            // takes over), only on a missing platform config dir.
+            app.manage(storage::StorageState::load(app.handle())?);
+
             let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
                 .background_color(Color::from_str("#4c4d72").unwrap());
 

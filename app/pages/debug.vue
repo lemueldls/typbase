@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { TypstState } from "@typbase/wasm";
 
-import { OPFSBackend } from "@typbase/storage";
-
+import StorageExplorer from "~/components/workspace/StorageExplorer.vue";
 import { useTypst, systemFontFamilies } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import {
@@ -44,7 +43,7 @@ const running = ref(false);
 const captured = ref<CapturedLog[]>([]);
 const error = ref<string>();
 
-const { ensure, workspace, workspaceId, dataRevision } = useWorkspace();
+const { ensure, workspace, workspaceId, dataRevision, wipeStorage } = useWorkspace();
 const typstState = shallowRef<TypstState>();
 
 const store = computed(() => workspace.value);
@@ -201,17 +200,18 @@ async function run() {
 
 async function resetWorkspace() {
   if (
-    !window.confirm("Delete the local workspace (OPFS) and reload? This wipes this browser's data.")
+    !window.confirm(
+      "Delete every workspace from the active storage and reload? This cannot be undone.",
+    )
   ) {
     return;
   }
 
   try {
-    await OPFSBackend.open();
-    const backend = await OPFSBackend.open();
-    await backend.delete("workspaces/local/workspace.loro");
+    await ensure();
+    await wipeStorage();
   } catch {
-    // The directory may not exist yet; wiping below still helps.
+    // Nothing left to wipe; the reload still resets the in-memory state.
   }
   window.location.reload();
 }
@@ -254,9 +254,11 @@ definePageMeta({ ssr: false });
         </div>
       </dl>
       <button type="button" class="button button--color-danger" @click="resetWorkspace">
-        Reset workspace (OPFS) and reload
+        Wipe storage and reload
       </button>
     </section>
+
+    <StorageExplorer />
 
     <section class="lab__run">
       <label class="lab__field">

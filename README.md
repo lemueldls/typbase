@@ -9,7 +9,7 @@ Local-first knowledge base where Typst is the app's data language and atproto Sp
 - `platform/wasm/pkg/` — the published npm package (wasm-pack output, pnpm workspace member)
 - `packages/codemirror/` — CodeMirror 6 Typst editing: WYSIWYG inline preview, highlight, hover, autocomplete
 - `packages/typing/` — `@typbase/typing`: workspace/page types shared app <-> storage <-> (later) server
-- `packages/storage/` — `@typbase/storage`: OPFS/Memory backends and the Loro doc registry
+- `packages/storage/` — `@typbase/storage`: OPFS, picked-folder, Tauri, and memory backends plus the Loro doc registry
 - `packages/spaces/` — `@typbase/spaces`: the only module that touches `@atproto/*`
 - `platform/` — cargo workspace root (Tauri joins later)
 
@@ -29,6 +29,13 @@ The engine asks for data through the existing TypstRequest channel; the app answ
 synthesized JSON at `typbase-query/<kind>.json` and page sources at `typbase-src/<id>.typ`.
 Workspace settings pick text/math/code fonts, and the settings popover can install every
 system font into the engine (Local Font Access API, Chromium).
+
+Storage location is a choice, not a fixed directory. The Tauri shell (desktop/mobile) writes
+through Rust commands in `platform/tauri/src/storage.rs` to one of: app data (private), the
+device documents folder (visible to other apps), or a desktop-picked folder. Browsers use
+OPFS, or a folder picked through the File System Access API on Chromium desktop. The choice
+is made on first run and can be changed from settings; each location keeps its own workspace
+registry. `/debug` has a storage explorer with a workspace view and a raw file tree.
 
 `/debug` (linked from the sidebar footer) is a lab for the pipeline: compile arbitrary Typst
 against the workspace, check the raw/synth index mapper invariants, run a recovery battery
