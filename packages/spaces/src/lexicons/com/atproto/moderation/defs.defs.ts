@@ -117,74 +117,95 @@ const reasonType = /*#__PURE__*/ l.string<{
 export { reasonType };
 
 /** Spam: frequent unwanted promotion, replies, mentions. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingSpam`. */
-type ReasonSpam = "com.atproto.moderation.defs#reasonSpam";
-
-export type { ReasonSpam };
-
-/** Spam: frequent unwanted promotion, replies, mentions. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingSpam`. */
 const reasonSpam = /*#__PURE__*/ l.token($nsid, "reasonSpam");
 
 export { reasonSpam };
 
-/** Direct violation of server rules, laws, terms of service. Prefer new lexicon definition `tools.ozone.report.defs#reasonRuleOther`. */
-type ReasonViolation = "com.atproto.moderation.defs#reasonViolation";
+/** Spam: frequent unwanted promotion, replies, mentions. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingSpam`. */
+const ReasonSpam = /*#__PURE__*/ reasonSpam.value;
 
-export type { ReasonViolation };
+/** Spam: frequent unwanted promotion, replies, mentions. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingSpam`. */
+type ReasonSpam = typeof ReasonSpam;
+
+export { ReasonSpam };
 
 /** Direct violation of server rules, laws, terms of service. Prefer new lexicon definition `tools.ozone.report.defs#reasonRuleOther`. */
 const reasonViolation = /*#__PURE__*/ l.token($nsid, "reasonViolation");
 
 export { reasonViolation };
 
-/** Misleading identity, affiliation, or content. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingOther`. */
-type ReasonMisleading = "com.atproto.moderation.defs#reasonMisleading";
+/** Direct violation of server rules, laws, terms of service. Prefer new lexicon definition `tools.ozone.report.defs#reasonRuleOther`. */
+const ReasonViolation = /*#__PURE__*/ reasonViolation.value;
 
-export type { ReasonMisleading };
+/** Direct violation of server rules, laws, terms of service. Prefer new lexicon definition `tools.ozone.report.defs#reasonRuleOther`. */
+type ReasonViolation = typeof ReasonViolation;
+
+export { ReasonViolation };
 
 /** Misleading identity, affiliation, or content. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingOther`. */
 const reasonMisleading = /*#__PURE__*/ l.token($nsid, "reasonMisleading");
 
 export { reasonMisleading };
 
-/** Unwanted or mislabeled sexual content. Prefer new lexicon definition `tools.ozone.report.defs#reasonSexualUnlabeled`. */
-type ReasonSexual = "com.atproto.moderation.defs#reasonSexual";
+/** Misleading identity, affiliation, or content. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingOther`. */
+const ReasonMisleading = /*#__PURE__*/ reasonMisleading.value;
 
-export type { ReasonSexual };
+/** Misleading identity, affiliation, or content. Prefer new lexicon definition `tools.ozone.report.defs#reasonMisleadingOther`. */
+type ReasonMisleading = typeof ReasonMisleading;
+
+export { ReasonMisleading };
 
 /** Unwanted or mislabeled sexual content. Prefer new lexicon definition `tools.ozone.report.defs#reasonSexualUnlabeled`. */
 const reasonSexual = /*#__PURE__*/ l.token($nsid, "reasonSexual");
 
 export { reasonSexual };
 
-/** Rude, harassing, explicit, or otherwise unwelcoming behavior. Prefer new lexicon definition `tools.ozone.report.defs#reasonHarassmentOther`. */
-type ReasonRude = "com.atproto.moderation.defs#reasonRude";
+/** Unwanted or mislabeled sexual content. Prefer new lexicon definition `tools.ozone.report.defs#reasonSexualUnlabeled`. */
+const ReasonSexual = /*#__PURE__*/ reasonSexual.value;
 
-export type { ReasonRude };
+/** Unwanted or mislabeled sexual content. Prefer new lexicon definition `tools.ozone.report.defs#reasonSexualUnlabeled`. */
+type ReasonSexual = typeof ReasonSexual;
+
+export { ReasonSexual };
 
 /** Rude, harassing, explicit, or otherwise unwelcoming behavior. Prefer new lexicon definition `tools.ozone.report.defs#reasonHarassmentOther`. */
 const reasonRude = /*#__PURE__*/ l.token($nsid, "reasonRude");
 
 export { reasonRude };
 
-/** Reports not falling under another report category. Prefer new lexicon definition `tools.ozone.report.defs#reasonOther`. */
-type ReasonOther = "com.atproto.moderation.defs#reasonOther";
+/** Rude, harassing, explicit, or otherwise unwelcoming behavior. Prefer new lexicon definition `tools.ozone.report.defs#reasonHarassmentOther`. */
+const ReasonRude = /*#__PURE__*/ reasonRude.value;
 
-export type { ReasonOther };
+/** Rude, harassing, explicit, or otherwise unwelcoming behavior. Prefer new lexicon definition `tools.ozone.report.defs#reasonHarassmentOther`. */
+type ReasonRude = typeof ReasonRude;
+
+export { ReasonRude };
 
 /** Reports not falling under another report category. Prefer new lexicon definition `tools.ozone.report.defs#reasonOther`. */
 const reasonOther = /*#__PURE__*/ l.token($nsid, "reasonOther");
 
 export { reasonOther };
 
-/** Appeal a previously taken moderation action */
-type ReasonAppeal = "com.atproto.moderation.defs#reasonAppeal";
+/** Reports not falling under another report category. Prefer new lexicon definition `tools.ozone.report.defs#reasonOther`. */
+const ReasonOther = /*#__PURE__*/ reasonOther.value;
 
-export type { ReasonAppeal };
+/** Reports not falling under another report category. Prefer new lexicon definition `tools.ozone.report.defs#reasonOther`. */
+type ReasonOther = typeof ReasonOther;
+
+export { ReasonOther };
 
 /** Appeal a previously taken moderation action */
 const reasonAppeal = /*#__PURE__*/ l.token($nsid, "reasonAppeal");
 
 export { reasonAppeal };
+
+/** Appeal a previously taken moderation action */
+const ReasonAppeal = /*#__PURE__*/ reasonAppeal.value;
+
+/** Appeal a previously taken moderation action */
+type ReasonAppeal = typeof ReasonAppeal;
+
+export { ReasonAppeal };
 
 /** Tag describing a type of subject that might be reported. */
 type SubjectType = "account" | "record" | "chat" | l.UnknownString;

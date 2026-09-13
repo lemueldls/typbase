@@ -236,7 +236,7 @@
   },
   "storage": {
     "setupTitle": "Choose storage location",
-    "setupIntroNative": "Pick where typbase keeps your workspaces. You can change this later in settings.",
+    "setupIntroNative": "Pick where Typbase keeps your workspaces. You can change this later in settings.",
     "setupIntroBrowser": "Pick where this browser keeps your workspaces. You can change this later in settings.",
     "reconnectTitle": "Reconnect folder",
     "reconnectIntro": "The browser needs permission to use “{name}” again.",

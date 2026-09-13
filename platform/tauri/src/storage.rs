@@ -260,7 +260,7 @@ pub async fn storage_pick_directory<R: Runtime>(
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
-            .set_title("Choose where typbase keeps its workspaces")
+            .set_title("Choose where Typbase keeps its workspaces")
             .blocking_pick_folder()
             .and_then(|path| path.into_path().ok())
             .map(|path| path.to_string_lossy().into_owned())

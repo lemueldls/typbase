@@ -1,6 +1,6 @@
 //! Source management: the raw/synth two-file model.
 //!
-//! Every note in typbase is backed by two Typst source files:
+//! Every note in Typbase is backed by two Typst source files:
 //!
 //! - **Raw** (`raw_id`): Exactly what the user typed. Nothing is added or
 //!   removed. All editor-facing positions (diagnostics, cursor locations, hover

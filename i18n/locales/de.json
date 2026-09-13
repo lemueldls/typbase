@@ -236,7 +236,7 @@
   },
   "storage": {
     "setupTitle": "Speicherort wählen",
-    "setupIntroNative": "Wähle, wo typbase deine Arbeitsbereiche ablegt. Später in den Einstellungen änderbar.",
+    "setupIntroNative": "Wähle, wo Typbase deine Arbeitsbereiche ablegt. Später in den Einstellungen änderbar.",
     "setupIntroBrowser": "Wähle, wo dieser Browser deine Arbeitsbereiche ablegt. Später in den Einstellungen änderbar.",
     "reconnectTitle": "Ordner neu verbinden",
     "reconnectIntro": "Der Browser braucht erneut die Berechtigung für „{name}“.",

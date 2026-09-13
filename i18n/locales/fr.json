@@ -236,7 +236,7 @@
   },
   "storage": {
     "setupTitle": "Choisir l'emplacement de stockage",
-    "setupIntroNative": "Choisissez où typbase garde vos espaces de travail. Modifiable plus tard dans les réglages.",
+    "setupIntroNative": "Choisissez où Typbase garde vos espaces de travail. Modifiable plus tard dans les réglages.",
     "setupIntroBrowser": "Choisissez où ce navigateur garde vos espaces de travail. Modifiable plus tard dans les réglages.",
     "reconnectTitle": "Reconnecter le dossier",
     "reconnectIntro": "Le navigateur a de nouveau besoin de l'autorisation d'utiliser « {name} ».",

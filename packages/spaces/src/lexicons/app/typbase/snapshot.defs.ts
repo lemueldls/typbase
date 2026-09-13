@@ -24,6 +24,11 @@ type Main = {
    */
   snapshot: string;
   createdAt?: l.DatetimeString;
+
+  /**
+   * Version vector JSON of the snapshot, so receivers can skip covered updates.
+   */
+  version: string;
 };
 
 export type { Main };
@@ -36,6 +41,7 @@ const main = /*#__PURE__*/ l.record<"any", Main>(
     docId: /*#__PURE__*/ l.string(),
     snapshot: /*#__PURE__*/ l.string(),
     createdAt: /*#__PURE__*/ l.optional(/*#__PURE__*/ l.string({ format: "datetime" })),
+    version: /*#__PURE__*/ l.string(),
   }),
 );
 

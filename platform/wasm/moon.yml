@@ -4,7 +4,7 @@ layer: "library"
 
 tasks:
   build-dev:
-    script: "wasm-pack build --dev --target web --scope typbase . --features wasm-simd"
+    script: "wasm-pack build --dev --target web --scope Typbase . --features wasm-simd"
     inputs:
       - "Cargo.toml"
       - "pkg/package.json"
@@ -16,7 +16,7 @@ tasks:
       - "pkg/**/*"
 
   build:
-    script: "wasm-pack build --release --target web --scope typbase . --features wasm-simd"
+    script: "wasm-pack build --release --target web --scope Typbase . --features wasm-simd"
     inputs:
       - "Cargo.toml"
       - "pkg/package.json"

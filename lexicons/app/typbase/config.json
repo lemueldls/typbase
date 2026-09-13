@@ -4,7 +4,7 @@
   "defs": {
     "main": {
       "type": "record",
-      "description": "Workspace metadata held in the space rather than in a Loro doc, so non-typbase apps can read it without decoding CRDT state.",
+      "description": "Workspace metadata held in the space rather than in a Loro doc, so non-Typbase apps can read it without decoding CRDT state.",
       "key": "literal:self",
       "record": {
         "type": "object",

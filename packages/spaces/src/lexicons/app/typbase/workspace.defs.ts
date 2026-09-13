@@ -14,12 +14,8 @@ export { $nsid };
 const main = /*#__PURE__*/ l.space(
   $nsid,
   "any",
-  "typbase Workspace",
   ["app.typbase.config", "app.typbase.update", "app.typbase.snapshot", "app.typbase.asset"],
-  {
-    description:
-      "A local-first knowledge base workspace. The authority owns the workspace; members sync Loro documents through records in their own permissioned repos.",
-  },
+  { name: "Typbase Workspace" },
 );
 
 export { main };

@@ -5,7 +5,7 @@
     "main": {
       "type": "space",
       "key": "any",
-      "name": "typbase Workspace",
+      "name": "Typbase Workspace",
       "description": "A local-first knowledge base workspace. The authority owns the workspace; members sync Loro documents through records in their own permissioned repos.",
       "collections": [
         "app.typbase.config",

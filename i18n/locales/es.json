@@ -236,7 +236,7 @@
   },
   "storage": {
     "setupTitle": "Elegir ubicación de almacenamiento",
-    "setupIntroNative": "Elige dónde guarda typbase tus espacios de trabajo. Puedes cambiarlo después en ajustes.",
+    "setupIntroNative": "Elige dónde guarda Typbase tus espacios de trabajo. Puedes cambiarlo después en ajustes.",
     "setupIntroBrowser": "Elige dónde guarda este navegador tus espacios de trabajo. Puedes cambiarlo después en ajustes.",
     "reconnectTitle": "Reconectar carpeta",
     "reconnectIntro": "El navegador necesita permiso para usar «{name}» de nuevo.",

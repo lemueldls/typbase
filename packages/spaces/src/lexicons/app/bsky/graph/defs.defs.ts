@@ -228,34 +228,43 @@ const listPurpose = /*#__PURE__*/ l.string<{
 export { listPurpose };
 
 /** A list of actors to apply an aggregate moderation action (mute/block) on. */
-type Modlist = "app.bsky.graph.defs#modlist";
-
-export type { Modlist };
-
-/** A list of actors to apply an aggregate moderation action (mute/block) on. */
 const modlist = /*#__PURE__*/ l.token($nsid, "modlist");
 
 export { modlist };
 
-/** A list of actors used for curation purposes such as list feeds or interaction gating. */
-type Curatelist = "app.bsky.graph.defs#curatelist";
+/** A list of actors to apply an aggregate moderation action (mute/block) on. */
+const Modlist = /*#__PURE__*/ modlist.value;
 
-export type { Curatelist };
+/** A list of actors to apply an aggregate moderation action (mute/block) on. */
+type Modlist = typeof Modlist;
+
+export { Modlist };
 
 /** A list of actors used for curation purposes such as list feeds or interaction gating. */
 const curatelist = /*#__PURE__*/ l.token($nsid, "curatelist");
 
 export { curatelist };
 
-/** A list of actors used for only for reference purposes such as within a starter pack. */
-type Referencelist = "app.bsky.graph.defs#referencelist";
+/** A list of actors used for curation purposes such as list feeds or interaction gating. */
+const Curatelist = /*#__PURE__*/ curatelist.value;
 
-export type { Referencelist };
+/** A list of actors used for curation purposes such as list feeds or interaction gating. */
+type Curatelist = typeof Curatelist;
+
+export { Curatelist };
 
 /** A list of actors used for only for reference purposes such as within a starter pack. */
 const referencelist = /*#__PURE__*/ l.token($nsid, "referencelist");
 
 export { referencelist };
+
+/** A list of actors used for only for reference purposes such as within a starter pack. */
+const Referencelist = /*#__PURE__*/ referencelist.value;
+
+/** A list of actors used for only for reference purposes such as within a starter pack. */
+type Referencelist = typeof Referencelist;
+
+export { Referencelist };
 
 type ListViewerState = {
   $type?: "app.bsky.graph.defs#listViewerState";

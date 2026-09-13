@@ -614,141 +614,183 @@ const interaction = /*#__PURE__*/ l.typedObject<Interaction>(
 export { interaction };
 
 /** Request that less content like the given feed item be shown in the feed */
-type RequestLess = "app.bsky.feed.defs#requestLess";
-
-export type { RequestLess };
-
-/** Request that less content like the given feed item be shown in the feed */
 const requestLess = /*#__PURE__*/ l.token($nsid, "requestLess");
 
 export { requestLess };
 
-/** Request that more content like the given feed item be shown in the feed */
-type RequestMore = "app.bsky.feed.defs#requestMore";
+/** Request that less content like the given feed item be shown in the feed */
+const RequestLess = /*#__PURE__*/ requestLess.value;
 
-export type { RequestMore };
+/** Request that less content like the given feed item be shown in the feed */
+type RequestLess = typeof RequestLess;
+
+export { RequestLess };
 
 /** Request that more content like the given feed item be shown in the feed */
 const requestMore = /*#__PURE__*/ l.token($nsid, "requestMore");
 
 export { requestMore };
 
-/** User clicked through to the feed item */
-type ClickthroughItem = "app.bsky.feed.defs#clickthroughItem";
+/** Request that more content like the given feed item be shown in the feed */
+const RequestMore = /*#__PURE__*/ requestMore.value;
 
-export type { ClickthroughItem };
+/** Request that more content like the given feed item be shown in the feed */
+type RequestMore = typeof RequestMore;
+
+export { RequestMore };
 
 /** User clicked through to the feed item */
 const clickthroughItem = /*#__PURE__*/ l.token($nsid, "clickthroughItem");
 
 export { clickthroughItem };
 
-/** User clicked through to the author of the feed item */
-type ClickthroughAuthor = "app.bsky.feed.defs#clickthroughAuthor";
+/** User clicked through to the feed item */
+const ClickthroughItem = /*#__PURE__*/ clickthroughItem.value;
 
-export type { ClickthroughAuthor };
+/** User clicked through to the feed item */
+type ClickthroughItem = typeof ClickthroughItem;
+
+export { ClickthroughItem };
 
 /** User clicked through to the author of the feed item */
 const clickthroughAuthor = /*#__PURE__*/ l.token($nsid, "clickthroughAuthor");
 
 export { clickthroughAuthor };
 
-/** User clicked through to the reposter of the feed item */
-type ClickthroughReposter = "app.bsky.feed.defs#clickthroughReposter";
+/** User clicked through to the author of the feed item */
+const ClickthroughAuthor = /*#__PURE__*/ clickthroughAuthor.value;
 
-export type { ClickthroughReposter };
+/** User clicked through to the author of the feed item */
+type ClickthroughAuthor = typeof ClickthroughAuthor;
+
+export { ClickthroughAuthor };
 
 /** User clicked through to the reposter of the feed item */
 const clickthroughReposter = /*#__PURE__*/ l.token($nsid, "clickthroughReposter");
 
 export { clickthroughReposter };
 
-/** User clicked through to the embedded content of the feed item */
-type ClickthroughEmbed = "app.bsky.feed.defs#clickthroughEmbed";
+/** User clicked through to the reposter of the feed item */
+const ClickthroughReposter = /*#__PURE__*/ clickthroughReposter.value;
 
-export type { ClickthroughEmbed };
+/** User clicked through to the reposter of the feed item */
+type ClickthroughReposter = typeof ClickthroughReposter;
+
+export { ClickthroughReposter };
 
 /** User clicked through to the embedded content of the feed item */
 const clickthroughEmbed = /*#__PURE__*/ l.token($nsid, "clickthroughEmbed");
 
 export { clickthroughEmbed };
 
-/** Declares the feed generator returns any types of posts. */
-type ContentModeUnspecified = "app.bsky.feed.defs#contentModeUnspecified";
+/** User clicked through to the embedded content of the feed item */
+const ClickthroughEmbed = /*#__PURE__*/ clickthroughEmbed.value;
 
-export type { ContentModeUnspecified };
+/** User clicked through to the embedded content of the feed item */
+type ClickthroughEmbed = typeof ClickthroughEmbed;
+
+export { ClickthroughEmbed };
 
 /** Declares the feed generator returns any types of posts. */
 const contentModeUnspecified = /*#__PURE__*/ l.token($nsid, "contentModeUnspecified");
 
 export { contentModeUnspecified };
 
-/** Declares the feed generator returns posts containing app.bsky.embed.video embeds. */
-type ContentModeVideo = "app.bsky.feed.defs#contentModeVideo";
+/** Declares the feed generator returns any types of posts. */
+const ContentModeUnspecified = /*#__PURE__*/ contentModeUnspecified.value;
 
-export type { ContentModeVideo };
+/** Declares the feed generator returns any types of posts. */
+type ContentModeUnspecified = typeof ContentModeUnspecified;
+
+export { ContentModeUnspecified };
 
 /** Declares the feed generator returns posts containing app.bsky.embed.video embeds. */
 const contentModeVideo = /*#__PURE__*/ l.token($nsid, "contentModeVideo");
 
 export { contentModeVideo };
 
-/** Feed item was seen by user */
-type InteractionSeen = "app.bsky.feed.defs#interactionSeen";
+/** Declares the feed generator returns posts containing app.bsky.embed.video embeds. */
+const ContentModeVideo = /*#__PURE__*/ contentModeVideo.value;
 
-export type { InteractionSeen };
+/** Declares the feed generator returns posts containing app.bsky.embed.video embeds. */
+type ContentModeVideo = typeof ContentModeVideo;
+
+export { ContentModeVideo };
 
 /** Feed item was seen by user */
 const interactionSeen = /*#__PURE__*/ l.token($nsid, "interactionSeen");
 
 export { interactionSeen };
 
-/** User liked the feed item */
-type InteractionLike = "app.bsky.feed.defs#interactionLike";
+/** Feed item was seen by user */
+const InteractionSeen = /*#__PURE__*/ interactionSeen.value;
 
-export type { InteractionLike };
+/** Feed item was seen by user */
+type InteractionSeen = typeof InteractionSeen;
+
+export { InteractionSeen };
 
 /** User liked the feed item */
 const interactionLike = /*#__PURE__*/ l.token($nsid, "interactionLike");
 
 export { interactionLike };
 
-/** User reposted the feed item */
-type InteractionRepost = "app.bsky.feed.defs#interactionRepost";
+/** User liked the feed item */
+const InteractionLike = /*#__PURE__*/ interactionLike.value;
 
-export type { InteractionRepost };
+/** User liked the feed item */
+type InteractionLike = typeof InteractionLike;
+
+export { InteractionLike };
 
 /** User reposted the feed item */
 const interactionRepost = /*#__PURE__*/ l.token($nsid, "interactionRepost");
 
 export { interactionRepost };
 
-/** User replied to the feed item */
-type InteractionReply = "app.bsky.feed.defs#interactionReply";
+/** User reposted the feed item */
+const InteractionRepost = /*#__PURE__*/ interactionRepost.value;
 
-export type { InteractionReply };
+/** User reposted the feed item */
+type InteractionRepost = typeof InteractionRepost;
+
+export { InteractionRepost };
 
 /** User replied to the feed item */
 const interactionReply = /*#__PURE__*/ l.token($nsid, "interactionReply");
 
 export { interactionReply };
 
-/** User quoted the feed item */
-type InteractionQuote = "app.bsky.feed.defs#interactionQuote";
+/** User replied to the feed item */
+const InteractionReply = /*#__PURE__*/ interactionReply.value;
 
-export type { InteractionQuote };
+/** User replied to the feed item */
+type InteractionReply = typeof InteractionReply;
+
+export { InteractionReply };
 
 /** User quoted the feed item */
 const interactionQuote = /*#__PURE__*/ l.token($nsid, "interactionQuote");
 
 export { interactionQuote };
 
-/** User shared the feed item */
-type InteractionShare = "app.bsky.feed.defs#interactionShare";
+/** User quoted the feed item */
+const InteractionQuote = /*#__PURE__*/ interactionQuote.value;
 
-export type { InteractionShare };
+/** User quoted the feed item */
+type InteractionQuote = typeof InteractionQuote;
+
+export { InteractionQuote };
 
 /** User shared the feed item */
 const interactionShare = /*#__PURE__*/ l.token($nsid, "interactionShare");
 
 export { interactionShare };
+
+/** User shared the feed item */
+const InteractionShare = /*#__PURE__*/ interactionShare.value;
+
+/** User shared the feed item */
+type InteractionShare = typeof InteractionShare;
+
+export { InteractionShare };

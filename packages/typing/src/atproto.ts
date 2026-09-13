@@ -18,9 +18,9 @@ export const POST_COLLECTION = "app.typbase.post";
 
 /**
  * Verified against @atproto/oauth-scopes 0.0.0-spaces-alpha-20260818163953:
- * read + write access to typbase workspaces (any authority, any skey),
+ * read + write access to Typbase workspaces (any authority, any skey),
  * write access to the public post collection, plus the base atproto/blob
- * pair. Wide by design: typbase is a workspace client, spaces are per user.
+ * pair. Wide by design: Typbase is a workspace client, spaces are per user.
  */
 export const OAUTH_SCOPES: readonly string[] = [
   "atproto",

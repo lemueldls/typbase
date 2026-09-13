@@ -10,7 +10,7 @@ type $nsid = typeof $nsid;
 
 export { $nsid };
 
-/** Workspace metadata held in the space rather than in a Loro doc, so non-typbase apps can read it without decoding CRDT state. */
+/** Workspace metadata held in the space rather than in a Loro doc, so non-Typbase apps can read it without decoding CRDT state. */
 type Main = {
   $type: "app.typbase.config";
 
@@ -42,7 +42,7 @@ type Main = {
 
 export type { Main };
 
-/** Workspace metadata held in the space rather than in a Loro doc, so non-typbase apps can read it without decoding CRDT state. */
+/** Workspace metadata held in the space rather than in a Loro doc, so non-Typbase apps can read it without decoding CRDT state. */
 const main = /*#__PURE__*/ l.record<"literal:self", Main>(
   "literal:self",
   $nsid,

@@ -236,7 +236,7 @@
   },
   "storage": {
     "setupTitle": "选择存储位置",
-    "setupIntroNative": "选择 typbase 保存工作区的位置。之后可在设置中更改。",
+    "setupIntroNative": "选择 Typbase 保存工作区的位置。之后可在设置中更改。",
     "setupIntroBrowser": "选择此浏览器保存工作区的位置。之后可在设置中更改。",
     "reconnectTitle": "重新连接文件夹",
     "reconnectIntro": "浏览器需要重新授权使用“{name}”。",

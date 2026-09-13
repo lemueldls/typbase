@@ -51,7 +51,7 @@ const props = defineProps<{
   extensions?: Extension[];
   /** Fired when the plugin's compile trapped; the parent rebuilds the wasm state. */
   onPanic?: () => void;
-  /** Fired when a typbase link inside a rendered widget is clicked. */
+  /** Fired when a Typbase link inside a rendered widget is clicked. */
   onNavigate?: (pageId: string) => void;
 }>();
 
