@@ -26,15 +26,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#505050"
      showgrid="true"
-     inkscape:zoom="0.59209728"
-     inkscape:cx="-35.467145"
-     inkscape:cy="472.05081"
-     inkscape:window-width="1440"
-     inkscape:window-height="960"
+     inkscape:zoom="0.43119914"
+     inkscape:cx="-56.818295"
+     inkscape:cy="-96.243234"
+     inkscape:window-width="1297"
+     inkscape:window-height="894"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="0"
-     inkscape:current-layer="layer-orbit-far">
+     inkscape:current-layer="typbase-icon">
     <inkscape:grid
        id="grid22"
        units="px"
@@ -51,7 +51,7 @@
        visible="true" />
   </sodipodi:namedview>
   <title
-     id="icon-title">typbase</title>
+     id="icon-title">Typbase</title>
   <sodipodi0:namedview
      id="base"
      pagecolor="#0f0b07"
@@ -128,6 +128,34 @@
      id="defs22">
     <inkscape:path-effect
        effect="offset"
+       id="path-effect33"
+       is_visible="true"
+       lpeversion="1.3"
+       linejoin_type="miter"
+       unit="px"
+       offset="8"
+       miter_limit="4"
+       attempt_force_join="false"
+       update_on_knot_move="true" />
+    <linearGradient
+       id="linearGradient27"
+       gradientUnits="userSpaceOnUse"
+       x1="256"
+       y1="84"
+       x2="256"
+       y2="420">
+      <stop
+         offset="0"
+         stop-color="#f6eedb"
+         id="stop23"
+         style="stop-color:#c1a78e;stop-opacity:1;" />
+      <stop
+         offset="1"
+         stop-color="#e0d0ae"
+         id="stop24" />
+    </linearGradient>
+    <inkscape:path-effect
+       effect="offset"
        id="path-effect37"
        is_visible="true"
        lpeversion="1.3"
@@ -202,13 +230,10 @@
          stop-color="#e9bd77"
          id="stop9" />
       <stop
-         offset=".5"
+         offset="0.5"
          stop-color="#d9a24e"
-         id="stop10" />
-      <stop
-         offset="1"
-         stop-color="#c08340"
-         id="stop11" />
+         id="stop10"
+         style="stop-color:#e49b5d;stop-opacity:1;" />
     </linearGradient>
     <linearGradient
        id="grad-plinth"
@@ -221,15 +246,13 @@
       <stop
          offset="0"
          stop-color="#e9bd77"
-         id="stop12" />
+         id="stop12"
+         style="stop-color:#ebc06d;stop-opacity:1;" />
       <stop
-         offset=".55"
+         offset="0.55000001"
          stop-color="#d9a24e"
-         id="stop13" />
-      <stop
-         offset="1"
-         stop-color="#c08340"
-         id="stop14" />
+         id="stop13"
+         style="stop-color:#e49b5d;stop-opacity:1;" />
     </linearGradient>
     <radialGradient
        id="grad-node"
@@ -288,26 +311,6 @@
     </radialGradient>
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#grad-cream"
-       id="linearGradient24"
-       gradientUnits="userSpaceOnUse"
-       x1="256"
-       y1="84"
-       x2="256"
-       y2="420"
-       gradientTransform="matrix(0.88888896,0,0,1.0666667,28.444445,6.399995)" />
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#grad-cream"
-       id="linearGradient25"
-       gradientUnits="userSpaceOnUse"
-       x1="256"
-       y1="84"
-       x2="256"
-       y2="420"
-       gradientTransform="matrix(0.88888896,0,0,1.0666668,28.444445,-1.066682)" />
-    <linearGradient
-       inkscape:collect="always"
        xlink:href="#grad-brass"
        id="linearGradient26"
        gradientUnits="userSpaceOnUse"
@@ -318,20 +321,10 @@
        gradientTransform="matrix(0.64424754,0.01944376,0.01944376,0.55690464,91.370109,93.475601)" />
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#grad-cream"
-       id="linearGradient29"
-       gradientUnits="userSpaceOnUse"
-       x1="256"
-       y1="84"
-       x2="256"
-       y2="420"
-       gradientTransform="matrix(0.94117648,0,0,0.80952385,15.058824,28.000001)" />
-    <linearGradient
-       inkscape:collect="always"
        xlink:href="#grad-plinth"
        id="linearGradient31"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(1.2903224,0,0,1.1428572,-74.322538,-84.571465)"
+       gradientTransform="matrix(1.0322579,0,0,1.1428572,-8.2580209,-84.571465)"
        x1="132"
        y1="410"
        x2="380"
@@ -350,7 +343,8 @@
        width="512"
        height="512"
        rx="118"
-       fill="url(#grad-bg)" />
+       fill="url(#grad-bg)"
+       style="fill:#292522;fill-opacity:1" />
     <circle
        id="glow"
        inkscape:label="warm glow"
@@ -370,14 +364,32 @@
   </g>
   <g
      inkscape:groupmode="layer"
-     inkscape:label="2 · Orbit far (behind T)"
-     id="layer-orbit-far"
+     inkscape:label="2 · Orbit"
+     id="layer-orbit"
      transform="rotate(-12 256 284)"
      style="display:inline">
     <path
        id="outer-orbit-far"
        style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:url(#linearGradient26);stroke-linecap:round;enable-background:accumulate;stop-color:#000000;stop-opacity:1;opacity:1"
-       d="M 314.24769 202.35555 L 309.24563 225.8884 C 320.32345 228.47913 330.28415 231.7375 338.67002 235.44139 C 348.48668 239.77722 356.09392 244.745 360.77286 249.35055 C 365.45083 253.95515 366.97769 257.67272 367.07975 260.57108 C 367.07978 260.57168 367.07933 260.5724 367.07935 260.57299 C 367.08046 260.60499 367.08236 260.63565 367.08319 260.66766 C 367.15735 263.53412 366.09756 266.43704 362.07036 270.43257 C 357.99731 274.4736 350.93983 278.9046 341.54269 282.60244 C 322.7484 289.99814 294.91765 294.56099 263.89209 293.62462 C 232.86653 292.68825 204.60131 286.45894 184.968 277.78726 C 175.15134 273.45142 167.5445 268.48175 162.86556 263.8762 C 158.18759 259.27159 156.66033 255.55592 156.55826 252.65757 C 156.55824 252.65694 156.55869 252.65629 156.55867 252.65566 A 12 12 0 0 0 156.55638 252.59128 C 156.47346 249.71437 157.52544 246.80653 161.56766 242.79609 C 165.64071 238.75506 172.69818 234.32406 182.09532 230.62621 C 194.31253 225.81865 210.34848 222.20849 228.59796 220.52709 L 233.80915 196.01035 C 210.7702 197.44005 190.07779 201.69356 173.30631 208.29327 C 161.79455 212.82323 152.0491 218.43227 144.66432 225.75899 C 137.27954 233.0857 132.20339 242.85764 132.57357 253.49184 A 12 12 0 0 0 132.57467 253.49607 C 132.57629 253.54219 132.57732 253.58872 132.57913 253.63479 C 132.99398 264.21187 138.46472 273.53392 146.02946 280.98 C 153.62714 288.45852 163.5602 294.56852 175.27169 299.74127 C 198.69468 310.08678 229.43845 316.59554 263.16799 317.61352 C 296.89753 318.6315 327.30818 313.99532 350.33171 304.93539 C 361.84347 300.40542 371.58933 294.79446 378.97411 287.46775 C 386.31494 280.18464 391.37388 270.48639 391.07021 259.92574 C 391.06839 259.86252 391.06664 259.80009 391.06444 259.73681 A 12 12 0 0 0 391.06525 259.73299 C 390.69289 249.09889 385.20625 239.72717 377.60856 232.24865 C 370.01088 224.77013 360.07822 218.65823 348.36673 213.48548 C 338.24416 209.01452 326.75494 205.26002 314.24769 202.35555 z " />
+       d="M 314.24769 202.35555 L 309.24563 225.8884 C 320.32345 228.47913 330.28415 231.7375 338.67002 235.44139 C 348.48668 239.77722 356.09392 244.745 360.77286 249.35055 C 365.45083 253.95515 366.97769 257.67272 367.07975 260.57108 C 367.07978 260.57168 367.07933 260.5724 367.07935 260.57299 C 367.08046 260.60499 367.08236 260.63565 367.08319 260.66766 C 367.15735 263.53412 366.09756 266.43704 362.07036 270.43257 C 357.99731 274.4736 350.93983 278.9046 341.54269 282.60244 C 322.7484 289.99814 294.91765 294.56099 263.89209 293.62462 C 232.86653 292.68825 204.60131 286.45894 184.968 277.78726 C 175.15134 273.45142 167.5445 268.48175 162.86556 263.8762 C 158.18759 259.27159 156.66033 255.55592 156.55826 252.65757 C 156.55824 252.65694 156.55869 252.65629 156.55867 252.65566 A 12 12 0 0 0 156.55638 252.59128 C 156.47346 249.71437 157.52544 246.80653 161.56766 242.79609 C 165.64071 238.75506 172.69818 234.32406 182.09532 230.62621 C 194.31253 225.81865 210.34848 222.20849 228.59796 220.52709 L 233.80915 196.01035 C 210.7702 197.44005 190.07779 201.69356 173.30631 208.29327 C 161.79455 212.82323 152.0491 218.43227 144.66432 225.75899 C 137.27954 233.0857 132.20339 242.85764 132.57357 253.49184 A 12 12 0 0 0 132.57467 253.49607 C 132.57629 253.54219 132.57732 253.58872 132.57913 253.63479 C 132.99398 264.21187 138.46472 273.53392 146.02946 280.98 C 153.62714 288.45852 163.5602 294.56852 175.27169 299.74127 C 198.69468 310.08678 229.43845 316.59554 263.16799 317.61352 C 296.89753 318.6315 327.30818 313.99532 350.33171 304.93539 C 361.84347 300.40542 371.58933 294.79446 378.97411 287.46775 C 386.31494 280.18464 391.37388 270.48639 391.07021 259.92574 C 391.06839 259.86252 391.06664 259.80009 391.06444 259.73681 A 12 12 0 0 0 391.06525 259.73299 C 390.69289 249.09889 385.20625 239.72717 377.60856 232.24865 C 370.01088 224.77013 360.07822 218.65823 348.36673 213.48548 C 338.24416 209.01452 326.75494 205.26002 314.24769 202.35555 z "
+       inkscape:label="orbit" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="4 · Plinth"
+     id="layer-plinth"
+     style="display:inline">
+    <rect
+       id="plinth"
+       inkscape:label="plinth (base) x132 w248"
+       x="128.00003"
+       y="384"
+       width="255.99997"
+       height="32"
+       rx="8"
+       fill="url(#grad-plinth)"
+       style="fill:url(#linearGradient31);stroke-width:1.08615"
+       ry="8" />
   </g>
   <g
      inkscape:groupmode="layer"
@@ -393,7 +405,7 @@
        height="32"
        rx="8"
        fill="url(#grad-cream)"
-       style="fill:url(#linearGradient24);stroke-width:0.973736"
+       style="fill:#ece1d7;stroke-width:0.973736;fill-opacity:1"
        ry="8" />
     <rect
        id="rule-bottom"
@@ -404,13 +416,8 @@
        height="32"
        rx="8"
        fill="url(#grad-cream)"
-       style="fill:url(#linearGradient25);stroke-width:0.973736"
+       style="fill:#ece1d7;stroke-width:0.973736;fill-opacity:1"
        ry="8" />
-    <path
-       id="stem"
-       style="fill:url(#linearGradient29);stroke:none;stroke-width:0.946647;stroke-dasharray:none"
-       inkscape:label="stem + orbit gutters (evenodd)"
-       d="M 224 96 L 224 287.91602 C 236.60034 287.71509 250.27524 286.4429 264.29492 283.90234 C 272.56506 282.40368 280.50803 280.54197 288 278.41211 L 288 96 L 224 96 z M 288 319.79297 C 282.60877 321.07903 277.0797 322.23751 271.42773 323.26172 C 255.04596 326.23031 239.08882 327.79567 224 328.00781 L 224 360.71484 C 224 364.73864 227.79254 368 232.4707 368 L 279.5293 368 C 284.20746 368 288 364.73864 288 360.71484 L 288 319.79297 z " />
     <rect
        id="rect35"
        inkscape:label="rule 1 ( = ) x112 w288"
@@ -420,32 +427,13 @@
        height="32"
        rx="8"
        fill="url(#grad-cream)"
-       style="fill:#e0d0ae;fill-opacity:1;stroke-width:0.688535"
+       style="fill:#ece1d7;fill-opacity:1;stroke-width:0.688535"
        ry="8" />
+    <path
+       id="rect29"
+       style="fill:#ece1d7;fill-opacity:1;stroke:none;stroke-width:40;stroke-opacity:0.0705882"
+       d="M 224 96 L 224 287.91211 C 236.60667 287.71151 250.28918 286.44072 264.29688 283.90234 C 272.56083 282.4048 280.50418 280.54089 288 278.4082 L 288 96 L 224 96 z M 288 319.7832 C 282.59935 321.07502 277.06835 322.23726 271.42578 323.25977 C 255.11439 326.21561 239.12568 327.77459 224 327.98633 L 224 368 L 288 368 L 288 319.7832 z " />
   </g>
-  <g
-     inkscape:groupmode="layer"
-     inkscape:label="4 · Plinth"
-     id="layer-plinth"
-     style="display:inline">
-    <rect
-       id="plinth"
-       inkscape:label="plinth (base) x132 w248"
-       x="96.000031"
-       y="384"
-       width="319.99997"
-       height="32"
-       rx="8"
-       fill="url(#grad-plinth)"
-       style="fill:url(#linearGradient31);stroke-width:1.08615"
-       ry="8" />
-  </g>
-  <g
-     inkscape:groupmode="layer"
-     inkscape:label="5 · Orbit near (in front of T)"
-     id="layer-orbit-near"
-     transform="rotate(-12 256 284)"
-     style="display:inline" />
   <g
      inkscape:groupmode="layer"
      inkscape:label="6 · Rim"
@@ -462,7 +450,8 @@
        fill="none"
        stroke="#f6eedb"
        stroke-opacity=".07"
-       stroke-width="2" />
+       stroke-width="2"
+       style="stroke:#c1a78e;stroke-opacity:0.07058824" />
   </g>
   <metadata
      id="metadata22">
