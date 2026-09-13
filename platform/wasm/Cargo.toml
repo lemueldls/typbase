@@ -26,7 +26,7 @@ console_error_panic_hook = ["dep:console_error_panic_hook"]
 comemo = { version = "0.5.0" }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 dashmap = { version = "6.1.0" }
-ecow = { version = "0.2.6" }
+ecow = { version = "0.3.1" }
 flate2 = { version = "1.1.8" }
 indoc = { version = "2.0.7" }
 itertools = { version = "0.15.0" }
