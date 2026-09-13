@@ -1,5 +1,5 @@
 import type { WorkspaceStore } from "@typbase/storage";
-import type { ThemeMode } from "@typbase/typing";
+import type { ThemeMode, ThemePaletteTokens } from "@typbase/typing";
 
 import {
   applyThemeToDom,
@@ -33,7 +33,7 @@ export function resolveThemeMode(mode: ThemeMode): "light" | "dark" {
 export function resolveAppTheme(settings: {
   theme: ThemeMode;
   themeName?: string;
-  themeCustom?: import("@typbase/typing").ThemePaletteTokens | null;
+  themeCustom?: ThemePaletteTokens | null;
 }): ResolvedTheme {
   return resolveTheme(settings);
 }

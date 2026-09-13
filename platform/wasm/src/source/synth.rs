@@ -1,9 +1,6 @@
 use std::ops::Range;
 
-use typst::{
-    WorldExt,
-    syntax::{SyntaxKind, SyntaxNode},
-};
+use typst::{WorldExt, syntax::SyntaxKind};
 
 use crate::{
     bindings::TypstFileId,
@@ -164,9 +161,11 @@ pub fn sync_source_context(
             } else {
                 in_block = true;
 
-                context
-                    .index_mapper
-                    .push_raw_to_synth_with_kind(range.start, synth.len(), AnchorKind::BlockStart);
+                context.index_mapper.push_raw_to_synth_with_kind(
+                    range.start,
+                    synth.len(),
+                    AnchorKind::BlockStart,
+                );
                 blocks.push(SynthBlock {
                     range,
                     inline: false,
@@ -186,19 +185,6 @@ pub fn sync_source_context(
         blocks,
         equation_ranges,
     }
-}
-
-fn flat_find_node_kind(node: &SyntaxNode, kind: SyntaxKind) -> Option<&SyntaxNode> {
-    if node.kind() == kind {
-        return Some(node);
-    }
-    for child in node.children() {
-        if let Some(found) = flat_find_node_kind(child, kind) {
-            return Some(found);
-        }
-    }
-
-    None
 }
 
 /// Wraps a block of Typst source for rendering, updating the intermediate
@@ -234,24 +220,32 @@ fn wrap_block(
         }
         _ => {
             *synth += "#block(stroke:0pt,width:100%)[";
-            context
-                .index_mapper
-                .push_raw_to_synth_with_kind(last_block.range.start, synth.len(), AnchorKind::WrapperOpen);
+            context.index_mapper.push_raw_to_synth_with_kind(
+                last_block.range.start,
+                synth.len(),
+                AnchorKind::WrapperOpen,
+            );
             *synth += &text[last_block.range.clone()];
-            context
-                .index_mapper
-                .push_raw_to_synth_with_kind(last_block.range.end, synth.len(), AnchorKind::WrapperClose);
+            context.index_mapper.push_raw_to_synth_with_kind(
+                last_block.range.end,
+                synth.len(),
+                AnchorKind::WrapperClose,
+            );
             *synth += "\n]";
 
             last_block.inline = true;
         }
     }
 
-    context
-        .index_mapper
-        .push_raw_to_synth_with_kind(last_block.range.end, synth.len(), AnchorKind::BlockEnd);
+    context.index_mapper.push_raw_to_synth_with_kind(
+        last_block.range.end,
+        synth.len(),
+        AnchorKind::BlockEnd,
+    );
     *synth += "\n";
-    context
-        .index_mapper
-        .push_raw_to_synth_with_kind(last_block.range.end, synth.len(), AnchorKind::BlockNewline);
+    context.index_mapper.push_raw_to_synth_with_kind(
+        last_block.range.end,
+        synth.len(),
+        AnchorKind::BlockNewline,
+    );
 }

@@ -5,7 +5,9 @@
  * model state here.
  */
 
-let extractor: import("@huggingface/transformers").FeatureExtractionPipeline | undefined;
+import type { FeatureExtractionPipeline } from "@huggingface/transformers";
+
+let extractor: FeatureExtractionPipeline | undefined;
 let loadedModel = "";
 
 export interface EmbedRequest {

@@ -4,10 +4,9 @@ layer: "library"
 
 tasks:
   build-dev:
-    script: "wasm-pack build --dev --target web -d pkg . --features wasm-simd && node postbuild.mjs"
+    script: "wasm-pack build --dev --target web --scope typbase . --features wasm-simd"
     inputs:
       - "Cargo.toml"
-      - "postbuild.mjs"
       - "pkg/package.json"
       - "src/**/*"
       - "build.rs"
@@ -17,10 +16,9 @@ tasks:
       - "pkg/**/*"
 
   build:
-    script: "wasm-pack build --release --target web -d pkg . --features wasm-simd && node postbuild.mjs"
+    script: "wasm-pack build --release --target web --scope typbase . --features wasm-simd"
     inputs:
       - "Cargo.toml"
-      - "postbuild.mjs"
       - "pkg/package.json"
       - "src/**/*"
       - "build.rs"

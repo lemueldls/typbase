@@ -1,4 +1,4 @@
-import init, { TypstState } from "@typbase/wasm";
+import init, { FileId, TypstState, type TypstRequest } from "@typbase/wasm";
 import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
 import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
 import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";
@@ -92,13 +92,13 @@ self.addEventListener(
         // is safe. RenderPdfResult mirrors the Rust struct.
         const pdfState = typstState as unknown as {
           renderPdf(
-            id: import("@typbase/wasm").FileId,
+            id: FileId,
             text: string,
             prelude: string,
           ): {
             bytes?: Uint8Array;
             diagnostics?: unknown[];
-            requests: import("@typbase/wasm").TypstRequest[];
+            requests: TypstRequest[];
           };
         };
         const rendered = pdfState.renderPdf(file, source, prelude);
@@ -147,7 +147,7 @@ self.addEventListener(
   },
 );
 
-async function requestLoop(requests: import("@typbase/wasm").TypstRequest[]): Promise<void> {
+async function requestLoop(requests: TypstRequest[]): Promise<void> {
   postMessage({
     id: currentId,
     type: "request",

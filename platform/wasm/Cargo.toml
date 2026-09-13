@@ -1,11 +1,11 @@
 [package]
-name = "typst-wasm"
+name = "wasm"
 
-# No `authors` here: wasm-pack 0.15.0 turns it into a `collaborators` array
-# in package.json and then fails to re-read its own output on the next build.
+authors.workspace = true
 categories.workspace = true
-description = "The Typst rendering and IDE engine for typbase, compiled to WebAssembly."
+description.workspace = true
 edition.workspace = true
+keywords.workspace = true
 license.workspace = true
 repository.workspace = true
 version.workspace = true
@@ -14,17 +14,12 @@ version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["console_error_panic_hook"]
-wasm-simd = []
-# PDF publishing: pulls in typst-pdf, which adds a lot of wasm weight. Off by
-# default; a publish build (wasm:build:release --features pdf) ships it.
+default = ["pdf"]
 pdf = ["dep:typst-pdf"]
-
-console_error_panic_hook = ["dep:console_error_panic_hook"]
+wasm-simd = []
 
 [dependencies]
 comemo = { version = "0.5.0" }
-console_error_panic_hook = { version = "0.1.7", optional = true }
 dashmap = { version = "6.1.0" }
 ecow = { version = "0.2.6" }
 flate2 = { version = "1.1.8" }

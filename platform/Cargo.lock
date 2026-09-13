@@ -813,16 +813,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "const-random"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6625,41 +6615,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "typst-wasm"
-version = "0.1.0"
-dependencies = [
- "comemo",
- "console_error_panic_hook",
- "criterion",
- "dashmap",
- "ecow",
- "flate2",
- "indoc",
- "insta",
- "itertools 0.15.0",
- "js-sys",
- "rustc-hash",
- "serde",
- "serde-wasm-bindgen",
- "serde_bytes",
- "tar",
- "time",
- "tsify",
- "typst",
- "typst-html",
- "typst-ide",
- "typst-layout",
- "typst-macros",
- "typst-pdf",
- "typst-svg",
- "typst-syntax",
- "typst-timing",
- "walkdir",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "uds_windows"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7030,6 +6985,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487"
 dependencies = [
  "wit-bindgen",
+]
+
+[[package]]
+name = "wasm"
+version = "0.1.0"
+dependencies = [
+ "comemo",
+ "criterion",
+ "dashmap",
+ "ecow",
+ "flate2",
+ "indoc",
+ "insta",
+ "itertools 0.15.0",
+ "js-sys",
+ "rustc-hash",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_bytes",
+ "tar",
+ "time",
+ "tsify",
+ "typst",
+ "typst-html",
+ "typst-ide",
+ "typst-layout",
+ "typst-macros",
+ "typst-pdf",
+ "typst-svg",
+ "typst-syntax",
+ "typst-timing",
+ "walkdir",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

@@ -25,7 +25,7 @@ export default defineNuxtConfig({
   vite: {
     // experimental: { bundledDev: true },
     optimizeDeps: {
-      exclude: ["loro-crdt", "sqlite-wasm-vec"],
+      exclude: ["loro-crdt", "sqlite-wasm-vec", "@typbase/wasm"],
     },
     server: {
       // middlewareMode: false,

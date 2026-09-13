@@ -10,15 +10,14 @@ dependsOn:
 
 tasks:
   dev:
-    command: "pnpm nuxt dev --host"
+    command: "pnpm nuxt dev"
+    preset: "server"
     deps:
       - "wasm:build-dev"
-      - "codemirror:build"
-      - "typing:build"
-      - "storage:build"
-      - "spaces:build"
-    options:
-      runInCI: false
+      - "codemirror:build-dev"
+      - "typing:build-dev"
+      - "storage:build-dev"
+      - "spaces:build-dev"
 
   build:
     command: "pnpm nuxt build"
@@ -61,7 +60,6 @@ tasks:
 
   preview:
     command: "pnpm nuxt preview"
+    preset: "server"
     deps:
       - "build"
-    options:
-      runInCI: false

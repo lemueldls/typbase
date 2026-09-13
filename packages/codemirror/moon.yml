@@ -23,6 +23,7 @@ tasks:
     command: "pnpm build-dev"
     options:
       runInCI: false
+      persistent: true
     deps:
       - "wasm:build-dev"
     inputs:

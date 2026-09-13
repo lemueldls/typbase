@@ -1,7 +1,10 @@
 {
   "name": "@typbase/wasm",
   "type": "module",
-  "description": "The Typst rendering and IDE engine for typbase, compiled to WebAssembly.",
+  "collaborators": [
+    "Lemuel DLS"
+  ],
+  "description": "Local-first knowledge base built around the Typst language and atproto Spaces.",
   "version": "0.1.0",
   "license": "AGPL-3.0",
   "repository": {
@@ -9,13 +12,16 @@
     "url": "https://github.com/lemueldls/typbase"
   },
   "files": [
-    "typst_wasm_bg.wasm",
-    "typst_wasm.js",
-    "typst_wasm.d.ts"
+    "wasm_bg.wasm",
+    "wasm.js",
+    "wasm.d.ts"
   ],
-  "main": "typst_wasm.js",
-  "types": "typst_wasm.d.ts",
+  "main": "wasm.js",
+  "types": "wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
+  ],
+  "keywords": [
+    ""
   ]
 }

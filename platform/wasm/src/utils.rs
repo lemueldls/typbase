@@ -8,8 +8,6 @@ use std::sync::Mutex;
 /// state" from a generic runtime error, and gives it the message to log.
 pub static LAST_PANIC: Mutex<Option<String>> = Mutex::new(None);
 
-/// Installs the panic hook: prints like console_error_panic_hook and records
-/// the message for `takePanic`. Called once from `#[wasm_bindgen(start)]`.
 pub fn set_panic_hook() {
     std::panic::set_hook(Box::new(|info| {
         let detail = info.to_string();
