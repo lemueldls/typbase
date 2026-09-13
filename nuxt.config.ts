@@ -1,4 +1,19 @@
+import type { LocaleObject } from "@nuxtjs/i18n";
+
 import { defineNuxtConfig } from "nuxt/config";
+
+const defaultLocale = "en";
+const locales: LocaleObject[] = [
+  { code: "en", dir: "ltr", language: "en-US", file: "en.json" },
+  { code: "es", dir: "ltr", language: "es-ES", file: "es.json" },
+  { code: "fr", dir: "ltr", language: "fr-FR", file: "fr.json" },
+  { code: "de", dir: "ltr", language: "de-DE", file: "de.json" },
+  { code: "zh", dir: "ltr", language: "zh-CN", file: "zh.json" },
+];
+
+// const isDev = process.env.NODE_ENV === "development";
+// const platform: string = import.meta.env.TAURI_ENV_PLATFORM;
+// const internalHost = import.meta.env.TAURI_DEV_HOST || "localhost";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -22,11 +37,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      // The public origin the OAuth client_id is minted from. Dev defaults
-      // to the local dev server; CI/deploy sets NUXT_PUBLIC_APP_URL.
+      // platform,
       appUrl: "http://localhost:3000",
-      // PDS the app talks to. Empty means the user's PDS from DID documents;
-      // dev sets this to the local Docker PDS (NUXT_PUBLIC_PDS_URL).
       pdsUrl: "",
     },
   },
@@ -48,18 +60,8 @@ export default defineNuxtConfig({
     },
   },
   i18n: {
-    locales: [
-      { code: "en", name: "English", file: "en.json" },
-      { code: "es", name: "Español", file: "es.json" },
-      { code: "de", name: "Deutsch", file: "de.json" },
-      { code: "fr", name: "Français", file: "fr.json" },
-      { code: "zh", name: "中文", file: "zh.json" },
-    ],
-    defaultLocale: "en",
+    locales,
+    defaultLocale,
     strategy: "no_prefix",
-    detectBrowserLanguage: { useCookie: false, redirectOn: "root" },
   },
-  // Module augmentations (i18n, vueuse, reka-ui) apply under tsc but not in
-  // oxlint's isolated resolution of config files; the cast keeps both quiet
-  // without changing the emitted config.
-} as Parameters<typeof defineNuxtConfig>[0]);
+});

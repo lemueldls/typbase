@@ -10,7 +10,7 @@ dependsOn:
 
 tasks:
   dev:
-    command: "pnpm nuxt dev"
+    command: "pnpm nuxt dev --host"
     deps:
       - "wasm:build-dev"
       - "codemirror:build"
@@ -41,6 +41,7 @@ tasks:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "$NUXT_*"
+      - "$TAURI_*"
       - "project://wasm"
       - "project://codemirror"
       - "project://typing"

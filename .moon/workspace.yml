@@ -1,5 +1,6 @@
 projects:
   web: "."
+  tauri: "platform/tauri"
   wasm: "platform/wasm"
   codemirror: "packages/codemirror"
   typing: "packages/typing"
