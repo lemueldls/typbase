@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { attachPluginSurface, type PluginSurfaceHandle } from "~/lib/plugins/surface";
 
-/**
- * One plugin surface, rendered into a shadow root. The host compiles and
- * sanitizes the HTML; this component wires the runtime and reports sizes.
- */
 const props = withDefaults(
   defineProps<{
     instanceId: string;

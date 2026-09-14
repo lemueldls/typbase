@@ -2,6 +2,7 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 import type { FileId, TypstState } from "@typbase/wasm";
+import type { MaterialSymbol } from "material-symbols";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { blobReference, sniffMime } from "@typbase/storage";
@@ -12,15 +13,15 @@ import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/prese
 import { revealRequests } from "~/lib/reveal";
 import { recreateTypstState } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
-import { VIEW_MODES, type ViewMode } from "~/lib/view";
+import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
 const props = defineProps<{
   pageId: string;
-  modelValue: ViewMode;
+  modelValue: ViewModeId;
 }>();
 
 const emit = defineEmits<{
-  (e: "update:modelValue", mode: ViewMode): void;
+  (e: "update:modelValue", mode: ViewModeId): void;
   (e: "openPage", id: string): void;
   (e: "openPlugin", instanceId: string): void;
 }>();
@@ -436,10 +437,13 @@ function startSplitDrag(event: PointerEvent) {
   target.addEventListener("pointerup", onUp);
 }
 
-const modes: Array<{ id: ViewMode; key: string }> = VIEW_MODES.map((id) => ({
-  id,
-  key: `pageView.${id}`,
-}));
+const modes: Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }> = VIEW_MODES.map(
+  (mode) => ({
+    id: mode.id,
+    icon: mode.icon,
+    key: `pageView.${mode.id}`,
+  }),
+);
 
 // Arrow keys move between view modes, per the tabs pattern.
 function onModeKeydown(event: KeyboardEvent) {
@@ -472,6 +476,7 @@ function onModeKeydown(event: KeyboardEvent) {
             :key="mode.id"
             type="button"
             role="tab"
+            :hover="$t(mode.key)"
             :aria-selected="modelValue === mode.id"
             :tabindex="modelValue === mode.id ? 0 : -1"
             class="page-view__mode"
@@ -485,8 +490,6 @@ function onModeKeydown(event: KeyboardEvent) {
       </div>
 
       <div class="page-view__toolbar-actions">
-        <!-- Collapsed bar: the reopen toggle lives here, where it never adds a
-             second row while the bar is open. -->
         <button
           v-if="modelValue !== 'read' && !formatOpen"
           type="button"
@@ -509,9 +512,6 @@ function onModeKeydown(event: KeyboardEvent) {
       </div>
     </div>
 
-    <!-- Formatting bar: its own full-width row so it never fights the
-         title/modes or the AI/publish actions for space. Scrolls sideways
-         when narrow; the chevron at its right edge collapses it entirely. -->
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">
       <EditToolbar :disabled="!ready" :view="editorPane?.view" />
       <button

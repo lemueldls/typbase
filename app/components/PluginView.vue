@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { MaterialSymbol } from "material-symbols";
 
-/**
- * A plugin's main surface. The shell swaps PageView for this when an
- * instance is open; the frame fills the pane.
- */
 const props = defineProps<{ instanceId: string }>();
 
 const emit = defineEmits<{ (e: "close"): void }>();

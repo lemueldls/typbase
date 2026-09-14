@@ -2,10 +2,6 @@
 import type { PluginInstance } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
-/**
- * The sidebar's plugin section: live sidebar widgets plus rows that open
- * main-surface instances in the shell's main pane.
- */
 const emit = defineEmits<{ (e: "openPlugin", instanceId: string): void }>();
 
 const plugins = usePlugins();

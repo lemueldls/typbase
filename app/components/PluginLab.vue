@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import type { PluginAction } from "@typbase/typing";
 
-/**
- * Plugin lab: compile a surface on demand, dispatch test actions, inspect
- * state and logs, and edit local plugin sources in place. Lives on /debug;
- * dev tooling, not product UI.
- */
 const plugins = usePlugins();
 const { backend, workspace } = useWorkspace();
 
@@ -19,8 +14,6 @@ const actionName = ref("calendar.select");
 const actionArgs = ref('{\n  "date": "2026-09-20"\n}');
 const actionFields = ref("{}");
 const actionStatus = ref("");
-
-// ---- state / html inspection --------------------------------------------
 
 const stateJson = ref("");
 const htmlPreview = ref("");
@@ -92,8 +85,6 @@ function dispatchAction(): void {
   actionStatus.value = `dispatched ${action.name}`;
   void plugins.dispatch(selectedId.value, action).then(() => void refreshInspection());
 }
-
-// ---- local source editing -------------------------------------------------
 
 const editPlugin = ref("");
 const editFile = ref("");

@@ -39,11 +39,11 @@ export function useAppLocale(
     } else if (value === "auto") {
       const detected =
         typeof navigator !== "undefined" ? (navigator.language.split("-")[0] ?? "en") : "en";
-      setLocale(
+      void setLocale(
         (SUPPORTED as readonly string[]).includes(detected) ? (detected as AppLocaleCode) : "en",
       );
     } else {
-      setLocale(value as AppLocaleCode);
+      void setLocale(value as AppLocaleCode);
     }
   }
 

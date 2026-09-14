@@ -29,7 +29,7 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         {
           name: "description",
-          content: "Local-first knowledge base built around the Typst language and atproto Spaces.",
+          content: "Local-first knowledge base built around the Typst language.",
         },
       ],
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],

@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { ViewMode } from "~/lib/view";
+import type { ViewModeId } from "~/lib/view";
 
 defineProps<{
   pageId: string | null;
   pluginInstanceId?: string | null;
-  modelValue: ViewMode;
+  modelValue: ViewModeId;
 }>();
 
 const emit = defineEmits<{
-  (e: "update:modelValue", mode: ViewMode): void;
+  (e: "update:modelValue", mode: ViewModeId): void;
   (e: "openPage", id: string): void;
   (e: "openPlugin", id: string): void;
   (e: "closePlugin"): void;

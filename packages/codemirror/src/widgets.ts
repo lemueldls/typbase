@@ -48,37 +48,6 @@ function frameSize(frame: SvgRangedFrame): { width: number; height: number } {
   };
 }
 
-/**
- * The width the page should compile at: the editor's text column, i.e. the
- * scroller width minus every horizontal padding between it and the line the
- * widget sits in (content + line padding).
- *
- * Measuring the actual boxes instead of subtracting a constant matters twice:
- * the render then fills the column exactly at 1pt == 1px, and the widget never
- * exceeds the line — an explicit width wider than the line makes CodeMirror's
- * flex layout grow the content width forever (resize -> wider widget -> wider
- * content -> ...).
- *
- * `scrollDOM` is used rather than `contentDOM`: the content element's width is
- * driven by the widest line, so once an oversized widget inflated it, reading
- * it would keep feeding the loop.
- */
-function editorWidth(scrollDOM: HTMLElement, contentDOM: HTMLElement): number {
-  const paddingH = (element: HTMLElement, style: CSSStyleDeclaration) =>
-    parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-
-  const contentStyle = getComputedStyle(contentDOM);
-  const line = contentDOM.querySelector<HTMLElement>(".cm-line");
-  const linePad = line ? paddingH(line, getComputedStyle(line)) : 0;
-
-  return (
-    scrollDOM.clientWidth -
-    paddingH(scrollDOM, getComputedStyle(scrollDOM)) -
-    paddingH(contentDOM, contentStyle) -
-    linePad
-  );
-}
-
 class TypstWidget extends WidgetType {
   private container: HTMLElement;
   private readonly size: { width: number; height: number };

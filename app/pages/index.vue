@@ -2,7 +2,7 @@
 import { SplitterPanel } from "reka-ui";
 
 import { refreshSections, toSections } from "~/lib/ai/generators";
-import { VIEW_MODES, type ViewMode } from "~/lib/view";
+import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
 const {
   workspace,
@@ -18,7 +18,7 @@ const {
 const loaded = ref(false);
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
-const mode = ref<ViewMode>("write");
+const mode = ref<ViewModeId>("write");
 const paletteOpen = ref(false);
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
@@ -118,8 +118,10 @@ function queryString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function isViewMode(value: unknown): value is ViewMode {
-  return typeof value === "string" && (VIEW_MODES as readonly string[]).includes(value);
+function isViewMode(value: unknown): value is ViewModeId {
+  return (
+    typeof value === "string" && (VIEW_MODES.map((m) => m.id) as readonly string[]).includes(value)
+  );
 }
 
 onMounted(async () => {
@@ -234,7 +236,7 @@ useEventListener("pagehide", () => {
   void workspace.value?.flush();
 });
 
-async function setMode(value: ViewMode) {
+async function setMode(value: ViewModeId) {
   mode.value = value;
 }
 
