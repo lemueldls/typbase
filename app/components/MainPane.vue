@@ -3,18 +3,32 @@ import type { ViewMode } from "~/lib/view";
 
 defineProps<{
   pageId: string | null;
+  pluginInstanceId?: string | null;
   modelValue: ViewMode;
 }>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", mode: ViewMode): void;
   (e: "openPage", id: string): void;
+  (e: "openPlugin", id: string): void;
+  (e: "closePlugin"): void;
 }>();
 </script>
 
 <template>
+  <PluginView
+    v-if="pluginInstanceId"
+    :key="pluginInstanceId"
+    :instance-id="pluginInstanceId"
+    @close="emit('closePlugin')"
+  >
+    <template #nav-toggle>
+      <slot name="nav-toggle" />
+    </template>
+  </PluginView>
+
   <PageView
-    v-if="pageId"
+    v-else-if="pageId"
     :key="pageId"
     :page-id="pageId"
     :model-value="modelValue"

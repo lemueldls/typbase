@@ -17,6 +17,7 @@ const {
 
 const loaded = ref(false);
 const currentPageId = ref<string>("");
+const currentPluginId = ref<string | null>(null);
 const mode = ref<ViewMode>("write");
 const paletteOpen = ref(false);
 /** Sidebar drawer state (mobile only). */
@@ -87,11 +88,13 @@ function fallbackPageId(): string {
 // watcher runs pre-render in the same tick as the bump.
 watch(workspaceGeneration, () => {
   currentPageId.value = fallbackPageId();
+  currentPluginId.value = null;
 });
 
 // Section metadata should stay fresh even without the editor being open:
 // the store's page changes drive a re-extract on every page switch.
 watch(currentPageId, async (id) => {
+  setPluginCurrentPage(id || null);
   if (!id || !workspace.value) return;
 
   const store = workspace.value;
@@ -100,7 +103,7 @@ watch(currentPageId, async (id) => {
   if (!typstState) return;
 
   await refreshSections(store, id, text, (source) =>
-    toSections(typstState.extractSections(source)),
+    toSections(typstState.extractSections(source), source),
   );
 });
 
@@ -108,6 +111,7 @@ const { locale, setLocale } = useI18n();
 
 const pageQuery = useRouteQuery<string>("page", "");
 const modeQuery = useRouteQuery<string>("mode", "write");
+const viewQuery = useRouteQuery<string>("view", "");
 
 /** Query values can be string arrays or null; a page/mode id is a plain string. */
 function queryString(value: unknown): string {
@@ -136,6 +140,13 @@ onMounted(async () => {
   else currentPageId.value = fallbackPageId();
 
   if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
+
+  // A ?view=plugin:<instance> link reopens the plugin pane when it exists.
+  const linkedView = queryString(viewQuery.value);
+  const instanceId = linkedView.startsWith("plugin:") ? linkedView.slice("plugin:".length) : "";
+  if (instanceId && store.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
+
+  setPluginNavigation({ openPage, openPlugin });
 });
 
 watch(currentPageId, (id) => {
@@ -170,10 +181,52 @@ watch(modeQuery, (value) => {
   if (loaded.value && value !== mode.value && isViewMode(value)) mode.value = value;
 });
 
+function pluginViewValue(instanceId: string | null): string {
+  return instanceId ? `plugin:${instanceId}` : "";
+}
+
+watch(currentPluginId, (id) => {
+  if (!loaded.value) return;
+  const value = pluginViewValue(id);
+  if (queryString(viewQuery.value) !== value) viewQuery.value = value;
+});
+
+// Back/forward or a pasted link changes the open pane under us.
+watch(viewQuery, (raw) => {
+  if (!loaded.value) return;
+
+  const value = queryString(raw);
+  const instanceId = value.startsWith("plugin:") ? value.slice("plugin:".length) : "";
+  if (!instanceId) {
+    currentPluginId.value = null;
+    return;
+  }
+
+  if (workspace.value?.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
+  else if (queryString(viewQuery.value) === value) viewQuery.value = "";
+});
+
+// A deleted instance must not leave the shell on an empty plugin pane.
+watch(dataRevision, () => {
+  if (currentPluginId.value && !workspace.value?.getPluginInstance(currentPluginId.value)) {
+    currentPluginId.value = null;
+  }
+});
+
 function openPage(id: string) {
   navOpen.value = false; // drawer interactions close after selection
+  currentPluginId.value = null; // opening a page leaves the plugin pane
   // An empty id means the open page was deleted; fall back to home/first.
   currentPageId.value = id || fallbackPageId();
+}
+
+function openPlugin(instanceId: string) {
+  navOpen.value = false;
+  if (instanceId) currentPluginId.value = instanceId;
+}
+
+function closePlugin() {
+  currentPluginId.value = null;
 }
 
 // Persist pending snapshot writes when the tab goes away.
@@ -239,6 +292,7 @@ definePageMeta({ ssr: false });
               :store="workspace"
               :current-page-id="currentPageId"
               @select="openPage"
+              @open-plugin="openPlugin"
               @collapse-request="toggleSidebar"
             />
           </SplitterPanel>
@@ -253,9 +307,12 @@ definePageMeta({ ssr: false });
             <div class="app__main">
               <MainPane
                 :page-id="currentPageId"
+                :plugin-instance-id="currentPluginId"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
+                @open-plugin="openPlugin"
+                @close-plugin="closePlugin"
               >
                 <template #nav-toggle>
                   <!-- Desktop: reappears only while the sidebar is collapsed. -->
@@ -285,6 +342,7 @@ definePageMeta({ ssr: false });
               :store="workspace"
               :current-page-id="currentPageId"
               @select="openPage"
+              @open-plugin="openPlugin"
               @collapse-request="navOpen = false"
             />
           </div>
@@ -300,9 +358,12 @@ definePageMeta({ ssr: false });
           <div class="app__main">
             <MainPane
               :page-id="currentPageId"
+              :plugin-instance-id="currentPluginId"
               :model-value="mode"
               @update:model-value="setMode"
               @open-page="openPage"
+              @open-plugin="openPlugin"
+              @close-plugin="closePlugin"
             >
               <template #nav-toggle>
                 <button
@@ -317,6 +378,8 @@ definePageMeta({ ssr: false });
             </MainPane>
           </div>
         </template>
+
+        <PluginOverlay />
 
         <SearchPalette
           v-if="paletteOpen && workspace"

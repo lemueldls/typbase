@@ -1,0 +1,31 @@
+{
+  "id": "local:sticky-notes",
+  "name": "Sticky Notes",
+  "version": "0.2.0",
+  "description": "A freeform board of draggable notes plus a floating overlay on every page.",
+  "api": "typbase.host.v1",
+  "entry": "main.typ",
+  "icon": "sticky_note_2",
+  "capabilities": ["plugin.data"],
+  "collections": {
+    "notes": {
+      "fields": {
+        "text": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "color": { "type": "string" }
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "kind": "sidebar",
+      "fn": "sidebar",
+      "title": "Sticky Notes",
+      "icon": "sticky_note_2",
+      "height": 130
+    },
+    { "kind": "overlay", "fn": "overlay", "title": "Sticky Notes", "icon": "sticky_note_2" },
+    { "kind": "main", "fn": "main", "title": "Sticky Notes", "icon": "sticky_note_2" }
+  ]
+}

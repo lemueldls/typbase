@@ -20,10 +20,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "panic"): void;
   (e: "navigate", pageId: string): void;
+  (e: "navigatePlugin", instanceId: string): void;
 }>();
 
-// App-internal links (typbase://page/<id>) open the page in the editor;
-// external links leave the app, so confirm first and open in a new tab.
+// App-internal links (typbase://page/<id>, typbase://plugin/<id>) stay in
+// the app; external links leave it, so confirm first and open in a new tab.
 function onPreviewClick(event: MouseEvent) {
   const target = event.target as Element | null;
   const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
@@ -34,6 +35,13 @@ function onPreviewClick(event: MouseEvent) {
     event.preventDefault();
     const pageId = href.slice("typbase://page/".length);
     if (pageId) emit("navigate", pageId);
+    return;
+  }
+
+  if (href.startsWith("typbase://plugin/")) {
+    event.preventDefault();
+    const instanceId = href.slice("typbase://plugin/".length);
+    if (instanceId) emit("navigatePlugin", instanceId);
     return;
   }
 

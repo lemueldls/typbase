@@ -51,6 +51,8 @@ export interface Section {
   rangeEnd: number;
   /** Heading text or first words, for listing. */
   title: string;
+  /** Raw Typst source of the block content. */
+  text?: string;
 }
 
 /** Media a page references, keyed by the reference path in the Typst source. */
@@ -204,9 +206,18 @@ export type QueryCategories = Category[];
 export type QueryDaily = PageMeta[];
 
 export { OAUTH_SCOPES, SPACE_COLLECTIONS, APP_SPACE_TYPE, POST_COLLECTION } from "./atproto";
+export * from "./plugins";
 
 /** Kinds `#typbase.query` supports. */
-export type QueryKind = "config" | "pages" | "categories" | "daily" | "backlinks" | "sections";
+export type QueryKind =
+  | "config"
+  | "pages"
+  | "categories"
+  | "daily"
+  | "backlinks"
+  | "sections"
+  | "content"
+  | "plugin-data";
 
 export interface ParsedQuery {
   kind: QueryKind;
@@ -221,11 +232,22 @@ export interface ParsedQuery {
  * are `<name>/<value>` pairs, e.g. `typbase-query/pages/by-category/work.json`.
  */
 export function parseQueryPath(path: string): ParsedQuery | null {
-  const match = /^typbase-query\/([a-z-]+)(?:\/([\w-]+)\/([\w-]+))?\.json$/.exec(path);
+  const match = /^typbase-query\/([a-z-]+)(?:\/([\w-]+)(?:\/([\w-]+))?)?\.json$/.exec(path);
   if (!match) return null;
 
   const kind = match[1] as QueryKind;
-  if (!["config", "pages", "categories", "daily", "backlinks", "sections"].includes(kind)) {
+  if (
+    ![
+      "config",
+      "pages",
+      "categories",
+      "daily",
+      "backlinks",
+      "sections",
+      "content",
+      "plugin-data",
+    ].includes(kind)
+  ) {
     return null;
   }
 

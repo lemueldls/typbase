@@ -52,7 +52,7 @@ async function onTrigger() {
 let extractor: Promise<(source: string) => Section[]> | undefined;
 async function extractSections(source: string) {
   extractor ??= useTypst().then(
-    (typstState) => (text: string) => toSections(typstState.extractSections(text)),
+    (typstState) => (text: string) => toSections(typstState.extractSections(text), text),
   );
   const sections = await extractor;
 

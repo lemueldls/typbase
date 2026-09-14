@@ -5,6 +5,7 @@ import type { FileId, TypstState } from "@typbase/wasm";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
 
+import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { revealRequests } from "~/lib/reveal";
 import { recreateTypstState } from "~/lib/typstRecovery";
@@ -19,6 +20,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "update:modelValue", mode: ViewMode): void;
   (e: "openPage", id: string): void;
+  (e: "openPlugin", instanceId: string): void;
 }>();
 
 const { workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
@@ -257,7 +259,15 @@ function onRequests(requests: unknown[], spaceId: string) {
   return requestService!.handler(requests as never, spaceId);
 }
 
-const editorRevision = () => `${dataRevision.value}:${renderRevision.value}`;
+const editorRevision = () =>
+  `${dataRevision.value}:${renderRevision.value}:${pluginsRevision.value}`;
+
+// Plugin sources and plugin data are request-channel files; when they change
+// the injected copies must go so the next compile re-requests them.
+watch(pluginsRevision, () => {
+  requestService?.purge();
+  editorPane.value?.recompile();
+});
 
 // Template bindings unwrap refs (":text=\"text\"" passes the string). The
 // editor/preview need the ref objects themselves; v-bind spread keeps them.
@@ -475,6 +485,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :extensions="extraExtensions"
         :on-panic="handlePanic"
         :on-navigate="(pageId) => emit('openPage', pageId)"
+        :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
       />
 
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
@@ -488,11 +499,12 @@ function onModeKeydown(event: KeyboardEvent) {
         :file-id="boundFileId"
         :space-id="workspaceId"
         :typst-state="boundState"
-        :data-revision="dataRevision"
+        :data-revision="dataRevision + pluginsRevision"
         :render-revision="renderRevision"
         :on-requests="onRequests"
         :on-panic="handlePanic"
         @navigate="emit('openPage', $event)"
+        @navigate-plugin="emit('openPlugin', $event)"
       />
     </div>
   </div>

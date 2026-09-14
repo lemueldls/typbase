@@ -1,0 +1,23 @@
+{
+  "id": "local:flashcards",
+  "name": "Flashcards",
+  "version": "0.2.0",
+  "description": "Spaced repetition over #typbase.section(kind: \"flashcards\") blocks written in notes.",
+  "api": "typbase.host.v1",
+  "entry": "main.typ",
+  "icon": "style",
+  "capabilities": ["pages.read", "plugin.data"],
+  "collections": {
+    "reviews": {
+      "fields": {
+        "card": { "type": "string" },
+        "grade": { "type": "string" },
+        "at": { "type": "string" }
+      }
+    }
+  },
+  "surfaces": [
+    { "kind": "sidebar", "fn": "sidebar", "title": "Flashcards", "icon": "style", "height": 140 },
+    { "kind": "main", "fn": "main", "title": "Flashcards", "icon": "style" }
+  ]
+}

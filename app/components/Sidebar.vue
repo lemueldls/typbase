@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "select", pageId: string): void;
+  (e: "openPlugin", instanceId: string): void;
   /** Collapses the desktop panel / closes the mobile drawer. */
   (e: "collapseRequest"): void;
 }>();
@@ -190,6 +191,10 @@ function onCreated(page: PageMeta) {
           </button>
         </li>
       </ul>
+    </div>
+
+    <div class="sidebar__section">
+      <PluginSidebar @open-plugin="emit('openPlugin', $event)" />
     </div>
 
     <div class="sidebar__section sidebar__section--pages">

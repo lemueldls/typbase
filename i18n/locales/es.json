@@ -272,5 +272,33 @@
     "deleteWorkspaceConfirm": "¿Eliminar el espacio «{name}» y todas sus páginas? No se puede deshacer.",
     "deleteFileConfirm": "¿Eliminar el archivo «{path}»? Un borrado directo puede romper un espacio.",
     "hint": "Los archivos son instantáneas de Loro y datos de la app; borrarlos directamente puede romper un espacio."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "empty": "No hay plugins instalados.",
+    "manage": "Gestionar plugins",
+    "available": "Plugins disponibles",
+    "noCatalog": "No se encontraron plugins en esta compilación.",
+    "install": "Instalar",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "remove": "Eliminar",
+    "removeInstance": "Eliminar instancia",
+    "addSurface": "Añadir {surface}",
+    "problems": "Problemas",
+    "clear": "Limpiar",
+    "confirmRemove": "¿Eliminar «{name}» y sus datos?",
+    "close": "Cerrar plugin",
+    "capPagesRead": "Leer páginas",
+    "capPagesCreate": "Crear páginas",
+    "capDailyWrite": "Escribir notas diarias",
+    "capData": "Datos del plugin",
+    "capAi": "IA",
+    "capExternal": "Enlaces externos",
+    "reload": "Recargar plugins locales",
+    "installFolder": "Instalar desde carpeta",
+    "localHint": "Los plugins locales viven en plugins/ dentro del almacenamiento del espacio.",
+    "sourceLocal": "local",
+    "capPagesWrite": "Editar páginas"
   }
 }

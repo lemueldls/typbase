@@ -1,10 +1,20 @@
 import type { WorkspaceStore } from "@typbase/storage";
+import type { Section } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 
 import { parseQueryPath } from "@typbase/typing";
 
+import { getPluginSource } from "~/lib/plugins/registry";
+
 interface TypstRequestHandler {
   (requests: TypstRequest[], spaceId: string): Promise<boolean> | boolean;
+}
+
+/** Plugin surfaces only see their own plugin data; notes see everything. */
+export interface RequestScope {
+  pluginId: string;
+  /** False strips page content from the channel (no `pages.read`). */
+  allowPages?: boolean;
 }
 
 // Included pages are raw sources: the `#import "/typbase.typ" as typbase`
@@ -43,6 +53,7 @@ export async function resolveRequestPayloads(
   requests: TypstRequest[],
   store: WorkspaceStore,
   currentPage: string | null,
+  scope?: RequestScope,
 ): Promise<RequestPayload[]> {
   const payloads: RequestPayload[] = [];
 
@@ -58,6 +69,7 @@ export async function resolveRequestPayloads(
 
     if (request.type === "source") {
       if (path.startsWith("typbase-src/")) {
+        if (scope && scope.allowPages === false) continue;
         const id = path.slice("typbase-src/".length, -".typ".length);
         // Self-embeds would recurse forever; a comment keeps the include quiet.
         const text =
@@ -70,10 +82,22 @@ export async function resolveRequestPayloads(
               : `// no page named ${JSON.stringify(id)}\n`;
 
         payloads.push({ type: "source", path, text });
+        continue;
+      }
+
+      // Plugin modules, so notes can `#import "/typbase-plugin/..."`.
+      if (path.startsWith("typbase-plugin/") || path === "typbase-ui.typ") {
+        const text = getPluginSource(`/${path}`);
+        if (text !== undefined) payloads.push({ type: "source", path, text });
+        continue;
       }
     } else if (request.type === "file") {
       if (path.startsWith("typbase-query/")) {
-        const json = await buildQueryJson(path, store);
+        const parsed = parseQueryPath(path);
+        if (!parsed) continue;
+        if (scope && scope.allowPages === false && parsed.kind !== "plugin-data") continue;
+
+        const json = await buildQueryJson(path, store, scope);
         if (json === null) continue;
         payloads.push({
           type: "file",
@@ -142,12 +166,18 @@ export function createTypstRequestService(
   };
 }
 
-export async function buildQueryJson(path: string, store: WorkspaceStore): Promise<string | null> {
+export async function buildQueryJson(
+  path: string,
+  store: WorkspaceStore,
+  scope?: RequestScope,
+): Promise<string | null> {
   const query = parseQueryPath(path);
   if (!query) return null;
 
   const pages = store.listPages();
   const daily = pages.filter((page) => page.path.startsWith("daily/"));
+  // Single-segment filters carry the value in filterName (e.g. sections/<id>).
+  const filterValue = query.filterValue ?? query.filterName;
 
   switch (query.kind) {
     case "config": {
@@ -185,9 +215,41 @@ export async function buildQueryJson(path: string, store: WorkspaceStore): Promi
       return JSON.stringify(list);
     }
     case "sections": {
-      if (!query.filterValue) return JSON.stringify([]);
+      // One page's sections, or every page's when no filter is given.
+      if (filterValue) return JSON.stringify(store.getSections(filterValue));
 
-      return JSON.stringify(store.getSections(query.filterValue));
+      const all: Array<Section & { pageId: string }> = [];
+      for (const page of pages) {
+        for (const section of store.getSections(page.id)) {
+          all.push({ ...section, pageId: page.id });
+        }
+      }
+
+      return JSON.stringify(all);
+    }
+    case "content": {
+      if (!filterValue) return "null";
+      // Accepts a page id or a date, so calendars can query `daily/` notes.
+      const page =
+        pages.find((candidate) => candidate.id === filterValue) ??
+        pages.find((candidate) => candidate.path === `daily/${filterValue}.typ`);
+      if (!page) return "null";
+
+      return JSON.stringify({
+        id: page.id,
+        title: page.title,
+        path: page.path,
+        text: await store.loadPageText(page.id),
+      });
+    }
+    case "plugin-data": {
+      if (!filterValue) return "null";
+      const instance = store.getPluginInstance(filterValue);
+      if (!instance) return "null";
+      // Plugin surfaces read their own data only; note content reads all.
+      if (scope && instance.pluginId !== scope.pluginId) return "null";
+
+      return JSON.stringify(await store.readPluginState(filterValue));
     }
     case "backlinks": {
       if (!query.filterValue) return JSON.stringify([]);

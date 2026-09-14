@@ -1,4 +1,16 @@
-import type { AssetMeta, Category, PageMeta, Section, WorkspaceSettings } from "@typbase/typing";
+import type {
+  AssetMeta,
+  Category,
+  PageMeta,
+  PluginInstall,
+  PluginInstance,
+  PluginPatchOp,
+  PluginRecord,
+  PluginState,
+  PluginSurfaceKind,
+  Section,
+  WorkspaceSettings,
+} from "@typbase/typing";
 import type { LoroDoc, LoroList, LoroMap, VersionVector } from "loro-crdt";
 
 import { createId } from "@paralleldrive/cuid2";
@@ -44,6 +56,20 @@ export function pagePath(workspaceId: string, pageId: string): string {
   return `workspaces/${workspaceId}/pages/${pageId}.loro`;
 }
 
+export function pluginPath(workspaceId: string, instanceId: string): string {
+  return `workspaces/${workspaceId}/plugins/${instanceId}.loro`;
+}
+
+/** Doc id space for plugin instance docs; sync treats them like page docs. */
+export function pluginDocId(instanceId: string): string {
+  return `plugin:${instanceId}`;
+}
+
+/** Instance id behind a `plugin:<id>` doc id, or null for other docs. */
+export function pluginInstanceOf(docId: string): string | null {
+  return docId.startsWith("plugin:") ? docId.slice("plugin:".length) : null;
+}
+
 export interface WorkspaceStoreOptions {
   /** Snapshot writes are debounced by this much; a crash loses at most this window. */
   snapshotDebounceMs?: number;
@@ -64,11 +90,13 @@ export interface CreatePageInput {
  */
 export class WorkspaceStore {
   private pageDocs = new Map<string, LoroDoc>();
+  private pluginDocs = new Map<string, LoroDoc>();
   private readonly pathForDoc = new Map<LoroDoc, string>();
   private dirtyDocs = new Set<LoroDoc>();
   private snapshotTimer: ReturnType<typeof setTimeout> | undefined;
   private structureListeners = new Set<() => void>();
   private pageListeners = new Map<string, Set<() => void>>();
+  private pluginListeners = new Map<string, Set<() => void>>();
   private commitListeners = new Set<(docId: string) => void>();
   private commitTimer: ReturnType<typeof setTimeout> | undefined;
   private pendingCommits = new Set<string>();
@@ -419,14 +447,19 @@ export class WorkspaceStore {
     return parsed.toISOString().slice(0, 10);
   }
 
+  private async readDoc(path: string): Promise<LoroDoc> {
+    const { LoroDoc } = await loadLoro();
+    const bytes = await this.backend.read(path);
+
+    return bytes ? LoroDoc.fromSnapshot(bytes) : new LoroDoc();
+  }
+
   private async openPageDoc(pageId: string): Promise<LoroDoc> {
     const cached = this.pageDocs.get(pageId);
     if (cached) return cached;
 
-    const { LoroDoc } = await loadLoro();
     const path = pagePath(this.workspaceId, pageId);
-    const bytes = await this.backend.read(path);
-    const doc = bytes ? LoroDoc.fromSnapshot(bytes) : new LoroDoc();
+    const doc = await this.readDoc(path);
 
     this.pageDocs.set(pageId, doc);
     this.pathForDoc.set(doc, path);
@@ -435,6 +468,25 @@ export class WorkspaceStore {
       this.scheduleSave(doc);
       this.emitPage(pageId);
       this.scheduleCommit(pageId);
+    });
+
+    return doc;
+  }
+
+  private async openPluginDoc(instanceId: string): Promise<LoroDoc> {
+    const cached = this.pluginDocs.get(instanceId);
+    if (cached) return cached;
+
+    const path = pluginPath(this.workspaceId, instanceId);
+    const doc = await this.readDoc(path);
+
+    this.pluginDocs.set(instanceId, doc);
+    this.pathForDoc.set(doc, path);
+
+    doc.subscribe(() => {
+      this.scheduleSave(doc);
+      this.emitPlugin(instanceId);
+      this.scheduleCommit(pluginDocId(instanceId));
     });
 
     return doc;
@@ -488,9 +540,16 @@ export class WorkspaceStore {
     return () => this.commitListeners.delete(listener);
   }
 
-  /** docId space: the workspace doc answers to the workspace id, page docs to page ids. */
+  /** docId space: workspace id, page ids, and `plugin:<instanceId>` docs. */
   async getDocById(docId: string): Promise<LoroDoc | null> {
     if (docId === this.workspaceId) return this.doc;
+
+    const instanceId = pluginInstanceOf(docId);
+    if (instanceId !== null) {
+      if (!this.getPluginInstance(instanceId)) return null;
+
+      return this.openPluginDoc(instanceId);
+    }
 
     if (!this.getPage(docId)) return null;
 
@@ -500,6 +559,7 @@ export class WorkspaceStore {
   async listDocIds(): Promise<string[]> {
     const ids = [this.workspaceId];
     for (const page of this.listPages()) ids.push(page.id);
+    for (const instance of this.listPluginInstances()) ids.push(pluginDocId(instance.id));
 
     return ids;
   }
@@ -626,6 +686,223 @@ export class WorkspaceStore {
     doc.commit();
   }
 
+  // ---- Plugins -----------------------------------------------------------
+  //
+  // Installed plugins and their instances live in the workspace doc, so the
+  // registry syncs like pages and categories. Instance data lives in its own
+  // doc (`plugin:<instanceId>`), which the sync engine already handles
+  // generically through listDocIds/getDocById.
+
+  listPluginInstalls(): PluginInstall[] {
+    const plugins = this.doc.getMap("plugins");
+    const list: PluginInstall[] = [];
+
+    for (const id of plugins.keys() as string[]) {
+      const install = this.readPluginInstall(id);
+      if (install) list.push(install);
+    }
+
+    return list.sort((a, b) => a.installedAt - b.installedAt);
+  }
+
+  getPluginInstall(id: string): PluginInstall | undefined {
+    return this.readPluginInstall(id);
+  }
+
+  setPluginInstall(install: PluginInstall): void {
+    const plugins = this.doc.getMap("plugins");
+    const map =
+      (plugins.get(install.id) as LoroMap | undefined) ?? plugins.ensureMergeableMap(install.id);
+    map.set("id", install.id);
+    map.set("version", install.version);
+    map.set("enabled", install.enabled);
+    map.set("source", install.source);
+    map.set("installedAt", install.installedAt);
+    map.set("manifest", install.manifest);
+    this.doc.commit();
+  }
+
+  /** Removes the install and every instance that belongs to it. */
+  async uninstallPlugin(pluginId: string): Promise<void> {
+    for (const instance of this.listPluginInstances()) {
+      if (instance.pluginId === pluginId) await this.deletePluginInstance(instance.id);
+    }
+
+    this.doc.getMap("plugins").delete(pluginId);
+    this.doc.commit();
+  }
+
+  listPluginInstances(): PluginInstance[] {
+    const instances = this.doc.getMap("instances");
+    const list: PluginInstance[] = [];
+
+    for (const id of instances.keys() as string[]) {
+      const map = instances.get(id) as LoroMap | undefined;
+      if (!map || map.isDeleted()) continue;
+      list.push(map.toJSON() as PluginInstance);
+    }
+
+    return list.sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  getPluginInstance(id: string): PluginInstance | undefined {
+    const map = this.doc.getMap("instances").get(id) as LoroMap | undefined;
+    if (!map || map.isDeleted()) return undefined;
+
+    return map.toJSON() as PluginInstance;
+  }
+
+  async createPluginInstance(input: {
+    pluginId: string;
+    surface: PluginSurfaceKind;
+    title: string;
+    icon?: string;
+    config?: Record<string, unknown>;
+  }): Promise<PluginInstance> {
+    const instance: PluginInstance = {
+      id: createId(),
+      pluginId: input.pluginId,
+      surface: input.surface,
+      title: input.title,
+      icon: input.icon ?? "",
+      config: JSON.stringify(input.config ?? {}),
+      createdAt: Date.now(),
+    };
+
+    this.writePluginInstance(instance);
+    await this.openPluginDoc(instance.id);
+
+    return instance;
+  }
+
+  async updatePluginInstance(
+    id: string,
+    patch: Partial<Pick<PluginInstance, "title" | "icon" | "config">>,
+  ): Promise<void> {
+    const instance = this.getPluginInstance(id);
+    if (!instance) return;
+
+    this.writePluginInstance({ ...instance, ...patch });
+  }
+
+  async deletePluginInstance(id: string): Promise<void> {
+    this.doc.getMap("instances").delete(id);
+    this.doc.commit();
+
+    const doc = this.pluginDocs.get(id);
+    if (doc) this.dirtyDocs.delete(doc);
+    this.pluginDocs.delete(id);
+    await this.backend.delete(pluginPath(this.workspaceId, id));
+  }
+
+  private readPluginInstall(id: string): PluginInstall | undefined {
+    const map = this.doc.getMap("plugins").get(id) as LoroMap | undefined;
+    if (!map || map.isDeleted()) return undefined;
+
+    return map.toJSON() as PluginInstall;
+  }
+
+  private writePluginInstance(instance: PluginInstance): void {
+    const instances = this.doc.getMap("instances");
+    const map =
+      (instances.get(instance.id) as LoroMap | undefined) ??
+      instances.ensureMergeableMap(instance.id);
+    map.set("id", instance.id);
+    map.set("pluginId", instance.pluginId);
+    map.set("surface", instance.surface);
+    map.set("title", instance.title);
+    map.set("icon", instance.icon);
+    map.set("config", instance.config);
+    map.set("createdAt", instance.createdAt);
+    this.doc.commit();
+  }
+
+  /** Materializes every collection as arrays of plain records for the plugin. */
+  async readPluginState(instanceId: string): Promise<PluginState> {
+    if (!this.getPluginInstance(instanceId)) return {};
+
+    const doc = await this.openPluginDoc(instanceId);
+    const collections = doc.getMap("collections");
+    const state: PluginState = {};
+
+    for (const name of collections.keys() as string[]) {
+      const collection = collections.get(name) as LoroMap | undefined;
+      if (!collection) continue;
+
+      const records: PluginRecord[] = [];
+      for (const id of collection.keys() as string[]) {
+        const record = collection.get(id) as LoroMap | undefined;
+        if (!record || record.isDeleted()) continue;
+        records.push({ id, ...(record.toJSON() as Record<string, unknown>) });
+      }
+      state[name] = records;
+    }
+
+    return state;
+  }
+
+  /**
+   * Applies one render's patch ops. Fields are validated by the caller: this
+   * layer only knows collections, record ids, and scalar values.
+   */
+  async applyPluginPatch(instanceId: string, ops: PluginPatchOp[]): Promise<void> {
+    if (ops.length === 0) return;
+
+    const doc = await this.openPluginDoc(instanceId);
+    const collections = doc.getMap("collections");
+
+    for (const op of ops) {
+      const collection =
+        (collections.get(op.collection) as LoroMap | undefined) ??
+        collections.ensureMergeableMap(op.collection);
+
+      if (op.op === "append") {
+        const map =
+          (collection.get(op.record.id) as LoroMap | undefined) ??
+          collection.ensureMergeableMap(op.record.id);
+        for (const [key, value] of Object.entries(op.record)) {
+          if (key === "id" || value === undefined) continue;
+          map.set(key, value);
+        }
+        continue;
+      }
+
+      if (op.op === "remove") {
+        collection.delete(op.id);
+        continue;
+      }
+
+      const map =
+        (collection.get(op.id) as LoroMap | undefined) ?? collection.ensureMergeableMap(op.id);
+
+      if (op.op === "set") {
+        map.set(op.key, op.value);
+      } else if (op.op === "merge") {
+        for (const [key, value] of Object.entries(op.record)) {
+          if (value === undefined) continue;
+          map.set(key, value);
+        }
+      } else if (op.op === "inc") {
+        const current = map.get(op.key);
+        map.set(op.key, (typeof current === "number" ? current : 0) + op.value);
+      }
+    }
+
+    doc.commit();
+  }
+
+  async onPluginDocChange(instanceId: string, listener: () => void): Promise<() => void> {
+    await this.openPluginDoc(instanceId);
+    let listeners = this.pluginListeners.get(instanceId);
+    if (!listeners) {
+      listeners = new Set();
+      this.pluginListeners.set(instanceId, listeners);
+    }
+    listeners.add(listener);
+
+    return () => listeners.delete(listener);
+  }
+
   private async seed(): Promise<void> {
     const welcome = [
       "= Welcome to typbase",
@@ -671,6 +948,10 @@ export class WorkspaceStore {
 
   private emitPage(pageId: string): void {
     for (const listener of this.pageListeners.get(pageId) ?? []) listener();
+  }
+
+  private emitPlugin(instanceId: string): void {
+    for (const listener of this.pluginListeners.get(instanceId) ?? []) listener();
   }
 
   /** Called on any workspace-level change (pages, categories, settings). */

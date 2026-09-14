@@ -23,5 +23,13 @@ export {
   tauriStorageState,
 } from "./tauri";
 export type { CreatePageInput, WorkspaceStoreOptions } from "./workspace";
-export { WorkspaceStore, pagePath, slugify, workspacePath } from "./workspace";
+export {
+  WorkspaceStore,
+  pagePath,
+  pluginDocId,
+  pluginInstanceOf,
+  pluginPath,
+  slugify,
+  workspacePath,
+} from "./workspace";
 export { createId } from "@paralleldrive/cuid2";

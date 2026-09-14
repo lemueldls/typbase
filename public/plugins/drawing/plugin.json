@@ -1,0 +1,20 @@
+{
+  "id": "local:drawing",
+  "name": "Drawing",
+  "version": "0.2.0",
+  "description": "A touch-friendly drawing canvas with a Typst embed for notes.",
+  "api": "typbase.host.v1",
+  "entry": "main.typ",
+  "icon": "draw",
+  "capabilities": ["pages.read", "pages.write", "plugin.data"],
+  "collections": {
+    "strokes": {
+      "fields": {
+        "color": { "type": "string" },
+        "width": { "type": "number" },
+        "points": { "type": "json" }
+      }
+    }
+  },
+  "surfaces": [{ "kind": "main", "fn": "main", "title": "Drawing", "icon": "draw" }]
+}

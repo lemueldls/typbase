@@ -91,11 +91,11 @@ pub fn remove_errornous_block(
         .unzip();
 
     for synth_range in synth_ranges {
-        let start_byte = synth_range.start;
-        let end_byte = synth_range.end;
-
         // fill block with whitespace to stablize ranges
         let source = context.synth_source_mut(world).unwrap();
+        let len = source.text().len();
+        let start_byte = synth_range.start.min(len);
+        let end_byte = synth_range.end.min(len).max(start_byte);
         let byte_length = end_byte - start_byte;
         let whitespace = " ".repeat(byte_length.saturating_sub(1)) + "\n";
         source.edit(start_byte..end_byte, &whitespace);

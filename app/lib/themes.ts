@@ -1,6 +1,8 @@
 import type { ThemeMode, ThemePaletteTokens } from "@typbase/typing";
 
-import { Rgb, ThemeColors } from "@typbase/wasm";
+import { ThemeColors } from "@typbase/wasm";
+
+import { themeColorsFromPalette } from "./rendererPalette";
 
 /**
  * Theme registry. A theme is pure data: a token map for the app chrome plus
@@ -358,89 +360,11 @@ export function restoreCachedTheme(): void {
 }
 
 // Renderer palette derivation: the Typst theme is built from the same tokens,
-// so a custom theme automatically gets matching rendered pages. Contrast
-// colors are computed from the chrome surfaces rather than hardcoded.
-
-function rgba(css: string): Rgb {
-  const match = /^#([0-9a-f]{6})$/i.exec(css.trim());
-  if (!match) return new Rgb(127, 127, 127);
-
-  const hex = match[1]!;
-  return new Rgb(
-    parseInt(hex.slice(0, 2), 16),
-    parseInt(hex.slice(2, 4), 16),
-    parseInt(hex.slice(4, 6), 16),
-  );
-}
-
-/** The wasm Rgb class exposes no fields; parse its `rgb(r,g,b)` string form. */
-function rgbChannels(rgb: Rgb): [number, number, number] {
-  const match = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(rgb.toString());
-  if (!match) return [127, 127, 127];
-
-  return [Number(match[1]), Number(match[2]), Number(match[3])];
-}
-
-function luminance(rgb: Rgb): number {
-  const [r, g, b] = rgbChannels(rgb);
-  return (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
-}
-
-/** Fresh copy of an Rgb; wasm-bindgen consumes (moves) instances, so the
- * same wrapper can never appear in two slots of a constructor call. */
-function copyOf(rgb: Rgb): Rgb {
-  const [r, g, b] = rgbChannels(rgb);
-  return new Rgb(r, g, b);
-}
-
-/** Prefer the page background as "on <accent>" text when it reads well.
- * Returns a NEW instance: the caller may consume both operands. */
-function onColor(accent: Rgb, background: Rgb): Rgb {
-  return luminance(accent) > 0.45 ? copyOf(background) : new Rgb(255, 255, 255);
-}
-
-/** Derives the 20-slot Typst ThemeColors from chrome tokens. Every slot gets
- * its OWN Rgb instance: wasm-bindgen moves each argument into the native
- * side, so aliasing one instance (say, `text` for every on_*_container slot)
- * throws "Attempt to use a moved value". */
+// so a custom theme automatically gets matching rendered pages. The color math
+// lives in ./palette so plugin workers can share it without wasm or the theme
+// registry.
 export function rendererColors(palette: ThemePaletteTokens): ThemeColors {
-  const background = rgba(palette.surface);
-  const border = rgba(palette.border);
-  const soft = rgba(palette.surface3);
-  const primary = rgba(palette.accent);
-  const secondary = rgba(palette.ok);
-  const tertiary = rgba(palette.warning);
-  const error = rgba(palette.danger);
-
-  const textFor = () => rgba(palette.text);
-
-  return new ThemeColors(
-    // background group; the outline variant is the lighter surface
-    background,
-    textFor(),
-    border,
-    soft,
-    // primary group (soft containers keep text readable on them)
-    primary,
-    onColor(primary, background),
-    rgba(palette.accentSoft),
-    textFor(),
-    // secondary group
-    secondary,
-    onColor(secondary, background),
-    rgba(palette.ok),
-    textFor(),
-    // tertiary group
-    tertiary,
-    onColor(tertiary, background),
-    rgba(palette.warning),
-    textFor(),
-    // error group
-    error,
-    onColor(error, background),
-    rgba(palette.dangerSoft),
-    textFor(),
-  );
+  return themeColorsFromPalette(palette);
 }
 
 export function rendererPaletteFor(resolved: ResolvedTheme): ThemeColors {

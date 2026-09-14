@@ -272,5 +272,33 @@
     "deleteWorkspaceConfirm": "Supprimer l'espace « {name} » et toutes ses pages ? Action irréversible.",
     "deleteFileConfirm": "Supprimer le fichier « {path} » ? Une suppression directe peut casser un espace.",
     "hint": "Les fichiers sont des instantanés Loro et des données de l'app ; les supprimer directement peut casser un espace."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "empty": "Aucun plugin installé.",
+    "manage": "Gérer les plugins",
+    "available": "Plugins disponibles",
+    "noCatalog": "Aucun plugin trouvé dans cette compilation.",
+    "install": "Installer",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "remove": "Supprimer",
+    "removeInstance": "Supprimer l’instance",
+    "addSurface": "Ajouter {surface}",
+    "problems": "Problèmes",
+    "clear": "Effacer",
+    "confirmRemove": "Supprimer « {name} » et ses données ?",
+    "close": "Fermer le plugin",
+    "capPagesRead": "Lire les pages",
+    "capPagesCreate": "Créer des pages",
+    "capDailyWrite": "Écrire les notes quotidiennes",
+    "capData": "Données du plugin",
+    "capAi": "IA",
+    "capExternal": "Liens externes",
+    "reload": "Recharger les plugins locaux",
+    "installFolder": "Installer depuis un dossier",
+    "localHint": "Les plugins locaux vivent dans plugins/ dans le stockage de l’espace.",
+    "sourceLocal": "local",
+    "capPagesWrite": "Modifier les pages"
   }
 }

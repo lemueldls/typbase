@@ -18,8 +18,11 @@ pub fn render(
     prelude: &str,
     state: &mut TypstState,
 ) -> HTMLRenderResult {
-    let SynthResult { synth, blocks, .. } =
-        sync_source_state(id, text, prelude, RenderTarget::Html, state);
+    let SynthResult {
+        synth,
+        mut blocks,
+        ..
+    } = sync_source_state(id, text, prelude, RenderTarget::Html, state);
 
     let mut last_document = None;
 
@@ -78,14 +81,14 @@ pub fn render(
 
                 // let synth_source = context.synth_source(&self.world);
 
-                let Some(block) = blocks.iter().find(|block| {
+                // Pick the offending block by index and drop it from the
+                // candidate list: blanking it does not change the mapper, so
+                // keeping it around would loop forever on unfixable errors.
+                let Some(index) = blocks.iter().position(|block| {
                     let raw_range = &block.range;
 
                     let synth_range_start = context.map_raw_to_synth_from_right(raw_range.start);
                     let synth_range_end = context.map_raw_to_synth_from_right(raw_range.end);
-                    // let synth_range = synth_range_start..synth_range_end;
-
-                    // crate::log!("[BLOCK RANGE]: {synth_range_start} - {synth_range_end}");
 
                     error_ranges.iter().any(|error_range| {
                         (synth_range_start <= error_range.start
@@ -97,16 +100,12 @@ pub fn render(
                     break;
                 };
 
-                // let raw_source = context.raw_source(&state.world);
-                // let raw_lines = raw_source.lines();
-
-                let raw_range = &block.range;
-                // let raw_start_utf16 = raw_lines.byte_to_utf16(raw_range.start).unwrap();
-                // let raw_end_utf16 = raw_lines.byte_to_utf16(raw_range.end).unwrap();
-                // let raw_range_utf16 = raw_start_utf16..raw_end_utf16;
+                let raw_range = blocks[index].range.clone();
+                let inline = blocks[index].inline;
+                blocks.remove(index);
 
                 let mut end_byte = context.map_raw_to_synth_from_right(raw_range.end);
-                if block.inline {
+                if inline {
                     end_byte += 12;
                 }
 
@@ -120,7 +119,12 @@ pub fn render(
 
                 let start_byte = context.map_raw_to_synth_from_right(raw_range.start);
 
+                // Earlier passes shrink the synth while the mapper still
+                // describes the original text; clamp before blanking.
                 let source = context.synth_source_mut(&mut state.world).unwrap();
+                let len = source.text().len();
+                let start_byte = start_byte.min(len);
+                let end_byte = end_byte.min(len).max(start_byte);
                 source.edit(start_byte..end_byte, &(" ".repeat(end_byte - start_byte)));
 
                 Vec::new()

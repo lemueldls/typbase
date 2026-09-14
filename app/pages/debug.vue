@@ -257,6 +257,12 @@ definePageMeta({ ssr: false });
 
     <StorageExplorer />
 
+    <section class="lab__plugins">
+      <h2>Plugins</h2>
+      <PluginManager />
+      <PluginLab />
+    </section>
+
     <section class="lab__run">
       <label class="lab__field">
         <span>Typst source</span>
@@ -586,5 +592,10 @@ definePageMeta({ ssr: false });
   border-radius: 0.4rem;
   font-size: 0.75rem;
   white-space: pre-wrap;
+}
+
+.lab__plugins {
+  display: grid;
+  gap: 0.75rem;
 }
 </style>

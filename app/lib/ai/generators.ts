@@ -135,14 +135,15 @@ export function createProviderFor(
   return createProvider(store.getAiConfig(), keys);
 }
 
-/** Maps wasm section spans to the stored `Section` shape (id + ranges). */
-export function toSections(spans: SectionSpan[]): Section[] {
+/** Maps wasm section spans to the stored `Section` shape (id, ranges, text). */
+export function toSections(spans: SectionSpan[], source: string): Section[] {
   return spans.map((span) => ({
     id: `${span.kind}:${span.content_start}`,
     kind: span.kind,
     rangeStart: span.content_start,
     rangeEnd: span.content_end,
     title: span.title,
+    text: source.slice(span.content_start, span.content_end),
   }));
 }
 

@@ -51,6 +51,8 @@ const props = defineProps<{
   onPanic?: () => void;
   /** Fired when a Typbase link inside a rendered widget is clicked. */
   onNavigate?: (pageId: string) => void;
+  /** Fired when a plugin link inside a rendered widget is clicked. */
+  onNavigatePlugin?: (instanceId: string) => void;
 }>();
 
 const container = useTemplateRef("container");
@@ -66,16 +68,25 @@ const createView = () => {
   });
 };
 
-// typbase.page-link renders as <a href="typbase://page/<id>"> inside the
-// widget SVG; the widget no longer claims anchor clicks, so route them here.
+// typbase.page-link and plugin embeds render as typbase:// anchors inside
+// the widget SVG; the widget no longer claims anchor clicks, so route them.
 function onWidgetClick(event: MouseEvent) {
-  const anchor = (event.target as Element | null)?.closest?.(
-    'a[href^="typbase://page/"]',
-  ) as HTMLAnchorElement | null;
+  const target = event.target as Element | null;
+  const anchor = target?.closest?.('a[href^="typbase://"]') as HTMLAnchorElement | null;
   if (!anchor) return;
-  event.preventDefault();
-  const pageId = anchor.getAttribute("href")?.slice("typbase://page/".length);
-  if (pageId) props.onNavigate?.(pageId);
+
+  const href = anchor.getAttribute("href") ?? "";
+  if (href.startsWith("typbase://page/")) {
+    event.preventDefault();
+    const pageId = href.slice("typbase://page/".length);
+    if (pageId) props.onNavigate?.(pageId);
+    return;
+  }
+  if (href.startsWith("typbase://plugin/")) {
+    event.preventDefault();
+    const instanceId = href.slice("typbase://plugin/".length);
+    if (instanceId) props.onNavigatePlugin?.(instanceId);
+  }
 }
 
 onMounted(() => {

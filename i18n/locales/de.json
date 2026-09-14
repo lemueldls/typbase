@@ -272,5 +272,33 @@
     "deleteWorkspaceConfirm": "Arbeitsbereich „{name}“ und alle Seiten löschen? Das kann nicht rückgängig gemacht werden.",
     "deleteFileConfirm": "Datei „{path}“ löschen? Direktes Löschen kann einen Arbeitsbereich beschädigen.",
     "hint": "Dateien sind Loro-Snapshots und App-Daten; direktes Löschen kann einen Arbeitsbereich beschädigen."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "empty": "Keine Plugins installiert.",
+    "manage": "Plugins verwalten",
+    "available": "Verfügbare Plugins",
+    "noCatalog": "Keine Plugins in diesem Build gefunden.",
+    "install": "Installieren",
+    "enable": "Aktivieren",
+    "disable": "Deaktivieren",
+    "remove": "Entfernen",
+    "removeInstance": "Instanz entfernen",
+    "addSurface": "{surface} hinzufügen",
+    "problems": "Probleme",
+    "clear": "Leeren",
+    "confirmRemove": "„{name}“ und dessen Daten entfernen?",
+    "close": "Plugin schließen",
+    "capPagesRead": "Seiten lesen",
+    "capPagesCreate": "Seiten erstellen",
+    "capDailyWrite": "Tägliche Notizen schreiben",
+    "capData": "Plugin-Daten",
+    "capAi": "KI",
+    "capExternal": "Externe Links",
+    "reload": "Lokale Plugins neu laden",
+    "installFolder": "Aus Ordner installieren",
+    "localHint": "Lokale Plugins liegen in plugins/ im Arbeitsbereichsspeicher.",
+    "sourceLocal": "lokal",
+    "capPagesWrite": "Seiten bearbeiten"
   }
 }

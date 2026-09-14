@@ -1038,6 +1038,10 @@ const TYPBASE_LIB: &str = r#"
     if body == none [#link(url)[#meta.title]] else [#link(url)[#body]]
   }
 }
+
+// A semantic block for app-side consumers (AI generation, flashcard decks).
+// The body renders where it sits; the app reads kind and range off the AST.
+#let section(kind: none, body) = body
 "#;
 
 // The import and the request paths are root-absolute: pages compile from

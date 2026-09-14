@@ -272,5 +272,33 @@
     "deleteWorkspaceConfirm": "Delete workspace “{name}” and every page in it? This cannot be undone.",
     "deleteFileConfirm": "Delete file “{path}”? Raw deletes can break a workspace.",
     "hint": "Files are Loro snapshots and app data; deleting them directly can break a workspace."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "empty": "No plugins installed.",
+    "manage": "Manage plugins",
+    "available": "Available plugins",
+    "noCatalog": "No plugins found in this build.",
+    "install": "Install",
+    "enable": "Enable",
+    "disable": "Disable",
+    "remove": "Remove",
+    "removeInstance": "Remove instance",
+    "addSurface": "Add {surface}",
+    "problems": "Problems",
+    "clear": "Clear",
+    "confirmRemove": "Remove “{name}” and delete its data?",
+    "close": "Close plugin",
+    "capPagesRead": "Read pages",
+    "capPagesCreate": "Create pages",
+    "capDailyWrite": "Write daily notes",
+    "capData": "Plugin data",
+    "capAi": "AI",
+    "capExternal": "External links",
+    "reload": "Reload local plugins",
+    "installFolder": "Install from folder",
+    "localHint": "Local plugins live in plugins/ inside the workspace storage.",
+    "sourceLocal": "local",
+    "capPagesWrite": "Edit pages"
   }
 }

@@ -68,11 +68,13 @@ self.addEventListener(
     if (message.type !== "render") return;
 
     currentId = message.id;
-    const { pagePath, source, prelude, wants } = message;
+    const { pagePath, source, prelude, wants, spaceId } = message;
 
     try {
       const typstState = await ensureState();
-      const file = typstState.createFileId(pagePath);
+      // renderHtml/renderPdf go through the raw/synth pipeline, which needs a
+      // registered SourceContext: a plain file id panics in the prelude.
+      const file = typstState.createSourceId(pagePath, spaceId);
       typstState.insertSource(file, source);
 
       if (wants === "pdf") {

@@ -46,6 +46,77 @@ Rendering geometry: panes are measured in CSS pixels and converted to points ins
 `TypstState::resize`; the SVG frames each pane renders are sized to it, so inline widgets,
 split, and read views all lay out at the width the user sees.
 
+## Plugins
+
+A plugin is a folder with a manifest and Typst sources. No JavaScript ships with a plugin:
+the host compiles each surface to HTML, sanitizes it, and renders it into a shadow root
+(styles are scoped, scripts and network URLs are stripped), then applies the state patch the
+surface returns. Bundled examples live in `public/plugins/`; local plugins live in
+`plugins/<name>/` inside the workspace storage, so a desktop user can edit them with any
+editor. The plugin lab on `/debug` compiles a surface on demand, dispatches test actions, shows
+state, logs, and rendered HTML, edits local sources in place, and forks a bundled plugin into
+the storage tree. If the compile worker cannot start, the host falls back to the main-thread
+engine and the lab reports why.
+
+```json
+{
+  "id": "local:calendar",
+  "name": "Calendar",
+  "version": "0.1.0",
+  "api": "typbase.host.v1",
+  "entry": "main.typ",
+  "icon": "calendar_month",
+  "capabilities": ["pages.read", "daily.write", "plugin.data"],
+  "collections": {
+    "events": {
+      "fields": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string", "optional": true }
+      }
+    }
+  },
+  "surfaces": [
+    { "kind": "sidebar", "fn": "sidebar", "title": "Calendar" },
+    { "kind": "main", "fn": "main", "title": "Calendar" }
+  ]
+}
+```
+
+Each surface is an exported Typst function called with one JSON context:
+`ctx.state` (declared collections), `ctx.view` (device-local view state), `ctx.action`
+(when an action is being reduced), `ctx.data` (pages/categories, gated by capability),
+`ctx.today`, `ctx.locale`, and `ctx.config`. The function returns UI plus a hidden patch:
+
+```typst
+#import "/typbase-ui.typ": *
+
+#let step(state, action) = {
+  if action.name == "note.create" {
+    patch-state((op-append("notes", (
+      id: action.id,
+      text: action.fields.at("text", default: ""),
+      x: 20, y: 20, color: "#fff3bf",
+    )),))
+  } else { none }
+}
+
+#let main(ctx) = {
+  let patch = if ctx.action != none { step(ctx.state, ctx.action) } else { none }
+  [
+    #patch-holder(patch)
+    #button("Add", "note.create")
+  ]
+}
+```
+
+`typbase-ui.typ` provides the controls (button, field, select, grid, board, movable,
+canvas) and the patch helpers. Actions are declarative strings like `note.create` or host
+actions like `app.open-plugin` / `app.create-daily` / `app.page-append`; the host validates
+every patch op against the manifest schema before writing to the plugin's Loro doc, which
+syncs like any page. Plugin logic is Typst, and the renderer strips scripts and network URLs
+before sanitized HTML reaches the shadow root.
+
 ## Development
 
 Prerequisites: Node 26+, pnpm 12+, Rust with `wasm32-unknown-unknown` target, wasm-pack.
