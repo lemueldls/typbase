@@ -7,7 +7,6 @@ tasks:
     command: "pnpm build"
     inputs:
       - "src/**/*"
-      - "tsdown.config.ts"
       - "tsconfig.json"
       - "package.json"
       - "/pnpm-lock.yaml"
@@ -21,7 +20,6 @@ tasks:
       persistent: true
     inputs:
       - "src/**/*"
-      - "tsdown.config.ts"
       - "tsconfig.json"
       - "package.json"
       - "/pnpm-lock.yaml"

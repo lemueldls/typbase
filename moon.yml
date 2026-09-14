@@ -14,10 +14,10 @@ tasks:
     preset: "server"
     deps:
       - "wasm:build-dev"
-      - "codemirror:build-dev"
-      - "typing:build-dev"
-      - "storage:build-dev"
-      - "spaces:build-dev"
+      # - "codemirror:build-dev"
+      # - "typing:build-dev"
+      # - "storage:build-dev"
+      # - "spaces:build-dev"
 
   build:
     command: "pnpm nuxt build"

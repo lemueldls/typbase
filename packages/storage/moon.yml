@@ -11,7 +11,6 @@ tasks:
       - "typing:build"
     inputs:
       - "src/**/*"
-      - "tsdown.config.ts"
       - "tsconfig.json"
       - "package.json"
       - "/pnpm-lock.yaml"
@@ -28,7 +27,6 @@ tasks:
       - "typing:build"
     inputs:
       - "src/**/*"
-      - "tsdown.config.ts"
       - "tsconfig.json"
       - "package.json"
       - "/pnpm-lock.yaml"
