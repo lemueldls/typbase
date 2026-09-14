@@ -35,7 +35,12 @@ through Rust commands in `platform/tauri/src/storage.rs` to one of: app data (pr
 device documents folder (visible to other apps), or a desktop-picked folder. Browsers use
 OPFS, or a folder picked through the File System Access API on Chromium desktop. The choice
 is made on first run and can be changed from settings; each location keeps its own workspace
-registry. `/debug` has a storage explorer with a workspace view and a raw file tree.
+registry. Page sources are mirrored to `sources/<page.path>` so external editors can work on
+real `.typ` files; changes are pulled back when the window regains focus. Media lives in a
+content-addressed `blobs/<sha256>` tree and is served to Typst as
+`/typbase-blob/<hash>.<ext>`. `/debug` has a storage explorer with a workspace view, a raw
+file tree, and an Assets tab that previews blobs, copies references, uploads, and prunes
+unreferenced files.
 
 `/debug` (linked from the sidebar footer) is a lab for the pipeline: compile arbitrary Typst
 against the workspace, check the raw/synth index mapper invariants, run a recovery battery

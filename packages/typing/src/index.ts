@@ -57,7 +57,10 @@ export interface Section {
 
 /** Media a page references, keyed by the reference path in the Typst source. */
 export interface AssetMeta {
-  cid: string;
+  /** Content hash in the workspace's local blob store. */
+  hash?: string;
+  /** atproto blob CID; absent until the asset is uploaded to a space. */
+  cid?: string;
   mime: string;
   size: number;
   alt: string | null;

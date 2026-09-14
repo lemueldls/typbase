@@ -92,6 +92,15 @@ export async function resolveRequestPayloads(
         continue;
       }
     } else if (request.type === "file") {
+      // Local media: `#image("/typbase-blob/<hash>.<ext>")`.
+      if (path.startsWith("typbase-blob/")) {
+        const name = path.slice("typbase-blob/".length);
+        const hash = name.replace(/\.[^.]*$/, "");
+        const bytes = await store.getBlob(hash);
+        if (bytes) payloads.push({ type: "file", path, bytes });
+        continue;
+      }
+
       if (path.startsWith("typbase-query/")) {
         const parsed = parseQueryPath(path);
         if (!parsed) continue;

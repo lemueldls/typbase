@@ -62,7 +62,8 @@
     "unpublish": "取消发布",
     "publishConfirm": "取消发布这篇笔记？公开记录可能被 firehose 服务镜像，且无法撤回。",
     "publishHint": "公开记录对任何人可读。取消发布会删除记录；firehose 镜像可能保留副本。",
-    "publishWorking": "处理中…"
+    "publishWorking": "处理中…",
+    "dropMedia": "拖放以插入素材"
   },
   "settings": {
     "title": "工作区设置",
@@ -271,7 +272,20 @@
     "deletePageConfirm": "删除页面“{title}”？其文档文件也会被删除。",
     "deleteWorkspaceConfirm": "删除工作区“{name}”及其所有页面？此操作无法撤销。",
     "deleteFileConfirm": "删除文件“{path}”？直接删除可能会损坏工作区。",
-    "hint": "这些文件是 Loro 快照和应用数据，直接删除可能会损坏工作区。"
+    "hint": "这些文件是 Loro 快照和应用数据，直接删除可能会损坏工作区。",
+    "tabAssets": "素材",
+    "assetUpload": "上传素材",
+    "assetPrune": "删除未使用",
+    "assetPruneConfirm": "删除所有未被页面引用的素材？",
+    "assetPruned": "已删除 {count} 个未使用素材。",
+    "assetEmpty": "此工作区暂无素材。",
+    "assetCopied": "引用已复制。",
+    "assetDelete": "删除素材",
+    "assetDeleteConfirm": "删除素材 {hash}…？引用它的页面将失去图片。",
+    "assetDownload": "下载素材",
+    "assetReferences": "被 {count} 个页面使用",
+    "assetUnused": "未使用",
+    "assetDrag": "拖入编辑器以插入"
   },
   "plugins": {
     "title": "插件",

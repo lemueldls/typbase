@@ -62,7 +62,8 @@
     "unpublish": "Despublicar",
     "publishConfirm": "¿Despublicar esta nota? Los registros públicos pueden estar replicados por servicios de firehose y no se pueden retirar.",
     "publishHint": "Los registros públicos son legibles por cualquiera. Despublicar elimina el registro; las réplicas de firehose pueden conservarlo.",
-    "publishWorking": "Trabajando…"
+    "publishWorking": "Trabajando…",
+    "dropMedia": "Suelta para insertar medios"
   },
   "settings": {
     "title": "Ajustes del espacio",
@@ -271,7 +272,20 @@
     "deletePageConfirm": "¿Eliminar la página «{title}»? También se borra su documento.",
     "deleteWorkspaceConfirm": "¿Eliminar el espacio «{name}» y todas sus páginas? No se puede deshacer.",
     "deleteFileConfirm": "¿Eliminar el archivo «{path}»? Un borrado directo puede romper un espacio.",
-    "hint": "Los archivos son instantáneas de Loro y datos de la app; borrarlos directamente puede romper un espacio."
+    "hint": "Los archivos son instantáneas de Loro y datos de la app; borrarlos directamente puede romper un espacio.",
+    "tabAssets": "Recursos",
+    "assetUpload": "Subir recurso",
+    "assetPrune": "Eliminar no usados",
+    "assetPruneConfirm": "¿Eliminar todos los recursos que ninguna página usa?",
+    "assetPruned": "Se eliminaron {count} recursos no usados.",
+    "assetEmpty": "Aún no hay recursos en este espacio.",
+    "assetCopied": "Referencia copiada.",
+    "assetDelete": "Eliminar recurso",
+    "assetDeleteConfirm": "¿Eliminar el recurso {hash}…? Las páginas que lo usan perderán la imagen.",
+    "assetDownload": "Descargar recurso",
+    "assetReferences": "Usado por {count} página(s)",
+    "assetUnused": "sin usar",
+    "assetDrag": "Arrastra a un editor para insertar"
   },
   "plugins": {
     "title": "Plugins",

@@ -399,13 +399,14 @@ function useWorkspaceState() {
   }
 
   /** atproto boot, off the critical path and bounded. */
-  async function bootAtproto(store: WorkspaceStore, activeBackend: StorageBackend): Promise<void> {
+  async function bootAtproto(
+    store: WorkspaceStore,
+    activeBackend: StorageBackend,
+    local: LocalState,
+  ): Promise<void> {
     const token = ++openingSeq;
     updateBootStep("atproto", { status: "active", detail: "in background" });
     try {
-      const local = new LocalState(activeBackend, localStatePath(store.workspaceId));
-      localState.value = local;
-
       // AI keys are device-only state. Load once; writes go through the
       // setter so settings UI and generators see the same object.
       const keys = (await local.get<AiKeyState>("aiKeys")) ?? {};
@@ -509,8 +510,24 @@ function useWorkspaceState() {
     localStorage.setItem(LAST_WORKSPACE_KEY, id);
     void refreshWorkspaceList();
 
+    // Device-local state doubles as the source-mirror bookkeeping; create it
+    // before atproto boots so `sources/` can sync right away.
+    const local = new LocalState(backendRef.value!, localStatePath(id));
+    localState.value = local;
+    store.attachSourceSync(local);
+
     // atproto boots in the background, never gating the editor.
-    void bootAtproto(store, backendRef.value!);
+    void bootAtproto(store, backendRef.value!, local);
+
+    // Mirror pages to `sources/` and pick up external edits.
+    void store
+      .syncSources()
+      .then((result) => {
+        if (result.created.length || result.imported.length || result.conflicts.length) {
+          console.info("[sources] synced", result);
+        }
+      })
+      .catch((reason) => console.warn("[sources] sync failed:", reason));
 
     if (import.meta.dev) {
       // Console access for debugging (mirrors __typstState in typst.ts).
@@ -695,6 +712,21 @@ function useWorkspaceState() {
   }
 
   const workspaceId = computed(() => activeWorkspaceId.value ?? "");
+
+  // External editors write straight to `sources/`; pull their changes when
+  // the window regains focus instead of watching (browsers cannot watch).
+  if (typeof window !== "undefined") {
+    const syncExternalChanges = useDebounceFn(() => {
+      void workspace.value?.syncSources().catch((reason) => {
+        console.warn("[sources] focus sync failed:", reason);
+      });
+    }, 600);
+
+    window.addEventListener("focus", syncExternalChanges);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) void syncExternalChanges();
+    });
+  }
 
   return {
     workspace,

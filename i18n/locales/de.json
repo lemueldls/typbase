@@ -62,7 +62,8 @@
     "unpublish": "Veröffentlichung zurückziehen",
     "publishConfirm": "Diese Notiz zurückziehen? Öffentliche Einträge können von Firehose-Diensten gespiegelt werden und sind nicht zurückholbar.",
     "publishHint": "Öffentliche Einträge sind für jeden lesbar. Zurückziehen löscht den Eintrag; Firehose-Spiegel können Kopien behalten.",
-    "publishWorking": "Arbeite…"
+    "publishWorking": "Arbeite…",
+    "dropMedia": "Zum Einfügen von Medien hier ablegen"
   },
   "settings": {
     "title": "Arbeitsbereich-Einstellungen",
@@ -271,7 +272,20 @@
     "deletePageConfirm": "Seite „{title}“ löschen? Ihr Dokument wird ebenfalls entfernt.",
     "deleteWorkspaceConfirm": "Arbeitsbereich „{name}“ und alle Seiten löschen? Das kann nicht rückgängig gemacht werden.",
     "deleteFileConfirm": "Datei „{path}“ löschen? Direktes Löschen kann einen Arbeitsbereich beschädigen.",
-    "hint": "Dateien sind Loro-Snapshots und App-Daten; direktes Löschen kann einen Arbeitsbereich beschädigen."
+    "hint": "Dateien sind Loro-Snapshots und App-Daten; direktes Löschen kann einen Arbeitsbereich beschädigen.",
+    "tabAssets": "Medien",
+    "assetUpload": "Medien hochladen",
+    "assetPrune": "Ungenutzte löschen",
+    "assetPruneConfirm": "Alle Medien löschen, die keine Seite verwendet?",
+    "assetPruned": "{count} ungenutzte Medien gelöscht.",
+    "assetEmpty": "Noch keine Medien in diesem Arbeitsbereich.",
+    "assetCopied": "Referenz kopiert.",
+    "assetDelete": "Medium löschen",
+    "assetDeleteConfirm": "Medium {hash}… löschen? Seiten, die es verwenden, verlieren das Bild.",
+    "assetDownload": "Medium herunterladen",
+    "assetReferences": "Von {count} Seite(n) verwendet",
+    "assetUnused": "ungenutzt",
+    "assetDrag": "In einen Editor ziehen, um einzufügen"
   },
   "plugins": {
     "title": "Plugins",

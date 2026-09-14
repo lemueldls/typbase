@@ -23,11 +23,13 @@ declare global {
  * Storage backends. The whole local tree is a flat set of byte-addressed
  * files; the registry decides what lives where.
  *
- * Layout mirrors the plan:
+ * Layout:
  *
  *   workspaces/<id>/workspace.loro
  *   workspaces/<id>/pages/<pageId>.loro
- *   workspaces/<id>/blobs/<sha256>   (future: media cache)
+ *   workspaces/<id>/sources/<page.path>   (mirrored Typst source)
+ *   workspaces/<id>/blobs/<sha256>        (content-addressed media)
+ *   workspaces/<id>/local.json
  */
 
 export interface StorageEntryStat {

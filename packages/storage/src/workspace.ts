@@ -18,6 +18,7 @@ import { DEFAULT_SETTINGS } from "@typbase/typing";
 
 import type { StorageBackend } from "./backend";
 
+import { blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
 import { type LoroModule, loadLoro } from "./loro";
 
 const SNAPSHOT_DEBOUNCE_MS = 1000;
@@ -47,6 +48,48 @@ export function slugify(text: string): string {
 
   return slug || "untitled";
 }
+
+/**
+ * Device-local key/value state the store uses to remember which source file
+ * it last exported. `LocalState` satisfies this shape.
+ */
+export interface SourceSyncStore {
+  get<T>(key: string): Promise<T | undefined>;
+  set(key: string, value: unknown): Promise<void>;
+}
+
+export interface SourceSyncResult {
+  /** Existing pages updated from a changed file. */
+  imported: string[];
+  /** Pages created from files that had no page. */
+  created: string[];
+  /** Files that changed while the page also changed; the doc won. */
+  conflicts: string[];
+  /** Source files written from the doc (new or re-exported). */
+  exported: number;
+}
+
+/** FNV-1a, hex. Change detection only; not security relevant. */
+function hashText(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16);
+}
+
+function firstHeading(text: string): string | undefined {
+  for (const line of text.split("\n")) {
+    const match = /^=\s+(.+)$/.exec(line.trim());
+    if (match?.[1]) return match[1].trim();
+  }
+
+  return undefined;
+}
+
+const SOURCE_HASHES_KEY = "sourceHashes";
 
 export function workspacePath(workspaceId: string): string {
   return `workspaces/${workspaceId}/workspace.loro`;
@@ -92,6 +135,7 @@ export class WorkspaceStore {
   private pageDocs = new Map<string, LoroDoc>();
   private pluginDocs = new Map<string, LoroDoc>();
   private readonly pathForDoc = new Map<LoroDoc, string>();
+  private readonly pageIdForDoc = new Map<LoroDoc, string>();
   private dirtyDocs = new Set<LoroDoc>();
   private snapshotTimer: ReturnType<typeof setTimeout> | undefined;
   private structureListeners = new Set<() => void>();
@@ -101,6 +145,9 @@ export class WorkspaceStore {
   private commitTimer: ReturnType<typeof setTimeout> | undefined;
   private pendingCommits = new Set<string>();
   private loro!: LoroModule;
+  private sourceSync?: SourceSyncStore;
+  private sourceHashes: Record<string, { pageId: string; hash: string }> | undefined;
+  private sourceSyncPromise: Promise<SourceSyncResult> | undefined;
 
   private constructor(
     private readonly backend: StorageBackend,
@@ -141,7 +188,10 @@ export class WorkspaceStore {
     return store;
   }
 
-  /** Writes any pending snapshots. Called on page hide so a crash loses little. */
+  /**
+   * Writes pending snapshots and mirrors page sources to `sources/<path>`.
+   * Called on the snapshot debounce and on page hide so a crash loses little.
+   */
   async flush(): Promise<void> {
     for (const doc of this.dirtyDocs) {
       const path = this.pathForDoc.get(doc);
@@ -149,7 +199,168 @@ export class WorkspaceStore {
       const snapshot = doc.export({ mode: "snapshot" });
       await this.backend.write(path, snapshot);
       this.dirtyDocs.delete(doc);
+
+      const pageId = this.pageIdForDoc.get(doc);
+      if (pageId && this.sourceSync) await this.exportPageSource(pageId);
     }
+  }
+
+  /** Enables the `sources/<path>` mirror; call once the device state exists. */
+  attachSourceSync(sync: SourceSyncStore): void {
+    this.sourceSync = sync;
+  }
+
+  /** Current disk path for a page's mirrored source. */
+  sourcePath(page: PageMeta): string {
+    return `workspaces/${this.workspaceId}/sources/${page.path}`;
+  }
+
+  private async loadSourceHashes(): Promise<Record<string, { pageId: string; hash: string }>> {
+    this.sourceHashes ??=
+      (await this.sourceSync?.get<Record<string, { pageId: string; hash: string }>>(
+        SOURCE_HASHES_KEY,
+      )) ?? {};
+
+    return this.sourceHashes;
+  }
+
+  private async saveSourceHashes(): Promise<void> {
+    if (!this.sourceSync || !this.sourceHashes) return;
+
+    await this.sourceSync.set(SOURCE_HASHES_KEY, this.sourceHashes);
+  }
+
+  private async writeSourceFile(page: PageMeta, text: string): Promise<void> {
+    await this.backend.write(this.sourcePath(page), new TextEncoder().encode(text));
+  }
+
+  private async exportPageSource(pageId: string): Promise<void> {
+    const page = this.getPage(pageId);
+    if (!page) return;
+
+    const text = await this.loadPageText(pageId);
+    await this.writeSourceFile(page, text);
+
+    const hashes = await this.loadSourceHashes();
+    hashes[page.path] = { pageId, hash: hashText(text) };
+    await this.saveSourceHashes();
+  }
+
+  /** Reads `sources/**.typ` recursively as `virtual path -> text`. */
+  private async listSourceFiles(relative = ""): Promise<Map<string, string>> {
+    const files = new Map<string, string>();
+    const dir = `workspaces/${this.workspaceId}/sources${relative ? `/${relative}` : ""}`;
+    let entries: string[] = [];
+    try {
+      entries = await this.backend.list(dir);
+    } catch {
+      return files;
+    }
+
+    for (const name of entries) {
+      const path = `${dir}/${name}`;
+      const stat = await this.backend.stat(path).catch(() => null);
+      if (!stat) continue;
+      const virtual = relative ? `${relative}/${name}` : name;
+
+      if (stat.kind === "directory") {
+        for (const [key, value] of await this.listSourceFiles(virtual)) files.set(key, value);
+      } else if (name.endsWith(".typ")) {
+        const bytes = await this.backend.read(path);
+        if (bytes) files.set(virtual, new TextDecoder().decode(bytes));
+      }
+    }
+
+    return files;
+  }
+
+  /**
+   * Mirrors `sources/` and the page docs:
+   * - a file with no page creates one;
+   * - a changed file imports when the doc has not changed since the last export;
+   * - when both changed, the doc wins and the file is re-exported;
+   * - pages with no file are exported, so the tree is complete.
+   *
+   * Deleting a file never deletes a page; remove those in the app.
+   */
+  syncSources(): Promise<SourceSyncResult> {
+    this.sourceSyncPromise ??= this.doSyncSources().finally(() => {
+      this.sourceSyncPromise = undefined;
+    });
+
+    return this.sourceSyncPromise;
+  }
+
+  private async doSyncSources(): Promise<SourceSyncResult> {
+    const result: SourceSyncResult = { imported: [], created: [], conflicts: [], exported: 0 };
+    if (!this.sourceSync) return result;
+
+    // Compare before flushing: doc text is live, and the recorded hashes
+    // describe what was last exported. A dirty doc plus a changed file is a
+    // conflict, not an import.
+    const hashes = await this.loadSourceHashes();
+    const files = await this.listSourceFiles();
+    const pages = this.listPages();
+    const pagesByPath = new Map(pages.map((page) => [page.path, page]));
+
+    for (const [virtualPath, text] of files) {
+      const fileHash = hashText(text);
+      const page = pagesByPath.get(virtualPath);
+      const recorded = hashes[virtualPath];
+
+      if (!page) {
+        const fallback =
+          virtualPath
+            .split("/")
+            .pop()
+            ?.replace(/\.typ$/, "") ?? "Untitled";
+        const meta = await this.createPage({
+          title: firstHeading(text) ?? fallback,
+          path: virtualPath,
+          content: text,
+        });
+        hashes[virtualPath] = { pageId: meta.id, hash: fileHash };
+        result.created.push(meta.id);
+        continue;
+      }
+
+      if (recorded && recorded.hash === fileHash) continue; // disk unchanged
+
+      const docText = await this.loadPageText(page.id);
+      const docHash = hashText(docText);
+      const docChanged = !recorded || docHash !== recorded.hash;
+
+      if (!docChanged) {
+        if (docText !== text) {
+          await this.setPageText(page.id, text);
+          // Stale section ranges would point into the old text.
+          await this.setSections(page.id, []);
+          result.imported.push(page.id);
+        }
+        hashes[virtualPath] = { pageId: page.id, hash: fileHash };
+      } else {
+        result.conflicts.push(virtualPath);
+        await this.writeSourceFile(page, docText);
+        hashes[virtualPath] = { pageId: page.id, hash: docHash };
+      }
+    }
+
+    // Pages with no file (new or externally deleted) get one exported.
+    const known = new Set(files.keys());
+    for (const page of pages) {
+      if (known.has(page.path)) continue;
+
+      const text = await this.loadPageText(page.id);
+      await this.writeSourceFile(page, text);
+      hashes[page.path] = { pageId: page.id, hash: hashText(text) };
+      result.exported++;
+    }
+
+    // Export any dirty docs last; this re-records their hashes too.
+    await this.flush();
+    await this.saveSourceHashes();
+
+    return result;
   }
 
   getSettings(): WorkspaceSettings {
@@ -317,13 +528,28 @@ export class WorkspaceStore {
   }
 
   async deletePage(id: string): Promise<void> {
+    const meta = this.getPage(id);
+
     this.doc.getMap("pages").delete(id);
     this.doc.commit();
 
     const pageDoc = this.pageDocs.get(id);
-    if (pageDoc) this.dirtyDocs.delete(pageDoc);
+    if (pageDoc) {
+      this.dirtyDocs.delete(pageDoc);
+      this.pageIdForDoc.delete(pageDoc);
+    }
     this.pageDocs.delete(id);
     await this.backend.delete(pagePath(this.workspaceId, id));
+
+    if (meta) {
+      await this.backend.delete(this.sourcePath(meta)).catch(() => {
+        // A missing mirror is fine; the page is what matters.
+      });
+      if (this.sourceHashes) {
+        delete this.sourceHashes[meta.path];
+        await this.saveSourceHashes();
+      }
+    }
   }
 
   private uniquePath(path: string): string {
@@ -463,6 +689,7 @@ export class WorkspaceStore {
 
     this.pageDocs.set(pageId, doc);
     this.pathForDoc.set(doc, path);
+    this.pageIdForDoc.set(doc, pageId);
 
     doc.subscribe(() => {
       this.scheduleSave(doc);
@@ -647,7 +874,14 @@ export class WorkspaceStore {
     const out: Record<string, AssetMeta> = {};
     for (const key of map.keys() as string[]) {
       const value = map.get(key);
-      if (value && typeof value === "object") out[key] = value as AssetMeta;
+      if (!value || typeof value !== "object") continue;
+
+      // Mergeable children read back as LoroMap; plain values are already data.
+      const plain =
+        typeof (value as LoroMap).toJSON === "function"
+          ? (value as LoroMap).toJSON()
+          : (value as unknown);
+      out[key] = plain as AssetMeta;
     }
 
     return out;
@@ -901,6 +1135,75 @@ export class WorkspaceStore {
     listeners.add(listener);
 
     return () => listeners.delete(listener);
+  }
+
+  // ---- Blobs -------------------------------------------------------------
+
+  /**
+   * Stores bytes under their content hash. Writing the same bytes twice is a
+   * no-op, so callers can upload freely.
+   */
+  async putBlob(bytes: Uint8Array): Promise<BlobEntry> {
+    const hash = await hashBytes(bytes);
+    const path = blobPath(this.workspaceId, hash);
+    const existing = await this.backend.stat(path).catch(() => null);
+    if (!existing) await this.backend.write(path, bytes);
+
+    return { hash, size: bytes.byteLength, modifiedAt: existing?.modifiedAt ?? Date.now() };
+  }
+
+  async getBlob(hash: string): Promise<Uint8Array | null> {
+    if (!isBlobHash(hash)) return null;
+
+    return this.backend.read(blobPath(this.workspaceId, hash));
+  }
+
+  async listBlobs(): Promise<BlobEntry[]> {
+    const dir = `workspaces/${this.workspaceId}/blobs`;
+    let names: string[] = [];
+    try {
+      names = await this.backend.list(dir);
+    } catch {
+      return [];
+    }
+
+    const entries: BlobEntry[] = [];
+    for (const name of names) {
+      if (!isBlobHash(name)) continue;
+      const stat = await this.backend.stat(`${dir}/${name}`).catch(() => null);
+      if (!stat || stat.kind !== "file") continue;
+      entries.push({ hash: name, size: stat.size, modifiedAt: stat.modifiedAt });
+    }
+
+    return entries.sort((a, b) => (b.modifiedAt ?? 0) - (a.modifiedAt ?? 0));
+  }
+
+  async deleteBlob(hash: string): Promise<void> {
+    if (!isBlobHash(hash)) return;
+
+    await this.backend.delete(blobPath(this.workspaceId, hash));
+  }
+
+  /** Blob hash -> page ids that mention it in source or asset records. */
+  async findBlobReferences(): Promise<Map<string, string[]>> {
+    const references = new Map<string, string[]>();
+    const add = (hash: string, pageId: string) => {
+      if (!isBlobHash(hash)) return;
+      const list = references.get(hash) ?? [];
+      if (!list.includes(pageId)) list.push(pageId);
+      references.set(hash, list);
+    };
+
+    for (const page of this.listPages()) {
+      const text = await this.loadPageText(page.id);
+      for (const match of text.matchAll(/typbase-blob\/([0-9a-f]{64})/g)) add(match[1]!, page.id);
+
+      for (const asset of Object.values(this.getAssets(page.id))) {
+        if (asset.hash) add(asset.hash, page.id);
+      }
+    }
+
+    return references;
   }
 
   private async seed(): Promise<void> {

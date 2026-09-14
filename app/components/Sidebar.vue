@@ -193,10 +193,6 @@ function onCreated(page: PageMeta) {
       </ul>
     </div>
 
-    <div class="sidebar__section">
-      <PluginSidebar @open-plugin="emit('openPlugin', $event)" />
-    </div>
-
     <div class="sidebar__section sidebar__section--pages">
       <div class="sidebar__section-title">
         <span>{{ $t("sidebar.pages") }}</span>
@@ -344,6 +340,10 @@ function onCreated(page: PageMeta) {
 
       <p v-if="pages.length === 0" class="sidebar__empty">{{ $t("sidebar.noPages") }}</p>
     </div>
+
+    <!-- <div class="sidebar__section">
+      <PluginSidebar @open-plugin="emit('openPlugin', $event)" />
+    </div> -->
 
     <!-- rename dialog -->
     <DialogRoot :open="!!renameTarget" @update:open="onRenameOpenChange">

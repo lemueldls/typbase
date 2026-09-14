@@ -1,5 +1,7 @@
 export type { StorageBackend, StorageEntryStat } from "./backend";
 export { DirectoryHandleBackend, MemoryBackend, OPFSBackend, pathSegments } from "./backend";
+export type { BlobEntry } from "./blobs";
+export { blobPath, blobReference, hashBytes, isBlobHash, mimeExtension, sniffMime } from "./blobs";
 export {
   FileSystemAccessBackend,
   directoryPermission,
@@ -22,7 +24,12 @@ export {
   resolveStoragePath,
   tauriStorageState,
 } from "./tauri";
-export type { CreatePageInput, WorkspaceStoreOptions } from "./workspace";
+export type {
+  CreatePageInput,
+  SourceSyncResult,
+  SourceSyncStore,
+  WorkspaceStoreOptions,
+} from "./workspace";
 export {
   WorkspaceStore,
   pagePath,

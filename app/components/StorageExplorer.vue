@@ -33,9 +33,10 @@ const { backend, storageLocation, workspaces, activeWorkspaceId, workspace, dele
   useWorkspace();
 const { t, locale } = useI18n();
 
-const view = ref<"data" | "files">("data");
+const view = ref<"data" | "files" | "assets">("data");
 const loading = ref(false);
 const error = ref("");
+const assetBrowser = useTemplateRef<{ refresh: () => Promise<void> }>("assetBrowser");
 
 const isNative = computed(() => storageLocation.value.environment === "native");
 
@@ -295,7 +296,8 @@ async function refresh(): Promise<void> {
 
   loading.value = true;
   try {
-    await (view.value === "data" ? refreshData() : refreshFiles());
+    if (view.value === "assets") await assetBrowser.value?.refresh();
+    else await (view.value === "data" ? refreshData() : refreshFiles());
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -336,6 +338,14 @@ onBeforeUnmount(() => {
           @click="view = 'files'"
         >
           {{ $t("explorer.tabFiles") }}
+        </button>
+        <button
+          type="button"
+          class="explorer__tab"
+          :class="{ 'explorer__tab--active': view === 'assets' }"
+          @click="view = 'assets'"
+        >
+          {{ $t("explorer.tabAssets") }}
         </button>
       </div>
       <button type="button" class="button button--tiny" :disabled="loading" @click="refresh">
@@ -420,7 +430,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-else class="explorer__panel">
+    <div v-else-if="view === 'files'" class="explorer__panel">
       <label class="button button--tiny explorer__upload">
         {{ $t("explorer.upload") }}
         <input type="file" hidden @change="upload" />
@@ -480,6 +490,10 @@ onBeforeUnmount(() => {
           </button>
         </span>
       </div>
+    </div>
+
+    <div v-else class="explorer__panel">
+      <AssetBrowser ref="assetBrowser" />
     </div>
 
     <p class="explorer__hint">{{ $t("explorer.hint") }}</p>

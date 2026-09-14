@@ -62,7 +62,8 @@
     "unpublish": "Unpublish",
     "publishConfirm": "Unpublish this note? Public records may be mirrored by firehose services and cannot be recalled.",
     "publishHint": "Public records are readable by anyone. Unpublishing deletes the record; firehose mirrors may retain copies.",
-    "publishWorking": "Working…"
+    "publishWorking": "Working…",
+    "dropMedia": "Drop to insert media"
   },
   "settings": {
     "title": "Workspace settings",
@@ -271,7 +272,20 @@
     "deletePageConfirm": "Delete page “{title}”? Its document file is removed too.",
     "deleteWorkspaceConfirm": "Delete workspace “{name}” and every page in it? This cannot be undone.",
     "deleteFileConfirm": "Delete file “{path}”? Raw deletes can break a workspace.",
-    "hint": "Files are Loro snapshots and app data; deleting them directly can break a workspace."
+    "hint": "Files are Loro snapshots and app data; deleting them directly can break a workspace.",
+    "tabAssets": "Assets",
+    "assetUpload": "Upload media",
+    "assetPrune": "Delete unused",
+    "assetPruneConfirm": "Delete every asset that no page references?",
+    "assetPruned": "Deleted {count} unused asset(s).",
+    "assetEmpty": "No media in this workspace yet.",
+    "assetCopied": "Reference copied.",
+    "assetDelete": "Delete asset",
+    "assetDeleteConfirm": "Delete asset {hash}…? Pages that reference it will lose the image.",
+    "assetDownload": "Download asset",
+    "assetReferences": "Used by {count} page(s)",
+    "assetUnused": "unused",
+    "assetDrag": "Drag into an editor to insert"
   },
   "plugins": {
     "title": "Plugins",

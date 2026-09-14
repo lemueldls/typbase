@@ -4,6 +4,7 @@ import type { PageMeta } from "@typbase/typing";
 import type { FileId, TypstState } from "@typbase/wasm";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
+import { blobReference, sniffMime } from "@typbase/storage";
 
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
@@ -255,6 +256,39 @@ function insertBelowSelection(from: number, to: number, output: string): void {
   editorPane.value?.insertAt(at, `\n\n${output}\n`);
 }
 
+/**
+ * Media dropped on the editor: store the bytes as a blob, then insert the
+ * Typst reference at the drop position. Known blobs (asset drags) skip the
+ * upload.
+ */
+async function handleAssetDrop(
+  payload: { file?: File; hash?: string; mime?: string },
+  position: number,
+): Promise<void> {
+  try {
+    let hash = payload.hash;
+    let mime = payload.mime;
+
+    if (payload.file) {
+      const bytes = new Uint8Array(await payload.file.arrayBuffer());
+      const entry = await store.putBlob(bytes);
+      hash = entry.hash;
+      mime = payload.file.type || sniffMime(bytes);
+    }
+    if (!hash) return;
+
+    mime ||= "application/octet-stream";
+    const reference = blobReference(hash, mime);
+    const insert = mime.startsWith("image/")
+      ? `#image("${reference}")`
+      : `#link("${reference}")[${payload.file?.name ?? hash.slice(0, 8)}]`;
+
+    editorPane.value?.insertAt(position, insert);
+  } catch (cause) {
+    console.error("[assets] drop failed:", cause);
+  }
+}
+
 function onRequests(requests: unknown[], spaceId: string) {
   return requestService!.handler(requests as never, spaceId);
 }
@@ -486,6 +520,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :on-panic="handlePanic"
         :on-navigate="(pageId) => emit('openPage', pageId)"
         :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
+        :on-asset-drop="handleAssetDrop"
       />
 
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />

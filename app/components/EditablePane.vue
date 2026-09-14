@@ -53,10 +53,83 @@ const props = defineProps<{
   onNavigate?: (pageId: string) => void;
   /** Fired when a plugin link inside a rendered widget is clicked. */
   onNavigatePlugin?: (instanceId: string) => void;
+  /** Dropped media: an OS file to store, or a known blob from another pane. */
+  onAssetDrop?: (
+    payload: { file?: File; hash?: string; mime?: string },
+    position: number,
+  ) => void | Promise<void>;
 }>();
+
+const ASSET_MIME = "application/x-typbase-asset";
 
 const container = useTemplateRef("container");
 const view = shallowRef<EditorView>();
+const dragActive = ref(false);
+const dropTop = ref(0);
+
+function isAssetDrag(event: DragEvent): boolean {
+  const types = event.dataTransfer?.types;
+  if (!types) return false;
+
+  return types.includes("Files") || types.includes(ASSET_MIME);
+}
+
+// The indicator follows the line under the pointer; drops insert there.
+function onDragOver(event: DragEvent) {
+  if (!props.onAssetDrop || !isAssetDrag(event)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+
+  const editor = view.value;
+  const element = container.value;
+  if (!editor || !element) return;
+
+  const pos = editor.posAtCoords({ x: event.clientX, y: event.clientY });
+  if (pos === null) return;
+  const rect = element.getBoundingClientRect();
+  const coords = editor.coordsAtPos(pos);
+  dropTop.value = (coords?.top ?? rect.top) - rect.top;
+  dragActive.value = true;
+}
+
+function onDragLeave(event: DragEvent) {
+  const rect = container.value?.getBoundingClientRect();
+  if (!rect) return;
+  if (
+    event.clientX <= rect.left ||
+    event.clientX >= rect.right ||
+    event.clientY <= rect.top ||
+    event.clientY >= rect.bottom
+  ) {
+    dragActive.value = false;
+  }
+}
+
+function onDrop(event: DragEvent) {
+  if (!props.onAssetDrop || !isAssetDrag(event)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  dragActive.value = false;
+
+  const editor = view.value;
+  if (!editor) return;
+
+  const position =
+    editor.posAtCoords({ x: event.clientX, y: event.clientY }) ?? editor.state.selection.main.head;
+  const asset = event.dataTransfer?.getData(ASSET_MIME);
+  if (asset) {
+    try {
+      void props.onAssetDrop(JSON.parse(asset) as { hash: string; mime: string }, position);
+    } catch {
+      // Ignore foreign payloads under our MIME.
+    }
+    return;
+  }
+
+  const file = event.dataTransfer?.files?.[0];
+  if (file) void props.onAssetDrop({ file }, position);
+}
 
 const createView = () => {
   const config = createStateConfig();
@@ -91,11 +164,19 @@ function onWidgetClick(event: MouseEvent) {
 
 onMounted(() => {
   createView();
-  container.value?.addEventListener("click", onWidgetClick);
+  const element = container.value;
+  element?.addEventListener("click", onWidgetClick);
+  element?.addEventListener("dragover", onDragOver, true);
+  element?.addEventListener("dragleave", onDragLeave, true);
+  element?.addEventListener("drop", onDrop, true);
 });
 
 onBeforeUnmount(() => {
-  container.value?.removeEventListener("click", onWidgetClick);
+  const element = container.value;
+  element?.removeEventListener("click", onWidgetClick);
+  element?.removeEventListener("dragover", onDragOver, true);
+  element?.removeEventListener("dragleave", onDragLeave, true);
+  element?.removeEventListener("drop", onDrop, true);
   view.value?.destroy();
 });
 
@@ -214,16 +295,54 @@ defineExpose({ view, recompile, revealRange, insertAt });
 </script>
 
 <template>
-  <section ref="container" class="editable-pane" />
+  <section ref="container" class="editable-pane" :class="{ 'editable-pane--dragging': dragActive }">
+    <div v-if="dragActive" class="editable-pane__drop" aria-hidden="true">
+      <span class="editable-pane__drop-label">{{ $t("pageView.dropMedia") }}</span>
+      <span class="editable-pane__drop-line" :style="{ top: `${dropTop}px` }" />
+    </div>
+  </section>
 </template>
 
 <style scoped>
 .editable-pane {
+  position: relative;
   height: 100%;
   min-height: 0;
 }
 
 .editable-pane :deep(.cm-editor) {
   height: 100%;
+}
+
+.editable-pane--dragging :deep(.cm-editor) {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.editable-pane__drop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.editable-pane__drop-label {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: #fff;
+  background: var(--color-accent);
+  border-radius: 999px;
+}
+
+.editable-pane__drop-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-surface);
 }
 </style>

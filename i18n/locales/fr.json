@@ -62,7 +62,8 @@
     "unpublish": "Dépublier",
     "publishConfirm": "Dépublier cette note ? Les enregistrements publics peuvent être répliqués par des services firehose et ne peuvent pas être rappelés.",
     "publishHint": "Les enregistrements publics sont lisibles par tous. Dépublier supprime l'enregistrement ; les miroirs firehose peuvent en conserver des copies.",
-    "publishWorking": "En cours…"
+    "publishWorking": "En cours…",
+    "dropMedia": "Déposer pour insérer un média"
   },
   "settings": {
     "title": "Paramètres de l'espace",
@@ -271,7 +272,20 @@
     "deletePageConfirm": "Supprimer la page « {title} » ? Son document sera aussi supprimé.",
     "deleteWorkspaceConfirm": "Supprimer l'espace « {name} » et toutes ses pages ? Action irréversible.",
     "deleteFileConfirm": "Supprimer le fichier « {path} » ? Une suppression directe peut casser un espace.",
-    "hint": "Les fichiers sont des instantanés Loro et des données de l'app ; les supprimer directement peut casser un espace."
+    "hint": "Les fichiers sont des instantanés Loro et des données de l'app ; les supprimer directement peut casser un espace.",
+    "tabAssets": "Médias",
+    "assetUpload": "Importer un média",
+    "assetPrune": "Supprimer les inutilisés",
+    "assetPruneConfirm": "Supprimer tous les médias qu’aucune page n’utilise ?",
+    "assetPruned": "{count} média(s) inutilisé(s) supprimé(s).",
+    "assetEmpty": "Aucun média dans cet espace pour le moment.",
+    "assetCopied": "Référence copiée.",
+    "assetDelete": "Supprimer le média",
+    "assetDeleteConfirm": "Supprimer le média {hash}… ? Les pages qui l’utilisent perdront l’image.",
+    "assetDownload": "Télécharger le média",
+    "assetReferences": "Utilisé par {count} page(s)",
+    "assetUnused": "inutilisé",
+    "assetDrag": "Glisser dans un éditeur pour insérer"
   },
   "plugins": {
     "title": "Plugins",
