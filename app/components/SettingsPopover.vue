@@ -3,6 +3,8 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
+import { isTauri } from "@typbase/storage";
+
 import { getAiKeys, setAiKeys } from "~/lib/ai/keys";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
@@ -274,25 +276,25 @@ function shortDid(did: string | null): string {
   return did.length > 18 ? `${did.slice(0, 10)}...${did.slice(-6)}` : did;
 }
 
-const fontOptions = computed(() => {
-  const bundled = new Set(["Maple Mono", "New Computer Modern Math"]);
-  const options = [...bundled];
-  for (const family of systemFontFamilies.value) {
-    if (!options.includes(family)) options.push(family);
-  }
-
-  return options;
-});
+const textFontOptions = computed(() => systemFontOptions.value.text);
+const mathFontOptions = computed(() => systemFontOptions.value.math);
+const codeFontOptions = computed(() => systemFontOptions.value.code);
 
 function supportsLocalFonts() {
+  if (isTauri()) return true;
+
   return typeof window !== "undefined" && "queryLocalFonts" in window;
 }
 
 async function installSystemFonts() {
   const typstState = await useTypst();
-  await loadSystemFonts(typstState);
-  // The wasm font book grew; open panes recompile on the revision bump.
-  bumpRenderRevision();
+  const current = props.store.getSettings();
+
+  try {
+    await loadSystemFonts(typstState, [current.font, current.mathFont, current.codeFont]);
+  } catch {
+    // loadSystemFonts records the reason in systemFontsError.
+  }
 }
 
 async function updateFont(patch: {
@@ -545,7 +547,7 @@ function onTextSizeChange(event: Event) {
           <label class="settings__field">
             <span>{{ $t("settings.textFont") }}</span>
             <select class="settings__input" :value="settings.font" @change="onFontChange">
-              <option v-for="font in fontOptions" :key="font" :value="font">
+              <option v-for="font in textFontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
             </select>
@@ -559,7 +561,7 @@ function onTextSizeChange(event: Event) {
               @change="onMathFontChange"
             >
               <option value="">{{ $t("settings.sameAsText") }}</option>
-              <option v-for="font in fontOptions" :key="font" :value="font">
+              <option v-for="font in mathFontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
             </select>
@@ -573,7 +575,7 @@ function onTextSizeChange(event: Event) {
               @change="onCodeFontChange"
             >
               <option value="">{{ $t("settings.sameAsText") }}</option>
-              <option v-for="font in fontOptions" :key="font" :value="font">
+              <option v-for="font in codeFontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
             </select>
@@ -581,8 +583,8 @@ function onTextSizeChange(event: Event) {
 
           <div class="settings__system-fonts">
             <p class="settings__hint">
-              Installs every system font into the Typst engine, so documents can use any installed
-              family.
+              Finds installed fonts for the pickers; the families this workspace uses load into the
+              Typst engine.
             </p>
 
             <template v-if="supportsLocalFonts()">

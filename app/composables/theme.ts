@@ -6,6 +6,7 @@ import {
   cacheThemeSettings,
   rendererPaletteFor,
   resolveTheme,
+  type AppFontSettings,
   type ResolvedTheme,
 } from "~/lib/themes";
 
@@ -30,9 +31,11 @@ export function resolveAppTheme(settings: {
   return resolveTheme(settings);
 }
 
-export function applyTheme(settings: Parameters<typeof resolveAppTheme>[0]): ResolvedTheme {
+export function applyTheme(
+  settings: Parameters<typeof resolveAppTheme>[0] & AppFontSettings,
+): ResolvedTheme {
   const resolved = resolveAppTheme(settings);
-  applyThemeToDom(resolved);
+  applyThemeToDom(resolved, settings);
   cacheThemeSettings(settings);
 
   return resolved;

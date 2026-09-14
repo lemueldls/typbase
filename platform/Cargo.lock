@@ -6252,6 +6252,7 @@ dependencies = [
 name = "typbase"
 version = "0.1.0"
 dependencies = [
+ "fontdb",
  "percent-encoding",
  "serde",
  "serde_json",
@@ -6264,6 +6265,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "ttf-parser",
 ]
 
 [[package]]

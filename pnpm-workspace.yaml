@@ -2,6 +2,8 @@ packages:
   - platform/wasm/pkg
   - packages/*
 
+minimumReleaseAge: 0
+
 allowBuilds:
   core-js: true
   esbuild: true
@@ -12,9 +14,12 @@ allowBuilds:
   "@nuxtjs/i18n@https://codeload.github.com/onmax/i18n/tar.gz/cf1fb91708422e749ed36d753c012e99ac2cd3ac": true
 
 overrides:
-  "@atproto/lex-builder": "alpha"
-  "@atproto/lex-client": "alpha"
-  "@atproto/lex-document": "alpha"
-  "@atproto/lex-installer": "alpha"
-  "@atproto/lex-resolver": "alpha"
-  "@atproto/lex-schema": "alpha"
+  "@atproto/syntax": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-data": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-builder": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-client": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-cbor": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-document": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-installer": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-resolver": "0.0.0-spaces-alpha-20260913191958"
+  "@atproto/lex-schema": "0.0.0-spaces-alpha-20260913191958"

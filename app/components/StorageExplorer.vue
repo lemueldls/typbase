@@ -554,7 +554,7 @@ onBeforeUnmount(() => {
 }
 
 .explorer__path {
-  font-family: var(--font-code, monospace);
+  font-family: var(--font-mono, monospace);
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;

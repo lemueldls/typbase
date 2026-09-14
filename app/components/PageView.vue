@@ -6,6 +6,7 @@ import type { FileId, TypstState } from "@typbase/wasm";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { blobReference, sniffMime } from "@typbase/storage";
 
+import { fontFamiliesInSource } from "~/lib/fonts";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { revealRequests } from "~/lib/reveal";
@@ -61,7 +62,7 @@ async function handlePanic() {
     // The old request service pointed at a dead instance.
     requestService = createTypstRequestService(fresh, store);
     requestService.setCurrentPage(props.pageId);
-    await applyWorkspaceStyleToTypst(workspaceId.value, store);
+    await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
 
     const page = store.getPage(props.pageId);
     if (page) {
@@ -115,6 +116,7 @@ let requestService: TypstRequestService | undefined;
 let unsubscribeSave: (() => void) | undefined;
 let unsubscribePage: (() => void) | undefined;
 let unsubscribeStructure: (() => void) | undefined;
+let unsubscribeFontScan: (() => void) | undefined;
 let detachScrollSync: (() => void) | undefined;
 let pageDisposed = false;
 
@@ -160,14 +162,18 @@ async function setupPage() {
     requestService = createTypstRequestService(typstState.value, store);
     // The space context survives later createSourceId calls (see state.rs);
     // this one call is what gives pages their fonts/theme.
-    await applyWorkspaceStyleToTypst(workspaceId.value, store);
+    await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
 
     // Query JSON goes stale when pages/categories/settings change. Re-apply
     // fonts first (settings may have changed), purge the inserted files, then
     // recompile. Preview panes re-render off dataRevision on their own.
     unsubscribeStructure = store.onStructureChange(() => {
       void (async () => {
-        await applyWorkspaceStyleToTypst(workspaceId.value, store);
+        await applyWorkspaceStyleToTypst(
+          workspaceId.value,
+          store,
+          fontFamiliesInSource(text.value),
+        );
         requestService?.purge();
         // A prelude edit must recompile with the new text.
         prelude.value = store.getSettings().pagePrelude ?? "";
@@ -188,6 +194,9 @@ async function setupPage() {
     if (value !== store.getPageText(props.pageId)) pushText(value);
   });
 
+  unsubscribeFontScan?.();
+  unsubscribeFontScan = watch(text, scanSourceFonts);
+
   unsubscribePage?.();
   void store
     .onPageDocChange(props.pageId, () => {
@@ -207,7 +216,25 @@ async function setupPage() {
     });
 
   ready.value = true;
+  ensureSourceFonts();
 }
+
+/** Fonts named in the source load on demand, debounced while typing. */
+const scannedFamilies = new Set<string>();
+async function ensureSourceFonts(): Promise<void> {
+  const state = typstState.value;
+  if (!state) return;
+
+  const families = fontFamiliesInSource(text.value).filter(
+    (family) => !scannedFamilies.has(family),
+  );
+  if (families.length === 0) return;
+
+  for (const family of families) scannedFamilies.add(family);
+  await ensureFontsInstalled(state, families);
+}
+
+const scanSourceFonts = useDebounceFn(() => void ensureSourceFonts(), 1200);
 
 onBeforeUnmount(() => {
   pageDisposed = true;
@@ -215,6 +242,8 @@ onBeforeUnmount(() => {
   unsubscribeSave?.();
   unsubscribePage?.();
   unsubscribeStructure?.();
+  unsubscribeFontScan?.();
+  scanSourceFonts.cancel();
   void store?.flush();
 });
 

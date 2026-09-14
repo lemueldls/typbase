@@ -4,6 +4,7 @@
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
     "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-math: "New Computer Modern Math", "Latin Modern Math", serif;
 
   --color-surface: #ffffff;
   --color-surface-2: #f3f4f6;

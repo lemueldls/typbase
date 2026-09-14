@@ -3,6 +3,7 @@ use std::str::FromStr;
 #[allow(unused_imports)]
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, window::Color};
 
+mod fonts;
 mod storage;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -21,6 +22,8 @@ pub fn run() {
             storage::storage_delete,
             storage::storage_list,
             storage::storage_stat,
+            fonts::system_font_index,
+            fonts::system_font_file,
         ]);
 
     #[cfg(desktop)]

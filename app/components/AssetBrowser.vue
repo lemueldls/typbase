@@ -338,7 +338,7 @@ async function pruneUnused(): Promise<void> {
 }
 
 .assets__hash {
-  font-family: var(--font-code, monospace);
+  font-family: var(--font-mono, monospace);
   font-size: 0.72rem;
   color: var(--color-text-secondary);
 }

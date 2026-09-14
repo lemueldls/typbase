@@ -310,8 +310,41 @@ function prefersDarkScheme(): boolean {
   );
 }
 
+/** The workspace font settings that also drive the app chrome. */
+export interface AppFontSettings {
+  font?: string | null;
+  mathFont?: string | null;
+  codeFont?: string | null;
+}
+
+function cssFamily(family: string): string {
+  // Family names are user data; quote and escape so a stray quote cannot
+  // break the declaration.
+  return `"${family.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+}
+
+/** CSS font stacks for the chrome, mirroring the renderer's font settings. */
+export function fontStacks(settings: AppFontSettings): {
+  sans: string;
+  mono: string;
+  math: string;
+} {
+  const text = settings.font?.trim();
+  const code = settings.codeFont?.trim() || text;
+  const math = settings.mathFont?.trim() || text;
+  const family = (value?: string) => (value ? cssFamily(value) : null);
+  const join = (...parts: Array<string | null>) =>
+    parts.filter((part): part is string => !!part).join(", ");
+
+  return {
+    sans: join(family(text), "ui-sans-serif", "system-ui", "sans-serif"),
+    mono: join(family(code), "ui-monospace", "SFMono-Regular", "Menlo", "monospace"),
+    math: join(family(math), family("New Computer Modern Math"), "serif"),
+  };
+}
+
 /** Applies the resolved tokens to <html> (CSS custom properties + data attrs). */
-export function applyThemeToDom(resolved: ResolvedTheme): void {
+export function applyThemeToDom(resolved: ResolvedTheme, fonts?: AppFontSettings): void {
   const root = document.documentElement;
   root.dataset.theme = resolved.mode;
   root.dataset.themeName = resolved.definition?.id ?? "custom";
@@ -319,6 +352,14 @@ export function applyThemeToDom(resolved: ResolvedTheme): void {
   const cssVar = (token: string) => `--color-${token}`;
   for (const [token, value] of Object.entries(resolved.palette)) {
     root.style.setProperty(cssVar(token), value);
+  }
+
+  // The chrome follows the workspace's text/math/code fonts.
+  if (fonts?.font) {
+    const stacks = fontStacks(fonts);
+    root.style.setProperty("--font-sans", stacks.sans);
+    root.style.setProperty("--font-mono", stacks.mono);
+    root.style.setProperty("--font-math", stacks.math);
   }
 }
 
@@ -329,7 +370,9 @@ export function applyThemeToDom(resolved: ResolvedTheme): void {
 
 const THEME_CACHE_KEY = "typbase:themeCache";
 
-export function cacheThemeSettings(settings: Parameters<typeof resolveTheme>[0]): void {
+type CachedThemeSettings = Parameters<typeof resolveTheme>[0] & AppFontSettings;
+
+export function cacheThemeSettings(settings: CachedThemeSettings): void {
   try {
     localStorage.setItem(
       THEME_CACHE_KEY,
@@ -337,7 +380,10 @@ export function cacheThemeSettings(settings: Parameters<typeof resolveTheme>[0])
         theme: settings.theme ?? "auto",
         themeName: settings.themeName ?? "default",
         themeCustom: settings.themeCustom ?? null,
-      }),
+        font: settings.font ?? null,
+        mathFont: settings.mathFont ?? null,
+        codeFont: settings.codeFont ?? null,
+      } satisfies CachedThemeSettings),
     );
   } catch {
     // Storage can be unavailable; the workspace apply still runs later.
@@ -350,10 +396,10 @@ export function restoreCachedTheme(): void {
     const raw = localStorage.getItem(THEME_CACHE_KEY);
     if (!raw) return;
 
-    const cached = JSON.parse(raw) as Parameters<typeof resolveTheme>[0];
+    const cached = JSON.parse(raw) as CachedThemeSettings;
     if (!cached.theme) return;
 
-    applyThemeToDom(resolveTheme(cached));
+    applyThemeToDom(resolveTheme(cached), cached);
   } catch {
     // Corrupt cache: fall back to the defaults in main.css.
   }
