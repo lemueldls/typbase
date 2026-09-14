@@ -1,16 +1,6 @@
 import { StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
 
-/**
- * Renders remote cursors/selections for the current page. Presence data
- * arrives through the relay as a map of peer -> { persona, cursor }; the
- * owning component watches that map and dispatches `presenceRefreshEffect`
- * whenever it changes.
- *
- * Positions are raw source offsets; the editor doc is the raw source, so no
- * coordinate mapping is needed here.
- */
-
 export interface PresencePeer {
   persona: { name: string; color: string };
   cursor: { docId: string; from: number; to: number } | null;
@@ -28,9 +18,6 @@ export function presenceCursors(
 ): Extension {
   const field = StateField.define<DecorationSet>({
     create: () => Decoration.none,
-    // The field update receives one Transaction, not a ViewUpdate: no
-    // viewport info here. Remote cursors are doc-wide raw offsets, so they
-    // only need rebuilding when peers change or the doc changes length.
     update(decorations, transaction) {
       const peersChanged = transaction.effects.some((effect) => effect.is(presenceRefreshEffect));
       if (!peersChanged && !transaction.docChanged) return decorations;

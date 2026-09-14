@@ -1,19 +1,8 @@
 <script setup lang="ts">
-import { SplitterPanel as SplitterPanelComponent } from "reka-ui";
+import { SplitterPanel } from "reka-ui";
 
-import type { ViewMode } from "~/components/workspace/PageView.vue";
-
-import MainPane from "~/components/workspace/MainPane.vue";
-import SearchPalette from "~/components/workspace/SearchPalette.vue";
-import Sidebar from "~/components/workspace/Sidebar.vue";
-import StorageSetup from "~/components/workspace/StorageSetup.vue";
-import WorkspaceSwitcher from "~/components/workspace/WorkspaceSwitcher.vue";
-import { useAppLocale } from "~/composables/appLocale";
-import { useSearch } from "~/composables/search";
-import { useTheme } from "~/composables/theme";
-import { useTypst } from "~/composables/typst";
-import { useWorkspace } from "~/composables/workspace";
 import { refreshSections, toSections } from "~/lib/ai/generators";
+import { VIEW_MODES, type ViewMode } from "~/lib/view";
 
 const {
   workspace,
@@ -37,7 +26,7 @@ const isDesktop = useMediaQuery("(min-width: 769px)");
 
 /** Desktop sidebar collapse. Reka-ui persists the collapsed layout, so the
  *  initial state is read from the panel rather than assumed. */
-const navPanel = ref<InstanceType<typeof SplitterPanelComponent>>();
+const navPanel = useTemplateRef<InstanceType<typeof SplitterPanel>>("navPanel");
 const sidebarCollapsed = ref(false);
 
 function syncSidebarCollapsed() {
@@ -85,18 +74,19 @@ watch(
   { immediate: true },
 );
 
+/** Home page when set, else the first page; empty when the workspace has none. */
+function fallbackPageId(): string {
+  const store = workspace.value;
+  if (!store) return "";
+
+  return store.getSettings().homePageId ?? store.listPages()[0]?.id ?? "";
+}
+
 // Switching workspaces swaps the store under the shell; the generation key
 // remounts Sidebar/PageView, so the page id must be re-selected first. The
 // watcher runs pre-render in the same tick as the bump.
 watch(workspaceGeneration, () => {
-  const store = workspace.value;
-  if (!store) {
-    currentPageId.value = "";
-    return;
-  }
-
-  const settings = store.getSettings();
-  currentPageId.value = settings.homePageId ?? store.listPages()[0]?.id ?? "";
+  currentPageId.value = fallbackPageId();
 });
 
 // Section metadata should stay fresh even without the editor being open:
@@ -114,6 +104,20 @@ watch(currentPageId, async (id) => {
   );
 });
 
+const { locale, setLocale } = useI18n();
+
+const pageQuery = useRouteQuery<string>("page", "");
+const modeQuery = useRouteQuery<string>("mode", "write");
+
+/** Query values can be string arrays or null; a page/mode id is a plain string. */
+function queryString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function isViewMode(value: unknown): value is ViewMode {
+  return typeof value === "string" && (VIEW_MODES as readonly string[]).includes(value);
+}
+
 onMounted(async () => {
   await ensure();
   loaded.value = true;
@@ -124,49 +128,52 @@ onMounted(async () => {
   // Tokens + Typst renderer colors follow the workspace setting.
   useTheme(store).refresh();
   // UI language follows the workspace setting; "auto" keeps the browser one.
-  useAppLocale(store);
+  useAppLocale(locale, setLocale, store);
 
-  const settings = store.getSettings();
+  const linkedId = queryString(pageQuery.value);
+  const linked = linkedId ? store.getPage(linkedId) : undefined;
+  if (linked) currentPageId.value = linked.id;
+  else currentPageId.value = fallbackPageId();
 
-  // Open the home page when there is one, else the first page.
-  if (settings.homePageId) {
-    currentPageId.value = settings.homePageId;
-  } else {
-    currentPageId.value = store.listPages()[0]?.id ?? "";
-  }
+  if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
 });
 
-// Keep the URL shareable-ish: ?page=<id>&mode=<mode>.
-const route = useRoute();
-const router = useRouter();
-
 watch(currentPageId, (id) => {
-  if (loaded.value && id) {
-    void router.replace({
-      query: { ...route.query, page: id, mode: mode.value },
-    });
-  }
+  if (loaded.value && id && pageQuery.value !== id) pageQuery.value = id;
 });
 
 watch(mode, (value) => {
-  if (loaded.value && currentPageId.value) {
-    void router.replace({
-      query: { ...route.query, page: currentPageId.value, mode: value },
-    });
+  if (loaded.value && currentPageId.value && modeQuery.value !== value) {
+    modeQuery.value = value;
   }
+});
+
+// Back/forward or a pasted link changes the query under us.
+watch(pageQuery, (raw) => {
+  const id = queryString(raw);
+  if (!loaded.value || !id || id === currentPageId.value) return;
+
+  const store = workspace.value;
+  if (store?.getPage(id)) {
+    currentPageId.value = id;
+    return;
+  }
+
+  // Stale id: same fallback as a missing page, and rewrite the URL so it stops
+  // pointing at a page this workspace does not have.
+  const fallback = fallbackPageId();
+  currentPageId.value = fallback;
+  if (queryString(pageQuery.value) !== fallback) pageQuery.value = fallback;
+});
+
+watch(modeQuery, (value) => {
+  if (loaded.value && value !== mode.value && isViewMode(value)) mode.value = value;
 });
 
 function openPage(id: string) {
   navOpen.value = false; // drawer interactions close after selection
-  if (id) currentPageId.value = id;
-  else {
-    // Deleted the open page; fall back to home/first page.
-    const store = workspace.value;
-    if (!store) return;
-
-    const settings = store.getSettings();
-    currentPageId.value = settings.homePageId ?? store.listPages()[0]?.id ?? "";
-  }
+  // An empty id means the open page was deleted; fall back to home/first.
+  currentPageId.value = id || fallbackPageId();
 }
 
 // Persist pending snapshot writes when the tab goes away.
@@ -212,9 +219,6 @@ definePageMeta({ ssr: false });
 
     <template v-else-if="workspace">
       <div :key="workspaceGeneration" class="app__content">
-        <!-- Desktop: resizable sidebar via a reka-ui splitter. The nav panel is
-             pixel-sized so it keeps its width when the window grows; the saved
-             layout persists per workspace. Mobile: fixed drawer below. -->
         <SplitterGroup
           v-if="isDesktop"
           direction="horizontal"

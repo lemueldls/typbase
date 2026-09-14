@@ -50,8 +50,6 @@ const frames = ref<SvgRangedFrame[]>([]);
 const rendering = ref(false);
 
 const renderNow = async () => {
-  // Hidden panes (write/source modes) skip; the ResizeObserver re-triggers
-  // when the pane becomes visible again.
   if (!props.typstState || !scroller.value || scroller.value.offsetParent === null) return;
 
   rendering.value = true;
@@ -60,10 +58,9 @@ const renderNow = async () => {
     try {
       result = props.typstState.compilePaged(props.fileId, props.text.value, props.prelude.value);
     } catch (error) {
-      // wasm panic => the instance is dead. Keep the last good frames and
-      // ask the parent to rebuild + remount us.
       console.error("[typst] paged compile panicked:", error);
       emit("panic");
+
       return;
     }
 
@@ -85,12 +82,6 @@ const scheduleRender = useDebounceFn(renderNow, 160);
 
 let resizeObserver: ResizeObserver | undefined;
 
-/**
- * Width the compiled page should lay out at. The frames live inside
- * .paged-preview__inner, whose horizontal padding shrinks their box, so
- * measuring the scroller would compile pages ~40px too wide.
- */
-// Remounts with a fresh state after panic recovery renders again.
 watch(
   () => props.typstState,
   () => scheduleRender(),
@@ -108,12 +99,6 @@ function measureWidth(): number {
   return inner.clientWidth - (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight));
 }
 
-/**
- * Size the frame's SVG at the width the engine compiled it at (viewBox in
- * pt == px), not the pane's current width. Otherwise an in-flight render is
- * stretched/squeezed by `width: 100%` for the whole split drag, and only
- * reflows once the debounced recompile lands.
- */
 function frameStyle(frame: SvgRangedFrame): Record<string, string> {
   const match = frame.render.svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   const width = match ? Number(match[1]) : frame.render.width;

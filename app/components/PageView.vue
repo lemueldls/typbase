@@ -4,25 +4,12 @@ import type { PageMeta } from "@typbase/typing";
 import type { FileId, TypstState } from "@typbase/wasm";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { typstRecompileEffect } from "@typbase/codemirror";
-import { nextTick } from "vue";
 
-import type { EditCommand } from "~/lib/editorCommands";
-
-import { applyWorkspaceStyleToTypst, renderRevision, useTypst } from "~/composables/typst";
-import { useWorkspace } from "~/composables/workspace";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { revealRequests } from "~/lib/reveal";
 import { recreateTypstState } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
-
-import AIMenu from "./AIMenu.vue";
-import EditablePane from "./EditablePane.vue";
-import EditToolbar from "./EditToolbar.vue";
-import PagedPreview from "./PagedPreview.vue";
-import PublishButton from "./PublishButton.vue";
-
-export type ViewMode = "write" | "split" | "source" | "read";
+import { VIEW_MODES, type ViewMode } from "~/lib/view";
 
 const props = defineProps<{
   pageId: string;
@@ -49,15 +36,7 @@ const meta = shallowRef<PageMeta>();
 const pageError = ref<string>();
 const ready = ref(false);
 
-/** The formatting bar can be collapsed entirely; the toggle remembers. */
-const formatOpen = ref(
-  typeof localStorage === "undefined" || localStorage.getItem("typbase:formatToolbar") !== "hidden",
-);
-watch(formatOpen, (open) => {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("typbase:formatToolbar", open ? "visible" : "hidden");
-  }
-});
+const formatOpen = useLocalStorage("typbase:formatToolbar", true);
 
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
 // this remount, so the editor plugin and preview bind to the fresh instance.
@@ -274,10 +253,6 @@ function insertBelowSelection(from: number, to: number, output: string): void {
   editorPane.value?.insertAt(at, `\n\n${output}\n`);
 }
 
-function onEditCommand(command: EditCommand) {
-  editorPane.value?.applyCommand(command);
-}
-
 function onRequests(requests: unknown[], spaceId: string) {
   return requestService!.handler(requests as never, spaceId);
 }
@@ -388,12 +363,10 @@ function startSplitDrag(event: PointerEvent) {
   target.addEventListener("pointerup", onUp);
 }
 
-const modes: Array<{ id: ViewMode; key: string }> = [
-  { id: "write", key: "pageView.write" },
-  { id: "split", key: "pageView.split" },
-  { id: "source", key: "pageView.source" },
-  { id: "read", key: "pageView.read" },
-];
+const modes: Array<{ id: ViewMode; key: string }> = VIEW_MODES.map((id) => ({
+  id,
+  key: `pageView.${id}`,
+}));
 
 // Arrow keys move between view modes, per the tabs pattern.
 function onModeKeydown(event: KeyboardEvent) {
@@ -467,7 +440,7 @@ function onModeKeydown(event: KeyboardEvent) {
          title/modes or the AI/publish actions for space. Scrolls sideways
          when narrow; the chevron at its right edge collapses it entirely. -->
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">
-      <EditToolbar :disabled="!ready" @command="onEditCommand" />
+      <EditToolbar :disabled="!ready" :view="editorPane?.view" />
       <button
         type="button"
         class="page-view__format-collapse"

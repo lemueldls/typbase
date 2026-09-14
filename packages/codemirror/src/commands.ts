@@ -29,6 +29,12 @@ export function toggleUnderline(view: EditorView) {
   return true;
 }
 
+export function toggleStrike(view: EditorView) {
+  toggleAroundSelection(view, ["#strike["], ["]"]);
+
+  return true;
+}
+
 export function toggleMath(view: EditorView) {
   toggleAroundSelection(view, ["$", "$ "], ["$", " $"]);
 

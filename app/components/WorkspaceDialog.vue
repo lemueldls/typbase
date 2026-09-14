@@ -2,13 +2,8 @@
 import type { WorkspaceInfo } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
-import { useWorkspace } from "~/composables/workspace";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
-/**
- * Create or edit a workspace: name + searchable icon, with a live preview of
- * the result. Owns its own busy/error state; the parent only opens it.
- */
 const props = defineProps<{
   mode: "create" | "edit";
   /** Required in edit mode; the name/icon are seeded from it. */

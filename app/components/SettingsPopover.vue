@@ -3,19 +3,6 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
-import { useAppLocale } from "~/composables/appLocale";
-import { useSearch } from "~/composables/search";
-import { applyTheme, useTheme } from "~/composables/theme";
-import {
-  bumpRenderRevision,
-  loadSystemFonts,
-  systemFontFamilies,
-  systemFontsError,
-  systemFontsLoaded,
-  systemFontsLoading,
-  useTypst,
-} from "~/composables/typst";
-import { useWorkspace } from "~/composables/workspace";
 import { getAiKeys, setAiKeys } from "~/lib/ai/keys";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
@@ -49,8 +36,8 @@ const workspaceIcon = computed({
     });
   },
 });
-const { t } = useI18n();
-const appLocale = useAppLocale(props.store);
+const { t, locale, setLocale } = useI18n();
+const appLocale = useAppLocale(locale, setLocale, props.store);
 
 // Loro maps are not reactive; the workspace bumps dataRevision on any change.
 const settings = computed(() => {

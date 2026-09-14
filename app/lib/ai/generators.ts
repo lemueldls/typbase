@@ -4,12 +4,6 @@ import type { SectionSpan } from "@typbase/wasm";
 
 import { createProvider, type AiProvider, type ChatMessage } from "./providers";
 
-/**
- * Generators. Every generator emits Typst; the ones that produce study
- * material wrap blocks in `#typbase.section(kind: "...")` so they land in
- * the review queue (page `sections` metadata) without a second format.
- */
-
 export interface GenerationContext {
   store: WorkspaceStore;
   provider: AiProvider;

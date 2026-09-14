@@ -102,7 +102,9 @@ function initialBootSteps(t: (key: string) => string): BootStepState[] {
 
 function appUrl(): string {
   const origin = window.location.origin;
-  return origin && window.location.protocol !== "file:" ? origin : "http://localhost:3000";
+  const url = origin && window.location.protocol !== "file:" ? origin : "http://localhost:3000";
+
+  return url;
 }
 
 /**
@@ -228,6 +230,7 @@ function useWorkspaceState() {
 
           return new FileSystemAccessBackend(handle);
         }
+
         // The handle survived but needs a fresh permission gesture.
         storageSetup.value = {
           environment: "browser",
@@ -235,6 +238,7 @@ function useWorkspaceState() {
           canCancel: false,
           folderName: handle.name,
         };
+
         throw new StorageSetupPending();
       }
       // The handle is gone (cleared site data); fall back to OPFS.
@@ -261,6 +265,7 @@ function useWorkspaceState() {
     }
 
     storageLocation.value = opfsLocation();
+
     return backend;
   }
 
@@ -279,8 +284,10 @@ function useWorkspaceState() {
             canCancel: false,
             native: state,
           };
+
           throw new StorageSetupPending();
         }
+
         backendRef.value = await TauriBackend.open();
         storageLocation.value = nativeLocation(state);
       } else {
@@ -303,6 +310,7 @@ function useWorkspaceState() {
     }
 
     updateBootStep("storage", { status: "done" });
+
     return backendRef.value;
   }
 
@@ -612,6 +620,7 @@ function useWorkspaceState() {
     await reg.save(info);
     workspaces.value = await reg.list();
     await switchWorkspace(info.id);
+
     return info;
   }
 
@@ -680,9 +689,7 @@ function useWorkspaceState() {
       await reg.remove(entry.id);
     }
 
-    await active.delete("workspaces.json").catch(() => {
-      // A missing registry is the goal, not an error.
-    });
+    await active.delete("workspaces.json").catch(() => {});
     workspaces.value = [];
     ensurePromise = undefined;
   }

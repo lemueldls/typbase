@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 
-import { useWorkspace } from "~/composables/workspace";
 import { publishPage, unpublishPage } from "~/lib/publish";
 
 const props = defineProps<{

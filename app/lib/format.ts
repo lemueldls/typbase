@@ -1,9 +1,3 @@
-/**
- * Locale-aware date/time helpers. Everything in the app formats through
- * Intl with the active locale (workspace `settings.locale`, "auto" = browser
- * language); no hand-rolled weekday tables or "3h ago" strings anywhere.
- */
-
 const DAY_MS = 86_400_000;
 
 function toDate(value: string | number | Date): Date {
@@ -68,6 +62,7 @@ export function formatAgo(timestamp: number, locale?: string): string {
     ["minute", 60_000],
   ];
   const [unit, spanMs] = units.find(([, millis]) => abs >= millis) ?? ["minute", 60_000];
+
   return rtf.format(Math.round(diff / spanMs), unit);
 }
 

@@ -3,13 +3,6 @@ import type { TypstRequest } from "@typbase/wasm";
 
 import { resolveRequestPayloads } from "~/lib/typstRequests";
 
-/**
- * Publish render worker, main-thread side. Renders run in a worker so a big
- * publish never blocks the editor. The worker answers `#typbase.query` and
- * `#typbase.embed` by asking here; payloads go back as insert messages into
- * the worker's own wasm instance (not the editor's).
- */
-
 export interface RenderWorkerRequest {
   id: number;
   type: "render";

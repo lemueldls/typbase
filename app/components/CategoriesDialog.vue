@@ -63,7 +63,7 @@ async function remove(id: string) {
               :aria-label="$t('categories.removeAria', { name: category.name })"
               @click="remove(category.id)"
             >
-              ×
+              <MsIcon name="delete" :size="16" />
             </button>
           </li>
           <li v-if="categories.length === 0" class="category-list__empty">

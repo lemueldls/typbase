@@ -1,8 +1,3 @@
-/**
- * AI keys live in local.json (via the workspace composable), never in Loro
- * or spaces. Read on demand at request time so a change applies to the next
- * generation without a restart.
- */
 export interface AiKeyState {
   openai?: string;
   anthropic?: string;

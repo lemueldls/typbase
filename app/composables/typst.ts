@@ -22,11 +22,6 @@ export function getTypstFontImports() {
 
 let statePromise: Promise<TypstState> | undefined;
 
-/**
- * Installs the bundled fonts into a fresh TypstState. Used by useTypst and
- * by panic recovery, which needs a brand-new instance because a wasm abort
- * leaves the old one unusable.
- */
 export async function createTypstState(): Promise<TypstState> {
   const typstState = new TypstState();
 
@@ -95,11 +90,6 @@ export const systemFontsLoaded = ref(false);
 export const systemFontsLoading = ref(false);
 export const systemFontsError = ref<string | null>(null);
 
-/**
- * Installs every system font into the wasm instance. Requires the Local Font
- * Access API (Chromium); `queryLocalFonts()` prompts for permission, so call
- * this from a click handler, not on load.
- */
 export async function loadSystemFonts(typstState: TypstState): Promise<void> {
   if (!window.queryLocalFonts) {
     systemFontsError.value = "This browser does not support the Local Font Access API.";

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import type { ViewMode } from "./PageView.vue";
-
-import PageView from "./PageView.vue";
+import type { ViewMode } from "~/lib/view";
 
 defineProps<{
   pageId: string | null;

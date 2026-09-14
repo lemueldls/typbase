@@ -3,7 +3,6 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 import type { SearchResultItem } from "~/lib/search";
 
-import { useSearch } from "~/composables/search";
 import { requestReveal } from "~/lib/reveal";
 
 const props = defineProps<{

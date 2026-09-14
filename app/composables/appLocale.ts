@@ -2,12 +2,6 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 import { formatAgo, formatDate } from "~/lib/format";
 
-/**
- * App locale bridge. The workspace setting `settings.locale` drives the i18n
- * locale ("auto" = browser language, which @nuxtjs/i18n already detected),
- * and every date/time renders through Intl with the resolved locale. Called
- * once per open store (Settings + boot); re-applies on setting changes.
- */
 const SUPPORTED = ["en", "es", "de", "fr", "zh"] as const;
 type AppLocaleCode = (typeof SUPPORTED)[number];
 
@@ -16,15 +10,17 @@ export function effectiveLocale(settings: { locale?: string }): AppLocaleCode {
   if (code !== "auto" && (SUPPORTED as readonly string[]).includes(code)) {
     return code as AppLocaleCode;
   }
-  // i18n detected the browser locale at startup; keep whatever it picked.
   const detected =
     typeof navigator !== "undefined" ? (navigator.language.split("-")[0] ?? "en") : "en";
+
   return (SUPPORTED as readonly string[]).includes(detected) ? (detected as AppLocaleCode) : "en";
 }
 
-export function useAppLocale(store?: WorkspaceStore | null) {
-  const { locale, setLocale } = useI18n();
-
+export function useAppLocale(
+  locale: WritableComputedRef<AppLocaleCode>,
+  setLocale: (locale: AppLocaleCode) => Promise<void>,
+  store?: WorkspaceStore | null,
+) {
   function apply(settings: { locale?: string } | undefined): void {
     const code = effectiveLocale(settings ?? {});
     if (locale.value !== code) void setLocale(code);
@@ -43,11 +39,11 @@ export function useAppLocale(store?: WorkspaceStore | null) {
     } else if (value === "auto") {
       const detected =
         typeof navigator !== "undefined" ? (navigator.language.split("-")[0] ?? "en") : "en";
-      void setLocale(
+      setLocale(
         (SUPPORTED as readonly string[]).includes(detected) ? (detected as AppLocaleCode) : "en",
       );
     } else {
-      void setLocale(value as AppLocaleCode);
+      setLocale(value as AppLocaleCode);
     }
   }
 

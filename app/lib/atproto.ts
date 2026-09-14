@@ -18,13 +18,6 @@ import {
 import { createSyncHost } from "~/lib/syncHost";
 import { withTimeout } from "~/lib/timeout";
 
-/**
- * The app-side atproto service. One per workspace. Auth goes through the
- * browser OAuth client (PAR + PKCE + DPoP), spaces through credentials, and
- * the sync engine shuttles Loro updates between the local store and the
- * space. The relay is a best-effort fanout channel for updates and presence.
- */
-
 export interface Persona {
   name: string;
   color: string;

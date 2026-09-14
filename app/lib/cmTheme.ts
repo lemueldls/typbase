@@ -1,13 +1,5 @@
 import { EditorView } from "@codemirror/view";
 
-/**
- * CodeMirror theme extension bound to the app tokens. The static rules in
- * main.css LOSE to CM's base theme, which is injected at runtime with equal
- * specificity — that is why the cursor stayed black and tooltips stayed
- * grey. A theme extension is injected after the base theme, so these win.
- * Values are `var(--...)`, which re-resolve on theme changes without
- * recreating the extension.
- */
 export function typstEditorTheme() {
   return EditorView.theme({
     "&.cm-editor": {

@@ -227,9 +227,7 @@
     "code": "Code en ligne",
     "math": "Maths en ligne",
     "link": "Lien",
-    "heading1": "Titre 1",
-    "heading2": "Titre 2",
-    "heading3": "Titre 3",
+    "heading": "Titre",
     "bulletList": "Liste à puces",
     "orderedList": "Liste numérotée",
     "collapse": "Réduire la barre de mise en forme"

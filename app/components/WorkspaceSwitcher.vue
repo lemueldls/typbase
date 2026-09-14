@@ -2,16 +2,8 @@
 import type { WorkspaceInfo } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
-import { useWorkspace } from "~/composables/workspace";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
-import WorkspaceDialog from "./WorkspaceDialog.vue";
-
-/**
- * Workspace switching: a full chooser card when no workspace is open
- * (mode="screen") and a popover menu for the sidebar (mode="menu"). Create
- * and edit go through WorkspaceDialog; delete stays a confirm.
- */
 const props = defineProps<{ mode: "screen" | "menu" }>();
 
 const { workspaces, activeWorkspaceId, switchWorkspace, deleteWorkspace } = useWorkspace();

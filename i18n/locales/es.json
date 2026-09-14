@@ -227,9 +227,7 @@
     "code": "Código en línea",
     "math": "Matemáticas en línea",
     "link": "Enlace",
-    "heading1": "Encabezado 1",
-    "heading2": "Encabezado 2",
-    "heading3": "Encabezado 3",
+    "heading": "Encabezado",
     "bulletList": "Lista con viñetas",
     "orderedList": "Lista numerada",
     "collapse": "Contraer barra de formato"

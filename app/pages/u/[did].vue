@@ -4,8 +4,6 @@ import { createIdResolver, resolveIdentifier, resolvePds } from "@typbase/spaces
 
 import { fetchPublishedPosts } from "~/lib/publish";
 
-/** Public profile: reads app.typbase.post records from a user's own repo. */
-
 const routeDid = useRouteParams<string>("did");
 
 const loading = ref(true);

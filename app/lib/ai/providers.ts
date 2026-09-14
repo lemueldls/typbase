@@ -1,12 +1,5 @@
 import type { AiConfig } from "@typbase/typing";
 
-/**
- * One interface, three drivers: OpenAI-compatible (covers most hosted
- * endpoints and Ollama's API compat layer), Anthropic, and native Ollama.
- * Provider config syncs in workspace settings; keys never do (they live in
- * local.json and are read by the caller on demand).
- */
-
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;

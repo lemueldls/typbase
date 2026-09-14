@@ -2,7 +2,6 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { Section } from "@typbase/typing";
 
-import { useTypst } from "~/composables/typst";
 import {
   createProviderFor,
   generateExplain,

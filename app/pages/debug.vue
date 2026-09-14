@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { TypstState } from "@typbase/wasm";
 
-import StorageExplorer from "~/components/workspace/StorageExplorer.vue";
-import { useTypst, systemFontFamilies } from "~/composables/typst";
-import { useWorkspace } from "~/composables/workspace";
 import {
   type CapturedLog,
   RECOVERY_CASES,

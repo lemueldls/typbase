@@ -9,14 +9,6 @@ import {
   type ResolvedTheme,
 } from "~/lib/themes";
 
-/**
- * App theming. The workspace settings (`settings.theme` mode + `themeName`
- * palette) are synced through Loro; this composable applies the resolved
- * palette to `document.documentElement` and follows the OS preference while
- * in "auto". Wired once at the shell (index.vue); the Typst renderer colors
- * are derived from the same tokens through rendererPaletteFor.
- */
-
 const media =
   typeof window !== "undefined" && window.matchMedia
     ? window.matchMedia("(prefers-color-scheme: dark)")
@@ -42,6 +34,7 @@ export function applyTheme(settings: Parameters<typeof resolveAppTheme>[0]): Res
   const resolved = resolveAppTheme(settings);
   applyThemeToDom(resolved);
   cacheThemeSettings(settings);
+
   return resolved;
 }
 

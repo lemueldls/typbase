@@ -227,9 +227,7 @@
     "code": "Inline-Code",
     "math": "Inline-Mathe",
     "link": "Link",
-    "heading1": "Überschrift 1",
-    "heading2": "Überschrift 2",
-    "heading3": "Überschrift 3",
+    "heading": "Überschrift",
     "bulletList": "Aufzählung",
     "orderedList": "Nummerierte Liste",
     "collapse": "Formatierungsleiste einklappen"

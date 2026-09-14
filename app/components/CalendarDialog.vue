@@ -2,14 +2,6 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 
-import { useWorkspace } from "~/composables/workspace";
-
-/**
- * Monthly calendar for daily notes. Days with a note are marked; clicking one
- * opens the note (creating it on first click), and the trash icon on an
- * existing note deletes it. Month navigation is local UI state only.
- */
-
 const props = defineProps<{
   store: WorkspaceStore;
 }>();
@@ -30,7 +22,6 @@ function formatDayLabel(iso: string): string {
 }
 const open = defineModel<boolean>("open", { default: false });
 
-// UTC month grid; daily note paths use UTC ISO dates, so stay in UTC.
 const today = new Date();
 const viewYear = ref(today.getUTCFullYear());
 const viewMonth = ref(today.getUTCMonth());
@@ -50,7 +41,6 @@ interface Cell {
   iso: string;
   day: number;
   page: PageMeta | undefined;
-  /** Outside the current month (spacer cells). */
   outside: boolean;
 }
 
@@ -121,7 +111,6 @@ async function deleteDay(cell: Cell) {
   if (!window.confirm(t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }))) return;
 
   await props.store.deletePage(cell.page.id);
-  // The sidebar falls back to home/first if the open page was deleted.
   emit("deleted", cell.page.id);
 }
 

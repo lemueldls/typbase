@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import { isFsaSupported } from "@typbase/storage";
 
-import type { StorageSetupChoice, StorageSetupState } from "~/composables/workspace";
-
-import { useWorkspace } from "~/composables/workspace";
-
-/**
- * First-run storage picker (and the change-location screen from settings).
- * Native builds choose app data, the device documents folder, or a folder
- * picked through the native dialog. Browsers choose OPFS or a folder handle,
- * and reconnect the handle when its permission expired.
- */
 const props = defineProps<{ setup: StorageSetupState }>();
 
 const { configureStorage, cancelStorageSetup } = useWorkspace();

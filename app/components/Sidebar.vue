@@ -3,14 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
-import { useWorkspace } from "~/composables/workspace";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
-
-import CalendarDialog from "./CalendarDialog.vue";
-import CategoriesDialog from "./CategoriesDialog.vue";
-import NewPageDialog from "./NewPageDialog.vue";
-import SettingsPopover from "./SettingsPopover.vue";
-import WorkspaceSwitcher from "./WorkspaceSwitcher.vue";
 
 const props = defineProps<{
   store: WorkspaceStore;

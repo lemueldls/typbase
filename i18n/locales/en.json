@@ -227,9 +227,7 @@
     "code": "Inline code",
     "math": "Inline math",
     "link": "Link",
-    "heading1": "Heading 1",
-    "heading2": "Heading 2",
-    "heading3": "Heading 3",
+    "heading": "Heading",
     "bulletList": "Bullet list",
     "orderedList": "Numbered list",
     "collapse": "Collapse formatting toolbar"

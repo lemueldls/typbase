@@ -17,16 +17,6 @@ import type { AtprotoService } from "~/lib/atproto";
 import { publishPrelude } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
 
-/**
- * Publish a page to public atproto: render HTML (optionally PDF) in the
- * worker, upload blobs, write `app.typbase.post` to the author's own repo
- * with the page id as rkey (so re-publishing overwrites). The record is the
- * canonical pointer; unpublish deletes it.
- *
- * Public means public: firehose mirrors may retain copies after unpublish,
- * and the UI says so before you click.
- */
-
 export interface PublishOptions {
   /** Overrides the workspace publish defaults for this one publish. */
   langs?: string[];

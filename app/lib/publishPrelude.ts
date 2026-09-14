@@ -2,12 +2,6 @@ import type { WorkspaceSettings } from "@typbase/typing";
 
 import { rendererPaletteFor, resolveTheme } from "~/lib/themes";
 
-/**
- * The prelude for published pages. It mirrors the editor prelude the wasm
- * crate generates (fonts, heading styles, link styles) but without page
- * geometry: the HTML render target has no fixed page box. The worker's
- * TypstState has no context for this page, so the prelude comes from JS.
- */
 export function publishPrelude(settings: WorkspaceSettings): string {
   // The same registry as the app chrome: named themes, custom overrides,
   // renderer colors derived from the token map.

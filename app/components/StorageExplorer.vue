@@ -10,7 +10,6 @@ import {
   pagePath,
 } from "@typbase/storage";
 
-import { useWorkspace } from "~/composables/workspace";
 import { formatAgo } from "~/lib/format";
 
 /**

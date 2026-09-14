@@ -22,10 +22,23 @@ export default defineNuxtConfig({
   future: { compatibilityVersion: 5 },
   modules: ["@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
   css: ["~/assets/css/main.css"],
+  app: {
+    head: {
+      title: "Typbase",
+      meta: [
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        {
+          name: "description",
+          content: "Local-first knowledge base built around the Typst language and atproto Spaces.",
+        },
+      ],
+      link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+    },
+  },
   vite: {
     // experimental: { bundledDev: true },
     optimizeDeps: {
-      exclude: ["loro-crdt", "sqlite-wasm-vec", "@typbase/wasm"],
+      exclude: ["loro-crdt", "sqlite-wasm-vec"],
     },
     server: {
       // middlewareMode: false,

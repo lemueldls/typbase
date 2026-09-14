@@ -108,9 +108,7 @@ export class WorkspaceStore {
       store.emitStructure();
     });
 
-    console.log("[loro] open: loaded", !!bytes);
     if (!bytes) await store.seed();
-    console.log("[loro] open: done");
 
     return store;
   }
