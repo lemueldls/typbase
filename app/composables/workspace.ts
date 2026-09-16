@@ -163,12 +163,20 @@ function useWorkspaceState() {
 
   const workspaces = ref<WorkspaceInfo[]>([]);
   const activeWorkspaceId = ref<string | null>(null);
+  /** Workspace id currently being opened, null when idle. Drives switch UI. */
+  const switching = ref<string | null>(null);
   /** Bumped whenever the active workspace changes; key the shell on it. */
   const workspaceGeneration = ref(0);
 
   const backendRef = shallowRef<StorageBackend>();
   let registry: WorkspaceRegistry | undefined;
   let openingSeq = 0;
+  /**
+   * Owns the switching overlay. Kept apart from `openingSeq` because
+   * `bootAtproto` also bumps that one, which made the overlay's cleanup guard
+   * fail and left the pill up forever.
+   */
+  let switchingSeq = 0;
   let disposed = false;
   /** The picked browser folder, kept so permission can be re-requested. */
   let folderHandle: FileSystemDirectoryHandle | null = null;
@@ -486,67 +494,74 @@ function useWorkspaceState() {
 
   async function openWorkspace(id: string): Promise<WorkspaceStore> {
     const token = ++openingSeq;
-    teardownActive();
-    bootProgress.value = initialBootSteps((key) => t(key as never));
-    bootNote.value = "";
+    const switchToken = ++switchingSeq;
+    switching.value = id;
 
-    const reg = await ensureRegistry();
-    const info = await reg.get(id);
-    if (!info) throw new Error(`No workspace named ${id}`);
+    try {
+      teardownActive();
+      bootProgress.value = initialBootSteps((key) => t(key as never));
+      bootNote.value = "";
 
-    await reg.save({ ...info, lastOpenedAt: Date.now() });
-    if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
+      const reg = await ensureRegistry();
+      const info = await reg.get(id);
+      if (!info) throw new Error(`No workspace named ${id}`);
 
-    updateBootStep("workspace", { status: "active" });
-    // A fresh doc seeds from the registry name; an existing doc's settings
-    // name wins and is copied back into the registry below.
-    const store = await WorkspaceStore.open(backendRef.value!, id, { name: info.name });
-    if (token !== openingSeq) return store;
+      await reg.save({ ...info, lastOpenedAt: Date.now() });
+      if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
 
-    // Keep the registry name in sync with the workspace doc.
-    const name = store.getSettings().name;
-    if (name !== info.name) await reg.save({ ...info, lastOpenedAt: Date.now(), name });
-    updateBootStep("workspace", {
-      status: "done",
-      detail: `${store.listPages().length} page(s)`,
-    });
+      updateBootStep("workspace", { status: "active" });
+      // A fresh doc seeds from the registry name; an existing doc's settings
+      // name wins and is copied back into the registry below.
+      const store = await WorkspaceStore.open(backendRef.value!, id, { name: info.name });
+      if (token !== openingSeq) return store;
 
-    store.onStructureChange(() => {
-      dataRevision.value += 1;
-      void syncRegistryName(store);
-    });
+      // Keep the registry name in sync with the workspace doc.
+      const name = store.getSettings().name;
+      if (name !== info.name) await reg.save({ ...info, lastOpenedAt: Date.now(), name });
+      updateBootStep("workspace", {
+        status: "done",
+        detail: `${store.listPages().length} page(s)`,
+      });
 
-    activeWorkspaceId.value = id;
-    workspace.value = store;
-    workspaceGeneration.value += 1;
-    localStorage.setItem(LAST_WORKSPACE_KEY, id);
-    void refreshWorkspaceList();
+      store.onStructureChange(() => {
+        dataRevision.value += 1;
+        void syncRegistryName(store);
+      });
 
-    // Device-local state doubles as the source-mirror bookkeeping; create it
-    // before atproto boots so `sources/` can sync right away.
-    const local = new LocalState(backendRef.value!, localStatePath(id));
-    localState.value = local;
-    store.attachSourceSync(local);
+      activeWorkspaceId.value = id;
+      workspace.value = store;
+      workspaceGeneration.value += 1;
+      localStorage.setItem(LAST_WORKSPACE_KEY, id);
+      void refreshWorkspaceList();
 
-    // atproto boots in the background, never gating the editor.
-    void bootAtproto(store, backendRef.value!, local);
+      // Device-local state doubles as the source-mirror bookkeeping; create it
+      // before atproto boots so `sources/` can sync right away.
+      const local = new LocalState(backendRef.value!, localStatePath(id));
+      localState.value = local;
+      store.attachSourceSync(local);
 
-    // Mirror pages to `sources/` and pick up external edits.
-    void store
-      .syncSources()
-      .then((result) => {
-        if (result.created.length || result.imported.length || result.conflicts.length) {
-          console.info("[sources] synced", result);
-        }
-      })
-      .catch((reason) => console.warn("[sources] sync failed:", reason));
+      // atproto boots in the background, never gating the editor.
+      void bootAtproto(store, backendRef.value!, local);
 
-    if (import.meta.dev) {
-      // Console access for debugging (mirrors __typstState in typst.ts).
-      (window as unknown as { __store: WorkspaceStore }).__store = store;
+      // Mirror pages to `sources/` and pick up external edits.
+      void store
+        .syncSources()
+        .then((result) => {
+          if (result.created.length || result.imported.length || result.conflicts.length) {
+            console.info("[sources] synced", result);
+          }
+        })
+        .catch((reason) => console.warn("[sources] sync failed:", reason));
+
+      if (import.meta.dev) {
+        // Console access for debugging (mirrors __typstState in typst.ts).
+        (window as unknown as { __store: WorkspaceStore }).__store = store;
+      }
+
+      return store;
+    } finally {
+      if (switchToken === switchingSeq) switching.value = null;
     }
-
-    return store;
   }
 
   /** Mirrors the workspace doc's name into the registry, only when changed. */
@@ -763,6 +778,7 @@ function useWorkspaceState() {
     bootNote,
     workspaces,
     activeWorkspaceId,
+    switching,
     workspaceGeneration,
     switchWorkspace,
     createWorkspace,

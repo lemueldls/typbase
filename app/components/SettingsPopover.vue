@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
-import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
+import type { ThemePaletteToken, ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { isTauri } from "@typbase/storage";
+import { THEME_PALETTE_TOKEN_KEYS } from "@typbase/typing";
 
 import { getAiKeys, setAiKeys } from "~/lib/ai/keys";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
+import { CUSTOM_THEME_ID, resolveTheme, THEMES } from "~/lib/themes";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -93,62 +95,73 @@ function updateAiPatching(patch: Record<string, unknown>) {
 }
 const aiKeys = ref(getAiKeys());
 
-// Theme picker: named themes from the registry, custom palette override.
-const THEME_OPTIONS = [
-  { id: "default", label: "Default" },
-  { id: "catppuccin", label: "Catppuccin" },
-  { id: "evergarden", label: "Evergarden" },
-  { id: "melange", label: "Melange" },
-  { id: "nord", label: "Nord" },
-  { id: "gruvbox", label: "Gruvbox" },
-  { id: "custom", label: "Custom (palette from settings)" },
-];
-const CUSTOM_THEME_ID = "custom";
-const customPaletteText = ref("");
-watch(
-  () => settings.value.themeName,
-  (name) => {
-    if (name === CUSTOM_THEME_ID && !customPaletteText.value) {
-      customPaletteText.value = JSON.stringify(settings.value.themeCustom ?? {}, null, 2);
-    }
-  },
-  { immediate: true },
-);
-function onThemeNameChange(event: Event) {
-  const name = (event.target as HTMLSelectElement).value;
-  const patch: Partial<WorkspaceSettings> = { themeName: name };
-  if (name === CUSTOM_THEME_ID && customPaletteText.value) {
-    const palette = parseCustomPalette(customPaletteText.value);
-    if (palette === null) {
-      themeError.value = "Custom palette is not valid JSON of token -> color.";
-      return;
-    }
+// Theme picker: named themes from the registry plus a custom palette. The
+// custom editor seeds from the resolved palette, so selecting it starts from
+// the colors currently on screen instead of an empty map.
+const customSwatch = computed(() => {
+  const base = resolveTheme({ ...settings.value, themeName: "default" }).palette;
+  const custom = settings.value.themeCustom;
 
-    patch.themeCustom = palette;
+  return {
+    background: custom?.surface ?? base.surface,
+    accent: custom?.accent ?? base.accent,
+    text: custom?.text ?? base.text,
+  };
+});
+
+const themeOptions = computed(() => [
+  ...THEMES.map((theme) => ({ id: theme.id, label: theme.label, swatch: theme.swatch })),
+  { id: CUSTOM_THEME_ID, label: t("settings.custom"), swatch: customSwatch.value },
+]);
+
+function selectTheme(id: string) {
+  const patch: Partial<WorkspaceSettings> = { themeName: id };
+  if (id === CUSTOM_THEME_ID && !settings.value.themeCustom) {
+    patch.themeCustom = { ...resolveTheme(settings.value).palette };
   }
-  themeError.value = "";
+
   props.store.updateSettings(patch);
   // Apply immediately; the structure-change echo also refreshes, but the
   // editor should not wait on it.
   applyTheme(props.store.getSettings());
   bumpRenderRevision();
 }
-function parseCustomPalette(text: string): ThemePaletteTokens | null {
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
 
-    const tokens = Object.fromEntries(
-      Object.entries(parsed as Record<string, unknown>).filter(
-        (entry) => typeof entry[1] === "string",
-      ),
-    );
-    return Object.keys(tokens).length > 0 ? (tokens as ThemePaletteTokens) : null;
-  } catch {
-    return null;
-  }
+/** Draft palette while the custom editor is open; null for named themes. */
+const paletteDraft = ref<ThemePaletteTokens | null>(null);
+
+function syncPaletteDraft(): void {
+  paletteDraft.value =
+    settings.value.themeName === CUSTOM_THEME_ID
+      ? { ...resolveTheme(settings.value).palette }
+      : null;
 }
-const themeError = ref("");
+
+watch(
+  () => [settings.value.themeName, settings.value.theme, settings.value.themeCustom] as const,
+  syncPaletteDraft,
+  { immediate: true, deep: true },
+);
+
+/** "surface2" -> "Surface 2", "borderStrong" -> "Border Strong". */
+function tokenLabel(key: string): string {
+  return key.replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/^./, (char) => char.toUpperCase());
+}
+
+function setPaletteToken(key: ThemePaletteToken, value: string): void {
+  if (!paletteDraft.value) return;
+
+  const next = { ...paletteDraft.value, [key]: value };
+  paletteDraft.value = next;
+  props.store.updateSettings({ themeCustom: next });
+  applyTheme(props.store.getSettings());
+  bumpRenderRevision();
+}
+
+function onPaletteInput(key: ThemePaletteToken, event: Event): void {
+  setPaletteToken(key, (event.target as HTMLInputElement).value);
+}
+
 /** Settings tab; keeps the popover from becoming a scroll marathon. */
 const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | "search" | "sync">(
   "general",
@@ -157,12 +170,6 @@ const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
 // every compile. Both sync through settings like everything else.
-function themeOptionLabel(id: string): string {
-  if (id === "custom") return t("settings.custom");
-
-  return THEME_OPTIONS.find((option) => option.id === id)?.label ?? id;
-}
-
 function onLocaleChange(event: Event) {
   appLocale.set((event.target as HTMLSelectElement).value);
 }
@@ -176,19 +183,6 @@ function onPagePreludeChange(event: Event) {
   props.store.updateSettings({
     pagePrelude: (event.target as HTMLTextAreaElement).value,
   });
-}
-
-function onCustomPaletteChange() {
-  const palette = parseCustomPalette(customPaletteText.value);
-  if (!palette) {
-    themeError.value = "Keep it valid JSON of token -> color (e.g. surface, text, accent).";
-    return;
-  }
-
-  themeError.value = "";
-  props.store.updateSettings({ themeCustom: palette });
-  applyTheme(props.store.getSettings());
-  bumpRenderRevision();
 }
 
 // Search status.
@@ -481,18 +475,27 @@ function onTextSizeChange(event: Event) {
         </section>
 
         <section v-show="activeTab === 'appearance'" class="settings__tabpanel">
-          <label class="settings__field">
+          <div class="settings__field">
             <span>{{ $t("settings.theme") }}</span>
-            <select
-              class="settings__input"
-              :value="settings.themeName ?? 'default'"
-              @change="onThemeNameChange"
-            >
-              <option v-for="option in THEME_OPTIONS" :key="option.id" :value="option.id">
-                {{ themeOptionLabel(option.id) }}
-              </option>
-            </select>
-          </label>
+            <div class="theme-grid" role="group" :aria-label="$t('settings.theme')">
+              <button
+                v-for="option in themeOptions"
+                :key="option.id"
+                type="button"
+                :aria-pressed="settings.themeName === option.id"
+                class="theme-card"
+                :class="{ 'theme-card--active': settings.themeName === option.id }"
+                @click="selectTheme(option.id)"
+              >
+                <span class="theme-card__swatches" aria-hidden="true">
+                  <span class="theme-card__dot" :style="{ background: option.swatch.background }" />
+                  <span class="theme-card__dot" :style="{ background: option.swatch.accent }" />
+                  <span class="theme-card__dot" :style="{ background: option.swatch.text }" />
+                </span>
+                <span class="theme-card__label">{{ option.label }}</span>
+              </button>
+            </div>
+          </div>
 
           <label class="settings__field">
             <span>{{ $t("settings.themeMode") }}</span>
@@ -507,25 +510,22 @@ function onTextSizeChange(event: Event) {
             </select>
           </label>
 
-          <label v-if="settings.themeName === 'custom'" class="settings__field">
+          <div v-if="paletteDraft" class="settings__field">
             <span>{{ $t("settings.customPalette") }}</span>
-            <textarea
-              v-model="customPaletteText"
-              class="settings__input settings__textarea"
-              rows="8"
-              spellcheck="false"
-              placeholder='{ "surface": "#1b1d21", "accent": "#6ea6e3", ... }'
-              @change="onCustomPaletteChange"
-            />
-            <span class="settings__hint">
-              Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary,
-              accent, accentSoft, danger, dangerSoft, ok, warning. Missing tokens fall back to the
-              default theme.
-            </span>
-          </label>
-          <p v-if="themeError" class="settings__error" role="alert">
-            {{ themeError }}
-          </p>
+            <div class="palette-grid">
+              <label v-for="key in THEME_PALETTE_TOKEN_KEYS" :key="key" class="palette-token">
+                <span class="palette-token__label">{{ tokenLabel(key) }}</span>
+                <input
+                  type="color"
+                  class="palette-token__input"
+                  :value="paletteDraft[key]"
+                  @input="onPaletteInput(key, $event)"
+                />
+                <code class="palette-token__value">{{ paletteDraft[key] }}</code>
+              </label>
+            </div>
+            <span class="settings__hint">{{ $t("settings.customPaletteHint") }}</span>
+          </div>
 
           <label class="settings__field">
             <span>{{ $t("settings.textSize") }}</span>
@@ -983,5 +983,110 @@ function onTextSizeChange(event: Event) {
   margin: 0.5rem 0 0;
   font-size: 0.8rem;
   color: var(--color-danger);
+}
+
+/* Theme cards: swatch trio + name, selected by border and check. */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.theme-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+.theme-card--active {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.theme-card__swatches {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.theme-card__dot {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 0.3rem;
+}
+
+.theme-card__label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Custom palette editor: one row per token with a native color picker. */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.3rem 0.6rem;
+  padding: 0.5rem;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+
+.palette-token {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.palette-token__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-token__input {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.3rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.palette-token__input::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.palette-token__input::-webkit-color-swatch {
+  border: none;
+  border-radius: 0.2rem;
+}
+
+.palette-token__value {
+  flex: none;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
 }
 </style>

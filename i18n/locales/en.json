@@ -13,6 +13,7 @@
   },
   "boot": {
     "title": "Opening workspace",
+    "switching": "Switching workspace…",
     "storage": "Opening local storage",
     "workspace": "Loading workspace documents",
     "atproto": "Checking atproto session",
@@ -81,9 +82,9 @@
     "auto": "Auto (system)",
     "light": "Light",
     "dark": "Dark",
-    "custom": "Custom (palette from settings)",
-    "customPalette": "Custom palette (token → color JSON)",
-    "customPaletteHint": "Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Missing tokens fall back to the default theme.",
+    "custom": "Custom",
+    "customPalette": "Custom palette",
+    "customPaletteHint": "Overrides the selected theme for the app and rendered pages.",
     "themeError": "Custom palette is not valid JSON of token -> color.",
     "template": "Daily note template",
     "templateHint": "New daily notes render this Typst source. Placeholders: {'{date}'}, {'{weekday}'}, {'{previous}'} (nearest previous note) and {'{next}'} (nearest next note).",
@@ -173,7 +174,10 @@
     "renameCancel": "Cancel",
     "iconLabel": "Icon",
     "add": "New workspace",
-    "createTitle": "New workspace"
+    "createTitle": "New workspace",
+    "heading": "Workspaces",
+    "actions": "Actions for {name}",
+    "deleteTitle": "Delete workspace"
   },
   "palette": {
     "placeholder": "Search pages and blocks…",

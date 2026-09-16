@@ -22,8 +22,8 @@
 }
 
 .dialog__title {
-  margin: 0 0 0.25rem;
-  font-size: 1.1rem;
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
 }
 
 .dialog__description {
@@ -111,8 +111,11 @@
   gap: 0.15rem;
 }
 
-.menu :deep([data-reka-menu-item]),
-.menu :deep([data-placeholder]) {
+.menu [data-reka-menu-item],
+.menu [data-placeholder] {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   border-radius: 0.4rem;
@@ -120,7 +123,28 @@
   cursor: pointer;
 }
 
-.menu :deep([data-reka-menu-item][data-highlighted]) {
+.menu [data-reka-menu-item][data-highlighted] {
+  background: var(--color-accent-soft);
+}
+
+/* Plain buttons share the item look; :deep() is invalid in a global sheet,
+   so the rules are written as plain attribute selectors. */
+.menu .menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.menu .menu__item:hover {
   background: var(--color-accent-soft);
 }
 

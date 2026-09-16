@@ -13,6 +13,7 @@
   },
   "boot": {
     "title": "Ouverture de l'espace de travail",
+    "switching": "Changement d'espace de travail…",
     "storage": "Ouverture du stockage local",
     "workspace": "Chargement des documents",
     "atproto": "Vérification de la session atproto",
@@ -81,9 +82,9 @@
     "auto": "Automatique (système)",
     "light": "Clair",
     "dark": "Sombre",
-    "custom": "Personnalisé (palette depuis les paramètres)",
-    "customPalette": "Palette personnalisée (JSON jeton → couleur)",
-    "customPaletteHint": "Jetons : surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Les jetons manquants retombent sur le thème par défaut.",
+    "custom": "Personnalisé",
+    "customPalette": "Palette personnalisée",
+    "customPaletteHint": "Remplace le thème sélectionné pour l'application et les pages rendues.",
     "themeError": "La palette personnalisée n'est pas un JSON valide jeton -> couleur.",
     "template": "Modèle de note quotidienne",
     "templateHint": "Les nouvelles notes quotidiennes rendent ce code Typst. Variables : {'{date}'} (date), {'{weekday}'} (jour), {'{previous}'} (note précédente la plus proche) et {'{next}'} (note suivante la plus proche).",
@@ -173,7 +174,10 @@
     "renameCancel": "Annuler",
     "iconLabel": "Icône",
     "add": "Nouvel espace de travail",
-    "createTitle": "Nouvel espace de travail"
+    "createTitle": "Nouvel espace de travail",
+    "heading": "Espaces de travail",
+    "actions": "Actions pour {name}",
+    "deleteTitle": "Supprimer l'espace de travail"
   },
   "palette": {
     "placeholder": "Rechercher dans les pages et blocs…",

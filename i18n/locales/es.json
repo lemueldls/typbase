@@ -13,6 +13,7 @@
   },
   "boot": {
     "title": "Abriendo espacio de trabajo",
+    "switching": "Cambiando de espacio de trabajo…",
     "storage": "Abriendo almacenamiento local",
     "workspace": "Cargando documentos del espacio",
     "atproto": "Comprobando sesión atproto",
@@ -81,9 +82,9 @@
     "auto": "Automático (sistema)",
     "light": "Claro",
     "dark": "Oscuro",
-    "custom": "Personalizado (paleta desde ajustes)",
-    "customPalette": "Paleta personalizada (JSON token → color)",
-    "customPaletteHint": "Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Los tokens ausentes usan el tema por defecto.",
+    "custom": "Personalizado",
+    "customPalette": "Paleta personalizada",
+    "customPaletteHint": "Anula el tema seleccionado en la app y las páginas renderizadas.",
     "themeError": "La paleta personalizada no es JSON válido de token -> color.",
     "template": "Plantilla de nota diaria",
     "templateHint": "Las nuevas notas diarias renderizan este código Typst. Marcadores: {'{date}'} (fecha), {'{weekday}'} (día), {'{previous}'} (nota anterior más cercana) y {'{next}'} (nota siguiente más cercana).",
@@ -173,7 +174,10 @@
     "renameCancel": "Cancelar",
     "iconLabel": "Icono",
     "add": "Nuevo espacio de trabajo",
-    "createTitle": "Nuevo espacio de trabajo"
+    "createTitle": "Nuevo espacio de trabajo",
+    "heading": "Espacios de trabajo",
+    "actions": "Acciones para {name}",
+    "deleteTitle": "Eliminar espacio de trabajo"
   },
   "palette": {
     "placeholder": "Buscar en páginas y bloques…",

@@ -12,6 +12,7 @@ const {
   bootProgress,
   bootNote,
   workspaceGeneration,
+  switching,
   storageSetup,
 } = useWorkspace();
 
@@ -246,6 +247,11 @@ definePageMeta({ ssr: false });
 
 <template>
   <main class="app">
+    <div v-if="loaded && switching" class="app__switching" role="status">
+      <span class="app__switching-label">{{ $t("boot.switching") }}</span>
+      <span class="app__switching-track"><span class="app__switching-bar" /></span>
+    </div>
+
     <div v-if="!loaded" class="app__loading">
       <h2 class="app__loading-title">{{ $t("boot.title") }}</h2>
 
@@ -274,7 +280,13 @@ definePageMeta({ ssr: false });
     <StorageSetup v-else-if="storageSetup" :setup="storageSetup" />
 
     <template v-else-if="workspace">
-      <div :key="workspaceGeneration" class="app__content">
+      <div
+        :key="workspaceGeneration"
+        class="app__content"
+        :class="{ 'app__content--switching': switching }"
+        :aria-busy="switching ? true : undefined"
+        :inert="switching ? true : undefined"
+      >
         <SplitterGroup
           v-if="isDesktop"
           direction="horizontal"
@@ -408,6 +420,64 @@ definePageMeta({ ssr: false });
 
 .app__content {
   display: contents;
+}
+
+/* Workspace switch feedback: a pill + indeterminate bar over the shell, and
+   a dimmed, inert content area until the new store is live. The content div
+   is `display: contents`, so the dim has to target its children. */
+.app__switching {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.app__switching-label {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--color-surface);
+  background: var(--color-accent);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+}
+
+.app__switching-track {
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 0.4rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+.app__switching-bar {
+  display: block;
+  width: 35%;
+  height: 100%;
+  background: var(--color-accent);
+  animation: app-switching 1.1s ease-in-out infinite;
+}
+
+@keyframes app-switching {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(286%);
+  }
+}
+
+.app__content--switching > * {
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
 }
 
 .app__chooser {

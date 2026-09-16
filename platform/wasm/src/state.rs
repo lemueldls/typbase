@@ -1082,27 +1082,27 @@ impl TypstState {
         formatdoc!(
             r#"
                 #let theme={theme}
-                #set text(fill:theme.on-background,size:{text_size}pt,lang:"{locale}",font:"{font}")
+                #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
 
-                #show heading.where(level:1):set text(fill:theme.primary,size:32pt,weight:400)
-                #show heading.where(level:2):set text(fill:theme.secondary,size:28pt,weight:400)
-                #show heading.where(level:3):set text(fill:theme.tertiary,size:24pt,weight:400)
-                #show heading.where(level:4):set text(fill:theme.primary,size:22pt,weight:400)
-                #show heading.where(level:5):set text(fill:theme.secondary,size:16pt,weight:500)
-                #show heading.where(level:6):set text(fill:theme.tertiary,size:14pt,weight:500)
+                #show heading.where(level:1):set text(fill:theme.accent,size:32pt,weight:400)
+                #show heading.where(level:2):set text(fill:theme.text,size:28pt,weight:400)
+                #show heading.where(level:3):set text(fill:theme.text-secondary,size:24pt,weight:400)
+                #show heading.where(level:4):set text(fill:theme.accent,size:22pt,weight:400)
+                #show heading.where(level:5):set text(fill:theme.text,size:16pt,weight:500)
+                #show heading.where(level:6):set text(fill:theme.text-secondary,size:14pt,weight:500)
 
-                #show link:set text(fill:theme.primary)
+                #show link:set text(fill:theme.accent)
                 #show link:underline
 
-                #set line(stroke:theme.outline)
-                #set table(stroke:theme.outline)
-                #set circle(stroke:theme.outline)
-                #set ellipse(stroke:theme.outline)
-                #set line(stroke:theme.outline)
-                #set curve(stroke:theme.outline)
-                #set polygon(stroke:theme.outline)
-                #set rect(stroke:theme.outline)
-                #set square(stroke:theme.outline)
+                #set line(stroke:theme.border)
+                #set table(stroke:theme.border)
+                #set circle(stroke:theme.border)
+                #set ellipse(stroke:theme.border)
+                #set line(stroke:theme.border)
+                #set curve(stroke:theme.border)
+                #set polygon(stroke:theme.border)
+                #set rect(stroke:theme.border)
+                #set square(stroke:theme.border)
 
                 #show math.equation:set text(font:"{math_font}")
                 #show math.equation.where(block:true):set text(size:18pt)

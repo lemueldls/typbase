@@ -117,7 +117,7 @@ pub fn try_mark_errornous(
     context: &mut SourceContext,
     world: &mut TypstWorld,
 ) -> MarkedErrors {
-    let pre_text = "#math.italic(text(fill:theme.error)[";
+    let pre_text = "#math.italic(text(fill:theme.danger)[";
     let post_text = "])";
     let pre_text_len = pre_text.len();
     let post_text_len = post_text.len();

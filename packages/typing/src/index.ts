@@ -95,27 +95,31 @@ export interface SearchSettings {
 
 export type ThemeMode = "auto" | "light" | "dark";
 
+/** Palette token names, in display order. The renderer maps them 1:1. */
+export const THEME_PALETTE_TOKEN_KEYS = [
+  "surface",
+  "surface2",
+  "surface3",
+  "border",
+  "borderStrong",
+  "text",
+  "textSecondary",
+  "accent",
+  "accentSoft",
+  "ok",
+  "warning",
+  "danger",
+  "dangerSoft",
+] as const;
+
+export type ThemePaletteToken = (typeof THEME_PALETTE_TOKEN_KEYS)[number];
+
 /**
  * A theme palette as token -> CSS color. The renderer palette is derived
  * from these, so a custom theme only needs the same tokens the app chrome
- * uses. Union of TokenName keys; values are CSS color strings.
+ * uses; values are CSS color strings.
  */
-export type ThemePaletteTokens = Record<
-  | "surface"
-  | "surface2"
-  | "surface3"
-  | "border"
-  | "borderStrong"
-  | "text"
-  | "textSecondary"
-  | "accent"
-  | "accentSoft"
-  | "danger"
-  | "dangerSoft"
-  | "ok"
-  | "warning",
-  string
->;
+export type ThemePaletteTokens = Record<ThemePaletteToken, string>;
 
 /** Workspace settings stored in the workspace doc's `settings` map. */
 export interface WorkspaceSettings {

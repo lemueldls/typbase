@@ -13,6 +13,7 @@
   },
   "boot": {
     "title": "Arbeitsbereich wird geöffnet",
+    "switching": "Arbeitsbereich wird gewechselt…",
     "storage": "Lokalen Speicher öffnen",
     "workspace": "Arbeitsbereich-Dokumente laden",
     "atproto": "atproto-Sitzung prüfen",
@@ -81,9 +82,9 @@
     "auto": "Automatisch (System)",
     "light": "Hell",
     "dark": "Dunkel",
-    "custom": "Benutzerdefiniert (Palette aus Einstellungen)",
-    "customPalette": "Benutzerdefinierte Palette (Token → Farb-JSON)",
-    "customPaletteHint": "Tokens: surface, surface2, surface3, border, borderStrong, text, textSecondary, accent, accentSoft, danger, dangerSoft, ok, warning. Fehlende Tokens fallen auf das Standarddesign zurück.",
+    "custom": "Benutzerdefiniert",
+    "customPalette": "Benutzerdefinierte Palette",
+    "customPaletteHint": "Überschreibt das gewählte Theme für die App und gerenderte Seiten.",
     "themeError": "Benutzerdefinierte Palette ist kein gültiges Token-zu-Farbe-JSON.",
     "template": "Tägliche Notiz-Vorlage",
     "templateHint": "Neue Tagesnotizen rendern diesen Typst-Code. Platzhalter: {'{date}'} (Datum), {'{weekday}'} (Wochentag), {'{previous}'} (nächste vorherige Notiz) und {'{next}'} (nächste folgende Notiz).",
@@ -173,7 +174,10 @@
     "renameCancel": "Abbrechen",
     "iconLabel": "Symbol",
     "add": "Neuer Arbeitsbereich",
-    "createTitle": "Neuer Arbeitsbereich"
+    "createTitle": "Neuer Arbeitsbereich",
+    "heading": "Arbeitsbereiche",
+    "actions": "Aktionen für {name}",
+    "deleteTitle": "Arbeitsbereich löschen"
   },
   "palette": {
     "placeholder": "Seiten und Blöcke durchsuchen…",

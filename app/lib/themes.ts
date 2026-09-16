@@ -9,9 +9,14 @@ import { themeColorsFromPalette } from "./rendererPalette";
  * a light/dark classification, and the Typst renderer palette is derived
  * from the same tokens so published pages match the chrome around them.
  *
- * Adding a theme: append a ThemeDefinition. Custom palettes (workspace
- * setting `themeCustom`) merge over the selected theme, so user themes only
- * need the tokens they differ on.
+ * Surface ordering is part of the contract. Light themes step down:
+ * surface > surface2 > surface3. Dark themes step up: surface < surface2 <
+ * surface3. Borders sit above the surfaces they separate in both modes, and
+ * each token carries the theme's tint instead of plain gray.
+ *
+ * Adding a theme: append a ThemeDefinition. The workspace's `themeCustom`
+ * palette is its own theme id ("custom"): it layers over the default palette
+ * and never masks a named theme.
  */
 
 export interface ThemeDefinition {
@@ -82,10 +87,10 @@ export const THEMES: ThemeDefinition[] = [
       },
       dark: {
         surface: "#1e1e2e",
-        surface2: "#181825",
-        surface3: "#11111b",
-        border: "#313244",
-        borderStrong: "#45475a",
+        surface2: "#262636",
+        surface3: "#313244",
+        border: "#45475a",
+        borderStrong: "#585b70",
         text: "#cdd6f4",
         textSecondary: "#a6adc8",
         accent: "#89b4fa",
@@ -106,8 +111,8 @@ export const THEMES: ThemeDefinition[] = [
         surface: "#f5efe6",
         surface2: "#f2eae1",
         surface3: "#e8ded5",
-        border: "#e6e1d3",
-        borderStrong: "#ceccbd",
+        border: "#d9d0c0",
+        borderStrong: "#c3baa9",
         text: "#2b3034",
         textSecondary: "#455355",
         accent: "#8294ad",
@@ -119,9 +124,9 @@ export const THEMES: ThemeDefinition[] = [
       },
       dark: {
         surface: "#232a2e",
-        surface2: "#1c2225",
-        surface3: "#171c1f",
-        border: "#374145",
+        surface2: "#2b3338",
+        surface3: "#343e44",
+        border: "#3d484d",
         borderStrong: "#4a585c",
         text: "#f8f9e8",
         textSecondary: "#adc9bc",
@@ -158,8 +163,8 @@ export const THEMES: ThemeDefinition[] = [
         surface: "#292522",
         surface2: "#34302c",
         surface3: "#403a36",
-        border: "#3e3833",
-        borderStrong: "#554e46",
+        border: "#4a433d",
+        borderStrong: "#5a5248",
         text: "#ece1d7",
         textSecondary: "#c1a78e",
         accent: "#e49b5d",
@@ -265,7 +270,9 @@ export interface ResolvedTheme {
 
 /**
  * Resolves a theme + mode into concrete tokens.
- * - custom tokens (settings.themeCustom) merge over the selected theme.
+ * - "custom" merges settings.themeCustom over the default palette; named
+ *   themes ignore a leftover custom palette so switching back and forth does
+ *   not silently mask them.
  * - a theme without a light variant stays dark even in light mode.
  * - "auto" follows the OS preference.
  */
@@ -297,8 +304,10 @@ export function resolveTheme(settings: {
     mode = "light";
   }
 
+  const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
+
   return {
-    palette: { ...base, ...(settings.themeCustom ?? {}) },
+    palette: { ...base, ...custom },
     mode,
     definition: def,
   };
@@ -343,15 +352,22 @@ export function fontStacks(settings: AppFontSettings): {
   };
 }
 
+/** Token key to CSS custom property: `surface2` -> `--color-surface-2`. */
+export function themeCssVar(token: string): string {
+  return `--color-${token.replace(/([a-z])([A-Z0-9])/g, "$1-$2").toLowerCase()}`;
+}
+
 /** Applies the resolved tokens to <html> (CSS custom properties + data attrs). */
 export function applyThemeToDom(resolved: ResolvedTheme, fonts?: AppFontSettings): void {
   const root = document.documentElement;
   root.dataset.theme = resolved.mode;
   root.dataset.themeName = resolved.definition?.id ?? "custom";
   root.style.colorScheme = resolved.mode;
-  const cssVar = (token: string) => `--color-${token}`;
+  // Token keys are camelCase (`surface2`); the stylesheets read kebab-case
+  // (`--color-surface-2`). Without the conversion the multiword tokens never
+  // reached the DOM and themes fell back to the default palette.
   for (const [token, value] of Object.entries(resolved.palette)) {
-    root.style.setProperty(cssVar(token), value);
+    root.style.setProperty(themeCssVar(token), value);
   }
 
   // The chrome follows the workspace's text/math/code fonts.

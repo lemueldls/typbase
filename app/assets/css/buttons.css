@@ -22,13 +22,23 @@
 }
 
 .button--primary {
-  color: #fff;
+  color: var(--color-surface);
   background: var(--color-accent);
   border-color: var(--color-accent);
 }
 
 .button--primary:hover {
-  background: #174b85;
+  background: color-mix(in srgb, var(--color-accent) 84%, var(--color-text));
+}
+
+.button--danger {
+  color: var(--color-surface);
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.button--danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 84%, var(--color-text));
 }
 
 .button--ghost {

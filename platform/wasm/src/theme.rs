@@ -3,65 +3,59 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
+/// Colors handed to Typst as the `theme` dictionary. The slots mirror the
+/// app's `ThemePaletteTokens` one to one (plus derived `on-*` text colors), so
+/// a single token set styles both the chrome and rendered pages. The dict keys
+/// in [`fmt::Display`] are the kebab-case token names Typst code reads.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize)]
 #[wasm_bindgen]
 pub struct ThemeColors {
-    background: Rgb,
-    on_background: Rgb,
+    surface: Rgb,
+    surface2: Rgb,
+    surface3: Rgb,
 
-    outline: Rgb,
-    outline_variant: Rgb,
+    border: Rgb,
+    border_strong: Rgb,
 
-    primary: Rgb,
-    on_primary: Rgb,
-    primary_container: Rgb,
-    on_primary_container: Rgb,
+    text: Rgb,
+    text_secondary: Rgb,
 
-    secondary: Rgb,
-    on_secondary: Rgb,
-    secondary_container: Rgb,
-    on_secondary_container: Rgb,
+    accent: Rgb,
+    accent_soft: Rgb,
+    on_accent: Rgb,
 
-    tertiary: Rgb,
-    on_tertiary: Rgb,
-    tertiary_container: Rgb,
-    on_tertiary_container: Rgb,
+    ok: Rgb,
+    warning: Rgb,
 
-    error: Rgb,
-    on_error: Rgb,
-    error_container: Rgb,
-    on_error_container: Rgb,
+    danger: Rgb,
+    danger_soft: Rgb,
+    on_danger: Rgb,
 }
 
 impl Default for ThemeColors {
     fn default() -> Self {
         Self {
-            background: Rgb::WHITE,
-            on_background: Rgb::BLACK,
+            surface: Rgb::WHITE,
+            surface2: Rgb(243, 244, 246),
+            surface3: Rgb(233, 235, 238),
 
-            outline: Rgb::BLACK,
-            outline_variant: Rgb::BLACK,
+            border: Rgb(229, 231, 235),
+            border_strong: Rgb(209, 213, 219),
 
-            primary: Rgb::BLACK,
-            on_primary: Rgb::WHITE,
-            primary_container: Rgb::BLACK,
-            on_primary_container: Rgb::WHITE,
+            text: Rgb(31, 35, 40),
+            text_secondary: Rgb(107, 114, 128),
 
-            secondary: Rgb::BLACK,
-            on_secondary: Rgb::WHITE,
-            secondary_container: Rgb::BLACK,
-            on_secondary_container: Rgb::WHITE,
+            accent: Rgb(30, 90, 160),
+            accent_soft: Rgb(227, 237, 248),
+            on_accent: Rgb::WHITE,
 
-            tertiary: Rgb::BLACK,
-            on_tertiary: Rgb::WHITE,
-            tertiary_container: Rgb::BLACK,
-            on_tertiary_container: Rgb::WHITE,
+            ok: Rgb(47, 111, 79),
+            warning: Rgb(150, 102, 15),
 
-            error: Rgb::BLACK,
-            on_error: Rgb::WHITE,
-            error_container: Rgb::BLACK,
-            on_error_container: Rgb::WHITE,
+            danger: Rgb(180, 40, 40),
+            danger_soft: Rgb(249, 227, 227),
+            on_danger: Rgb::WHITE,
         }
     }
 }
@@ -72,58 +66,48 @@ impl ThemeColors {
     #[allow(clippy::missing_const_for_fn, clippy::too_many_arguments)]
     #[wasm_bindgen(constructor)]
     pub fn new(
-        background: Rgb,
-        on_background: Rgb,
+        surface: Rgb,
+        surface2: Rgb,
+        surface3: Rgb,
 
-        outline: Rgb,
-        outline_variant: Rgb,
+        border: Rgb,
+        border_strong: Rgb,
 
-        primary: Rgb,
-        on_primary: Rgb,
-        primary_container: Rgb,
-        on_primary_container: Rgb,
+        text: Rgb,
+        text_secondary: Rgb,
 
-        secondary: Rgb,
-        on_secondary: Rgb,
-        secondary_container: Rgb,
-        on_secondary_container: Rgb,
+        accent: Rgb,
+        accent_soft: Rgb,
+        on_accent: Rgb,
 
-        tertiary: Rgb,
-        on_tertiary: Rgb,
-        tertiary_container: Rgb,
-        on_tertiary_container: Rgb,
+        ok: Rgb,
+        warning: Rgb,
 
-        error: Rgb,
-        on_error: Rgb,
-        error_container: Rgb,
-        on_error_container: Rgb,
+        danger: Rgb,
+        danger_soft: Rgb,
+        on_danger: Rgb,
     ) -> Self {
         Self {
-            background,
-            on_background,
+            surface,
+            surface2,
+            surface3,
 
-            outline,
-            outline_variant,
+            border,
+            border_strong,
 
-            primary,
-            on_primary,
-            primary_container,
-            on_primary_container,
+            text,
+            text_secondary,
 
-            secondary,
-            on_secondary,
-            secondary_container,
-            on_secondary_container,
+            accent,
+            accent_soft,
+            on_accent,
 
-            tertiary,
-            on_tertiary,
-            tertiary_container,
-            on_tertiary_container,
+            ok,
+            warning,
 
-            error,
-            on_error,
-            error_container,
-            on_error_container,
+            danger,
+            danger_soft,
+            on_danger,
         }
     }
 }
@@ -132,27 +116,22 @@ impl fmt::Display for ThemeColors {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(background:{},on-background:{},outline:{},outline-variant:{},primary:{},on-primary:{},primary-container:{},on-primary-container:{},secondary:{},on-secondary:{},secondary-container:{},on-secondary-container:{},tertiary:{},on-tertiary:{},tertiary-container:{},on-tertiary-container:{},error:{},on-error:{},error-container:{},on-error-container:{})",
-            self.background,
-            self.on_background,
-            self.outline,
-            self.outline_variant,
-            self.primary,
-            self.on_primary,
-            self.primary_container,
-            self.on_primary_container,
-            self.secondary,
-            self.on_secondary,
-            self.secondary_container,
-            self.on_secondary_container,
-            self.tertiary,
-            self.on_tertiary,
-            self.tertiary_container,
-            self.on_tertiary_container,
-            self.error,
-            self.on_error,
-            self.error_container,
-            self.on_error_container,
+            "(surface:{},surface-2:{},surface-3:{},border:{},border-strong:{},text:{},text-secondary:{},accent:{},accent-soft:{},on-accent:{},ok:{},warning:{},danger:{},danger-soft:{},on-danger:{})",
+            self.surface,
+            self.surface2,
+            self.surface3,
+            self.border,
+            self.border_strong,
+            self.text,
+            self.text_secondary,
+            self.accent,
+            self.accent_soft,
+            self.on_accent,
+            self.ok,
+            self.warning,
+            self.danger,
+            self.danger_soft,
+            self.on_danger,
         )
     }
 }

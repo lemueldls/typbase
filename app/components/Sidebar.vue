@@ -124,16 +124,14 @@ function onCreated(page: PageMeta) {
 <template>
   <aside class="sidebar">
     <header class="sidebar__header">
-      <span class="sidebar__title-group">
-        <MsIcon :name="workspaceIcon" :size="20" class="sidebar__icon" />
-        <span class="sidebar__name">{{ settings.name }}</span>
-      </span>
+      <WorkspaceSwitcher mode="menu">
+        <button type="button" class="sidebar__workspace" :title="$t('sidebar.switchWorkspace')">
+          <MsIcon :name="workspaceIcon" :size="18" class="sidebar__icon" />
+          <span class="sidebar__name">{{ settings.name }}</span>
+          <MsIcon name="keyboard_arrow_down" :size="16" class="sidebar__chevron" />
+        </button>
+      </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
-        <WorkspaceSwitcher mode="menu">
-          <button type="button" class="button button--icon" aria-label="Switch workspace">
-            <MsIcon name="swap_horiz" :size="20" />
-          </button>
-        </WorkspaceSwitcher>
         <SettingsPopover :store="store">
           <button type="button" class="button button--icon" aria-label="Workspace settings">
             <MsIcon name="settings" :size="20" />
@@ -398,23 +396,46 @@ function onCreated(page: PageMeta) {
   border-bottom: 1px solid var(--color-border);
 }
 
-.sidebar__title-group {
+.sidebar__workspace {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  flex: 1;
   min-width: 0;
+  padding: 0.3rem 0.4rem;
+  margin-left: -0.4rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.sidebar__workspace:hover,
+.sidebar__workspace[data-state="open"] {
+  background: var(--color-surface-2);
 }
 
 .sidebar__icon {
   flex: none;
 }
 
+.sidebar__chevron {
+  flex: none;
+  color: var(--color-text-secondary);
+}
+
 .sidebar__name {
+  flex: 1;
+  min-width: 0;
   font-size: 1rem;
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
 }
 
 .sidebar__header-actions {
