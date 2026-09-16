@@ -31,14 +31,7 @@ const icon = computed<MaterialSymbol>(() => {
       <MsIcon :name="icon" :size="18" />
       <span class="plugin-view__title">{{ title }}</span>
       <div class="plugin-view__actions">
-        <button
-          type="button"
-          class="button button--icon"
-          :aria-label="$t('plugins.close')"
-          @click="emit('close')"
-        >
-          <MsIcon name="close" :size="20" />
-        </button>
+        <UiIconButton icon="close" :label="$t('plugins.close')" @click="emit('close')" />
       </div>
     </div>
 

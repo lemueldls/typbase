@@ -20,8 +20,15 @@ const dialogOpen = ref(false);
 const dialogMode = ref<"create" | "edit">("create");
 const editing = ref<WorkspaceInfo | null>(null);
 
-/** Workspace queued for deletion; the alert dialog opens while set. */
+/** Workspace queued for deletion. The target survives the dialog's close
+ *  event: reka's action closes the dialog before the confirm handler runs. */
 const pendingDelete = ref<WorkspaceInfo | null>(null);
+const confirmOpen = ref(false);
+
+function askDelete(info: WorkspaceInfo) {
+  pendingDelete.value = info;
+  confirmOpen.value = true;
+}
 
 function openCreate() {
   if (props.mode === "menu") newOpen.value = false;
@@ -55,6 +62,7 @@ async function confirmDelete() {
   const info = pendingDelete.value;
   if (!info) return;
   pendingDelete.value = null;
+  confirmOpen.value = false;
 
   try {
     if (props.mode === "menu") newOpen.value = false;
@@ -92,7 +100,7 @@ function statusFor(info: WorkspaceInfo): string {
           :status="statusFor(info)"
           @select="onSwitch(info.id)"
           @rename="openRename(info)"
-          @remove="pendingDelete = info"
+          @remove="askDelete(info)"
         />
       </li>
     </ul>
@@ -115,9 +123,7 @@ function statusFor(info: WorkspaceInfo): string {
     <PopoverRoot v-model:open="newOpen">
       <PopoverTrigger as-child>
         <slot>
-          <button type="button" class="button button--icon" :aria-label="$t('switcher.switchAria')">
-            <MsIcon name="swap_horiz" :size="20" />
-          </button>
+          <UiIconButton icon="swap_horiz" :label="$t('switcher.switchAria')" />
         </slot>
       </PopoverTrigger>
       <PopoverPortal>
@@ -137,7 +143,7 @@ function statusFor(info: WorkspaceInfo): string {
                 :status="statusFor(info)"
                 @select="onSwitch(info.id)"
                 @rename="openRename(info)"
-                @remove="pendingDelete = info"
+                @remove="askDelete(info)"
               />
             </li>
           </ul>
@@ -158,30 +164,13 @@ function statusFor(info: WorkspaceInfo): string {
 
   <WorkspaceDialog v-model:open="dialogOpen" :mode="dialogMode" :workspace="editing" />
 
-  <AlertDialogRoot
-    :open="pendingDelete !== null"
-    @update:open="(open) => !open && (pendingDelete = null)"
-  >
-    <AlertDialogPortal>
-      <AlertDialogOverlay class="dialog-overlay" />
-      <AlertDialogContent class="dialog">
-        <AlertDialogTitle class="dialog__title">{{ $t("switcher.deleteTitle") }}</AlertDialogTitle>
-        <AlertDialogDescription class="dialog__description">
-          {{ $t("switcher.deleteConfirm", { name: pendingDelete?.name ?? "" }) }}
-        </AlertDialogDescription>
-        <div class="dialog__actions">
-          <AlertDialogCancel as-child>
-            <button type="button" class="button button--ghost">{{ $t("common.cancel") }}</button>
-          </AlertDialogCancel>
-          <AlertDialogAction as-child>
-            <button type="button" class="button button--danger" @click="confirmDelete">
-              {{ $t("common.delete") }}
-            </button>
-          </AlertDialogAction>
-        </div>
-      </AlertDialogContent>
-    </AlertDialogPortal>
-  </AlertDialogRoot>
+  <UiConfirmDialog
+    :open="confirmOpen"
+    :title="$t('switcher.deleteTitle')"
+    :description="$t('switcher.deleteConfirm', { name: pendingDelete?.name ?? '' })"
+    @update:open="(value) => !value && (confirmOpen = false)"
+    @confirm="confirmDelete"
+  />
 </template>
 
 <style scoped>

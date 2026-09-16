@@ -620,6 +620,7 @@ export class WorkspaceStore {
     const next = this.nearestDailyPage(date, 1);
 
     const content = settings.dailyNoteTemplate
+      .replaceAll("{title}", title)
       .replaceAll("{date}", date)
       .replaceAll("{weekday}", this.weekdayName(date))
       .replaceAll("{previous}", previous ?? "none")
@@ -648,10 +649,21 @@ export class WorkspaceStore {
     return best?.id;
   }
 
-  /** Locale-aware date label: "Wednesday, 2026-09-02" in the workspace locale. */
+  /** Locale-aware title: "Wednesday, Sep 16, 2026" in the workspace locale. */
   private formatDate(date: string): string {
-    const parsed = new Date(`${date}T00:00:00Z`);
-    return `${this.weekdayName(date)}, ${parsed.toISOString().slice(0, 10)}`;
+    const settings = this.getSettings();
+    const locale = settings.locale && settings.locale !== "auto" ? settings.locale : undefined;
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(`${date}T00:00:00Z`));
+    } catch {
+      return date;
+    }
   }
 
   /** Long weekday via Intl ("auto" locale = environment default, browser in app). */

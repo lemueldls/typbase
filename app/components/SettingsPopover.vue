@@ -78,11 +78,11 @@ const publishTags = computed({
       },
     }),
 });
-function togglePdf(event: Event) {
+function togglePdf(value: boolean) {
   props.store.updateSettings({
     publish: {
       ...publishDefaults.value,
-      includePdf: (event.target as HTMLInputElement).checked,
+      includePdf: value,
     },
   });
 }
@@ -158,10 +158,6 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
   bumpRenderRevision();
 }
 
-function onPaletteInput(key: ThemePaletteToken, event: Event): void {
-  setPaletteToken(key, (event.target as HTMLInputElement).value);
-}
-
 /** Settings tab; keeps the popover from becoming a scroll marathon. */
 const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | "search" | "sync">(
   "general",
@@ -191,8 +187,11 @@ const searchStatus = computed(() => search.value?.status ?? null);
 async function onRebuildIndex() {
   await search.value?.rebuild();
 }
-async function toggleSemantic(event: Event) {
-  const semantic = (event.target as HTMLInputElement).checked;
+function setAiEnabled(value: boolean) {
+  updateAiPatching({ enabled: value });
+}
+
+async function toggleSemantic(semantic: boolean) {
   props.store.updateSettings({
     search: { ...props.store.getSearchSettings(), semantic },
   });
@@ -402,17 +401,17 @@ function onTextSizeChange(event: Event) {
         </div>
 
         <section v-show="activeTab === 'general'" class="settings__tabpanel">
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.name") }}</span>
             <input class="settings__input" :value="settings.name" @change="renameWorkspace" />
-          </label>
+          </Label>
 
           <div class="settings__field">
             <span>{{ $t("switcher.iconLabel") }}</span>
             <IconPicker v-model="workspaceIcon" :limit="200" />
           </div>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.language") }}</span>
             <select
               class="settings__input"
@@ -426,7 +425,7 @@ function onTextSizeChange(event: Event) {
               <option value="fr">Français</option>
               <option value="zh">中文</option>
             </select>
-          </label>
+          </Label>
 
           <div class="settings__field">
             <span>{{ $t("settings.storage") }}</span>
@@ -441,14 +440,14 @@ function onTextSizeChange(event: Event) {
                 {{ $t("settings.changeStorage") }}
               </button>
             </div>
-            <span class="settings__hint">{{ $t("settings.storageHint") }}</span>
+            <!-- <span class="settings__hint">{{ $t("settings.storageHint") }}</span> -->
           </div>
         </section>
 
         <!-- Long Typst-source textareas live on their own tab so General stays
              a short form: name, icon, language. -->
         <section v-show="activeTab === 'content'" class="settings__tabpanel">
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.template") }}</span>
             <textarea
               class="settings__input settings__textarea"
@@ -458,9 +457,9 @@ function onTextSizeChange(event: Event) {
               @change="onDailyTemplateChange"
             />
             <span class="settings__hint">{{ $t("settings.templateHint") }}</span>
-          </label>
+          </Label>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.prelude") }}</span>
             <textarea
               class="settings__input settings__textarea"
@@ -471,7 +470,7 @@ function onTextSizeChange(event: Event) {
               @change="onPagePreludeChange"
             />
             <span class="settings__hint">{{ $t("settings.preludeHint") }}</span>
-          </label>
+          </Label>
         </section>
 
         <section v-show="activeTab === 'appearance'" class="settings__tabpanel">
@@ -497,7 +496,7 @@ function onTextSizeChange(event: Event) {
             </div>
           </div>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.themeMode") }}</span>
             <select
               class="settings__input"
@@ -508,26 +507,31 @@ function onTextSizeChange(event: Event) {
               <option value="light">{{ $t("settings.light") }}</option>
               <option value="dark">{{ $t("settings.dark") }}</option>
             </select>
-          </label>
+          </Label>
 
           <div v-if="paletteDraft" class="settings__field">
             <span>{{ $t("settings.customPalette") }}</span>
             <div class="palette-grid">
-              <label v-for="key in THEME_PALETTE_TOKEN_KEYS" :key="key" class="palette-token">
+              <ColorFieldRoot
+                v-for="key in THEME_PALETTE_TOKEN_KEYS"
+                :key="key"
+                class="palette-token"
+                :model-value="paletteDraft[key]"
+                @update:model-value="setPaletteToken(key, $event)"
+              >
+                <ColorSwatch class="palette-token__swatch" :color="paletteDraft[key]" />
                 <span class="palette-token__label">{{ tokenLabel(key) }}</span>
-                <input
-                  type="color"
+                <ColorFieldInput
                   class="palette-token__input"
-                  :value="paletteDraft[key]"
-                  @input="onPaletteInput(key, $event)"
+                  :aria-label="tokenLabel(key)"
+                  spellcheck="false"
                 />
-                <code class="palette-token__value">{{ paletteDraft[key] }}</code>
-              </label>
+              </ColorFieldRoot>
             </div>
             <span class="settings__hint">{{ $t("settings.customPaletteHint") }}</span>
           </div>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.textSize") }}</span>
             <input
               class="settings__input"
@@ -539,18 +543,18 @@ function onTextSizeChange(event: Event) {
               @change="onTextSizeChange"
             />
             <span class="settings__hint">{{ $t("settings.textSizeHint") }}</span>
-          </label>
+          </Label>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.textFont") }}</span>
             <select class="settings__input" :value="settings.font" @change="onFontChange">
               <option v-for="font in textFontOptions" :key="font" :value="font">
                 {{ font }}
               </option>
             </select>
-          </label>
+          </Label>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.mathFont") }}</span>
             <select
               class="settings__input"
@@ -562,9 +566,9 @@ function onTextSizeChange(event: Event) {
                 {{ font }}
               </option>
             </select>
-          </label>
+          </Label>
 
-          <label class="settings__field">
+          <Label class="settings__field">
             <span>{{ $t("settings.codeFont") }}</span>
             <select
               class="settings__input"
@@ -576,7 +580,7 @@ function onTextSizeChange(event: Event) {
                 {{ font }}
               </option>
             </select>
-          </label>
+          </Label>
 
           <div class="settings__system-fonts">
             <p class="settings__hint">
@@ -615,7 +619,7 @@ function onTextSizeChange(event: Event) {
         <section v-show="activeTab === 'publish'" class="settings__tabpanel">
           <section class="settings__section">
             <h4 class="settings__heading">Publish defaults</h4>
-            <label class="settings__field">
+            <Label class="settings__field">
               <span>{{ $t("settings.langs") }}</span>
               <input
                 class="settings__input"
@@ -623,8 +627,8 @@ function onTextSizeChange(event: Event) {
                 placeholder="en, de"
                 @change="publishLangs = ($event.target as HTMLInputElement).value"
               />
-            </label>
-            <label class="settings__field">
+            </Label>
+            <Label class="settings__field">
               <span>{{ $t("settings.tags") }}</span>
               <input
                 class="settings__input"
@@ -632,33 +636,27 @@ function onTextSizeChange(event: Event) {
                 :placeholder="$t('settings.tags')"
                 @change="publishTags = ($event.target as HTMLInputElement).value"
               />
-            </label>
-            <label class="settings__check">
-              <input type="checkbox" :checked="publishDefaults.includePdf" @change="togglePdf" />
-              <span>{{ $t("settings.includePdf") }}</span>
-            </label>
+            </Label>
+            <UiCheckbox
+              :model-value="publishDefaults.includePdf"
+              :label="$t('settings.includePdf')"
+              @update:model-value="togglePdf"
+            />
           </section>
         </section>
         <section v-show="activeTab === 'ai'" class="settings__tabpanel">
           <section class="settings__section">
             <h4 class="settings__heading">AI</h4>
-            <label class="settings__check">
-              <input
-                type="checkbox"
-                :checked="aiConfig.enabled"
-                @change="
-                  updateAiPatching({
-                    enabled: ($event.target as HTMLInputElement).checked,
-                  })
-                "
-              />
-              <span>{{ $t("settings.aiEnable") }}</span>
-            </label>
+            <UiSwitch
+              :model-value="aiConfig.enabled"
+              :label="$t('settings.aiEnable')"
+              @update:model-value="setAiEnabled"
+            />
             <p class="settings__hint">
               Off by default: nothing is generated or sent to a provider until you enable this.
             </p>
             <template v-if="aiConfig.enabled">
-              <label class="settings__field">
+              <Label class="settings__field">
                 <span>{{ $t("settings.provider") }}</span>
                 <select
                   class="settings__input"
@@ -673,8 +671,8 @@ function onTextSizeChange(event: Event) {
                   <option value="openai-compatible">OpenAI-compatible</option>
                   <option value="anthropic">Anthropic</option>
                 </select>
-              </label>
-              <label class="settings__field">
+              </Label>
+              <Label class="settings__field">
                 <span>{{ $t("settings.baseUrl") }}</span>
                 <input
                   class="settings__input"
@@ -692,8 +690,8 @@ function onTextSizeChange(event: Event) {
                     })
                   "
                 />
-              </label>
-              <label class="settings__field">
+              </Label>
+              <Label class="settings__field">
                 <span>{{ $t("settings.model") }}</span>
                 <input
                   class="settings__input"
@@ -704,9 +702,9 @@ function onTextSizeChange(event: Event) {
                     })
                   "
                 />
-              </label>
+              </Label>
               <template v-if="aiConfig.provider !== 'ollama'">
-                <label class="settings__field">
+                <Label class="settings__field">
                   <span>{{ $t("settings.apiKey") }}</span>
                   <input
                     class="settings__input"
@@ -715,7 +713,7 @@ function onTextSizeChange(event: Event) {
                     :placeholder="aiConfig.provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'"
                     @change="onAiKeyChange"
                   />
-                </label>
+                </Label>
               </template>
               <p class="settings__hint">{{ $t("settings.keysHint") }}</p>
             </template>
@@ -724,14 +722,11 @@ function onTextSizeChange(event: Event) {
         <section v-show="activeTab === 'search'" class="settings__tabpanel">
           <section class="settings__section">
             <h4 class="settings__heading">Search</h4>
-            <label class="settings__check">
-              <input
-                type="checkbox"
-                :checked="props.store.getSearchSettings().semantic"
-                @change="toggleSemantic"
-              />
-              <span>{{ $t("settings.semantic") }}</span>
-            </label>
+            <UiSwitch
+              :model-value="props.store.getSearchSettings().semantic"
+              :label="$t('settings.semantic')"
+              @update:model-value="toggleSemantic"
+            />
             <p class="settings__hint">
               <template v-if="searchStatus">
                 Index: {{ searchStatus.docs }} pages · {{ searchStatus.blocks }} blocks ·
@@ -813,9 +808,9 @@ function onTextSizeChange(event: Event) {
               <p v-if="signInError" class="settings__error">
                 {{ signInError }}
               </p>
-              <p v-if="!atprotoStatus.relayConnected" class="settings__hint">
+              <!-- <p v-if="!atprotoStatus.relayConnected" class="settings__hint">
                 {{ $t("settings.syncRelayOff") }}
-              </p>
+              </p> -->
             </template>
             <p v-else class="settings__hint">
               {{ $t("settings.syncRequiresServer") }}
@@ -876,13 +871,6 @@ function onTextSizeChange(event: Event) {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 600;
-}
-
-.settings__check {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
 }
 
 .settings__textarea {
@@ -1053,6 +1041,14 @@ function onTextSizeChange(event: Event) {
   min-width: 0;
 }
 
+.palette-token__swatch {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.3rem;
+}
+
 .palette-token__label {
   flex: 1;
   min-width: 0;
@@ -1065,28 +1061,22 @@ function onTextSizeChange(event: Event) {
 
 .palette-token__input {
   flex: none;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 0.3rem;
-  background: transparent;
-  cursor: pointer;
-}
-
-.palette-token__input::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-.palette-token__input::-webkit-color-swatch {
-  border: none;
-  border-radius: 0.2rem;
-}
-
-.palette-token__value {
-  flex: none;
-  font-size: 0.7rem;
+  width: 5rem;
+  padding: 0.15rem 0.3rem;
   font-family: var(--font-mono);
-  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}
+
+.palette-token__input:hover {
+  border-color: var(--color-border);
+}
+
+.palette-token__input:focus {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
 }
 </style>

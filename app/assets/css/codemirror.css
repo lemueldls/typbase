@@ -6,6 +6,9 @@
 .cm-scroller {
   overflow-x: hidden;
   overflow-y: auto;
+  /* The root sets a standard scrollbar-color; opt back into the custom
+     webkit scrollbar styled below. */
+  scrollbar-color: auto;
 }
 
 .cm-scroller::-webkit-scrollbar {

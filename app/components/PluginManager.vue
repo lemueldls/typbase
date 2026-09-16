@@ -80,32 +80,30 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
             {{ $t("plugins.sourceLocal") }}
           </span>
 
-          <button
-            v-if="!installOf(entry.manifest.id)"
-            type="button"
-            class="button button--primary button--small"
-            @click="plugins.install(entry.manifest.id)"
-          >
-            {{ $t("plugins.install") }}
-          </button>
-          <template v-else>
+          <span class="plugin-manager__actions">
             <button
+              v-if="!installOf(entry.manifest.id)"
               type="button"
-              class="button button--ghost button--small"
-              @click="plugins.setEnabled(entry.manifest.id, !installOf(entry.manifest.id)?.enabled)"
+              class="button button--primary button--small"
+              @click="plugins.install(entry.manifest.id)"
             >
-              {{
-                installOf(entry.manifest.id)?.enabled ? $t("plugins.disable") : $t("plugins.enable")
-              }}
+              {{ $t("plugins.install") }}
             </button>
-            <button
-              type="button"
-              class="button button--ghost button--small plugin-manager__danger"
-              @click="removePlugin(entry.manifest.id, entry.manifest.name)"
-            >
-              {{ $t("plugins.remove") }}
-            </button>
-          </template>
+            <template v-else>
+              <UiSwitch
+                :model-value="installOf(entry.manifest.id)?.enabled ?? false"
+                :aria-label="entry.manifest.name"
+                @update:model-value="(value) => plugins.setEnabled(entry.manifest.id, value)"
+              />
+              <button
+                type="button"
+                class="button button--ghost button--small plugin-manager__danger"
+                @click="removePlugin(entry.manifest.id, entry.manifest.name)"
+              >
+                {{ $t("plugins.remove") }}
+              </button>
+            </template>
+          </span>
         </header>
 
         <p v-if="entry.manifest.description" class="plugin-manager__description">
@@ -134,14 +132,14 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
             />
             <span>{{ instance.title }}</span>
             <span class="plugin-manager__version">{{ instance.surface }}</span>
-            <button
-              type="button"
-              class="button button--ghost button--tiny"
-              :aria-label="$t('plugins.removeInstance')"
+            <UiIconButton
+              icon="delete"
+              :size="16"
+              :label="$t('plugins.removeInstance')"
+              variant="ghost"
+              class="button--tiny"
               @click="plugins.removeInstance(instance.id)"
-            >
-              <MsIcon name="delete" :size="16" />
-            </button>
+            />
           </div>
 
           <div class="plugin-manager__add">
@@ -249,7 +247,10 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
   color: var(--color-text-secondary);
 }
 
-.plugin-manager__entry-head button:first-of-type {
+.plugin-manager__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   margin-left: auto;
 }
 

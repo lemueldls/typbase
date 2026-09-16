@@ -40,53 +40,45 @@ async function remove(id: string) {
 </script>
 
 <template>
-  <DialogRoot v-model:open="open">
-    <DialogTrigger as-child>
+  <UiDialog
+    v-model:open="open"
+    :title="$t('categories.title')"
+    description="Pages group under categories; the sidebar lists them by category."
+  >
+    <template #trigger>
       <slot />
-    </DialogTrigger>
+    </template>
 
-    <DialogPortal>
-      <DialogOverlay class="dialog-overlay" />
-      <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">{{ $t("categories.title") }}</DialogTitle>
-        <DialogDescription class="dialog__description">
-          Pages group under categories; the sidebar lists them by category.
-        </DialogDescription>
+    <ul class="category-list">
+      <li v-for="category in categories" :key="category.id" class="category-list__row">
+        <span>{{ category.name }}</span>
+        <span class="category-list__count">{{ categoryCounts.get(category.id) ?? 0 }}</span>
+        <UiIconButton
+          icon="delete"
+          :size="16"
+          :label="$t('categories.removeAria', { name: category.name })"
+          @click="remove(category.id)"
+        />
+      </li>
+      <li v-if="categories.length === 0" class="category-list__empty">
+        {{ $t("categories.none") }}
+      </li>
+    </ul>
 
-        <ul class="category-list">
-          <li v-for="category in categories" :key="category.id" class="category-list__row">
-            <span>{{ category.name }}</span>
-            <span class="category-list__count">{{ categoryCounts.get(category.id) ?? 0 }}</span>
-            <button
-              type="button"
-              class="button button--icon"
-              :aria-label="$t('categories.removeAria', { name: category.name })"
-              @click="remove(category.id)"
-            >
-              <MsIcon name="delete" :size="16" />
-            </button>
-          </li>
-          <li v-if="categories.length === 0" class="category-list__empty">
-            {{ $t("categories.none") }}
-          </li>
-        </ul>
+    <form class="dialog__form" @submit.prevent="add">
+      <div class="dialog__field">
+        <input v-model="newName" class="dialog__input" :placeholder="$t('categories.label')" />
+      </div>
+      <button type="submit" class="button button--primary">{{ $t("categories.add") }}</button>
+    </form>
+    <p v-if="error" class="dialog__error">{{ error }}</p>
 
-        <form class="dialog__form" @submit.prevent="add">
-          <div class="dialog__field">
-            <input v-model="newName" class="dialog__input" :placeholder="$t('categories.label')" />
-          </div>
-          <button type="submit" class="button button--primary">{{ $t("categories.add") }}</button>
-        </form>
-        <p v-if="error" class="dialog__error">{{ error }}</p>
-
-        <div class="dialog__actions">
-          <DialogClose as-child>
-            <button type="button" class="button button--ghost">Close</button>
-          </DialogClose>
-        </div>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+    <div class="dialog__actions">
+      <DialogClose as-child>
+        <button type="button" class="button button--ghost">{{ $t("common.close") }}</button>
+      </DialogClose>
+    </div>
+  </UiDialog>
 </template>
 
 <style scoped>

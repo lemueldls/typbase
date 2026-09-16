@@ -64,54 +64,49 @@ async function submit() {
 </script>
 
 <template>
-  <DialogRoot v-model:open="open">
-    <DialogPortal>
-      <DialogOverlay class="dialog-overlay" />
-      <DialogContent class="dialog" @open-auto-focus="onOpenAutoFocus">
-        <DialogTitle class="dialog__title">
-          {{ mode === "create" ? t("switcher.createTitle") : t("switcher.renameTitle") }}
-        </DialogTitle>
+  <UiDialog
+    v-model:open="open"
+    :title="mode === 'create' ? t('switcher.createTitle') : t('switcher.renameTitle')"
+    @open-auto-focus="onOpenAutoFocus"
+  >
+    <div class="ws-dialog__preview" aria-hidden="true">
+      <span class="ws-dialog__preview-icon">
+        <MsIcon :name="icon" :size="24" />
+      </span>
+      <span class="ws-dialog__preview-name">
+        {{ name.trim() || props.workspace?.name || t("switcher.createTitle") }}
+      </span>
+    </div>
 
-        <div class="ws-dialog__preview" aria-hidden="true">
-          <span class="ws-dialog__preview-icon">
-            <MsIcon :name="icon" :size="24" />
-          </span>
-          <span class="ws-dialog__preview-name">
-            {{ name.trim() || props.workspace?.name || t("switcher.createTitle") }}
-          </span>
-        </div>
+    <form class="dialog__form" @submit.prevent="submit">
+      <Label class="dialog__field">
+        {{ $t("switcher.renameName") }}
+        <input
+          ref="nameInput"
+          v-model="name"
+          class="dialog__input"
+          :aria-label="$t('switcher.renameName')"
+          :maxlength="80"
+        />
+      </Label>
 
-        <form class="dialog__form" @submit.prevent="submit">
-          <label class="dialog__field">
-            {{ $t("switcher.renameName") }}
-            <input
-              ref="nameInput"
-              v-model="name"
-              class="dialog__input"
-              :aria-label="$t('switcher.renameName')"
-              :maxlength="80"
-            />
-          </label>
+      <div class="dialog__field">
+        <span class="dialog__field-label">{{ $t("switcher.iconLabel") }}</span>
+        <IconPicker v-model="icon" />
+      </div>
 
-          <div class="dialog__field">
-            <span class="dialog__field-label">{{ $t("switcher.iconLabel") }}</span>
-            <IconPicker v-model="icon" />
-          </div>
+      <div class="dialog__actions">
+        <button type="button" class="button button--ghost" @click="open = false">
+          {{ $t("switcher.renameCancel") }}
+        </button>
+        <button type="submit" class="button button--primary" :disabled="!canSubmit">
+          {{ mode === "create" ? t("switcher.create") : t("switcher.renameSave") }}
+        </button>
+      </div>
+    </form>
 
-          <div class="dialog__actions">
-            <button type="button" class="button button--ghost" @click="open = false">
-              {{ $t("switcher.renameCancel") }}
-            </button>
-            <button type="submit" class="button button--primary" :disabled="!canSubmit">
-              {{ mode === "create" ? t("switcher.create") : t("switcher.renameSave") }}
-            </button>
-          </div>
-        </form>
-
-        <p v-if="error" class="dialog__error" role="alert">{{ error }}</p>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+    <p v-if="error" class="dialog__error" role="alert">{{ error }}</p>
+  </UiDialog>
 </template>
 
 <style scoped>

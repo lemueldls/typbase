@@ -221,17 +221,18 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
 <template>
   <PopoverRoot v-model:open="menuOpen">
     <PopoverTrigger as-child>
-      <button
-        type="button"
-        class="button button--small"
-        :class="{ 'button--muted': !aiEnabled }"
-        :disabled="busy"
-        title="AI generators"
-        @click="onTrigger"
-      >
-        <MsIcon name="psychology" :size="16" />
-        {{ busy ? $t("common.working") : aiEnabled ? "AI" : $t("aiMenu.off") }}
-      </button>
+      <UiTooltip :text="$t('aiMenu.title')">
+        <button
+          type="button"
+          class="button button--small"
+          :class="{ 'button--muted': !aiEnabled }"
+          :disabled="busy"
+          @click="onTrigger"
+        >
+          <MsIcon name="psychology" :size="16" />
+          {{ busy ? $t("common.working") : aiEnabled ? "AI" : $t("aiMenu.off") }}
+        </button>
+      </UiTooltip>
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent class="menu ai-menu" :side-offset="6" align="end">

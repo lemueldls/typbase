@@ -87,3 +87,15 @@
   height: 1.6rem;
   padding: 0;
 }
+
+/* Destructive icon button: the icon carries the danger color and the hover
+   tints toward the danger-soft surface. Last so it beats the ghost hover. */
+.button--danger-icon {
+  color: var(--color-danger);
+}
+
+.button--danger-icon:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}

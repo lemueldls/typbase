@@ -264,10 +264,10 @@ definePageMeta({ ssr: false });
     </section>
 
     <section class="lab__run">
-      <label class="lab__field">
+      <Label class="lab__field">
         <span>Typst source</span>
         <textarea v-model="source" rows="14" class="lab__input" spellcheck="false" />
-      </label>
+      </Label>
       <div class="lab__actions">
         <button type="button" class="button button--primary" :disabled="running" @click="run">
           {{ running ? "Compiling..." : "Compile" }}

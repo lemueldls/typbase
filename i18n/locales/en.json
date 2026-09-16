@@ -46,7 +46,9 @@
     "calendar": "Calendar",
     "today": "Today",
     "hideSidebar": "Hide sidebar",
-    "showSidebar": "Show sidebar"
+    "showSidebar": "Show sidebar",
+    "deleteTitle": "Delete page",
+    "deleteConfirm": "Delete “{title}”? This cannot be undone."
   },
   "pageView": {
     "write": "Write",
@@ -87,7 +89,7 @@
     "customPaletteHint": "Overrides the selected theme for the app and rendered pages.",
     "themeError": "Custom palette is not valid JSON of token -> color.",
     "template": "Daily note template",
-    "templateHint": "New daily notes render this Typst source. Placeholders: {'{date}'}, {'{weekday}'}, {'{previous}'} (nearest previous note) and {'{next}'} (nearest next note).",
+    "templateHint": "New daily notes render this Typst source. Placeholders: {'{title}'} (formatted title), {'{date}'} (ISO date), {'{weekday}'} (weekday), {'{previous}'} (nearest previous note) and {'{next}'} (nearest next note).",
     "prelude": "Page prelude",
     "preludeHint": "Appended before every page compile (editor, previews, published pages). Use new Typst functions or #set rules here to build custom views.",
     "textFont": "Text font",
@@ -152,7 +154,8 @@
     "quiz": "Quiz for page",
     "flashcards": "Flashcards for category",
     "studyGuide": "Study guide for category",
-    "hint": "Calls go direct to your configured provider. Keys live in local.json."
+    "hint": "Calls go direct to your configured provider. Keys live in local.json.",
+    "title": "AI generators"
   },
   "switcher": {
     "title": "Open a workspace",
@@ -195,7 +198,8 @@
     "cell": "{date}, has a note",
     "cellEmpty": "{date}, no note yet",
     "deleteAria": "Delete daily note for {date}",
-    "deleteConfirm": "Delete the daily note for {date}? This cannot be undone."
+    "deleteConfirm": "Delete the daily note for {date}? This cannot be undone.",
+    "deleteTitle": "Delete daily note"
   },
   "newPage": {
     "title": "New page",
@@ -289,7 +293,10 @@
     "assetDownload": "Download asset",
     "assetReferences": "Used by {count} page(s)",
     "assetUnused": "unused",
-    "assetDrag": "Drag into an editor to insert"
+    "assetDrag": "Drag into an editor to insert",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "download": "Download"
   },
   "plugins": {
     "title": "Plugins",

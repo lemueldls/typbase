@@ -54,6 +54,9 @@ function pagesForCategory(categoryId: string) {
 const today = new Date();
 const todayISO = today.toISOString().slice(0, 10);
 
+/** Today's daily note when it exists; the Today row's menu deletes it. */
+const todayPage = computed(() => pages.value.find((page) => page.path === `daily/${todayISO}.typ`));
+
 /** Day notes except today's, newest first; the "Today" row covers today. */
 const recentDays = computed(() => {
   void dataRevision.value;
@@ -70,12 +73,12 @@ const recentDays = computed(() => {
 
 function dayLabel(page: PageMeta): string {
   const iso = page.path.slice("daily/".length, "daily/".length + 10);
-  const date = new Date(`${iso}T00:00:00`);
   return new Intl.DateTimeFormat(locale.value, {
-    weekday: "short",
-    month: "long",
+    weekday: "long",
+    month: "short",
     day: "numeric",
-  }).format(date);
+    timeZone: "UTC",
+  }).format(new Date(`${iso}T00:00:00Z`));
 }
 
 async function openToday() {
@@ -83,13 +86,12 @@ async function openToday() {
   emit("select", page.id);
 }
 
-/** A daily note was deleted from the calendar; fall back if it was open. */
-function onCalendarDeleted(pageId: string) {
-  if (props.currentPageId === pageId) emit("select", "");
-}
-
 const renameTarget = ref<PageMeta>();
 const renameTitle = ref("");
+/** Page queued for deletion. The target survives the dialog's close event:
+ *  reka's action closes the dialog before the confirm handler runs. */
+const pendingDelete = ref<PageMeta>();
+const confirmOpen = ref(false);
 
 async function rename() {
   if (!renameTarget.value) return;
@@ -105,8 +107,16 @@ async function setHome(page: PageMeta) {
   await props.store.updateSettings({ homePageId: page.id });
 }
 
-async function remove(page: PageMeta) {
-  if (!window.confirm(`Delete "${page.title}"? This cannot be undone.`)) return;
+function askRemove(page: PageMeta) {
+  pendingDelete.value = page;
+  confirmOpen.value = true;
+}
+
+async function confirmRemove() {
+  const page = pendingDelete.value;
+  if (!page) return;
+  pendingDelete.value = undefined;
+  confirmOpen.value = false;
 
   await props.store.deletePage(page.id);
   if (props.currentPageId === page.id) emit("select", "");
@@ -125,26 +135,24 @@ function onCreated(page: PageMeta) {
   <aside class="sidebar">
     <header class="sidebar__header">
       <WorkspaceSwitcher mode="menu">
-        <button type="button" class="sidebar__workspace" :title="$t('sidebar.switchWorkspace')">
-          <MsIcon :name="workspaceIcon" :size="18" class="sidebar__icon" />
-          <span class="sidebar__name">{{ settings.name }}</span>
-          <MsIcon name="keyboard_arrow_down" :size="16" class="sidebar__chevron" />
-        </button>
+        <UiTooltip :text="$t('sidebar.switchWorkspace')">
+          <button type="button" class="sidebar__workspace">
+            <MsIcon :name="workspaceIcon" :size="20" class="sidebar__icon" />
+            <span class="sidebar__name">{{ settings.name }}</span>
+            <MsIcon name="keyboard_arrow_down" :size="16" class="sidebar__chevron" />
+          </button>
+        </UiTooltip>
       </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
         <SettingsPopover :store="store">
-          <button type="button" class="button button--icon" aria-label="Workspace settings">
-            <MsIcon name="settings" :size="20" />
-          </button>
+          <UiIconButton icon="settings" :label="$t('sidebar.workspaceSettings')" />
         </SettingsPopover>
-        <button
-          type="button"
-          class="button button--icon sidebar__collapse"
-          :aria-label="$t('sidebar.hideSidebar')"
+        <!-- <UiIconButton
+          icon="chevron_left"
+          :label="$t('sidebar.hideSidebar')"
+          class="sidebar__collapse"
           @click="emit('collapseRequest')"
-        >
-          <MsIcon name="chevron_left" :size="20" />
-        </button>
+        /> -->
       </div>
     </header>
 
@@ -152,41 +160,73 @@ function onCreated(page: PageMeta) {
       <div class="sidebar__section-title">
         <span>{{ $t("sidebar.daily") }}</span>
         <div class="sidebar__section-actions">
-          <CalendarDialog
-            :store="store"
-            @select="emit('select', $event)"
-            @deleted="onCalendarDeleted"
-          >
-            <button
-              type="button"
-              class="button button--ghost button--icon"
-              :aria-label="$t('sidebar.calendar')"
-            >
-              <MsIcon name="calendar_month" :size="20" />
-            </button>
+          <CalendarDialog :store="store" @select="emit('select', $event)">
+            <UiIconButton icon="calendar_month" :label="$t('sidebar.calendar')" variant="ghost" />
           </CalendarDialog>
         </div>
       </div>
 
-      <button type="button" class="sidebar__row sidebar__row--today" @click="openToday">
-        <MsIcon name="calendar_today" :size="16" />
-        {{ $t("sidebar.today") }}
-      </button>
+      <ul class="sidebar__list sidebar__list--days">
+        <li
+          class="sidebar__item"
+          :class="{ 'sidebar__item--active': todayPage && todayPage.id === currentPageId }"
+        >
+          <button
+            type="button"
+            class="sidebar__row sidebar__row--today"
+            :aria-current="todayPage && todayPage.id === currentPageId ? 'page' : undefined"
+            @click="openToday"
+          >
+            <MsIcon name="calendar_today" :size="20" />
+            {{ $t("sidebar.today") }}
+          </button>
+          <UiMenu v-if="todayPage">
+            <template #trigger>
+              <UiIconButton
+                icon="more_vert"
+                :size="20"
+                :label="t('sidebar.actions', { title: todayPage.title })"
+                variant="ghost"
+                class="button--tiny sidebar__row-more"
+              />
+            </template>
+            <UiMenuItem danger icon="delete" @select="askRemove(todayPage)">
+              {{ $t("sidebar.delete") }}
+            </UiMenuItem>
+          </UiMenu>
+        </li>
 
-      <!-- Other day notes, most recent first. Tapping opens the note; today's
-           own row above creates it lazily on first tap. -->
-      <ul v-if="recentDays.length" class="sidebar__list sidebar__list--days">
-        <li v-for="day in recentDays" :key="day.id" class="sidebar__item">
+        <!-- Day notes, most recent first. Tapping opens the note; the Today
+             row above creates today's lazily on first tap. -->
+        <li
+          v-for="day in recentDays"
+          :key="day.id"
+          class="sidebar__item"
+          :class="{ 'sidebar__item--active': day.id === currentPageId }"
+        >
           <button
             type="button"
             class="sidebar__row"
             :aria-current="day.id === currentPageId ? 'page' : undefined"
             @click="emit('select', day.id)"
           >
-            <MsIcon name="calendar_month" :size="16" />
+            <MsIcon name="calendar_month" :size="20" />
             <span class="sidebar__day-label">{{ dayLabel(day) }}</span>
-            <span v-if="day.id === currentPageId" class="sidebar__day-dot" aria-hidden="true" />
           </button>
+          <UiMenu>
+            <template #trigger>
+              <UiIconButton
+                icon="more_vert"
+                :size="20"
+                :label="t('sidebar.actions', { title: day.title })"
+                variant="ghost"
+                class="button--tiny sidebar__row-more"
+              />
+            </template>
+            <UiMenuItem danger icon="delete" @select="askRemove(day)">
+              {{ $t("sidebar.delete") }}
+            </UiMenuItem>
+          </UiMenu>
         </li>
       </ul>
     </div>
@@ -196,23 +236,11 @@ function onCreated(page: PageMeta) {
         <span>{{ $t("sidebar.pages") }}</span>
         <div class="sidebar__section-actions">
           <NewPageDialog :store="store" @created="onCreated">
-            <button
-              type="button"
-              class="button button--primary button--icon"
-              :aria-label="$t('sidebar.newPage')"
-            >
-              <MsIcon name="add" :size="22" />
-            </button>
+            <UiIconButton icon="add" :label="$t('sidebar.newPage')" variant="ghost" :size="20" />
           </NewPageDialog>
-          <CategoriesDialog :store="store">
-            <button
-              type="button"
-              class="button button--icon"
-              :aria-label="$t('sidebar.categories')"
-            >
-              <MsIcon name="category" :size="20" />
-            </button>
-          </CategoriesDialog>
+          <!-- <CategoriesDialog :store="store">
+            <UiIconButton icon="category" :label="$t('sidebar.categories')" />
+          </CategoriesDialog> -->
         </div>
       </div>
 
@@ -222,61 +250,58 @@ function onCreated(page: PageMeta) {
         class="sidebar__row sidebar__row--home"
         @click="emit('select', settings.homePageId)"
       >
-        <MsIcon name="home" :size="16" />
+        <MsIcon name="home" :size="20" />
         {{ $t("sidebar.home") }}
       </button>
 
       <div v-for="category in categories" :key="category.id" class="sidebar__group">
         <span class="sidebar__group-title">{{ category.name }}</span>
         <ul class="sidebar__list">
-          <li v-for="page in pagesForCategory(category.id)" :key="page.id" class="sidebar__item">
+          <li
+            v-for="page in pagesForCategory(category.id)"
+            :key="page.id"
+            class="sidebar__item"
+            :class="{ 'sidebar__item--active': page.id === currentPageId }"
+          >
             <button
               type="button"
               class="sidebar__row"
-              :class="{ 'sidebar__row--active': page.id === currentPageId }"
               :aria-current="page.id === currentPageId ? 'page' : undefined"
               @click="emit('select', page.id)"
             >
               <span class="sidebar__row-label">{{ page.title }}</span>
-              <span
-                v-if="settings.homePageId === page.id"
-                class="sidebar__row-home"
-                :title="$t('sidebar.homePage')"
-              >
-                <MsIcon name="home" :size="14" />
-              </span>
+              <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
+                <span class="sidebar__row-home">
+                  <MsIcon name="home" :size="20" />
+                </span>
+              </UiTooltip>
             </button>
 
-            <DropdownMenuRoot>
-              <DropdownMenuTrigger as-child>
-                <button
-                  type="button"
-                  class="button button--icon button--tiny"
-                  :aria-label="t('sidebar.actions', { title: page.title })"
-                >
-                  <MsIcon name="more_horiz" :size="16" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuContent class="menu" :side-offset="4" align="end">
-                  <DropdownMenuItem
-                    @select="
-                      renameTarget = page;
-                      renameTitle = page.title;
-                    "
-                  >
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem @select="setHome(page)">{{
-                    $t("sidebar.setHome")
-                  }}</DropdownMenuItem>
-                  <DropdownMenuSeparator class="menu__separator" />
-                  <DropdownMenuItem class="menu__danger" @select="remove(page)">
-                    {{ $t("sidebar.delete") }}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenuPortal>
-            </DropdownMenuRoot>
+            <UiMenu>
+              <template #trigger>
+                <UiIconButton
+                  icon="more_vert"
+                  :size="20"
+                  :label="t('sidebar.actions', { title: page.title })"
+                  variant="ghost"
+                  class="button--tiny sidebar__row-more"
+                />
+              </template>
+
+              <UiMenuItem
+                @select="
+                  renameTarget = page;
+                  renameTitle = page.title;
+                "
+              >
+                {{ $t("common.rename") }}
+              </UiMenuItem>
+              <UiMenuItem @select="setHome(page)">{{ $t("sidebar.setHome") }}</UiMenuItem>
+              <UiMenuSeparator />
+              <UiMenuItem danger @select="askRemove(page)">
+                {{ $t("sidebar.delete") }}
+              </UiMenuItem>
+            </UiMenu>
           </li>
         </ul>
       </div>
@@ -284,54 +309,51 @@ function onCreated(page: PageMeta) {
       <div v-if="uncategorized.length" class="sidebar__group">
         <span class="sidebar__group-title">{{ $t("sidebar.general") }}</span>
         <ul class="sidebar__list">
-          <li v-for="page in uncategorized" :key="page.id" class="sidebar__item">
+          <li
+            v-for="page in uncategorized"
+            :key="page.id"
+            class="sidebar__item"
+            :class="{ 'sidebar__item--active': page.id === currentPageId }"
+          >
             <button
               type="button"
               class="sidebar__row"
-              :class="{ 'sidebar__row--active': page.id === currentPageId }"
               :aria-current="page.id === currentPageId ? 'page' : undefined"
               @click="emit('select', page.id)"
             >
               <span class="sidebar__row-label">{{ page.title }}</span>
-              <span
-                v-if="settings.homePageId === page.id"
-                class="sidebar__row-home"
-                :title="$t('sidebar.homePage')"
-              >
-                <MsIcon name="home" :size="14" />
-              </span>
+              <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
+                <span class="sidebar__row-home">
+                  <MsIcon name="home" :size="20" />
+                </span>
+              </UiTooltip>
             </button>
 
-            <DropdownMenuRoot>
-              <DropdownMenuTrigger as-child>
-                <button
-                  type="button"
-                  class="button button--icon button--tiny"
-                  :aria-label="t('sidebar.actions', { title: page.title })"
-                >
-                  <MsIcon name="more_horiz" :size="16" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuContent class="menu" :side-offset="4" align="end">
-                  <DropdownMenuItem
-                    @select="
-                      renameTarget = page;
-                      renameTitle = page.title;
-                    "
-                  >
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem @select="setHome(page)">{{
-                    $t("sidebar.setHome")
-                  }}</DropdownMenuItem>
-                  <DropdownMenuSeparator class="menu__separator" />
-                  <DropdownMenuItem class="menu__danger" @select="remove(page)">
-                    {{ $t("sidebar.delete") }}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenuPortal>
-            </DropdownMenuRoot>
+            <UiMenu>
+              <template #trigger>
+                <UiIconButton
+                  icon="more_vert"
+                  :size="20"
+                  :label="t('sidebar.actions', { title: page.title })"
+                  variant="ghost"
+                  class="button--tiny sidebar__row-more"
+                />
+              </template>
+
+              <UiMenuItem
+                @select="
+                  renameTarget = page;
+                  renameTitle = page.title;
+                "
+              >
+                {{ $t("common.rename") }}
+              </UiMenuItem>
+              <UiMenuItem @select="setHome(page)">{{ $t("sidebar.setHome") }}</UiMenuItem>
+              <UiMenuSeparator />
+              <UiMenuItem danger @select="askRemove(page)">
+                {{ $t("sidebar.delete") }}
+              </UiMenuItem>
+            </UiMenu>
           </li>
         </ul>
       </div>
@@ -344,28 +366,34 @@ function onCreated(page: PageMeta) {
     </div> -->
 
     <!-- rename dialog -->
-    <DialogRoot :open="!!renameTarget" @update:open="onRenameOpenChange">
-      <DialogPortal>
-        <DialogOverlay class="dialog-overlay" />
-        <DialogContent class="dialog">
-          <DialogTitle class="dialog__title">{{ $t("sidebar.renameTitle") }}</DialogTitle>
-          <form class="dialog__form" @submit.prevent="rename">
-            <label class="dialog__field">
-              <span>{{ $t("sidebar.title") }}</span>
-              <input v-model="renameTitle" class="dialog__input" autofocus />
-            </label>
-            <div class="dialog__actions">
-              <button type="button" class="button button--ghost" @click="renameTarget = undefined">
-                Cancel
-              </button>
-              <button type="submit" class="button button--primary">
-                {{ $t("sidebar.rename") }}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <UiDialog
+      :open="renameTarget !== undefined"
+      :title="$t('sidebar.renameTitle')"
+      @update:open="onRenameOpenChange"
+    >
+      <form class="dialog__form" @submit.prevent="rename">
+        <Label class="dialog__field">
+          <span>{{ $t("sidebar.title") }}</span>
+          <input v-model="renameTitle" class="dialog__input" autofocus />
+        </Label>
+        <div class="dialog__actions">
+          <button type="button" class="button button--ghost" @click="renameTarget = undefined">
+            {{ $t("common.cancel") }}
+          </button>
+          <button type="submit" class="button button--primary">
+            {{ $t("sidebar.rename") }}
+          </button>
+        </div>
+      </form>
+    </UiDialog>
+
+    <UiConfirmDialog
+      :open="confirmOpen"
+      :title="$t('sidebar.deleteTitle')"
+      :description="$t('sidebar.deleteConfirm', { title: pendingDelete?.title ?? '' })"
+      @update:open="(value) => !value && (confirmOpen = false)"
+      @confirm="confirmRemove"
+    />
     <footer class="sidebar__footer">
       <NuxtLink to="/debug" class="button button--ghost button--small">
         <MsIcon name="science" :size="16" />
@@ -491,19 +519,28 @@ function onCreated(page: PageMeta) {
   white-space: nowrap;
 }
 
-.sidebar__day-dot {
-  flex: none;
-  width: 0.45rem;
-  height: 0.45rem;
-  margin-left: auto;
-  background: var(--color-accent);
-  border-radius: 999px;
-}
-
 .sidebar__item {
   display: flex;
   align-items: center;
   gap: 0.1rem;
+  padding-right: 0.25rem;
+  border-radius: 0.35rem;
+  transition: background 0.12s ease;
+}
+
+/* The highlight covers the whole item, menu button included, so the row and
+   its actions read as one surface. */
+.sidebar__item:hover {
+  background: var(--color-surface-2);
+}
+
+.sidebar__item--active,
+.sidebar__item--active:hover {
+  background: var(--color-accent-soft);
+}
+
+.sidebar__item .sidebar__row:hover {
+  background: transparent;
 }
 
 .sidebar__row {
@@ -527,8 +564,30 @@ function onCreated(page: PageMeta) {
   background: var(--color-surface-2);
 }
 
-.sidebar__row--active {
-  background: var(--color-accent-soft);
+/* The row's menu button: revealed on hover/focus and tinted like the row
+   surface instead of carrying its own button chrome. :deep() because the
+   class sits on UiIconButton's inner button. */
+.sidebar__item :deep(.sidebar__row-more) {
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.sidebar__item :deep(.sidebar__row-more:hover),
+.sidebar__item :deep(.sidebar__row-more[data-state="open"]) {
+  background: color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.sidebar__item:hover :deep(.sidebar__row-more),
+.sidebar__item :deep(.sidebar__row-more:focus-visible),
+.sidebar__item :deep(.sidebar__row-more[data-state="open"]) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .sidebar__item :deep(.sidebar__row-more) {
+    opacity: 1;
+  }
 }
 
 .sidebar__row--today,
@@ -546,18 +605,6 @@ function onCreated(page: PageMeta) {
 .sidebar__row-home {
   color: var(--color-text-secondary);
   font-size: 0.85rem;
-}
-
-.sidebar__row-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 999px;
-  background: var(--color-border-strong);
-  flex-shrink: 0;
-}
-
-.sidebar__row-dot--filled {
-  background: var(--color-accent);
 }
 
 .sidebar__group {

@@ -61,15 +61,12 @@ async function onUnpublish() {
 <template>
   <div class="publish">
     <template v-if="atprotoStatus.signedIn">
-      <span
-        v-if="meta?.publishedAt"
-        class="publish__status"
-        :title="meta.publishUri ?? ''"
-        role="status"
-      >
-        <MsIcon name="public" :size="14" />
-        {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
-      </span>
+      <UiTooltip v-if="meta?.publishedAt" :text="meta.publishUri ?? ''">
+        <span class="publish__status" role="status">
+          <MsIcon name="public" :size="14" />
+          {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
+        </span>
+      </UiTooltip>
 
       <PopoverRoot v-model:open="menuOpen">
         <PopoverTrigger as-child>

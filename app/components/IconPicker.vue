@@ -3,15 +3,10 @@ import type { MaterialSymbol } from "material-symbols";
 
 import { searchSymbols, type SymbolEntry } from "~/lib/symbols";
 
-/**
- * Searchable Material Symbols grid. Typing filters by glyph name; picking one
- * emits it as the model value. The grid is capped so 3798 entries never all
- * mount at once.
- */
 const props = withDefaults(
   defineProps<{
     modelValue: string;
-    /** How many results render before "refine your search" kicks in. */
+    /** How many results render before "refine your search" is shown. */
     limit?: number;
   }>(),
   { limit: 300 },
@@ -52,19 +47,18 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
     </div>
 
     <div ref="grid" class="icon-picker__grid">
-      <button
-        v-for="entry in result.entries"
-        :key="entry.id"
-        type="button"
-        class="icon-picker__cell"
-        :class="{ 'icon-picker__cell--selected': entry.id === selected }"
-        :aria-pressed="entry.id === selected"
-        :aria-label="entry.title"
-        :title="entry.title"
-        @click="pick(entry)"
-      >
-        <MsIcon :name="entry.id" :size="20" />
-      </button>
+      <UiTooltip v-for="entry in result.entries" :key="entry.id" :text="entry.title">
+        <button
+          type="button"
+          class="icon-picker__cell"
+          :class="{ 'icon-picker__cell--selected': entry.id === selected }"
+          :aria-pressed="entry.id === selected"
+          :aria-label="entry.title"
+          @click="pick(entry)"
+        >
+          <MsIcon :name="entry.id" :size="20" />
+        </button>
+      </UiTooltip>
     </div>
 
     <p v-if="result.total > result.entries.length" class="icon-picker__hint">

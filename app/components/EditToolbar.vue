@@ -79,17 +79,17 @@ function run(item: ToolbarItem) {
   >
     <template v-for="(group, index) in groups" :key="index">
       <ToolbarSeparator v-if="index > 0" class="edit-toolbar__separator" />
-      <ToolbarButton
-        v-for="item in group"
-        :key="item.id"
-        type="button"
-        class="edit-toolbar__button"
-        :aria-label="$t(`formatting.${item.label}`)"
-        :disabled="disabled || !view"
-        @click="run(item)"
-      >
-        <MsIcon :name="item.icon" :size="18" />
-      </ToolbarButton>
+      <UiTooltip v-for="item in group" :key="item.id" :text="$t(`formatting.${item.label}`)">
+        <ToolbarButton
+          type="button"
+          class="edit-toolbar__button"
+          :aria-label="$t(`formatting.${item.label}`)"
+          :disabled="disabled || !view"
+          @click="run(item)"
+        >
+          <MsIcon :name="item.icon" :size="18" />
+        </ToolbarButton>
+      </UiTooltip>
     </template>
   </ToolbarRoot>
 </template>

@@ -46,7 +46,9 @@
     "calendar": "Calendrier",
     "today": "Aujourd'hui",
     "hideSidebar": "Masquer la barre latérale",
-    "showSidebar": "Afficher la barre latérale"
+    "showSidebar": "Afficher la barre latérale",
+    "deleteTitle": "Supprimer la page",
+    "deleteConfirm": "Supprimer « {title} » ? Cette action est irréversible."
   },
   "pageView": {
     "write": "Écrire",
@@ -87,7 +89,7 @@
     "customPaletteHint": "Remplace le thème sélectionné pour l'application et les pages rendues.",
     "themeError": "La palette personnalisée n'est pas un JSON valide jeton -> couleur.",
     "template": "Modèle de note quotidienne",
-    "templateHint": "Les nouvelles notes quotidiennes rendent ce code Typst. Variables : {'{date}'} (date), {'{weekday}'} (jour), {'{previous}'} (note précédente la plus proche) et {'{next}'} (note suivante la plus proche).",
+    "templateHint": "Les nouvelles notes quotidiennes rendent ce code Typst. Variables : {'{title}'} (titre formaté), {'{date}'} (date ISO), {'{weekday}'} (jour de la semaine), {'{previous}'} (note précédente la plus proche) et {'{next}'} (note suivante la plus proche).",
     "prelude": "Prélude de page",
     "preludeHint": "Ajouté avant chaque compilation (éditeur, aperçus, pages publiées). Utilisez de nouvelles fonctions Typst ou des règles #set pour créer des vues personnalisées.",
     "textFont": "Police de texte",
@@ -152,7 +154,8 @@
     "quiz": "Quiz de la page",
     "flashcards": "Cartes mémoire de la catégorie",
     "studyGuide": "Guide d'étude de la catégorie",
-    "hint": "Les appels vont directement au fournisseur configuré. Les clés vivent dans local.json."
+    "hint": "Les appels vont directement au fournisseur configuré. Les clés vivent dans local.json.",
+    "title": "Générateurs IA"
   },
   "switcher": {
     "title": "Ouvrir un espace de travail",
@@ -195,7 +198,8 @@
     "cell": "{date}, a une note",
     "cellEmpty": "{date}, pas encore de note",
     "deleteAria": "Supprimer la note quotidienne du {date}",
-    "deleteConfirm": "Supprimer la note quotidienne du {date} ? Cela ne peut pas être annulé."
+    "deleteConfirm": "Supprimer la note quotidienne du {date} ? Cela ne peut pas être annulé.",
+    "deleteTitle": "Supprimer la note quotidienne"
   },
   "newPage": {
     "title": "Nouvelle page",
@@ -289,7 +293,10 @@
     "assetDownload": "Télécharger le média",
     "assetReferences": "Utilisé par {count} page(s)",
     "assetUnused": "inutilisé",
-    "assetDrag": "Glisser dans un éditeur pour insérer"
+    "assetDrag": "Glisser dans un éditeur pour insérer",
+    "expand": "Développer",
+    "collapse": "Réduire",
+    "download": "Télécharger"
   },
   "plugins": {
     "title": "Plugins",

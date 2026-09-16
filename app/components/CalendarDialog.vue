@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
-import type { PageMeta } from "@typbase/typing";
+
+import { getLocalTimeZone, isSameMonth, today, type DateValue } from "@internationalized/date";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -8,196 +9,128 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "select", pageId: string): void;
-  (e: "deleted", pageId: string): void;
 }>();
 
 const { t, locale } = useI18n();
 const { dataRevision } = useWorkspace();
 
-function formatDayLabel(iso: string): string {
-  return new Intl.DateTimeFormat(locale.value, {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(`${iso}T00:00:00Z`));
-}
 const open = defineModel<boolean>("open", { default: false });
 
-const today = new Date();
-const viewYear = ref(today.getUTCFullYear());
-const viewMonth = ref(today.getUTCMonth());
+/** Month the calendar shows; reka updates it on prev/next navigation.
+ *  shallowRef: ref() maps class values structurally and drops the DateValue brand. */
+const placeholder = shallowRef<DateValue>(today(getLocalTimeZone()));
 
-const dailyPages = computed(() => {
+/**
+ * Picked day. reka's cell trigger selects on click and on Enter/Space, so the
+ * watch is what opens the note; it resets immediately so picking the same day
+ * again still counts as a change.
+ */
+const selected = shallowRef<DateValue>();
+watch(selected, (day) => {
+  if (!day) return;
+  selected.value = undefined;
+  void openDay(day);
+});
+
+/** Dates that already have a daily note, for the dot marker. */
+const dailyDates = computed(() => {
   void dataRevision.value;
-  const map = new Map<string, PageMeta>();
+  const dates = new Set<string>();
   for (const page of props.store.listPages()) {
     const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
-    if (match) map.set(match[1]!, page);
+    if (match) dates.add(match[1]!);
   }
 
-  return map;
+  return dates;
 });
 
-interface Cell {
-  iso: string;
-  day: number;
-  page: PageMeta | undefined;
-  outside: boolean;
+function hasNote(day: DateValue): boolean {
+  return dailyDates.value.has(day.toString());
 }
 
-const grid = computed<Cell[]>(() => {
-  const year = viewYear.value;
-  const month = viewMonth.value;
-  const first = new Date(Date.UTC(year, month, 1));
-  const startOffset = first.getUTCDay();
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+async function openDay(day: DateValue) {
+  // Defensive: reka disables outside days, but a stale selection must not
+  // resolve to a date the view does not show.
+  if (!isSameMonth(day, placeholder.value)) return;
 
-  const cells: Cell[] = [];
-  for (let i = 0; i < 42; i++) {
-    const offset = i - startOffset + 1;
-    const iso = isoOf(year, month, offset);
-    const date = new Date(Date.UTC(year, month, offset));
-    cells.push({
-      iso,
-      day: date.getUTCDate(),
-      page: dailyPages.value.get(iso),
-      outside: offset < 1 || offset > daysInMonth,
-    });
-  }
-
-  return cells;
-});
-
-function isoOf(year: number, month: number, day: number): string {
-  const date = new Date(Date.UTC(year, month, day));
-  return date.toISOString().slice(0, 10);
-}
-
-const monthLabel = computed(() =>
-  new Date(Date.UTC(viewYear.value, viewMonth.value, 1)).toLocaleDateString(undefined, {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }),
-);
-
-function shiftMonth(delta: number) {
-  const next = viewMonth.value + delta;
-  viewMonth.value = (next + 12) % 12;
-  if (next < 0) viewYear.value -= 1;
-  else if (next >= 12) viewYear.value += 1;
-}
-
-function goToToday() {
-  viewYear.value = today.getUTCFullYear();
-  viewMonth.value = today.getUTCMonth();
-}
-
-async function openDay(cell: Cell) {
-  if (cell.outside) return;
-
-  const page = await props.store.createDailyNote(cell.iso);
+  const page = await props.store.createDailyNote(day.toString());
   open.value = false;
   emit("select", page.id);
 }
 
-async function deleteDay(cell: Cell) {
-  if (!cell.page) return;
-
-  const parsed = new Date(`${cell.iso}T00:00:00Z`);
-  const label = parsed.toLocaleDateString(undefined, {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  });
-  if (!window.confirm(t("calendar.deleteConfirm", { date: formatDayLabel(cell.iso) }))) return;
-
-  await props.store.deletePage(cell.page.id);
-  emit("deleted", cell.page.id);
+function goToToday() {
+  placeholder.value = today(getLocalTimeZone());
 }
-
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 </script>
 
 <template>
-  <DialogRoot v-model:open="open">
-    <DialogTrigger as-child>
+  <UiDialog
+    v-model:open="open"
+    :title="$t('calendar.title')"
+    :description="$t('calendar.description')"
+  >
+    <template #trigger>
       <slot />
-    </DialogTrigger>
+    </template>
 
-    <DialogPortal>
-      <DialogOverlay class="dialog-overlay" />
-      <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">{{ $t("calendar.title") }}</DialogTitle>
-        <DialogDescription class="dialog__description">
-          {{ $t("calendar.description") }}
-        </DialogDescription>
-
-        <div class="calendar__toolbar">
-          <button
-            type="button"
-            class="button button--icon"
+    <CalendarRoot
+      v-slot="{ weekDays, grid }"
+      v-model="selected"
+      v-model:placeholder="placeholder"
+      :locale="locale"
+      fixed-weeks
+      disable-days-outside-current-view
+      class="calendar"
+    >
+      <CalendarHeader class="calendar__toolbar">
+        <UiTooltip :text="$t('calendar.previousMonth')">
+          <CalendarPrev
+            class="button button--ghost button--icon"
             :aria-label="$t('calendar.previousMonth')"
-            @click="shiftMonth(-1)"
           >
             <MsIcon name="chevron_left" :size="20" />
-          </button>
-          <span class="calendar__month">{{ monthLabel }}</span>
-          <button
-            type="button"
-            class="button button--icon"
+          </CalendarPrev>
+        </UiTooltip>
+        <CalendarHeading class="calendar__month" />
+        <UiTooltip :text="$t('calendar.nextMonth')">
+          <CalendarNext
+            class="button button--ghost button--icon"
             :aria-label="$t('calendar.nextMonth')"
-            @click="shiftMonth(1)"
           >
             <MsIcon name="chevron_right" :size="20" />
-          </button>
-          <button type="button" class="button button--ghost button--tiny" @click="goToToday">
-            Today
-          </button>
-        </div>
+          </CalendarNext>
+        </UiTooltip>
+        <button type="button" class="button button--ghost button--tiny" @click="goToToday">
+          {{ $t("common.today") }}
+        </button>
+      </CalendarHeader>
 
-        <div class="calendar__grid" role="grid" aria-label="Monthly calendar">
-          <span
-            v-for="weekday in WEEKDAYS"
-            :key="weekday"
-            class="calendar__weekday"
-            aria-hidden="true"
-          >
-            {{ weekday }}
-          </span>
-
-          <button
-            v-for="cell in grid"
-            :key="cell.iso"
-            type="button"
-            role="gridcell"
-            class="calendar__cell"
-            :class="{
-              'calendar__cell--outside': cell.outside,
-              'calendar__cell--today': cell.iso === today.toISOString().slice(0, 10),
-            }"
-            :aria-label="
-              cell.page
-                ? t('calendar.cell', { date: cell.iso })
-                : t('calendar.cellEmpty', { date: cell.iso })
-            "
-            :disabled="cell.outside"
-            @click="openDay(cell)"
-          >
-            <span class="calendar__day">{{ cell.day }}</span>
-            <span v-if="cell.page" class="calendar__dot" aria-hidden="true" />
-            <button
-              v-if="cell.page"
-              type="button"
-              class="calendar__delete"
-              :aria-label="t('calendar.deleteAria', { date: cell.iso })"
-              @click.stop="deleteDay(cell)"
+      <CalendarGrid v-for="month in grid" :key="month.value.toString()" class="calendar__grid">
+        <CalendarGridHead>
+          <CalendarGridRow>
+            <CalendarHeadCell v-for="day in weekDays" :key="day" class="calendar__weekday">
+              {{ day }}
+            </CalendarHeadCell>
+          </CalendarGridRow>
+        </CalendarGridHead>
+        <CalendarGridBody>
+          <CalendarGridRow v-for="(week, weekIndex) in month.rows" :key="weekIndex">
+            <CalendarCell
+              v-for="day in week"
+              :key="day.toString()"
+              :date="day"
+              class="calendar__cell"
             >
-              <MsIcon name="delete" :size="14" />
-            </button>
-          </button>
-        </div>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+              <CalendarCellTrigger :day="day" :month="month.value" class="calendar__open">
+                <span class="calendar__day">{{ day.day }}</span>
+                <span v-if="hasNote(day)" class="calendar__dot" aria-hidden="true" />
+              </CalendarCellTrigger>
+            </CalendarCell>
+          </CalendarGridRow>
+        </CalendarGridBody>
+      </CalendarGrid>
+    </CalendarRoot>
+  </UiDialog>
 </template>
 
 <style scoped>
@@ -216,46 +149,64 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 }
 
 .calendar__grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.15rem;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0.15rem;
 }
 
 .calendar__weekday {
-  text-align: center;
-  font-size: 0.7rem;
-  color: var(--color-text-secondary);
   padding: 0.15rem 0;
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-align: center;
+  color: var(--color-text-secondary);
 }
 
 .calendar__cell {
-  position: relative;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.calendar__cell:hover,
+.calendar__cell:focus-within {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+
+/* The day opens the note. reka renders the trigger as a focusable div with
+   role, so it is styled like a button here. */
+.calendar__open {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
+  width: 100%;
   min-height: 2.4rem;
   padding: 0.15rem;
+  font-family: inherit;
+  color: var(--color-text);
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 0.4rem;
   cursor: pointer;
-  color: var(--color-text);
 }
 
-.calendar__cell:hover {
-  background: var(--color-surface-2);
-  border-color: var(--color-border);
-}
-
-.calendar__cell--outside {
+.calendar__open[data-disabled] {
   opacity: 0.35;
-  pointer-events: none;
+  cursor: default;
 }
 
-.calendar__cell--today {
-  border-color: var(--color-accent);
+.calendar__open[data-today] {
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.calendar__open[data-selected] {
+  background: var(--color-accent-soft);
 }
 
 .calendar__day {
@@ -268,24 +219,5 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   height: 0.4rem;
   border-radius: 999px;
   background: var(--color-accent);
-}
-
-.calendar__delete {
-  position: absolute;
-  top: 0.05rem;
-  right: 0.05rem;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 0.1rem;
-  color: var(--color-danger);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.3rem;
-}
-
-.calendar__cell:hover .calendar__delete,
-.calendar__cell:focus-within .calendar__delete {
-  display: inline-flex;
 }
 </style>

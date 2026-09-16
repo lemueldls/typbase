@@ -331,15 +331,13 @@ definePageMeta({ ssr: false });
               >
                 <template #nav-toggle>
                   <!-- Desktop: reappears only while the sidebar is collapsed. -->
-                  <button
+                  <UiIconButton
                     v-if="sidebarCollapsed"
-                    type="button"
-                    class="button button--icon app__nav-toggle app__nav-toggle--desktop"
-                    :aria-label="$t('sidebar.showSidebar')"
+                    icon="chevron_right"
+                    :label="$t('sidebar.showSidebar')"
+                    class="app__nav-toggle app__nav-toggle--desktop"
                     @click="toggleSidebar"
-                  >
-                    <MsIcon name="chevron_right" :size="20" />
-                  </button>
+                  />
                 </template>
               </MainPane>
             </div>
@@ -381,14 +379,13 @@ definePageMeta({ ssr: false });
               @close-plugin="closePlugin"
             >
               <template #nav-toggle>
-                <button
-                  type="button"
-                  class="button button--icon app__nav-toggle"
-                  :aria-label="$t('boot.openNav')"
+                <UiIconButton
+                  icon="menu"
+                  :size="24"
+                  :label="$t('boot.openNav')"
+                  class="app__nav-toggle"
                   @click="navOpen = true"
-                >
-                  <MsIcon name="menu" :size="24" />
-                </button>
+                />
               </template>
             </MainPane>
           </div>
@@ -539,12 +536,14 @@ definePageMeta({ ssr: false });
 
    The desktop variant only renders while the sidebar is collapsed (v-if in
    the shell), so it is visible at any width. */
-.app__nav-toggle,
+/* :deep() targets UiIconButton's inner button; component-wrapped buttons do
+   not receive the consumer's scope attribute. */
+.app__main :deep(.app__nav-toggle),
 .app__backdrop {
   display: none;
 }
 
-.app__nav-toggle--desktop {
+.app__main :deep(.app__nav-toggle--desktop) {
   display: inline-flex;
   padding: 0.35rem 0.55rem;
   margin-right: 0.25rem;
@@ -552,18 +551,18 @@ definePageMeta({ ssr: false });
 
 /* The toggle is a chrome control, not a form control: no outline ring. A
    focus background keeps keyboard users oriented instead. */
-.app__nav-toggle,
-.app__nav-toggle--desktop {
+.app__main :deep(.app__nav-toggle),
+.app__main :deep(.app__nav-toggle--desktop) {
   outline: none;
 }
 
-.app__nav-toggle:focus-visible,
-.app__nav-toggle--desktop:focus-visible {
+.app__main :deep(.app__nav-toggle:focus-visible),
+.app__main :deep(.app__nav-toggle--desktop:focus-visible) {
   background: var(--color-surface-2);
 }
 
 @media (max-width: 768px) {
-  .app__nav-toggle {
+  .app__main :deep(.app__nav-toggle) {
     display: inline-flex;
     padding: 0.45rem 0.65rem;
     margin-right: 0.25rem;

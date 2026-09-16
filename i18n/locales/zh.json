@@ -46,7 +46,9 @@
     "calendar": "日历",
     "today": "今天",
     "hideSidebar": "隐藏侧边栏",
-    "showSidebar": "显示侧边栏"
+    "showSidebar": "显示侧边栏",
+    "deleteTitle": "删除页面",
+    "deleteConfirm": "删除“{title}”？此操作无法撤销。"
   },
   "pageView": {
     "write": "写作",
@@ -87,7 +89,7 @@
     "customPaletteHint": "覆盖所选主题，应用于应用界面和渲染页面。",
     "themeError": "自定义调色板不是有效的「令牌 -> 颜色」JSON。",
     "template": "每日笔记模板",
-    "templateHint": "新每日笔记渲染此 Typst 源码。占位符：{'{date}'}（日期）、{'{weekday}'}（星期）、{'{previous}'}（最近的上一篇笔记）和 {'{next}'}（最近的下一篇笔记）。",
+    "templateHint": "新每日笔记渲染此 Typst 源码。占位符：{'{title}'}（格式化标题）、{'{date}'}（ISO 日期）、{'{weekday}'}（星期）、{'{previous}'}（最近的上一篇笔记）和 {'{next}'}（最近的下一篇笔记）。",
     "prelude": "页面前置",
     "preludeHint": "每次编译前追加（编辑器、预览、已发布页面）。可使用新的 Typst 函数或 #set 规则构建自定义视图。",
     "textFont": "正文字体",
@@ -152,7 +154,8 @@
     "quiz": "页面测验",
     "flashcards": "分类抽认卡",
     "studyGuide": "分类学习指南",
-    "hint": "调用直接发往配置的提供商。密钥存于 local.json。"
+    "hint": "调用直接发往配置的提供商。密钥存于 local.json。",
+    "title": "AI 生成器"
   },
   "switcher": {
     "title": "打开工作区",
@@ -195,7 +198,8 @@
     "cell": "{date}，有笔记",
     "cellEmpty": "{date}，暂无笔记",
     "deleteAria": "删除 {date} 的每日笔记",
-    "deleteConfirm": "删除 {date} 的每日笔记？此操作无法撤销。"
+    "deleteConfirm": "删除 {date} 的每日笔记？此操作无法撤销。",
+    "deleteTitle": "删除每日笔记"
   },
   "newPage": {
     "title": "新建页面",
@@ -289,7 +293,10 @@
     "assetDownload": "下载素材",
     "assetReferences": "被 {count} 个页面使用",
     "assetUnused": "未使用",
-    "assetDrag": "拖入编辑器以插入"
+    "assetDrag": "拖入编辑器以插入",
+    "expand": "展开",
+    "collapse": "折叠",
+    "download": "下载"
   },
   "plugins": {
     "title": "插件",

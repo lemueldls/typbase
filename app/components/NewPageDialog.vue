@@ -50,48 +50,42 @@ async function submit() {
 </script>
 
 <template>
-  <DialogRoot v-model:open="open">
-    <DialogTrigger as-child>
+  <UiDialog
+    v-model:open="open"
+    :title="$t('newPage.title')"
+    description="Pages are Typst sources. The path comes from the title."
+  >
+    <template #trigger>
       <slot />
-    </DialogTrigger>
+    </template>
 
-    <DialogPortal>
-      <DialogOverlay class="dialog-overlay" />
-      <DialogContent class="dialog">
-        <DialogTitle class="dialog__title">{{ $t("newPage.title") }}</DialogTitle>
-        <DialogDescription class="dialog__description">
-          Pages are Typst sources. The path comes from the title.
-        </DialogDescription>
+    <form class="dialog__form" @submit.prevent="submit">
+      <Label class="dialog__field">
+        <span>{{ $t("newPage.titleField") }}</span>
+        <input v-model="title" class="dialog__input" placeholder="Project ideas" autofocus />
+      </Label>
 
-        <form class="dialog__form" @submit.prevent="submit">
-          <label class="dialog__field">
-            <span>{{ $t("newPage.titleField") }}</span>
-            <input v-model="title" class="dialog__input" placeholder="Project ideas" autofocus />
-          </label>
+      <Label class="dialog__field">
+        <span>{{ $t("newPage.category") }}</span>
+        <select v-model="categoryId" class="dialog__input">
+          <option value="">{{ $t("newPage.noCategory") }}</option>
+          <option v-for="category in categories" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+      </Label>
 
-          <label class="dialog__field">
-            <span>{{ $t("newPage.category") }}</span>
-            <select v-model="categoryId" class="dialog__input">
-              <option value="">{{ $t("newPage.noCategory") }}</option>
-              <option v-for="category in categories" :key="category.id" :value="category.id">
-                {{ category.name }}
-              </option>
-            </select>
-          </label>
+      <p class="dialog__path">{{ pathPreview }}</p>
+      <p v-if="error" class="dialog__error">{{ error }}</p>
 
-          <p class="dialog__path">{{ pathPreview }}</p>
-          <p v-if="error" class="dialog__error">{{ error }}</p>
-
-          <div class="dialog__actions">
-            <DialogClose as-child>
-              <button type="button" class="button button--ghost">Cancel</button>
-            </DialogClose>
-            <button type="submit" class="button button--primary" :disabled="creating">
-              {{ creating ? $t("common.working") : $t("newPage.create") }}
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+      <div class="dialog__actions">
+        <DialogClose as-child>
+          <button type="button" class="button button--ghost">{{ $t("common.cancel") }}</button>
+        </DialogClose>
+        <button type="submit" class="button button--primary" :disabled="creating">
+          {{ creating ? $t("common.working") : $t("newPage.create") }}
+        </button>
+      </div>
+    </form>
+  </UiDialog>
 </template>

@@ -8,9 +8,28 @@ body,
   height: 100%;
 }
 
+:root {
+  /* Native controls, carets, and standard scrollbars follow the theme. */
+  accent-color: var(--color-accent);
+  caret-color: var(--color-accent);
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
 body {
   margin: 0;
   background: var(--color-surface-2);
   color: var(--color-text);
   font-family: var(--font-sans);
+}
+
+/* Accent wash for text selection; a translucent mix stays readable on every
+   surface. The editor paints its own selection layer in codemirror.css. */
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* Native placeholders use the secondary text color instead of the UA gray. */
+::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
 }

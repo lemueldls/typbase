@@ -46,7 +46,9 @@
     "calendar": "Kalender",
     "today": "Heute",
     "hideSidebar": "Seitenleiste ausblenden",
-    "showSidebar": "Seitenleiste einblenden"
+    "showSidebar": "Seitenleiste einblenden",
+    "deleteTitle": "Seite löschen",
+    "deleteConfirm": "„{title}“ löschen? Das kann nicht rückgängig gemacht werden."
   },
   "pageView": {
     "write": "Schreiben",
@@ -87,7 +89,7 @@
     "customPaletteHint": "Überschreibt das gewählte Theme für die App und gerenderte Seiten.",
     "themeError": "Benutzerdefinierte Palette ist kein gültiges Token-zu-Farbe-JSON.",
     "template": "Tägliche Notiz-Vorlage",
-    "templateHint": "Neue Tagesnotizen rendern diesen Typst-Code. Platzhalter: {'{date}'} (Datum), {'{weekday}'} (Wochentag), {'{previous}'} (nächste vorherige Notiz) und {'{next}'} (nächste folgende Notiz).",
+    "templateHint": "Neue Tagesnotizen rendern diesen Typst-Code. Platzhalter: {'{title}'} (formatierter Titel), {'{date}'} (ISO-Datum), {'{weekday}'} (Wochentag), {'{previous}'} (nächste vorherige Notiz) und {'{next}'} (nächste folgende Notiz).",
     "prelude": "Seiten-Prelude",
     "preludeHint": "Wird vor jeder Kompilierung eingefügt (Editor, Vorschauen, veröffentlichte Seiten). Nutze neue Typst-Funktionen oder #set-Regeln für eigene Ansichten.",
     "textFont": "Textschrift",
@@ -152,7 +154,8 @@
     "quiz": "Quiz zur Seite",
     "flashcards": "Karteikarten für Kategorie",
     "studyGuide": "Lernleitfaden für Kategorie",
-    "hint": "Aufrufe gehen direkt an den konfigurierten Anbieter. Schlüssel liegen in local.json."
+    "hint": "Aufrufe gehen direkt an den konfigurierten Anbieter. Schlüssel liegen in local.json.",
+    "title": "KI-Generatoren"
   },
   "switcher": {
     "title": "Arbeitsbereich öffnen",
@@ -195,7 +198,8 @@
     "cell": "{date}, hat eine Notiz",
     "cellEmpty": "{date}, noch keine Notiz",
     "deleteAria": "Tagesnotiz für {date} löschen",
-    "deleteConfirm": "Tagesnotiz für {date} löschen? Das kann nicht rückgängig gemacht werden."
+    "deleteConfirm": "Tagesnotiz für {date} löschen? Das kann nicht rückgängig gemacht werden.",
+    "deleteTitle": "Tagesnotiz löschen"
   },
   "newPage": {
     "title": "Neue Seite",
@@ -289,7 +293,10 @@
     "assetDownload": "Medium herunterladen",
     "assetReferences": "Von {count} Seite(n) verwendet",
     "assetUnused": "ungenutzt",
-    "assetDrag": "In einen Editor ziehen, um einzufügen"
+    "assetDrag": "In einen Editor ziehen, um einzufügen",
+    "expand": "Ausklappen",
+    "collapse": "Einklappen",
+    "download": "Herunterladen"
   },
   "plugins": {
     "title": "Plugins",

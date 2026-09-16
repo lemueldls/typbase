@@ -176,10 +176,10 @@ async function pruneUnused(): Promise<void> {
 <template>
   <div class="assets">
     <div class="assets__toolbar">
-      <label class="button button--tiny">
+      <Label class="button button--tiny">
         {{ $t("explorer.assetUpload") }}
         <input type="file" hidden @change="upload" />
-      </label>
+      </Label>
       <button type="button" class="button button--tiny" @click="pruneUnused">
         {{ $t("explorer.assetPrune") }}
       </button>
@@ -192,61 +192,57 @@ async function pruneUnused(): Promise<void> {
     </p>
 
     <ul class="assets__list">
-      <li
-        v-for="row in rows"
-        :key="row.hash"
-        class="assets__row"
-        draggable="true"
-        :title="$t('explorer.assetDrag')"
-        @dragstart="onDragStart($event, row)"
-      >
-        <div class="assets__preview">
-          <img v-if="row.url" :src="row.url" :alt="row.hash" />
-          <MsIcon v-else :name="iconFor(row.mime)" :size="28" />
-        </div>
+      <UiTooltip v-for="row in rows" :key="row.hash" :text="$t('explorer.assetDrag')">
+        <li class="assets__row" draggable="true" @dragstart="onDragStart($event, row)">
+          <div class="assets__preview">
+            <img v-if="row.url" :src="row.url" :alt="row.hash" />
+            <MsIcon v-else :name="iconFor(row.mime)" :size="28" />
+          </div>
 
-        <div class="assets__meta">
-          <span class="assets__name">{{ row.mime }} · {{ extension(row.mime) }}</span>
-          <span class="assets__hash">{{ row.hash.slice(0, 16) }}…</span>
-          <span class="assets__refs">
-            {{
-              row.pageTitles.length
-                ? $t("explorer.assetReferences", { count: row.pageTitles.length })
-                : $t("explorer.assetUnused")
-            }}
-            <template v-if="row.pageTitles.length">
-              · {{ row.pageTitles.slice(0, 3).join(", ") }}
-            </template>
+          <div class="assets__meta">
+            <span class="assets__name">{{ row.mime }} · {{ extension(row.mime) }}</span>
+            <span class="assets__hash">{{ row.hash.slice(0, 16) }}…</span>
+            <span class="assets__refs">
+              {{
+                row.pageTitles.length
+                  ? $t("explorer.assetReferences", { count: row.pageTitles.length })
+                  : $t("explorer.assetUnused")
+              }}
+              <template v-if="row.pageTitles.length">
+                · {{ row.pageTitles.slice(0, 3).join(", ") }}
+              </template>
+            </span>
+          </div>
+
+          <span class="assets__actions">
+            <UiIconButton
+              icon="content_copy"
+              :size="16"
+              :label="$t('explorer.assetCopy')"
+              variant="ghost"
+              class="button--tiny"
+              @click="copyReference(row)"
+            />
+            <UiIconButton
+              icon="download"
+              :size="16"
+              :label="$t('explorer.assetDownload')"
+              variant="ghost"
+              class="button--tiny"
+              @click="download(row)"
+            />
+            <UiIconButton
+              icon="delete"
+              :size="16"
+              :label="$t('explorer.assetDelete')"
+              variant="ghost"
+              danger
+              class="button--tiny"
+              @click="remove(row)"
+            />
           </span>
-        </div>
-
-        <span class="assets__actions">
-          <button
-            type="button"
-            class="button button--ghost button--tiny"
-            :aria-label="$t('explorer.assetCopy')"
-            @click="copyReference(row)"
-          >
-            <MsIcon name="content_copy" :size="14" />
-          </button>
-          <button
-            type="button"
-            class="button button--ghost button--tiny"
-            :aria-label="$t('explorer.assetDownload')"
-            @click="download(row)"
-          >
-            <MsIcon name="download" :size="14" />
-          </button>
-          <button
-            type="button"
-            class="button button--ghost button--tiny assets__danger"
-            :aria-label="$t('explorer.assetDelete')"
-            @click="remove(row)"
-          >
-            <MsIcon name="delete" :size="14" />
-          </button>
-        </span>
-      </li>
+        </li>
+      </UiTooltip>
     </ul>
   </div>
 </template>
@@ -355,9 +351,5 @@ async function pruneUnused(): Promise<void> {
   display: flex;
   gap: 0.1rem;
   flex: none;
-}
-
-.assets__danger {
-  color: var(--color-danger);
 }
 </style>

@@ -29,6 +29,7 @@
     "@codemirror/state": "^6.7.2",
     "@codemirror/view": "^6.43.10",
     "@huggingface/transformers": "^4.2.0",
+    "@internationalized/date": "^3.12.4",
     "@nuxtjs/i18n": "github:onmax/i18n#agent/nuxt5-nitro3-runtime",
     "@tauri-apps/api": "^3.0.0-alpha.0",
     "@tauri-apps/cli": "^3.0.0-alpha.1",

@@ -43,14 +43,14 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
   <div class="plugin-sidebar">
     <div class="plugin-sidebar__header">
       <span>{{ $t("plugins.title") }}</span>
-      <button
-        type="button"
-        class="button button--ghost button--icon button--tiny"
-        :aria-label="$t('plugins.manage')"
+      <UiIconButton
+        icon="add"
+        :size="18"
+        :label="$t('plugins.manage')"
+        variant="ghost"
+        class="button--tiny"
         @click="managerOpen = true"
-      >
-        <MsIcon name="add" :size="18" />
-      </button>
+      />
     </div>
 
     <p v-if="active.length === 0" class="plugin-sidebar__empty">{{ $t("plugins.empty") }}</p>
@@ -68,15 +68,14 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
       </li>
     </ul>
 
-    <DialogRoot :open="managerOpen" @update:open="managerOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="dialog-overlay" />
-        <DialogContent class="dialog plugin-sidebar__dialog">
-          <DialogTitle class="dialog__title">{{ $t("plugins.manage") }}</DialogTitle>
-          <PluginManager />
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <UiDialog
+      :open="managerOpen"
+      :title="$t('plugins.manage')"
+      class="plugin-sidebar__dialog"
+      @update:open="managerOpen = $event"
+    >
+      <PluginManager />
+    </UiDialog>
   </div>
 </template>
 

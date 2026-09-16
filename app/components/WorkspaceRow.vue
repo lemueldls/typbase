@@ -49,31 +49,24 @@ const icon = computed(
       <!-- <MsIcon v-else-if="active" name="check" :size="16" class="ws-row__check" /> -->
     </button>
 
-    <DropdownMenuRoot>
-      <DropdownMenuTrigger as-child>
-        <button
-          type="button"
-          class="button button--ghost button--icon button--small ws-row__more"
-          :aria-label="t('switcher.actions', { name: info.name })"
+    <UiMenu>
+      <template #trigger>
+        <UiIconButton
+          icon="more_vert"
+          :size="18"
+          :label="t('switcher.actions', { name: info.name })"
+          variant="ghost"
+          class="button--small ws-row__more"
           @click.stop
-        >
-          <MsIcon name="more_vert" :size="16" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuPortal>
-        <DropdownMenuContent class="menu" :side-offset="4" align="end">
-          <DropdownMenuItem @select="emit('rename')">
-            <MsIcon name="edit" :size="14" />
-            {{ $t("common.rename") }}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator class="menu__separator" />
-          <DropdownMenuItem class="menu__danger" @select="emit('remove')">
-            <MsIcon name="delete" :size="14" />
-            {{ $t("common.delete") }}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenuPortal>
-    </DropdownMenuRoot>
+        />
+      </template>
+
+      <UiMenuItem icon="edit" @select="emit('rename')">{{ $t("common.rename") }}</UiMenuItem>
+      <UiMenuSeparator />
+      <UiMenuItem icon="delete" danger @select="emit('remove')">
+        {{ $t("common.delete") }}
+      </UiMenuItem>
+    </UiMenu>
   </div>
 </template>
 
@@ -160,7 +153,9 @@ const icon = computed(
   color: var(--color-accent);
 }
 
-.ws-row__more {
+/* :deep() targets UiIconButton's inner button; component-wrapped buttons do
+   not receive the consumer's scope attribute. */
+.ws-row :deep(.ws-row__more) {
   flex: none;
   opacity: 0;
   transition: opacity 0.12s ease;
@@ -168,14 +163,14 @@ const icon = computed(
 
 /* Tint the row's own surface instead of painting the ghost button background
    over it, so the action stays visually inside the row highlight. */
-.ws-row .ws-row__more:hover,
-.ws-row .ws-row__more[data-state="open"] {
+.ws-row :deep(.ws-row__more:hover),
+.ws-row :deep(.ws-row__more[data-state="open"]) {
   background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
-.ws-row:hover .ws-row__more,
-.ws-row__more:focus-visible,
-.ws-row__more[data-state="open"] {
+.ws-row:hover :deep(.ws-row__more),
+.ws-row :deep(.ws-row__more:focus-visible),
+.ws-row :deep(.ws-row__more[data-state="open"]) {
   opacity: 1;
 }
 
@@ -197,7 +192,7 @@ const icon = computed(
 }
 
 @media (hover: none) {
-  .ws-row__more {
+  .ws-row :deep(.ws-row__more) {
     opacity: 1;
   }
 }

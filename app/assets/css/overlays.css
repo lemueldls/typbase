@@ -77,8 +77,8 @@
 }
 
 .popover {
-  width: min(360px, calc(100vw - 2rem));
-  max-height: calc(100dvh - 2rem);
+  width: min(368px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 8rem);
   overflow-y: auto;
   padding: 1rem;
   background: var(--color-surface);
@@ -127,8 +127,6 @@
   background: var(--color-accent-soft);
 }
 
-/* Plain buttons share the item look; :deep() is invalid in a global sheet,
-   so the rules are written as plain attribute selectors. */
 .menu .menu__item {
   display: flex;
   align-items: center;
@@ -137,7 +135,6 @@
   font-family: inherit;
   font-size: 0.9rem;
   text-align: left;
-  color: inherit;
   background: transparent;
   border: none;
   border-radius: 0.4rem;
@@ -156,4 +153,23 @@
   height: 1px;
   margin: 0.25rem 0;
   background: var(--color-border);
+}
+
+/* Tooltip layer. Global, not scoped: reka portals the content through a
+   popper wrapper, so the styled element never carries the component's scope
+   attribute (scoped selectors silently miss it). */
+.ui-tooltip {
+  z-index: 80;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.35rem;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
+}
+
+.ui-tooltip__arrow {
+  fill: var(--color-border);
 }

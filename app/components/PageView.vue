@@ -524,35 +524,41 @@ function onModeKeydown(event: KeyboardEvent) {
           aria-orientation="horizontal"
           @keydown="onModeKeydown"
         >
-          <button
+          <UiTooltip
             v-for="mode in modes"
             :key="mode.id"
-            type="button"
-            role="tab"
-            :hover="$t(mode.key)"
-            :aria-selected="modelValue === mode.id"
-            :tabindex="modelValue === mode.id ? 0 : -1"
-            class="page-view__mode"
-            :class="{ 'page-view__mode--active': modelValue === mode.id }"
-            :disabled="!ready"
-            @click="emit('update:modelValue', mode.id)"
+            :text="$t(mode.key)"
+            :disabled="modelValue === mode.id"
           >
-            {{ $t(mode.key) }}
-          </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="modelValue === mode.id"
+              :aria-label="$t(mode.key)"
+              :tabindex="modelValue === mode.id ? 0 : -1"
+              class="page-view__mode"
+              :class="{ 'page-view__mode--active': modelValue === mode.id }"
+              :disabled="!ready"
+              @click="emit('update:modelValue', mode.id)"
+            >
+              <MsIcon :name="mode.icon" :size="18" />
+              <span v-if="modelValue === mode.id" class="page-view__mode-label">
+                {{ $t(mode.key) }}
+              </span>
+            </button>
+          </UiTooltip>
         </div>
       </div>
 
       <div class="page-view__toolbar-actions">
-        <button
+        <UiIconButton
           v-if="modelValue !== 'read' && !formatOpen"
-          type="button"
-          class="button button--icon page-view__format-toggle"
-          :aria-pressed="false"
-          :aria-label="$t('formatting.title')"
+          icon="text_format"
+          :label="$t('formatting.title')"
+          :pressed="false"
+          class="page-view__format-toggle"
           @click="formatOpen = true"
-        >
-          <MsIcon name="text_format" :size="20" />
-        </button>
+        />
         <AIMenu
           v-if="store && aiEnabled"
           :page-id="pageId"
@@ -567,14 +573,13 @@ function onModeKeydown(event: KeyboardEvent) {
 
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">
       <EditToolbar :disabled="!ready" :view="editorPane?.view" />
-      <button
-        type="button"
+      <UiIconButton
+        icon="keyboard_arrow_up"
+        :label="$t('formatting.collapse')"
+        variant="ghost"
         class="page-view__format-collapse"
-        :aria-label="$t('formatting.collapse')"
         @click="formatOpen = false"
-      >
-        <MsIcon name="keyboard_arrow_up" :size="20" />
-      </button>
+      />
     </div>
 
     <div v-if="pageError" class="page-view__error">{{ pageError }}</div>
@@ -677,13 +682,15 @@ function onModeKeydown(event: KeyboardEvent) {
   max-width: 100%;
 }
 
-.page-view__format-toggle[aria-pressed="true"] {
+/* :deep() targets UiIconButton's inner button; component-wrapped buttons do
+   not receive the consumer's scope attribute. */
+.page-view__toolbar-actions :deep(.page-view__format-toggle[aria-pressed="true"]) {
   color: var(--color-accent);
   background: var(--color-accent-soft);
 }
 
 /* Chevron pinned to the strip's right edge; matches the edit button size. */
-.page-view__format-collapse {
+.page-view__format :deep(.page-view__format-collapse) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -699,7 +706,7 @@ function onModeKeydown(event: KeyboardEvent) {
   cursor: pointer;
 }
 
-.page-view__format-collapse:hover {
+.page-view__format :deep(.page-view__format-collapse:hover) {
   color: var(--color-text);
   background: var(--color-surface-2);
 }
@@ -744,7 +751,8 @@ function onModeKeydown(event: KeyboardEvent) {
   }
 
   .page-view__mode {
-    padding: 0.35rem 0.65rem;
+    height: 2.1rem;
+    padding: 0 0.7rem;
   }
 
   .page-view__toolbar-actions {
@@ -769,7 +777,8 @@ function onModeKeydown(event: KeyboardEvent) {
 
 .page-view__modes {
   display: flex;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.2rem;
   padding: 0.15rem;
   flex: none;
   background: var(--color-surface-2);
@@ -777,9 +786,19 @@ function onModeKeydown(event: KeyboardEvent) {
   border-radius: 0.5rem;
 }
 
+/* Fixed height and unit line-height keep the icon and the active label on the
+   same vertical center. Content stays left-anchored, so the icon does not
+   slide sideways when a mode picks up its label. */
 .page-view__mode {
-  padding: 0.25rem 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  min-width: 2.1rem;
+  height: 1.9rem;
+  padding: 0 0.5rem;
   font-size: 0.85rem;
+  line-height: 1;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
@@ -787,14 +806,27 @@ function onModeKeydown(event: KeyboardEvent) {
   cursor: pointer;
 }
 
+.page-view__mode .ms-icon {
+  flex: none;
+}
+
 .page-view__mode:hover {
   color: var(--color-text);
+}
+
+.page-view__mode:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .page-view__mode--active {
   color: var(--color-text);
   background: var(--color-surface);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.page-view__mode-label {
+  white-space: nowrap;
 }
 
 .page-view__error {

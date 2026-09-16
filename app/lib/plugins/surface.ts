@@ -28,6 +28,13 @@ const SURFACE_CSS = `
   font-family: var(--font-sans, system-ui, sans-serif);
   font-size: 14px;
   line-height: 1.45;
+  accent-color: var(--color-accent, #1e5aa0);
+  caret-color: var(--color-accent, #1e5aa0);
+}
+
+/* Shadow roots do not inherit the document's ::selection rule. */
+::selection {
+  background: color-mix(in srgb, var(--color-accent, #1e5aa0) 30%, transparent);
 }
 
 * {

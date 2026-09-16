@@ -14,6 +14,7 @@ allowBuilds:
   "@nuxtjs/i18n@https://codeload.github.com/onmax/i18n/tar.gz/cf1fb91708422e749ed36d753c012e99ac2cd3ac": true
 
 overrides:
+  "@internationalized/date": "3.12.4"
   "@atproto/syntax": "0.0.0-spaces-alpha-20260913191958"
   "@atproto/lex-data": "0.0.0-spaces-alpha-20260913191958"
   "@atproto/lex-builder": "0.0.0-spaces-alpha-20260913191958"

@@ -373,12 +373,18 @@ onBeforeUnmount(() => {
 
       <div v-for="info in workspaces" :key="info.id" class="explorer__workspace">
         <div class="explorer__row">
-          <button type="button" class="explorer__expand" @click="toggleWorkspace(info)">
-            <MsIcon
-              :name="expandedWorkspaceId === info.id ? 'keyboard_arrow_down' : 'chevron_right'"
-              :size="18"
-            />
-          </button>
+          <UiTooltip
+            :text="
+              expandedWorkspaceId === info.id ? $t('explorer.collapse') : $t('explorer.expand')
+            "
+          >
+            <button type="button" class="explorer__expand" @click="toggleWorkspace(info)">
+              <MsIcon
+                :name="expandedWorkspaceId === info.id ? 'keyboard_arrow_down' : 'chevron_right'"
+                :size="18"
+              />
+            </button>
+          </UiTooltip>
           <button type="button" class="explorer__name" @click="toggleWorkspace(info)">
             <span class="explorer__name-main">{{ info.name }}</span>
             <span class="explorer__name-meta">
@@ -392,21 +398,24 @@ onBeforeUnmount(() => {
             </span>
           </button>
           <span class="explorer__actions">
-            <button
+            <UiIconButton
               v-if="isNative"
-              type="button"
-              class="button button--ghost button--tiny"
+              icon="folder_open"
+              :size="16"
+              :label="$t('explorer.reveal')"
+              variant="ghost"
+              class="button--tiny"
               @click="reveal(`workspaces/${info.id}`)"
-            >
-              <MsIcon name="folder_open" :size="14" />
-            </button>
-            <button
-              type="button"
-              class="button button--ghost button--tiny explorer__danger"
+            />
+            <UiIconButton
+              icon="delete"
+              :size="16"
+              :label="$t('common.delete')"
+              variant="ghost"
+              danger
+              class="button--tiny"
               @click="deleteWorkspaceEntry(info)"
-            >
-              <MsIcon name="delete" :size="14" />
-            </button>
+            />
           </span>
         </div>
 
@@ -418,23 +427,25 @@ onBeforeUnmount(() => {
               {{ formatBytes(pageSizes.get(page.id) ?? 0) }}
               <template v-if="page.updatedAt"> · {{ formatTime(page.updatedAt) }}</template>
             </span>
-            <button
-              type="button"
-              class="button button--ghost button--tiny explorer__danger"
+            <UiIconButton
+              icon="delete"
+              :size="16"
+              :label="$t('common.delete')"
+              variant="ghost"
+              danger
+              class="button--tiny"
               @click="deletePageEntry(info, page)"
-            >
-              <MsIcon name="delete" :size="14" />
-            </button>
+            />
           </li>
         </ul>
       </div>
     </div>
 
     <div v-else-if="view === 'files'" class="explorer__panel">
-      <label class="button button--tiny explorer__upload">
+      <Label class="button button--tiny explorer__upload">
         {{ $t("explorer.upload") }}
         <input type="file" hidden @change="upload" />
-      </label>
+      </Label>
 
       <div
         v-for="node in flatNodes"
@@ -442,14 +453,14 @@ onBeforeUnmount(() => {
         class="explorer__node"
         :style="{ paddingLeft: `${0.4 + node.depth * 1.1}rem` }"
       >
-        <button
+        <UiTooltip
           v-if="node.kind === 'directory'"
-          type="button"
-          class="explorer__expand"
-          @click="toggleFolder(node)"
+          :text="node.expanded ? $t('explorer.collapse') : $t('explorer.expand')"
         >
-          <MsIcon :name="node.expanded ? 'keyboard_arrow_down' : 'chevron_right'" :size="16" />
-        </button>
+          <button type="button" class="explorer__expand" @click="toggleFolder(node)">
+            <MsIcon :name="node.expanded ? 'keyboard_arrow_down' : 'chevron_right'" :size="16" />
+          </button>
+        </UiTooltip>
         <span v-else class="explorer__expand explorer__expand--file">
           <MsIcon name="draft" :size="14" />
         </span>
@@ -465,29 +476,33 @@ onBeforeUnmount(() => {
           <template v-if="node.modifiedAt"> · {{ formatTime(node.modifiedAt) }}</template>
         </span>
         <span class="explorer__actions">
-          <button
+          <UiIconButton
             v-if="node.kind === 'file'"
-            type="button"
-            class="button button--ghost button--tiny"
+            icon="download"
+            :size="16"
+            :label="$t('explorer.download')"
+            variant="ghost"
+            class="button--tiny"
             @click="download(node)"
-          >
-            <MsIcon name="download" :size="14" />
-          </button>
-          <button
+          />
+          <UiIconButton
             v-if="isNative"
-            type="button"
-            class="button button--ghost button--tiny"
+            icon="folder_open"
+            :size="16"
+            :label="$t('explorer.reveal')"
+            variant="ghost"
+            class="button--tiny"
             @click="reveal(node.path)"
-          >
-            <MsIcon name="folder_open" :size="14" />
-          </button>
-          <button
-            type="button"
-            class="button button--ghost button--tiny explorer__danger"
+          />
+          <UiIconButton
+            icon="delete"
+            :size="16"
+            :label="$t('common.delete')"
+            variant="ghost"
+            danger
+            class="button--tiny"
             @click="deleteNode(node)"
-          >
-            <MsIcon name="delete" :size="14" />
-          </button>
+          />
         </span>
       </div>
     </div>
@@ -657,10 +672,6 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 0.1rem;
   flex: none;
-}
-
-.explorer__danger {
-  color: var(--color-danger);
 }
 
 .explorer__pages {

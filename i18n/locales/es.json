@@ -46,7 +46,9 @@
     "calendar": "Calendario",
     "today": "Hoy",
     "hideSidebar": "Ocultar barra lateral",
-    "showSidebar": "Mostrar barra lateral"
+    "showSidebar": "Mostrar barra lateral",
+    "deleteTitle": "Eliminar página",
+    "deleteConfirm": "¿Eliminar «{title}»? Esta acción no se puede deshacer."
   },
   "pageView": {
     "write": "Escribir",
@@ -87,7 +89,7 @@
     "customPaletteHint": "Anula el tema seleccionado en la app y las páginas renderizadas.",
     "themeError": "La paleta personalizada no es JSON válido de token -> color.",
     "template": "Plantilla de nota diaria",
-    "templateHint": "Las nuevas notas diarias renderizan este código Typst. Marcadores: {'{date}'} (fecha), {'{weekday}'} (día), {'{previous}'} (nota anterior más cercana) y {'{next}'} (nota siguiente más cercana).",
+    "templateHint": "Las nuevas notas diarias renderizan este código Typst. Marcadores: {'{title}'} (título con formato), {'{date}'} (fecha ISO), {'{weekday}'} (día de la semana), {'{previous}'} (nota anterior más cercana) y {'{next}'} (nota siguiente más cercana).",
     "prelude": "Preludio de página",
     "preludeHint": "Se añade antes de cada compilación (editor, previsualizaciones, páginas publicadas). Usa funciones Typst nuevas o reglas #set para crear vistas personalizadas.",
     "textFont": "Fuente de texto",
@@ -152,7 +154,8 @@
     "quiz": "Cuestionario de la página",
     "flashcards": "Tarjetas de la categoría",
     "studyGuide": "Guía de estudio de la categoría",
-    "hint": "Las llamadas van directas al proveedor configurado. Las claves viven en local.json."
+    "hint": "Las llamadas van directas al proveedor configurado. Las claves viven en local.json.",
+    "title": "Generadores de IA"
   },
   "switcher": {
     "title": "Abrir un espacio de trabajo",
@@ -195,7 +198,8 @@
     "cell": "{date}, tiene nota",
     "cellEmpty": "{date}, aún sin nota",
     "deleteAria": "Eliminar nota diaria del {date}",
-    "deleteConfirm": "¿Eliminar la nota diaria del {date}? Esto no se puede deshacer."
+    "deleteConfirm": "¿Eliminar la nota diaria del {date}? Esto no se puede deshacer.",
+    "deleteTitle": "Eliminar nota diaria"
   },
   "newPage": {
     "title": "Nueva página",
@@ -289,7 +293,10 @@
     "assetDownload": "Descargar recurso",
     "assetReferences": "Usado por {count} página(s)",
     "assetUnused": "sin usar",
-    "assetDrag": "Arrastra a un editor para insertar"
+    "assetDrag": "Arrastra a un editor para insertar",
+    "expand": "Expandir",
+    "collapse": "Contraer",
+    "download": "Descargar"
   },
   "plugins": {
     "title": "Plugins",
