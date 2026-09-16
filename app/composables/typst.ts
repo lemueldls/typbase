@@ -72,8 +72,6 @@ export function useTypst() {
  */
 export function replaceTypstState(state: TypstState): void {
   statePromise = Promise.resolve(state);
-  // The wasm context lives inside the instance, not in this module.
-  workspaceConfigId = undefined;
 }
 
 interface LocalFontData {
@@ -316,12 +314,38 @@ export function applyWorkspaceStyle(
   typstState.setTheme(configId, settings.themeColors);
 }
 
-let workspaceConfigId: FileId | undefined;
+/**
+ * Hidden config file ids, one per workspace and per wasm instance. The space
+ * context (fonts, theme, locale) hangs off the file's space id, so reusing a
+ * single id across workspaces applied the new settings to the old workspace's
+ * context and left the switched workspace rendering with defaults. Keyed by
+ * state: panic recovery installs a fresh instance whose file ids mean nothing.
+ */
+const workspaceConfigIds = new WeakMap<TypstState, Map<string, FileId>>();
+
+function workspaceConfigId(typstState: TypstState, workspaceId: string): FileId {
+  let perState = workspaceConfigIds.get(typstState);
+  if (!perState) {
+    perState = new Map();
+    workspaceConfigIds.set(typstState, perState);
+  }
+
+  let id = perState.get(workspaceId);
+  if (!id) {
+    // One path per workspace: FileIds intern by path, so a shared path would
+    // resolve both workspaces to the same id and re-point its context.
+    id = typstState.createSourceId(`typbase-config-${workspaceId}`, workspaceId);
+    perState.set(workspaceId, id);
+  }
+
+  return id;
+}
 
 /**
  * (Re)applies the workspace font settings to the wasm instance. Call after
  * settings change or once before opening the first page. Every page in a
- * workspace shares one space context, so one hidden file id is enough.
+ * workspace shares one space context, so one hidden file id per workspace is
+ * enough.
  */
 export async function applyWorkspaceStyleToTypst(
   workspaceId: string,
@@ -346,8 +370,7 @@ export async function applyWorkspaceStyleToTypst(
     ...extraFamilies,
   ]);
 
-  workspaceConfigId ??= typstState.createSourceId("typbase-config", workspaceId);
-  applyWorkspaceStyle(typstState, workspaceConfigId, {
+  applyWorkspaceStyle(typstState, workspaceConfigId(typstState, workspaceId), {
     font: settings.font,
     mathFont: settings.mathFont,
     codeFont: settings.codeFont,

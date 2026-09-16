@@ -39,7 +39,7 @@ const workspaceIcon = computed({
   },
 });
 const { t, locale, setLocale } = useI18n();
-const appLocale = useAppLocale(locale, setLocale, props.store);
+const appLocale = useAppLocale(locale, setLocale, () => props.store);
 
 // Loro maps are not reactive; the workspace bumps dataRevision on any change.
 const settings = computed(() => {
@@ -251,7 +251,7 @@ async function onSignOut() {
 onMounted(() => {
   // The index worker boots on first settings open; harmless if already up.
   void ensureSearch(props.store);
-  useTheme(props.store).refresh();
+  applyTheme(props.store.getSettings());
 });
 
 function onThemeChange(event: Event) {

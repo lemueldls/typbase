@@ -41,21 +41,41 @@ export function applyTheme(
   return resolved;
 }
 
-export function useTheme(store: WorkspaceStore) {
+export function useTheme(getStore: () => WorkspaceStore | undefined) {
+  let detach: (() => void) | undefined;
+
   function refresh(): void {
-    applyTheme(store.getSettings());
+    const store = getStore();
+    if (store) applyTheme(store.getSettings());
   }
 
-  media?.addEventListener?.("change", () => {
-    const mode = store.getSettings().theme ?? "auto";
-    if (mode === "auto") refresh();
-  });
+  // Follow the active workspace: a switch detaches the old doc's listener and
+  // repaints from the new one's settings. The structure echo covers the
+  // settings select and changes synced from other devices. Never gated: the
+  // first change must repaint the editor even if the initial refresh never ran.
+  watch(
+    getStore,
+    (store) => {
+      detach?.();
+      detach = undefined;
+      if (!store) return;
 
-  // The settings select updates the store; re-apply on the echo too (covers
-  // changes from other devices and renames). Never gated: the first change
-  // must repaint the editor even if the initial refresh never ran.
-  store.onStructureChange(() => {
-    refresh();
+      detach = store.onStructureChange(refresh);
+      refresh();
+    },
+    { immediate: true },
+  );
+
+  function onMediaChange(): void {
+    const store = getStore();
+    if (store && (store.getSettings().theme ?? "auto") === "auto") refresh();
+  }
+
+  media?.addEventListener?.("change", onMediaChange);
+
+  onScopeDispose(() => {
+    detach?.();
+    media?.removeEventListener?.("change", onMediaChange);
   });
 
   return { refresh };

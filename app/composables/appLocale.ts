@@ -19,21 +19,37 @@ export function effectiveLocale(settings: { locale?: string }): AppLocaleCode {
 export function useAppLocale(
   locale: WritableComputedRef<AppLocaleCode>,
   setLocale: (locale: AppLocaleCode) => Promise<void>,
-  store?: WorkspaceStore | null,
+  getStore?: () => WorkspaceStore | null | undefined,
 ) {
+  let detach: (() => void) | undefined;
+
   function apply(settings: { locale?: string } | undefined): void {
     const code = effectiveLocale(settings ?? {});
     if (locale.value !== code) void setLocale(code);
   }
 
-  if (store) {
-    apply(store.getSettings());
-    store.onStructureChange(() => apply(store.getSettings()));
+  if (getStore) {
+    // Follow the active workspace; a switch detaches the old settings echo.
+    watch(
+      getStore,
+      (store) => {
+        detach?.();
+        detach = undefined;
+        if (!store) return;
+
+        detach = store.onStructureChange(() => apply(store.getSettings()));
+        apply(store.getSettings());
+      },
+      { immediate: true },
+    );
   } else {
     apply({});
   }
 
+  onScopeDispose(() => detach?.());
+
   function set(value: string): void {
+    const store = getStore?.();
     if (store) {
       store.updateSettings({ locale: value });
     } else if (value === "auto") {

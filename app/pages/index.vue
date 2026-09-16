@@ -109,6 +109,12 @@ watch(currentPageId, async (id) => {
 
 const { locale, setLocale } = useI18n();
 
+// Theme tokens and UI language follow the active workspace, not just the one
+// loaded at boot: both composables watch the store, so creating or switching
+// a workspace applies its settings without a reload.
+useTheme(() => workspace.value);
+useAppLocale(locale, setLocale, () => workspace.value);
+
 const pageQuery = useRouteQuery<string>("page", "");
 const modeQuery = useRouteQuery<string>("mode", "write");
 const viewQuery = useRouteQuery<string>("view", "");
@@ -130,11 +136,6 @@ onMounted(async () => {
 
   const store = workspace.value;
   if (!store) return; // no workspaces; the chooser handles it
-
-  // Tokens + Typst renderer colors follow the workspace setting.
-  useTheme(store).refresh();
-  // UI language follows the workspace setting; "auto" keeps the browser one.
-  useAppLocale(locale, setLocale, store);
 
   const linkedId = queryString(pageQuery.value);
   const linked = linkedId ? store.getPage(linkedId) : undefined;

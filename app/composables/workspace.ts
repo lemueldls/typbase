@@ -498,7 +498,9 @@ function useWorkspaceState() {
     if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
 
     updateBootStep("workspace", { status: "active" });
-    const store = await WorkspaceStore.open(backendRef.value!, id);
+    // A fresh doc seeds from the registry name; an existing doc's settings
+    // name wins and is copied back into the registry below.
+    const store = await WorkspaceStore.open(backendRef.value!, id, { name: info.name });
     if (token !== openingSeq) return store;
 
     // Keep the registry name in sync with the workspace doc.
@@ -661,10 +663,18 @@ function useWorkspaceState() {
 
     await reg.save({ ...entry, name: trimmed });
     workspaces.value = await reg.list();
-    if (id === activeWorkspaceId.value) {
+    if (id === activeWorkspaceId.value && workspace.value) {
       // updateSettings is synchronous (commits the Loro doc itself).
-      workspace.value?.updateSettings({ name: trimmed });
+      workspace.value.updateSettings({ name: trimmed });
+      return;
     }
+
+    // Renaming a workspace that is not open still has to reach its doc: the
+    // doc's settings name is what wins when it opens (and what syncs), so a
+    // registry-only rename would be reverted on the next open.
+    const store = await WorkspaceStore.open(backendRef.value!, id, { name: trimmed });
+    store.updateSettings({ name: trimmed });
+    await store.flush();
   }
 
   async function setWorkspaceIcon(id: string, icon: string): Promise<void> {

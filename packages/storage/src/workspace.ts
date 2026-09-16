@@ -21,7 +21,7 @@ import type { StorageBackend } from "./backend";
 import { blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
 import { type LoroModule, loadLoro } from "./loro";
 
-const SNAPSHOT_DEBOUNCE_MS = 1000;
+const SNAPSHOT_DEBOUNCE_MS = 500;
 
 /** Nested settings are stored as JSON strings in the `settings` map. */
 function encodeSetting(value: unknown): string {
@@ -116,6 +116,8 @@ export function pluginInstanceOf(docId: string): string | null {
 export interface WorkspaceStoreOptions {
   /** Snapshot writes are debounced by this much; a crash loses at most this window. */
   snapshotDebounceMs?: number;
+  /** Settings name for a workspace doc created from scratch; ignored otherwise. */
+  name?: string;
 }
 
 export interface CreatePageInput {
@@ -183,7 +185,7 @@ export class WorkspaceStore {
       store.emitStructure();
     });
 
-    if (!bytes) await store.seed();
+    if (!bytes) await store.seed(options.name);
 
     return store;
   }
@@ -1206,7 +1208,7 @@ export class WorkspaceStore {
     return references;
   }
 
-  private async seed(): Promise<void> {
+  private async seed(name = "My workspace"): Promise<void> {
     const welcome = [
       "= Welcome to typbase",
       "",
@@ -1236,7 +1238,7 @@ export class WorkspaceStore {
     });
 
     this.updateSettings({
-      name: "My workspace",
+      name,
       homePageId: home.id,
       dailyNoteTemplate: DEFAULT_SETTINGS.dailyNoteTemplate,
       font: DEFAULT_SETTINGS.font,
@@ -1267,7 +1269,10 @@ export class WorkspaceStore {
   private scheduleSave(doc: LoroDoc): void {
     this.dirtyDocs.add(doc);
 
-    if (this.snapshotTimer) clearTimeout(this.snapshotTimer);
+    // A max-wait window, not a resettable debounce: further changes while a
+    // flush is pending do not push the deadline out, so continuous typing
+    // still snapshots once per window instead of never.
+    if (this.snapshotTimer) return;
 
     this.snapshotTimer = setTimeout(() => {
       this.snapshotTimer = undefined;

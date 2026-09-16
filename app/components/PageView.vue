@@ -123,47 +123,92 @@ let pageDisposed = false;
 
 const aiEnabled = computed(() => store.getAiConfig().enabled);
 
-const pushText = useThrottleFn((value: string) => {
-  void store?.setPageText(props.pageId, value);
-}, 800);
+const TEXT_PUSH_MS = 300;
+let pendingText: { pageId: string; text: string } | undefined;
+let textPushTimer: ReturnType<typeof setTimeout> | undefined;
+/** Invalidates a setupPage run when the page changes mid-flight. */
+let setupToken = 0;
+
+function queueTextPush(pageId: string, value: string): void {
+  pendingText = { pageId, text: value };
+  if (textPushTimer) return;
+
+  textPushTimer = setTimeout(() => void pushPendingText(), TEXT_PUSH_MS);
+}
+
+/** Writes pending editor text and resolves once the store has it. */
+async function pushPendingText(): Promise<void> {
+  if (textPushTimer) {
+    clearTimeout(textPushTimer);
+    textPushTimer = undefined;
+  }
+
+  const pending = pendingText;
+  pendingText = undefined;
+  if (!pending || !store) return;
+
+  try {
+    await store.setPageText(pending.pageId, pending.text);
+  } catch (reason) {
+    console.warn("[page] text save failed:", reason);
+  }
+}
+
+async function flushText(): Promise<void> {
+  await pushPendingText();
+  await store?.flush().catch((reason) => {
+    console.warn("[storage] flush failed:", reason);
+  });
+}
 
 watch(
   () => props.pageId,
-  () => void setupPage(),
+  async () => {
+    await flushText();
+    await setupPage();
+  },
   { immediate: true },
 );
 
 async function setupPage() {
+  const token = ++setupToken;
+  const pageId = props.pageId;
   pageError.value = undefined;
   ready.value = false;
 
   const opened = await ensure();
+  if (pageDisposed || token !== setupToken) return;
+
   if (!opened) {
     pageError.value = t("pageView.noWorkspace");
     return;
   }
   store = opened;
 
-  const page = store.getPage(props.pageId);
+  const page = store.getPage(pageId);
   if (!page) {
-    pageError.value = t("pageView.noPage", { id: props.pageId });
+    pageError.value = t("pageView.noPage", { id: pageId });
     return;
   }
 
   meta.value = page;
   personaCache.value = (await atproto.value?.ensurePersona()) ?? personaCache.value;
+  if (pageDisposed || token !== setupToken) return;
 
-  text.value = await store.loadPageText(props.pageId);
+  text.value = await store.loadPageText(pageId);
+  if (pageDisposed || token !== setupToken) return;
   // The generated prelude (theme/fonts) is implicit; this is the user's own
   // prelude, appended on every compile.
   prelude.value = store.getSettings().pagePrelude ?? "";
 
   if (!typstState.value) {
     typstState.value = await useTypst();
+    if (pageDisposed || token !== setupToken) return;
     requestService = createTypstRequestService(typstState.value, store);
     // The space context survives later createSourceId calls (see state.rs);
     // this one call is what gives pages their fonts/theme.
     await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
+    if (pageDisposed || token !== setupToken) return;
 
     // Query JSON goes stale when pages/categories/settings change. Re-apply
     // fonts first (settings may have changed), purge the inserted files, then
@@ -185,14 +230,14 @@ async function setupPage() {
     });
   }
 
-  requestService!.setCurrentPage(props.pageId);
+  requestService!.setCurrentPage(pageId);
 
   fileId.value = typstState.value.createSourceId(page.path, workspaceId.value);
   typstState.value.insertSource(fileId.value, text.value);
 
   unsubscribeSave?.();
   unsubscribeSave = watch(text, (value) => {
-    if (value !== store.getPageText(props.pageId)) pushText(value);
+    if (value !== store.getPageText(pageId)) queueTextPush(pageId, value);
   });
 
   unsubscribeFontScan?.();
@@ -200,19 +245,19 @@ async function setupPage() {
 
   unsubscribePage?.();
   void store
-    .onPageDocChange(props.pageId, () => {
+    .onPageDocChange(pageId, () => {
       // Our own saves echo back through this listener. Overwriting text.value
       // with the store's older content mid-typing reverted edits and could
       // clobber a later save. Only apply the echo when the editor is idle.
       if (editorPane.value?.view?.hasFocus) return;
 
-      const current = store.getPageText(props.pageId);
+      const current = store.getPageText(pageId);
       if (current !== text.value) text.value = current;
     })
     .then((stop) => {
-      // The subscription promise can resolve after unmount (page switched);
-      // release it instead of leaking a dead listener.
-      if (pageDisposed) stop();
+      // The subscription promise can resolve after the page changed; release
+      // it instead of leaking a dead listener.
+      if (pageDisposed || token !== setupToken) stop();
       else unsubscribePage = stop;
     });
 
@@ -239,13 +284,21 @@ const scanSourceFonts = useDebounceFn(() => void ensureSourceFonts(), 1200);
 
 onBeforeUnmount(() => {
   pageDisposed = true;
+  setupToken += 1;
   cleanupScrollSync();
   unsubscribeSave?.();
   unsubscribePage?.();
   unsubscribeStructure?.();
   unsubscribeFontScan?.();
   scanSourceFonts.cancel();
-  void store?.flush();
+  void flushText();
+});
+
+// Tab close or app switch: push the latest keystrokes and the snapshot now
+// instead of waiting out the throttle and the store debounce.
+useEventListener("pagehide", () => void flushText());
+useEventListener(document, "visibilitychange", () => {
+  if (document.hidden) void flushText();
 });
 
 function cleanupScrollSync() {
