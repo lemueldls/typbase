@@ -44,7 +44,6 @@
     ".vercel/",
     ".netlify/",
     "app/assets/symbols.json",
-    "pnpm-lock.yaml",
-    "packages/spaces/src/lexicons/**"
+    "pnpm-lock.yaml"
   ]
 }

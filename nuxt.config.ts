@@ -12,10 +12,6 @@ const locales: LocaleObject[] = [
   { code: "zh", dir: "ltr", language: "zh-CN", file: "zh.json" },
 ];
 
-// const isDev = process.env.NODE_ENV === "development";
-// const platform: string = import.meta.env.TAURI_ENV_PLATFORM;
-// const internalHost = import.meta.env.TAURI_DEV_HOST || "localhost";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-31",
@@ -47,22 +43,14 @@ export default defineNuxtConfig({
     },
     optimizeDeps: {
       exclude: ["loro-crdt", "sqlite-wasm-vec"],
-      // Pre-bundling the wasm glue keeps its `new URL('wasm_bg.wasm')` out of
-      // the /@fs module graph, where Vite's wasm plugin would try to treat the
-      // binary as an imported module. See the note in composables/typst.ts.
       include: ["@typbase/wasm"],
     },
     server: {
       // middlewareMode: false,
-      // headers: {
-      //   "Cross-Origin-Opener-Policy": "same-origin",
-      //   "Cross-Origin-Embedder-Policy": "credentialless",
-      // },
     },
   },
   runtimeConfig: {
     public: {
-      // platform,
       appUrl: "http://localhost:3000",
       pdsUrl: "",
     },
@@ -74,14 +62,6 @@ export default defineNuxtConfig({
     prerender: {
       routes: ["/"],
       crawlLinks: true,
-    },
-    routeRules: {
-      "/**": {
-        headers: {
-          "Cross-Origin-Opener-Policy": "same-origin",
-          "Cross-Origin-Embedder-Policy": "credentialless",
-        },
-      },
     },
   },
   i18n: {

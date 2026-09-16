@@ -26,15 +26,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#505050"
      showgrid="true"
-     inkscape:zoom="0.62305077"
-     inkscape:cx="-92.287824"
-     inkscape:cy="-87.472807"
+     inkscape:zoom="0.81375679"
+     inkscape:cx="150.53638"
+     inkscape:cy="139.47656"
      inkscape:window-width="1297"
      inkscape:window-height="894"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="0"
-     inkscape:current-layer="typbase-icon">
+     inkscape:current-layer="layer-rim">
     <inkscape:grid
        id="grid22"
        units="px"
@@ -228,12 +228,13 @@
       <stop
          offset="0"
          stop-color="#e9bd77"
-         id="stop9" />
+         id="stop9"
+         style="stop-color:#719f96;stop-opacity:1;" />
       <stop
          offset="0.5"
          stop-color="#d9a24e"
          id="stop10"
-         style="stop-color:#e49b5d;stop-opacity:1;" />
+         style="stop-color:#74a48b;stop-opacity:1;" />
     </linearGradient>
     <linearGradient
        id="grad-plinth"
@@ -247,12 +248,12 @@
          offset="0"
          stop-color="#e9bd77"
          id="stop12"
-         style="stop-color:#ebc06d;stop-opacity:1;" />
+         style="stop-color:#719f96;stop-opacity:1;" />
       <stop
          offset="0.55000001"
          stop-color="#d9a24e"
          id="stop13"
-         style="stop-color:#e49b5d;stop-opacity:1;" />
+         style="stop-color:#74a48b;stop-opacity:1;" />
     </linearGradient>
     <radialGradient
        id="grad-node"
@@ -329,7 +330,49 @@
        y1="410"
        x2="380"
        y2="438" />
+    <linearGradient
+       id="grad-brass-5"
+       gradientUnits="userSpaceOnUse"
+       x1="74"
+       y1="284"
+       x2="438"
+       y2="284">
+      <stop
+         offset="0"
+         stop-color="#e9bd77"
+         id="stop9-6" />
+      <stop
+         offset="0.5"
+         stop-color="#d9a24e"
+         id="stop10-2"
+         style="stop-color:#e49b5d;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="grad-plinth-1"
+       gradientUnits="userSpaceOnUse"
+       x1="132"
+       y1="410"
+       x2="380"
+       y2="438"
+       gradientTransform="matrix(1.032258,0,0,0.95303596,-8.2580645,25.255252)">
+      <stop
+         offset="0"
+         stop-color="#e9bd77"
+         id="stop12-2"
+         style="stop-color:#ebc06d;stop-opacity:1;" />
+      <stop
+         offset="0.55000001"
+         stop-color="#d9a24e"
+         id="stop13-7"
+         style="stop-color:#e49b5d;stop-opacity:1;" />
+    </linearGradient>
   </defs>
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="1 · Background"
+     id="layer-background"
+     style="display:inline"
+     transform="translate(-96,-96)" />
   <g
      inkscape:groupmode="layer"
      inkscape:label="2 · Orbit"
@@ -375,7 +418,7 @@
        height="32"
        rx="8"
        fill="url(#grad-cream)"
-       style="fill:#ece1d7;fill-opacity:1;stroke-width:0.973736"
+       style="fill:#455355;fill-opacity:1;stroke-width:0.973736"
        ry="8" />
     <rect
        id="rule-bottom"
@@ -386,7 +429,7 @@
        height="32"
        rx="8"
        fill="url(#grad-cream)"
-       style="fill:#ece1d7;fill-opacity:1;stroke-width:0.973736"
+       style="fill:#455355;fill-opacity:1;stroke-width:0.973736"
        ry="8" />
     <rect
        id="rect35"
@@ -397,11 +440,11 @@
        height="32"
        rx="8"
        fill="url(#grad-cream)"
-       style="fill:#ece1d7;fill-opacity:1;stroke-width:0.688535"
+       style="fill:#455355;fill-opacity:1;stroke-width:0.688535"
        ry="8" />
     <path
        id="rect29"
-       style="fill:#ece1d7;fill-opacity:1;stroke:none;stroke-width:40;stroke-opacity:0.0705882"
+       style="fill:#455355;fill-opacity:1;stroke:none;stroke-width:40;stroke-opacity:0.0705882"
        d="m 224,96 v 191.91211 c 12.60667,-0.2006 26.28918,-1.47139 40.29688,-4.00977 8.26395,-1.49754 16.2073,-3.36145 23.70312,-5.49414 V 96 Z m 64,223.7832 c -5.40065,1.29182 -10.93165,2.45406 -16.57422,3.47657 -16.31139,2.95584 -32.3001,4.51482 -47.42578,4.72656 V 368 h 64 z" />
   </g>
   <g
@@ -409,22 +452,7 @@
      inkscape:label="6 · Rim"
      id="layer-rim"
      style="display:inline"
-     transform="translate(-96,-96)">
-    <rect
-       id="rim"
-       inkscape:label="rim highlight"
-       x="3.5"
-       y="3.5"
-       width="505"
-       height="505"
-       rx="114.5"
-       fill="none"
-       stroke="#f6eedb"
-       stroke-opacity=".07"
-       stroke-width="2"
-       style="stroke:#c1a78e;stroke-opacity:0.0705882"
-       ry="114.5" />
-  </g>
+     transform="translate(-96,-96)" />
   <metadata
      id="metadata22">
     <rdf:RDF>

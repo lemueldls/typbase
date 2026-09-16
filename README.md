@@ -1,4 +1,4 @@
-# typbase
+# Typbase
 
 Local-first knowledge base.
 

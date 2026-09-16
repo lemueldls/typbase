@@ -1,7 +1,0 @@
-# Cloudflare Pages: cross-origin isolation for the SQLite OPFS VFS.
-# credentialless keeps cross-origin loads (PDS blobs, model downloads)
-# working without CORP headers on those hosts.
-/*
-  Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: credentialless
-  X-Frame-Options: SAMEORIGIN

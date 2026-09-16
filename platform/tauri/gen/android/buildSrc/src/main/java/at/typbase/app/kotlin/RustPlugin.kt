@@ -23,7 +23,8 @@ open class RustPlugin : Plugin<Project> {
         val defaultArchList = listOf("arm64", "arm", "x86", "x86_64");
         val archList = (findProperty("archList") as? String)?.split(',') ?: defaultArchList
 
-        val targetsList = (findProperty("targetList") as? String)?.split(',') ?: listOf("aarch64", "armv7", "i686", "x86_64")
+        val targetsList =
+            (findProperty("targetList") as? String)?.split(',') ?: listOf("aarch64", "armv7", "i686", "x86_64")
 
         extensions.configure<ApplicationExtension> {
             @Suppress("UnstableApiUsage")
@@ -63,13 +64,14 @@ open class RustPlugin : Plugin<Project> {
                     val targetName = targetPair.value
                     val targetArch = archList[targetPair.index]
                     val targetArchCapitalized = targetArch.replaceFirstChar { it.uppercase() }
-                    val targetBuildTask = project.tasks.maybeCreate(
+                    val targetBuildTask = project.tasks.register(
                         "rustBuild$targetArchCapitalized$profileCapitalized",
                         BuildTask::class.java
-                    ).apply {
+                    ) {
                         group = TASK_GROUP
                         description = "Build dynamic library in $profile mode for $targetArch"
                         rootDirRel = config.rootDirRel
+                        projectDir = project.projectDir.path
                         target = targetName
                         release = profile == "release"
                     }
