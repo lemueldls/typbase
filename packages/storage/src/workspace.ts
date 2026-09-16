@@ -591,7 +591,7 @@ export class WorkspaceStore {
     const value: Category[] = list.toJSON();
 
     for (let i = value.length - 1; i >= 0; i--) {
-      if (value[i].id === id) list.delete(i, 1);
+      if (value[i]!.id === id) list.delete(i, 1);
     }
 
     for (const page of this.listPages()) {

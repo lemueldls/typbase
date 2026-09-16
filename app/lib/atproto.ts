@@ -5,16 +5,13 @@ import {
   RelayClient,
   SessionManager,
   TypbaseSync,
-  createIdResolver,
-  createWorkspaceSpace,
-  listMembers,
-  mintSpaceCredential,
-  parseWorkspaceSpaceUri,
-  putSpaceRecord,
-  resolvePds,
-  type SpaceCredential,
+  createAirspaceTransport,
+  createWorkspaceClient,
+  workspaceSpaceUri,
+  type WorkspaceClient,
 } from "@typbase/spaces";
 
+import { createNativeAuth } from "~/lib/nativeAuth";
 import { createSyncHost } from "~/lib/syncHost";
 import { withTimeout } from "~/lib/timeout";
 
@@ -46,16 +43,13 @@ export interface AtprotoStatus {
   error: string | null;
 }
 
-const CREDENTIAL_TTL_MS = 90 * 60 * 1000;
-
 export class AtprotoService {
   private sessions!: SessionManager;
   private sessionRef: OAuthSession | null = null;
+  private airspace: WorkspaceClient | null = null;
   private sync: TypbaseSync | null = null;
   private relay: RelayClient | null = null;
-  private credential: SpaceCredential | null = null;
-  private credentialAt = 0;
-  private resolver = createIdResolver();
+  private commitUnsubscribe: (() => void) | undefined;
   private persona: Persona = { name: "Guest", color: "#7c7ce0" };
   private presence = new Map<string, PresenceData>();
   private listeners = new Set<() => void>();
@@ -63,7 +57,6 @@ export class AtprotoService {
   private statusDid: string | null = null;
   private statusError: string | null = null;
   private members: Array<{ did: string; handle: string | null }> = [];
-  private attachedSpaceUri: string | null = null;
   private disposed = false;
 
   private constructor(
@@ -85,14 +78,20 @@ export class AtprotoService {
 
   private async restore(): Promise<void> {
     const origin = this.opts.appUrl.replace(/\/$/, "");
-    this.sessions = new SessionManager(`${origin}/client-metadata`, (session) => {
-      void this.local.set("identity", session);
-      if (!session) {
-        this.statusDid = null;
-        this.detach();
-      }
-      this.emit();
-    });
+    // Native shells sign in through the system browser and a deep link; the
+    // web (and Tauri dev, which serves over http loopback) uses the page flow.
+    const nativeAuth = createNativeAuth();
+    this.sessions = new SessionManager(
+      origin,
+      (session) => {
+        if (!session) {
+          this.statusDid = null;
+          this.detach();
+        }
+        this.emit();
+      },
+      nativeAuth ? { clientId: `${origin}/client-metadata/native`, nativeAuth } : {},
+    );
 
     // The OAuth client init touches IndexedDB and fetches the client
     // metadata; in an odd browser context it can stall. Bounded here so a
@@ -111,35 +110,10 @@ export class AtprotoService {
     this.sessionRef = session;
     this.statusDid = session.did;
 
-    const mirror = await this.local.get<{
-      did: string;
-      handle: string | null;
-      pdsUrl: string;
-    }>("identity");
-    if (mirror?.did === session.did) {
-      await this.local.set("identity", { ...mirror, handle: mirror.handle });
-    } else {
-      await this.local.set("identity", {
-        did: session.did,
-        handle: null,
-        pdsUrl: "",
-      });
-    }
-
-    const spaceUri = await this.local.get<string | null>("spaceUri");
-    if (spaceUri) {
-      this.attachedSpaceUri = spaceUri;
-      await this.startSync(spaceUri, session.did);
-    } else {
-      // First sign-in for this workspace: create the space and adopt it.
-      try {
-        const uri = await createWorkspaceSpace(session, {
-          skey: this.store.workspaceId,
-        });
-        await this.attach(uri, session.did);
-      } catch (error) {
-        this.setError(`Could not create the workspace space: ${String(error)}`);
-      }
+    try {
+      await this.attach();
+    } catch (error) {
+      this.setError(`Space setup failed: ${String(error)}`);
     }
   }
 
@@ -149,7 +123,10 @@ export class AtprotoService {
     return {
       signedIn: this.statusDid !== null,
       did: this.statusDid,
-      spaceUri: syncStatus?.spaceUri ?? null,
+      spaceUri:
+        this.sync && this.statusDid
+          ? workspaceSpaceUri(this.statusDid, this.store.workspaceId)
+          : null,
       pendingUpdates: syncStatus?.pending ?? 0,
       lastExportAt: syncStatus?.lastExportAt ?? 0,
       lastImportAt: syncStatus?.lastImportAt ?? 0,
@@ -160,23 +137,22 @@ export class AtprotoService {
   }
 
   async signIn(identifier: string): Promise<void> {
-    const session = await this.sessions.login(identifier);
+    let session: OAuthSession;
+    try {
+      session = await this.sessions.login(identifier);
+    } catch (error) {
+      // A loopback guard or a rejected authorization. The caller surfaces the
+      // message; the status line shows it for anyone else reading the popover.
+      this.setError(`Sign-in failed: ${String(error)}`);
+      throw error;
+    }
+
     this.sessionRef = session;
     this.statusDid = session.did;
-    await this.local.set("identity", {
-      did: session.did,
-      handle: null,
-      pdsUrl: "",
-    });
 
     try {
-      const uri = await createWorkspaceSpace(session, {
-        skey: this.store.workspaceId,
-      });
-      await this.attach(uri, session.did);
+      await this.attach();
     } catch (error) {
-      // The space may already exist (previous attach never completed). Try to
-      // read it before giving up.
       this.setError(`Space setup failed: ${String(error)}`);
     }
     this.emit();
@@ -186,82 +162,83 @@ export class AtprotoService {
     await this.sessions.signOut();
     this.sessionRef = null;
     this.statusDid = null;
-    await this.local.set("identity", null);
-    await this.local.set("spaceUri", null);
     this.detach();
     this.emit();
   }
 
-  /** Adopt a space uri (created now or persisted earlier) and start syncing. */
-  private async attach(spaceUri: string, authorityDid: string): Promise<void> {
-    await this.local.set("spaceUri", spaceUri);
-    this.attachedSpaceUri = spaceUri;
-    await this.bootstrapSnapshots(spaceUri, authorityDid);
-    await this.startSync(spaceUri, authorityDid);
+  /**
+   * Ensures the workspace space exists with member-list read/write and open app
+   * access, then starts syncing. Called on every boot with a session; `ensure`
+   * is a no-op once the space is configured.
+   */
+  private async attach(): Promise<void> {
+    const session = this.sessionRef;
+    if (!session) throw new Error("Not signed in");
+
+    const airspace = createWorkspaceClient({
+      session,
+      did: session.did,
+      workspaceId: this.store.workspaceId,
+    });
+    this.airspace = airspace;
+
+    try {
+      await airspace.workspace.manage.ensure({
+        read: "member-list",
+        write: "member-list",
+        appAccess: "open",
+      });
+    } catch (error) {
+      // The session is fine; this PDS just cannot host the workspace space
+      // (bsky.social does not run the spaces alpha). Publishing still works.
+      if (isSpacesUnsupported(error)) {
+        this.setError(
+          "This PDS does not support permissioned spaces yet, so sync is off. Sign in on a spaces-enabled PDS to sync.",
+        );
+
+        return;
+      }
+      throw error;
+    }
+
+    await this.startSync(airspace);
     void this.refreshMembers();
   }
 
-  /**
-   * Guest-to-space migration: push a snapshot of every doc so a fresh device
-   * (or a later member) has a starting point. The engine then exports only
-   * the delta from here on.
-   */
-  private async bootstrapSnapshots(spaceUri: string, authorityDid: string): Promise<void> {
-    if (!this.sessionRef) return;
-
-    try {
-      const credential = await this.getCredential();
-      const pdsUrl = await this.resolveMemberPds(authorityDid);
-      const client = credential.client(pdsUrl);
-
-      for (const docId of await this.store.listDocIds()) {
-        const snapshot = await this.store.exportDocSnapshot(docId);
-        await putSpaceRecord(client, {
-          space: spaceUri,
-          repoDid: authorityDid,
-          collection: "app.typbase.snapshot",
-          rkey: `snap-${Date.now().toString(36)}-${docId.slice(0, 6)}`,
-          record: {
-            docId,
-            snapshot: b64encode(snapshot.bytes),
-            version: snapshot.version,
-            createdAt: new Date().toISOString(),
-          },
-        });
-        await this.sync?.markDocExported(docId, snapshot.version);
-      }
-    } catch (error) {
-      this.setError(`Snapshot bootstrap failed: ${String(error)}`);
-      // Keep going: incremental updates still work, remote backfill just
-      // starts from the first update.
-    }
-  }
-
-  private async startSync(spaceUri: string, authorityDid: string): Promise<void> {
-    const session = await this.requireSession().catch(() => null);
-    const memberDid = session?.did ?? authorityDid;
-    const syncHost = createSyncHost(
-      this.store,
-      (level, message) => console[level](`[sync] ${message}`),
-      (did) => this.resolveMemberPds(did),
+  private async startSync(airspace: WorkspaceClient): Promise<void> {
+    const memberDid = this.sessionRef?.did ?? this.statusDid ?? "";
+    const syncHost = createSyncHost(this.store, (level, message) =>
+      console[level](`[sync] ${message}`),
     );
+    const syncStore = {
+      get: (key: string) => this.local.get(`sync:${key}`),
+      set: (key: string, value: unknown) => this.local.set(`sync:${key}`, value),
+    };
 
-    this.sync = new TypbaseSync(
-      syncHost,
-      {
-        get: (key) => this.local.get(`sync:${key}`),
-        set: (key, value) => this.local.set(`sync:${key}`, value),
-      },
-      () => this.getCredential(),
-      memberDid,
-      { compactionThreshold: 100, pollIntervalMs: 5000 },
-    );
+    this.sync = new TypbaseSync(syncHost, syncStore, createAirspaceTransport(airspace.workspace), {
+      compactionThreshold: 100,
+      pollIntervalMs: 5000,
+    });
 
-    this.store.onLocalCommit((docId) => {
+    this.commitUnsubscribe?.();
+    this.commitUnsubscribe = this.store.onLocalCommit((docId) => {
       void this.handleLocalCommit(docId);
     });
 
-    await this.sync.start(spaceUri, authorityDid);
+    await this.sync.start();
+
+    // Once per account and workspace: push a snapshot of every doc so a fresh
+    // device has a starting point, then send only deltas.
+    const bootstrapFlag = `synced:${memberDid}:${this.store.workspaceId}`;
+    if (!(await this.local.get<boolean>(bootstrapFlag))) {
+      try {
+        await this.sync.bootstrapSnapshots();
+        await this.local.set(bootstrapFlag, true);
+      } catch (error) {
+        this.setError(`Snapshot bootstrap failed: ${String(error)}`);
+      }
+    }
+
     this.startRelay();
     this.emit();
   }
@@ -307,63 +284,19 @@ export class AtprotoService {
     this.relay.connect();
   }
 
-  /** OAuth session for own-repo calls (publishing). Throws when signed out. */
-  async requireSession(): Promise<OAuthSession> {
-    const session = this.sessionRef ?? (await this.sessions.restore());
-    if (!session) throw new Error("Not signed in");
-    this.sessionRef = session;
+  /** The workspace's airspace client. Throws when signed out. */
+  requireWorkspace(): WorkspaceClient {
+    if (!this.airspace) throw new Error("Not signed in");
 
-    return session;
-  }
-
-  /** The signed-in user's own PDS. */
-  async ownPds(): Promise<string> {
-    const session = await this.requireSession();
-
-    return this.resolveMemberPds(session.did);
-  }
-
-  /** Space credential with lazy refresh. Cached per TTL, DPoP-bound. */
-  private async getCredential(): Promise<SpaceCredential> {
-    const now = Date.now();
-    if (this.credential && now - this.credentialAt < CREDENTIAL_TTL_MS) {
-      return this.credential;
-    }
-    if (!this.sessionRef) throw new Error("Not signed in");
-    const spaceUri = this.attachedSpaceUri ?? (await this.local.get<string | null>("spaceUri"));
-    if (!spaceUri) throw new Error("No space attached");
-    const authority = parseWorkspaceSpaceUri(spaceUri)?.authorityDid;
-    if (!authority) throw new Error("Invalid space uri");
-    const authorityPds = await this.resolveMemberPds(authority);
-    this.credential = await mintSpaceCredential(this.sessionRef, spaceUri, authorityPds);
-    this.credentialAt = now;
-
-    return this.credential;
-  }
-
-  private async resolveMemberPds(did: string): Promise<string> {
-    const cached = await this.local.get<string>(`pds:${did}`);
-    if (cached) return cached;
-
-    const pdsUrl = await resolvePds(did, this.resolver, {
-      getPdsUrl: () => undefined,
-      setPdsUrl: () => {},
-    });
-    await this.local.set(`pds:${did}`, pdsUrl);
-
-    return pdsUrl;
+    return this.airspace;
   }
 
   async refreshMembers(): Promise<void> {
-    const spaceUri = this.status.spaceUri;
-    if (!spaceUri) return;
+    if (!this.airspace) return;
 
     try {
-      const credential = await this.getCredential();
-      const authority = parseWorkspaceSpaceUri(spaceUri)?.authorityDid ?? "";
-      const pdsUrl = await this.resolveMemberPds(authority);
-      const members = await listMembers(credential.client(pdsUrl), spaceUri);
-      this.members = members;
+      const members = await this.airspace.workspace.manage.members.list();
+      this.members = members.map((member) => ({ did: member.did, handle: null }));
       this.emit();
     } catch (error) {
       this.members = [];
@@ -427,10 +360,13 @@ export class AtprotoService {
   }
 
   private detach(): void {
+    this.commitUnsubscribe?.();
+    this.commitUnsubscribe = undefined;
     this.sync?.stop();
     this.sync = null;
     this.relay?.disconnect();
     this.relay = null;
+    this.airspace = null;
   }
 
   private setError(message: string | null): void {
@@ -445,17 +381,20 @@ export class AtprotoService {
   }
 }
 
-function b64encode(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i] ?? 0);
-
-  return btoa(binary);
-}
-
 function b64decode(b64: string): Uint8Array {
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
   return bytes;
+}
+
+/** airspace's `SpacesUnsupportedError`, checked by name to survive bundle boundaries. */
+function isSpacesUnsupported(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: string }).name === "SpacesUnsupportedError"
+  );
 }

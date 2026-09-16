@@ -236,15 +236,12 @@ async function onSignIn() {
 
   signInBusy.value = true;
   signInError.value = "";
-  try {
-    // Redirect flow: the page navigates to the PDS; login returns only when
-    // the redirect was intercepted. Do not await forever.
-    void atproto.value.signIn(identifier);
-  } catch (cause) {
+  // Redirect flow: the page navigates to the PDS; login returns only when
+  // the redirect was intercepted, so surface a failure without awaiting.
+  void atproto.value.signIn(identifier).catch((cause) => {
     signInError.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    resetSignInBusy();
-  }
+  });
+  resetSignInBusy();
 }
 
 async function onSignOut() {

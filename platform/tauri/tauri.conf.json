@@ -5,8 +5,8 @@
   "identifier": "at.typbase.app",
   "build": {
     "beforeBuildCommand": "pnpm build",
-    "beforeDevCommand": "pnpm dev -- --host",
-    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:3000",
     "frontendDist": "../../.output/public"
   },
   "bundle": {
@@ -54,7 +54,7 @@
     "deep-link": {
       "mobile": [
         {
-          "scheme": ["typbase"],
+          "scheme": ["at.typbase.app", "typbase"],
           "appLink": false
         },
         {
@@ -65,7 +65,7 @@
         }
       ],
       "desktop": {
-        "schemes": ["typbase"]
+        "schemes": ["at.typbase.app", "typbase"]
       }
     },
     "updater": {

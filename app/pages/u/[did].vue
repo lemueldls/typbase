@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Client } from "@atproto/lex-client";
-import { createIdResolver, resolveIdentifier, resolvePds } from "@typbase/spaces";
+import type { PostValue } from "@typbase/spaces";
 
-import { fetchPublishedPosts } from "~/lib/publish";
+import { createPublicPostsClient } from "@typbase/spaces";
 
 const routeDid = useRouteParams<string>("did");
 
@@ -15,28 +14,10 @@ const author = ref<{ did: string; handle: string | null }>({
 const posts = ref<
   Array<{
     uri: string;
-    cid: string | null;
-    value: Record<string, unknown>;
+    value: PostValue;
     html: string;
-    blobCid: string;
   }>
 >([]);
-
-const resolver = createIdResolver();
-
-function blobCidOf(refValue: unknown): string | null {
-  if (!refValue) return null;
-
-  if (typeof refValue === "string") return refValue;
-
-  if (typeof refValue === "object") {
-    const ref = (refValue as { ref?: unknown }).ref;
-
-    return typeof ref === "string" ? ref : null;
-  }
-
-  return null;
-}
 
 watchImmediate(routeDid, async (input) => {
   if (!input) {
@@ -47,43 +28,32 @@ watchImmediate(routeDid, async (input) => {
   }
 
   try {
-    const did = await resolveIdentifier(input, resolver);
-    const doc = await resolver.did.resolve(did);
-    author.value = {
-      did,
-      handle:
-        doc?.alsoKnownAs?.find((value) => value.startsWith("at://"))?.slice("at://".length) ?? null,
-    };
-    const pdsUrl = await resolvePds(did, resolver, {
-      getPdsUrl: () => undefined,
-      setPdsUrl: () => {},
-    });
+    // Read-only airspace over one account's public posts; identity resolution
+    // (handle -> DID -> PDS) happens inside.
+    const client = createPublicPostsClient(input);
+    const identity = await client.identity();
+    author.value = { did: identity.did, handle: identity.handle ?? null };
 
-    const records = await fetchPublishedPosts(did, pdsUrl);
-    const byNewest = [...records].sort((a, b) => {
-      const aTime = String(a.value.updatedAt ?? a.value.createdAt ?? "").localeCompare(
-        String(b.value.updatedAt ?? b.value.createdAt ?? ""),
-      );
+    const records = await Promise.all(
+      (await client.post.list()).map(async (record) => {
+        const url = await client.blobs.url(record.value.html);
+        if (!url) return null;
 
-      return -aTime;
-    });
-
-    const withHtml = await Promise.all(
-      byNewest.slice(0, 50).map(async (record) => {
-        const cid = blobCidOf(record.value.html);
-        if (!cid) return null;
-
-        const response = await fetch(
-          `${pdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`,
-        );
+        const response = await fetch(url);
         if (!response.ok) return null;
 
-        const html = await response.text();
-
-        return { ...record, html, blobCid: cid };
+        return { uri: record.uri, value: record.value, html: await response.text() };
       }),
     );
-    posts.value = withHtml.filter((post) => post !== null);
+
+    // Post keys are page ids, not TIDs, so order by the record's timestamps.
+    posts.value = records
+      .filter((record) => record !== null)
+      .sort((a, b) =>
+        String(b.value.updatedAt ?? b.value.createdAt ?? "").localeCompare(
+          String(a.value.updatedAt ?? a.value.createdAt ?? ""),
+        ),
+      );
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {

@@ -12,4 +12,5 @@ body {
   margin: 0;
   background: var(--color-surface-2);
   color: var(--color-text);
+  font-family: var(--font-sans);
 }

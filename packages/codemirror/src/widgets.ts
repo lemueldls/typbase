@@ -364,7 +364,7 @@ export const typstViewPlugin = (
     // switch (write -> source -> write): without this flag the render never
     // runs until the user clicks or types.
     let firstUpdate = true;
-    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    let resizeTimer: number | undefined;
 
     return {
       update(update: ViewUpdate) {

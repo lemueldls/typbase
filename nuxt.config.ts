@@ -1,5 +1,6 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
+import { fileURLToPath } from "node:url";
 import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
@@ -37,8 +38,19 @@ export default defineNuxtConfig({
   },
   vite: {
     // experimental: { bundledDev: true },
+    resolve: {
+      alias: {
+        // See app/lib/node-dns-shim.ts: Vite's browser-external stub for this
+        // module throws on access, and airspace only needs it to be absent.
+        "node:dns/promises": fileURLToPath(new URL("./app/lib/node-dns-shim.ts", import.meta.url)),
+      },
+    },
     optimizeDeps: {
       exclude: ["loro-crdt", "sqlite-wasm-vec"],
+      // Pre-bundling the wasm glue keeps its `new URL('wasm_bg.wasm')` out of
+      // the /@fs module graph, where Vite's wasm plugin would try to treat the
+      // binary as an imported module. See the note in composables/typst.ts.
+      include: ["@typbase/wasm"],
     },
     server: {
       // middlewareMode: false,

@@ -10,7 +10,7 @@ dependsOn:
 
 tasks:
   dev:
-    command: "pnpm nuxt dev"
+    command: "pnpm nuxt dev --host"
     preset: "server"
     deps:
       - "wasm:build-dev"

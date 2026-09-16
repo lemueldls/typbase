@@ -21,7 +21,6 @@
     "wasm:build:release": "moon run wasm:build"
   },
   "dependencies": {
-    "@atproto/lex-client": "0.0.0-spaces-alpha-20260913191958",
     "@codemirror/autocomplete": "^6.20.0",
     "@codemirror/commands": "^6.10.1",
     "@codemirror/language": "^6.12.1",

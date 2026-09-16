@@ -3,6 +3,13 @@ import type { FileId, ThemeColors } from "@typbase/wasm";
 
 import { isTauri } from "@typbase/storage";
 import init, { TypstState } from "@typbase/wasm";
+// Vite 8's wasm plugin turns any `.wasm` module request into instance glue, and
+// the glue in the web target's own `new URL(...)` fetch lands in that path. Ask
+// Vite for the asset URL, add a query so the request is served as the raw
+// binary, and hand it to init.
+import wasmUrl from "@typbase/wasm/wasm_bg.wasm?url";
+
+const wasmBinaryUrl = `${wasmUrl}${wasmUrl.includes("?") ? "&" : "?"}binary`;
 
 import { currentThemeColors } from "~/composables/theme";
 
@@ -54,7 +61,7 @@ export async function createTypstState(): Promise<TypstState> {
  * so it loads lazily the first time an editor mounts, on the client.
  */
 export function useTypst() {
-  statePromise ??= init().then(createTypstState);
+  statePromise ??= init({ module_or_path: wasmBinaryUrl }).then(createTypstState);
 
   return statePromise;
 }

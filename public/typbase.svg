@@ -26,15 +26,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#505050"
      showgrid="true"
-     inkscape:zoom="0.43119914"
-     inkscape:cx="-56.818295"
-     inkscape:cy="-96.243234"
+     inkscape:zoom="0.81375679"
+     inkscape:cx="100.15277"
+     inkscape:cy="235.3283"
      inkscape:window-width="1297"
      inkscape:window-height="894"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="0"
-     inkscape:current-layer="typbase-icon">
+     inkscape:current-layer="layer-orbit">
     <inkscape:grid
        id="grid22"
        units="px"
@@ -345,22 +345,6 @@
        rx="118"
        fill="url(#grad-bg)"
        style="fill:#292522;fill-opacity:1" />
-    <circle
-       id="glow"
-       inkscape:label="warm glow"
-       cx="256"
-       cy="250"
-       r="235"
-       fill="url(#grad-glow)" />
-    <ellipse
-       id="ground-shadow"
-       inkscape:label="ground shadow"
-       cx="256"
-       cy="414"
-       rx="182"
-       ry="30"
-       fill="url(#grad-shadow)"
-       style="fill:url(#grad-shadow)" />
   </g>
   <g
      inkscape:groupmode="layer"

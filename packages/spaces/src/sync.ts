@@ -1,20 +1,18 @@
 import { bytesToBase64, base64ToBytes } from "./base64";
-import { SPACE_COLLECTIONS } from "./constants";
-import { SpaceCredential } from "./credentials";
-import {
-  deleteSpaceRecord,
-  listRepoOpsPage,
-  nextTid,
-  putSpaceRecord,
-  type RepoOpsPage,
-} from "./repo";
 
 /**
- * The sync loop. Transport-agnostic: host provides document access and
- * persistence, this module decides what to export, when to compact, and how
- * to replay a remote oplog. Loro is the merge engine; the PDS is the
- * transport; nothing else here knows about the protocol details beyond the
- * record shapes in the lexicons.
+ * The sync loop. Loro is the merge engine, airspace is the transport: every
+ * device exports local changes as `app.typbase.update` records in its own
+ * repo inside the workspace space, and pulls what the other devices wrote.
+ * Compaction writes a snapshot and deletes the updates it covers.
+ *
+ * Pulling lists records newest first and stops at the last rkey seen; update
+ * and snapshot keys are TIDs, so that is enough for an incremental poll. Every
+ * few minutes the engine scans the whole collection anyway, so an update from
+ * a device whose clock trails ours is still picked up.
+ *
+ * The queue lives in device-local storage, not memory: an edit made offline is
+ * uploaded on the next flush, and typing never waits on the network.
  */
 
 export interface SyncStore {
@@ -38,13 +36,45 @@ export interface SyncHost {
   localVersion(docId: string): Promise<string>;
   /** Called after imported changes landed; the app refreshes editors/previews. */
   onImported(docIds: string[]): void;
-  /** Resolve a member DID to its PDS (required when a member is not cached). */
-  getMemberPds?(did: string): Promise<string>;
   engineLog(level: "info" | "warn" | "error", message: string): void;
 }
 
+export interface SyncUpdate {
+  rkey: string;
+  docId: string;
+  /** Base64-encoded Loro update bytes. */
+  update: string;
+  /** Version vector JSON after the update, for cover checks. */
+  version: string;
+  createdAt?: string;
+}
+
+export interface SyncSnapshot {
+  rkey: string;
+  docId: string;
+  /** Base64-encoded Loro snapshot bytes. */
+  snapshot: string;
+  version: string;
+  createdAt?: string;
+}
+
+/** The record operations the engine needs. See `createAirspaceTransport`. */
+export interface SyncTransport {
+  listUpdates(cursor: string | null): Promise<{
+    records: SyncUpdate[];
+    cursor: string | null;
+  }>;
+  listSnapshots(cursor: string | null): Promise<{
+    records: SyncSnapshot[];
+    cursor: string | null;
+  }>;
+  createUpdate(record: Omit<SyncUpdate, "rkey">): Promise<string>;
+  createSnapshot(record: Omit<SyncSnapshot, "rkey">): Promise<string>;
+  deleteUpdates(rkeys: string[]): Promise<void>;
+  deleteSnapshots(rkeys: string[]): Promise<void>;
+}
+
 interface QueuedUpdate {
-  tid: string;
   docId: string;
   update: string; // base64
   version: string;
@@ -53,23 +83,21 @@ interface QueuedUpdate {
 
 interface DocSyncState {
   exportedVersion: string | null;
-  /** Written update rkeys since the last snapshot, for compaction cleanup. */
-  written: string[];
+  /** Version of the newest snapshot this device imported. */
   importedVersion: string | null;
-}
-
-interface MemberState {
-  pdsUrl: string;
-  rev: string | null;
-  cursor: string | null;
+  /** Update rkeys written since the last snapshot, for compaction cleanup. */
+  written: string[];
+  /** Snapshot rkeys this device wrote; each new snapshot supersedes them. */
+  snapshots: string[];
 }
 
 interface SyncState {
-  spaceUri: string | null;
-  authorityDid: string | null;
-  members: Record<string, MemberState>;
   docs: Record<string, DocSyncState>;
   queue: QueuedUpdate[];
+  /** Newest update rkey seen, so a poll can stop early. */
+  lastUpdateRkey: string | null;
+  lastSnapshotRkey: string | null;
+  lastFullScanAt: number;
   lastExportAt: number;
   lastImportAt: number;
 }
@@ -78,15 +106,17 @@ export interface TypbaseSyncOptions {
   /** Compaction threshold: updates written since the last snapshot. */
   compactionThreshold?: number;
   pollIntervalMs?: number;
+  /** How often a poll ignores the saved rkeys and scans everything. */
+  fullScanIntervalMs?: number;
   now?: () => number;
 }
 
 const emptyState = (): SyncState => ({
-  spaceUri: null,
-  authorityDid: null,
-  members: {},
   docs: {},
   queue: [],
+  lastUpdateRkey: null,
+  lastSnapshotRkey: null,
+  lastFullScanAt: 0,
   lastExportAt: 0,
   lastImportAt: 0,
 });
@@ -123,53 +153,30 @@ export function versionCovers(baseJson: string, otherJson: string): boolean {
   return true;
 }
 
-export type SyncEngineRole = "authority" | "member";
-
 export class TypbaseSync {
   private state: SyncState = emptyState();
   private timer: ReturnType<typeof setInterval> | undefined;
+  private pollTimer: ReturnType<typeof setTimeout> | undefined;
   private flushing = false;
   private pulling = false;
-  private pollTimer: ReturnType<typeof setTimeout> | undefined;
   private disposed = false;
 
   constructor(
     private readonly host: SyncHost,
     private readonly store: SyncStore,
-    private readonly credential: () => Promise<SpaceCredential>,
-    /** DID whose repo this device writes to (the signed-in user). */
-    private readonly memberDid: string,
+    private readonly transport: SyncTransport,
     private readonly options: TypbaseSyncOptions = {},
   ) {}
 
-  async start(spaceUri: string | null, authorityDid: string | null): Promise<void> {
+  async start(): Promise<void> {
     await this.load();
-    this.state.spaceUri = spaceUri;
-    this.state.authorityDid = authorityDid;
-    await this.save();
 
     this.stop();
-    const poll = this.options.pollIntervalMs ?? 5000;
-    this.timer = setInterval(() => void this.pull().catch(() => {}), poll);
+    this.timer = setInterval(() => void this.tick(), this.options.pollIntervalMs ?? 5000);
     this.pollTimer = undefined;
 
     await this.flushQueue();
     await this.pull();
-  }
-
-  async attach(spaceUri: string, authorityDid: string): Promise<void> {
-    await this.load();
-    this.state.spaceUri = spaceUri;
-    this.state.authorityDid = authorityDid;
-    this.state.members = {};
-    await this.save();
-  }
-
-  async detach(): Promise<void> {
-    await this.load();
-    this.state.spaceUri = null;
-    this.state.authorityDid = null;
-    await this.save();
   }
 
   stop(): void {
@@ -179,35 +186,45 @@ export class TypbaseSync {
     this.pollTimer = undefined;
   }
 
-  get hasSpace(): boolean {
-    return this.state.spaceUri !== null;
-  }
-
   /** Status line for the settings UI, always safe to read. */
-  status(): {
-    lastExportAt: number;
-    lastImportAt: number;
-    pending: number;
-    spaceUri: string | null;
-  } {
+  status(): { lastExportAt: number; lastImportAt: number; pending: number } {
     return {
       lastExportAt: this.state.lastExportAt,
       lastImportAt: this.state.lastImportAt,
       pending: this.state.queue.length,
-      spaceUri: this.state.spaceUri,
     };
   }
 
   /**
+   * Pushes snapshots of every local doc so a fresh device has a starting
+   * point, then marks each doc exported so the first local commit only sends
+   * the delta. Safe to run once per account and workspace.
+   */
+  async bootstrapSnapshots(): Promise<void> {
+    for (const docId of await this.host.listDocIds()) {
+      const snapshot = await this.host.exportSnapshot(docId);
+      const rkey = await this.transport.createSnapshot({
+        docId,
+        snapshot: bytesToBase64(snapshot.bytes),
+        version: snapshot.version,
+        createdAt: this.iso(),
+      });
+      const doc = this.docState(docId);
+      doc.exportedVersion = snapshot.version;
+      doc.written = [];
+      doc.snapshots = [rkey];
+    }
+    await this.save();
+  }
+
+  /**
    * Called by the storage layer after each local commit batch (debounced
-   * upstream). Exports the update immediately into the durable queue; the
-   * upload itself happens on flush, so offline edits never block typing.
+   * upstream). Exports the update into the durable queue immediately; the
+   * upload happens on flush, so offline edits never block typing.
    */
   async onLocalCommit(docId: string): Promise<void> {
     await this.load();
     if (docId.startsWith("_")) return;
-
-    // internal docs are never synced
 
     const doc = this.docState(docId);
     const latest = await this.host.exportUpdatesSince(docId, doc.exportedVersion);
@@ -215,7 +232,6 @@ export class TypbaseSync {
 
     doc.exportedVersion = latest.version;
     this.state.queue.push({
-      tid: nextTid(),
       docId,
       update: bytesToBase64(latest.bytes),
       version: latest.version,
@@ -223,47 +239,34 @@ export class TypbaseSync {
     });
     await this.save();
 
-    if (this.state.spaceUri) void this.flushQueue();
+    void this.flushQueue();
   }
 
   /** Online now: push queued updates, compact where needed. */
   async flushQueue(): Promise<void> {
     if (this.flushing || this.disposed) return;
-
-    if (!this.state.spaceUri || this.state.queue.length === 0) return;
+    if (this.state.queue.length === 0) return;
 
     this.flushing = true;
 
     try {
-      const credential = await this.credential();
-      const pdsUrl = await this.resolveMemberPds(this.memberDid);
-      const client = credential.client(pdsUrl);
-
-      let index = 0;
-      while (index < this.state.queue.length) {
-        const item = this.state.queue[index];
-        const doc = this.docState(item.docId);
-
-        await putSpaceRecord(client, {
-          space: this.state.spaceUri!,
-          repoDid: this.memberDid,
-          collection: SPACE_COLLECTIONS.update,
-          rkey: item.tid,
-          record: {
-            docId: item.docId,
-            update: item.update,
-            version: item.version,
-            createdAt: new Date(this.now()).toISOString(),
-          },
+      while (this.state.queue.length > 0) {
+        const item = this.state.queue[0]!;
+        const rkey = await this.transport.createUpdate({
+          docId: item.docId,
+          update: item.update,
+          version: item.version,
+          createdAt: new Date(item.createdAt).toISOString(),
         });
 
-        this.state.queue.splice(index, 1);
-        doc.written.push(item.tid);
+        this.state.queue.shift();
+        const doc = this.docState(item.docId);
+        doc.written.push(rkey);
         this.state.lastExportAt = this.now();
         await this.save();
 
         if (doc.written.length >= this.compactionThreshold()) {
-          await this.compact(client, item.docId);
+          await this.compact(item.docId);
         }
       }
     } catch (error) {
@@ -273,97 +276,26 @@ export class TypbaseSync {
     }
   }
 
-  /** Pull every member repo's oplog and apply what is new. */
+  /** Pull records this device has not imported and apply them. */
   async pull(): Promise<number> {
     if (this.pulling || this.disposed) return 0;
-
-    if (!this.state.spaceUri || !this.state.authorityDid) return 0;
 
     this.pulling = true;
 
     let imported = 0;
     try {
-      const credential = await this.credential();
       const changed = new Set<string>();
+      const full = this.needsFullScan();
 
-      const memberDids = Object.keys(this.state.members);
-      if (memberDids.length === 0) {
-        memberDids.push(this.state.authorityDid);
-        this.state.members[this.state.authorityDid] = {
-          pdsUrl: "",
-          rev: null,
-          cursor: null,
-        };
-      }
+      imported += await this.pullUpdates(changed, full);
+      imported += await this.pullSnapshots(changed, full);
 
-      for (const repoDid of memberDids) {
-        const member = this.state.members[repoDid];
-        if (!member) continue;
-        try {
-          const pdsUrl = member.pdsUrl || (await this.resolveMemberPds(repoDid));
-          member.pdsUrl = pdsUrl;
-          const client = credential.client(pdsUrl);
-
-          let cursor: string | null = member.cursor;
-          let rev: string | null = member.rev;
-          let page: RepoOpsPage | null = null;
-
-          do {
-            page = await listRepoOpsPage(client, {
-              space: this.state.spaceUri!,
-              repoDid,
-              since: cursor ? null : rev,
-              cursor,
-            });
-            for (const op of page.ops) {
-              if (op.cid === null) continue; // a delete: nothing to import
-              const value = op.value as Record<string, unknown> | null | undefined;
-              if (!value || typeof value !== "object") continue;
-              const docId = typeof value.docId === "string" ? value.docId : "";
-              if (!docId) continue;
-
-              if (op.collection === SPACE_COLLECTIONS.snapshot) {
-                const bytes = base64ToBytes(String(value.snapshot ?? ""));
-                const version = String(value.version ?? "");
-                const doc = this.docState(docId);
-                if (!versionCovers(await this.host.localVersion(docId), version)) {
-                  await this.host.importSnapshot(docId, bytes);
-                  doc.importedVersion = version;
-                  changed.add(docId);
-                  imported++;
-                }
-              } else if (op.collection === SPACE_COLLECTIONS.update) {
-                const bytes = base64ToBytes(String(value.update ?? ""));
-                const version = String(value.version ?? "");
-                const doc = this.docState(docId);
-                const coveredByLocal = versionCovers(await this.host.localVersion(docId), version);
-                const coveredBySnapshot = doc.importedVersion
-                  ? versionCovers(doc.importedVersion, version)
-                  : false;
-                if (!coveredByLocal && !coveredBySnapshot) {
-                  await this.host.importUpdate(docId, bytes);
-                  doc.importedVersion = version;
-                  changed.add(docId);
-                  imported++;
-                }
-              }
-            }
-            cursor = page.cursor;
-            if (page.commit) rev = page.commit.rev;
-          } while (cursor && page.cursor);
-
-          member.cursor = null;
-          member.rev = rev;
-        } catch (error) {
-          this.host.engineLog("warn", `pull failed for ${repoDid}: ${String(error)}`);
-        }
-      }
-
+      this.state.lastFullScanAt = this.now();
       if (changed.size > 0) {
         this.state.lastImportAt = this.now();
-        await this.save();
         this.host.onImported([...changed]);
       }
+      await this.save();
     } catch (error) {
       this.host.engineLog("error", `pull failed: ${String(error)}`);
     } finally {
@@ -379,7 +311,7 @@ export class TypbaseSync {
 
     this.pollTimer = setTimeout(() => {
       this.pollTimer = undefined;
-      void this.pull().catch(() => {});
+      void this.tick();
     }, 250);
   }
 
@@ -390,78 +322,112 @@ export class TypbaseSync {
     await this.pull();
   }
 
-  /**
-   * Records that a doc's current content is already in the space (e.g. right
-   * after the attach bootstrap uploaded snapshots), so the first local commit
-   * exports only what changed since.
-   */
-  async markDocExported(docId: string, version: string): Promise<void> {
-    await this.load();
-    const doc = this.docState(docId);
-    doc.exportedVersion = version;
-    doc.written = [];
-    await this.save();
+  private async tick(): Promise<void> {
+    if (this.disposed) return;
+    await this.flushQueue();
+    await this.pull();
   }
 
-  private async compact(
-    client: ReturnType<SpaceCredential["client"]>,
-    docId: string,
-  ): Promise<void> {
+  private async pullUpdates(changed: Set<string>, full: boolean): Promise<number> {
+    let imported = 0;
+    let cursor: string | null = null;
+    let reachedOld = false;
+    let newest = this.state.lastUpdateRkey;
+
+    do {
+      const page = await this.transport.listUpdates(cursor);
+      for (const record of page.records) {
+        if (!full && this.state.lastUpdateRkey && record.rkey <= this.state.lastUpdateRkey) {
+          reachedOld = true;
+          break;
+        }
+        if (!newest || record.rkey > newest) newest = record.rkey;
+
+        const doc = this.docState(record.docId);
+        const coveredByLocal = versionCovers(
+          await this.host.localVersion(record.docId),
+          record.version,
+        );
+        const coveredBySnapshot = doc.importedVersion
+          ? versionCovers(doc.importedVersion, record.version)
+          : false;
+        if (!coveredByLocal && !coveredBySnapshot) {
+          await this.host.importUpdate(record.docId, base64ToBytes(record.update));
+          doc.importedVersion = record.version;
+          changed.add(record.docId);
+          imported++;
+        }
+      }
+      cursor = page.cursor;
+    } while (cursor && !reachedOld);
+
+    this.state.lastUpdateRkey = newest;
+
+    return imported;
+  }
+
+  private async pullSnapshots(changed: Set<string>, full: boolean): Promise<number> {
+    let imported = 0;
+    let cursor: string | null = null;
+    let reachedOld = false;
+    let newest = this.state.lastSnapshotRkey;
+
+    do {
+      const page = await this.transport.listSnapshots(cursor);
+      for (const record of page.records) {
+        if (!full && this.state.lastSnapshotRkey && record.rkey <= this.state.lastSnapshotRkey) {
+          reachedOld = true;
+          break;
+        }
+        if (!newest || record.rkey > newest) newest = record.rkey;
+
+        const doc = this.docState(record.docId);
+        if (!versionCovers(await this.host.localVersion(record.docId), record.version)) {
+          await this.host.importSnapshot(record.docId, base64ToBytes(record.snapshot));
+          doc.importedVersion = record.version;
+          changed.add(record.docId);
+          imported++;
+        }
+      }
+      cursor = page.cursor;
+    } while (cursor && !reachedOld);
+
+    this.state.lastSnapshotRkey = newest;
+
+    return imported;
+  }
+
+  private needsFullScan(): boolean {
+    return this.now() - this.state.lastFullScanAt > this.fullScanInterval();
+  }
+
+  private async compact(docId: string): Promise<void> {
     const snapshot = await this.host.exportSnapshot(docId);
     const doc = this.docState(docId);
-    const rkey = `snap-${nextTid()}`;
+    const updates = doc.written;
+    const snapshots = doc.snapshots;
 
-    await putSpaceRecord(client, {
-      space: this.state.spaceUri!,
-      repoDid: this.memberDid,
-      collection: SPACE_COLLECTIONS.snapshot,
-      rkey,
-      record: {
-        docId,
-        snapshot: bytesToBase64(snapshot.bytes),
-        version: snapshot.version,
-        createdAt: new Date(this.now()).toISOString(),
-      },
+    const rkey = await this.transport.createSnapshot({
+      docId,
+      snapshot: bytesToBase64(snapshot.bytes),
+      version: snapshot.version,
+      createdAt: this.iso(),
     });
 
-    // Superseded update records are hygiene, not correctness: receivers skip
-    // them by version. Delete best-effort, keep the queue moving.
-    const toDelete = doc.written;
     doc.written = [];
-    for (const oldRkey of toDelete.splice(0, 50_000)) {
-      try {
-        await deleteSpaceRecord(client, {
-          space: this.state.spaceUri!,
-          repoDid: this.memberDid,
-          collection: SPACE_COLLECTIONS.update,
-          rkey: oldRkey,
-        });
-      } catch {
-        // Already deleted or transient; the snapshot makes them skippable.
-      }
-    }
-    await this.save();
-  }
-
-  private async resolveMemberPds(did: string): Promise<string> {
-    const member = this.state.members[did];
-    if (member?.pdsUrl) return member.pdsUrl;
-
-    const pdsUrl = await this.host.getMemberPds?.(did);
-    if (!pdsUrl) throw new Error(`Cannot resolve PDS for ${did}`);
-    this.state.members[did] = {
-      ...(this.state.members[did] ?? { rev: null, cursor: null }),
-      pdsUrl,
-    };
+    doc.snapshots = [rkey];
     await this.save();
 
-    return pdsUrl;
+    // Superseded records are hygiene, not correctness: receivers skip them by
+    // version. Delete best-effort and keep the queue moving.
+    await this.transport.deleteUpdates(updates).catch(() => {});
+    await this.transport.deleteSnapshots(snapshots).catch(() => {});
   }
 
   private docState(docId: string): DocSyncState {
     let doc = this.state.docs[docId];
     if (!doc) {
-      doc = { exportedVersion: null, written: [], importedVersion: null };
+      doc = { exportedVersion: null, importedVersion: null, written: [], snapshots: [] };
       this.state.docs[docId] = doc;
     }
 
@@ -472,8 +438,16 @@ export class TypbaseSync {
     return this.options.compactionThreshold ?? 100;
   }
 
+  private fullScanInterval(): number {
+    return this.options.fullScanIntervalMs ?? 5 * 60_000;
+  }
+
   private now(): number {
     return this.options.now?.() ?? Date.now();
+  }
+
+  private iso(): string {
+    return new Date(this.now()).toISOString();
   }
 
   private async load(): Promise<void> {

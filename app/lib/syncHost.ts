@@ -6,11 +6,7 @@ import type { WorkspaceStore } from "@typbase/storage";
  * and version strings; this is where Loro docs come in. All the version math
  * (JSON version vectors) belongs to the store.
  */
-export function createSyncHost(
-  store: WorkspaceStore,
-  log: SyncHost["engineLog"],
-  resolveMemberPds?: (did: string) => Promise<string>,
-): SyncHost {
+export function createSyncHost(store: WorkspaceStore, log: SyncHost["engineLog"]): SyncHost {
   return {
     listDocIds: () => store.listDocIds(),
     exportUpdatesSince: (docId, sinceVersion) => store.exportUpdatesSince(docId, sinceVersion),
@@ -28,7 +24,6 @@ export function createSyncHost(
       // outside (settings, palette, query cache).
       window.dispatchEvent(new CustomEvent("typbase:imported", { detail: docIds }));
     },
-    getMemberPds: resolveMemberPds,
     engineLog: log,
   };
 }

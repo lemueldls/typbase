@@ -1,17 +1,6 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PublishSettings } from "@typbase/typing";
 
-import {
-  POST_COLLECTION,
-  Client,
-  deletePublicRecord,
-  listPublicRecords,
-  putPublicRecord,
-  uploadBlob,
-  type BlobRef,
-  type PublicRecord,
-} from "@typbase/spaces";
-
 import type { AtprotoService } from "~/lib/atproto";
 
 import { publishPrelude } from "~/lib/publishPrelude";
@@ -29,6 +18,13 @@ export interface PublishResult {
   publishedAt: number;
 }
 
+/**
+ * Renders a page and publishes it. The rendered artifacts become blobs on the
+ * signed-in PDS; the `app.typbase.post` record is first written as a draft in
+ * the workspace space and then copied to the public repo by airspace's
+ * `publish()`, so a failed publish leaves the draft behind instead of a
+ * half-written public record.
+ */
 export async function publishPage(
   store: WorkspaceStore,
   atproto: AtprotoService,
@@ -60,50 +56,51 @@ export async function publishPage(
     throw new Error("Render produced no HTML; check the page diagnostics");
   }
 
-  const session = await atproto.requireSession();
-  const client = new Client(session);
+  const airspace = atproto.requireWorkspace();
+  const html = await airspace.blobs.upload(new TextEncoder().encode(rendered.html), {
+    mimeType: "text/html",
+  });
 
-  const htmlBlob = await uploadBlob(session, new TextEncoder().encode(rendered.html), "text/html");
-
-  let pdfBlob: BlobRef | undefined;
+  let pdf: Awaited<ReturnType<typeof airspace.blobs.upload>> | undefined;
   if (effective.includePdf) {
-    const pdf = await renderInWorker({
+    const renderedPdf = await renderInWorker({
       pagePath: page.path,
       source,
       prelude: publishPrelude(appSettings),
       wants: "pdf",
       spaceId: store.workspaceId,
     });
-    if (pdf.pdf) {
-      pdfBlob = await uploadBlob(session, pdf.pdf, "application/pdf");
+    if (renderedPdf.pdf) {
+      pdf = await airspace.blobs.upload(renderedPdf.pdf, { mimeType: "application/pdf" });
     }
   }
 
   const now = new Date().toISOString();
-  const record = {
+  await airspace.workspace.post.put(pageId, {
     title: page.title,
     summary: summarize(source),
-    html: htmlBlob,
-    ...(pdfBlob ? { pdf: pdfBlob } : {}),
+    html: html.blob,
+    ...(pdf ? { pdf: pdf.blob } : {}),
     source,
     sourceUri: `${window.location.origin}/?page=${page.id}`,
     langs: effective.langs,
     tags: effective.tags,
     createdAt: now,
     updatedAt: now,
-  };
+  });
 
-  const result = await putPublicRecord(client, {
-    repoDid: session.did,
-    collection: POST_COLLECTION,
-    rkey: page.id,
-    record,
+  // The first publish has no public record to guard; later ones swap the CID
+  // the reader just saw.
+  const live = await airspace.post.get(pageId);
+  const published = await airspace.workspace.post.publish(pageId, {
+    ...(live ? { ifMatch: live.cid } : {}),
+    transform: (value) => ({ ...value, publishedAt: now }),
   });
 
   const publishedAt = Date.now();
-  await store.setPagePublished(pageId, publishedAt, result.uri);
+  await store.setPagePublished(pageId, publishedAt, published.uri);
 
-  return { uri: result.uri, publishedAt };
+  return { uri: published.uri, publishedAt };
 }
 
 export async function unpublishPage(
@@ -114,49 +111,9 @@ export async function unpublishPage(
   const page = store.getPage(pageId);
   if (!page) return;
 
-  const session = await atproto.requireSession();
-  const client = new Client(session);
-  await deletePublicRecord(client, {
-    repoDid: session.did,
-    collection: POST_COLLECTION,
-    rkey: page.id,
-  });
+  const airspace = atproto.requireWorkspace();
+  await airspace.post.delete(pageId);
   await store.setPagePublished(pageId, null, null);
-}
-
-/** Reads one user's published posts (public profile page). */
-export async function fetchPublishedPosts(
-  did: string,
-  pdsUrl: string,
-): Promise<Array<{ uri: string; cid: string | null; value: Record<string, unknown> }>> {
-  const client = new Client({ service: pdsUrl });
-  const all: Array<{
-    uri: string;
-    cid: string | null;
-    value: Record<string, unknown>;
-  }> = [];
-  let cursor: string | null = null;
-  do {
-    // The do-while makes the generic inference circular; annotate the row
-    // type so `page` is not typed from its own usage below.
-    const page: {
-      records: PublicRecord[];
-      cursor: string | null;
-    } = await listPublicRecords(client, {
-      repoDid: did,
-      collection: POST_COLLECTION,
-      cursor,
-    });
-    all.push(
-      ...page.records.map((record) => ({
-        ...record,
-        value: record.value as Record<string, unknown>,
-      })),
-    );
-    cursor = page.cursor;
-  } while (cursor);
-
-  return all;
 }
 
 /** Plain-text summary: first paragraph-ish run, capped. */

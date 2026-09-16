@@ -100,11 +100,20 @@ function initialBootSteps(t: (key: string) => string): BootStepState[] {
   ];
 }
 
-function appUrl(): string {
-  const origin = window.location.origin;
-  const url = origin && window.location.protocol !== "file:" ? origin : "http://localhost:3000";
+/**
+ * The origin the atproto layer talks to. On the web that is the page origin.
+ * A Tauri production build runs from `tauri://localhost` (or
+ * `http://tauri.localhost` on Windows), where there is no server, so it uses
+ * the configured deploy URL instead. Tauri dev loads the Nuxt dev server over
+ * http and keeps the page origin.
+ */
+function appUrl(configured: string): string {
+  const fallback = configured.replace(/\/$/, "") || "http://localhost:3000";
+  const { origin, protocol, hostname } = window.location;
+  const isWebOrigin =
+    (protocol === "http:" || protocol === "https:") && hostname !== "tauri.localhost";
 
-  return url;
+  return isWebOrigin ? origin.replace(/\/$/, "") : fallback;
 }
 
 /**
@@ -147,6 +156,7 @@ function useWorkspaceState() {
   );
 
   const { t } = useI18n();
+  const runtimeConfig = useRuntimeConfig();
   const bootProgress = ref<BootStepState[]>(initialBootSteps((key) => t(key as never)));
   /** Non-fatal boot notes (storage fell back to memory, atproto disabled, ...). */
   const bootNote = ref("");
@@ -413,7 +423,7 @@ function useWorkspaceState() {
       initAiKeys(keys, (next) => void local.set("aiKeys", next));
 
       const service = await withTimeout(
-        Atproto.init(store, local, { appUrl: appUrl() }),
+        Atproto.init(store, local, { appUrl: appUrl(String(runtimeConfig.public.appUrl ?? "")) }),
         12_000,
         "Atproto initialization",
       );

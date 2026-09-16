@@ -1,7 +1,7 @@
 {
   "name": "@typbase/spaces",
   "version": "0.1.0",
-  "description": "The only module that talks to atproto: OAuth, space credentials, record sync, and blobs.",
+  "description": "The only module that talks to atproto: browser OAuth, the airspace data model, and Loro sync.",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -12,26 +12,17 @@
   "scripts": {
     "build": "tsdown",
     "build-dev": "tsdown --watch",
-    "codegen": "node scripts/codegen.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@atproto-labs/did-resolver": "^0.3.7",
+    "@atproto-labs/handle-resolver": "^0.4.9",
     "@atproto-labs/identity-resolver": "^0.4.7",
-    "@atproto/common-web": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/identity": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/jwk-jose": "^0.2.4",
-    "@atproto/lex-client": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/lex-data": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/lex-schema": "0.0.0-spaces-alpha-20260913191958",
     "@atproto/oauth-client-browser": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/oauth-scopes": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/space": "0.0.0-spaces-alpha-20260913191958",
-    "@atproto/syntax": "0.0.0-spaces-alpha-20260913191958",
-    "@typbase/typing": "workspace:*"
+    "@typbase/typing": "workspace:*",
+    "airspace": "^0.1.4"
   },
   "devDependencies": {
-    "@atproto/lex": "0.0.0-spaces-alpha-20260913191958",
     "tsdown": "0.23.0",
     "typescript": "^5.9.3"
   }

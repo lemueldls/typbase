@@ -23,8 +23,6 @@
   --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
 
   color-scheme: light;
-
-  font-family: var(--font-sans);
 }
 
 :root[data-theme="dark"] {
