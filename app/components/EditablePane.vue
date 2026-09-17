@@ -209,7 +209,7 @@ function createStateConfig(): EditorStateConfig {
 
   // Injected after CM's runtime base theme, so token-based colors win over
   // the defaults (cursor, tooltip, selection, gutters).
-  extensions.push(typstEditorTheme());
+  extensions.push(typstEditorTheme);
 
   if (props.wysiwyg) {
     extensions.push(

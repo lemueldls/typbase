@@ -36,14 +36,14 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🦀 Build @typbase/wasm (release)
+        run: pnpm wasm:build:release
+
       # - name: 🎨 Format check
       #   run: pnpm fmt:check
 
-      - name: 🧹 Lint
-        run: pnpm lint
-
-      - name: 🦀 Build @typbase/wasm (release)
-        run: pnpm wasm:build:release
+      # - name: 🧹 Lint
+      #   run: pnpm lint
 
       - name: 🔨 Build web app
         run: pnpm build

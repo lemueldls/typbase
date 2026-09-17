@@ -320,12 +320,10 @@ impl TypstState {
 
         let anchor_report = anchors
             .iter()
-            .map(|anchor| {
-                CheckedAnchor {
-                    raw: anchor.raw as u32,
-                    synth: anchor.synth as u32,
-                    kind: anchor.kind.label().to_string(),
-                }
+            .map(|anchor| CheckedAnchor {
+                raw: anchor.raw as u32,
+                synth: anchor.synth as u32,
+                kind: anchor.kind.label().to_string(),
             })
             .collect();
 
@@ -782,11 +780,9 @@ impl TypstState {
             side,
         );
 
-        tooltip.map(|tooltip| {
-            match tooltip {
-                Tooltip::Text(text) => text.to_string(),
-                Tooltip::Code(text) => typst_syntax::highlight_html(&typst_syntax::parse(&text)),
-            }
+        tooltip.map(|tooltip| match tooltip {
+            Tooltip::Text(text) => text.to_string(),
+            Tooltip::Code(text) => typst_syntax::highlight_html(&typst_syntax::parse(&text)),
         })
     }
 
@@ -839,19 +835,17 @@ impl TypstState {
             TypstDiagnostic::from_diagnostics(compiled.warnings, context, &self.world).into_vec();
 
         let bytes = match compiled.output {
-            Ok(document) => {
-                match pdf(&document, &PdfOptions::default()) {
-                    Ok(pdf) => Some(pdf),
-                    Err(source_diagnostics) => {
-                        diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                            source_diagnostics,
-                            context,
-                            &self.world,
-                        ));
-                        None
-                    }
+            Ok(document) => match pdf(&document, &PdfOptions::default()) {
+                Ok(pdf) => Some(pdf),
+                Err(source_diagnostics) => {
+                    diagnostics.extend(TypstDiagnostic::from_diagnostics(
+                        source_diagnostics,
+                        context,
+                        &self.world,
+                    ));
+                    None
                 }
-            }
+            },
             Err(source_diagnostics) => {
                 diagnostics.extend(TypstDiagnostic::from_diagnostics(
                     source_diagnostics,

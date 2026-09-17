@@ -1,16 +1,4 @@
-.cm-editor {
-  height: 100%;
-  outline: none;
-}
-
 .cm-scroller {
-  overflow-x: hidden;
-  /* Always reserve the custom scrollbar's width. The text column is what the
-     inline widgets compile against, so it must be a constant function of the
-     pane box, not something that changes when a scrollbar appears. */
-  overflow-y: scroll;
-  /* The root sets a standard scrollbar-color; opt back into the custom
-     webkit scrollbar styled below. */
   scrollbar-color: auto;
 }
 
@@ -35,202 +23,9 @@
   background-clip: content-box;
 }
 
-.cm-content {
-  font-family: var(--font-mono);
-  font-size: 16px;
-  padding: 1rem 1.25rem;
-  caret-color: var(--color-accent) !important;
-}
-
-@media (max-width: 768px) {
-  .cm-content {
-    padding: 0.6rem 0.75rem;
-  }
-}
-
-.cm-line {
-  padding: 0 1px;
-}
-
-.cm-placeholder {
-  color: var(--color-text-secondary);
-}
-
+/* Keep the drawn selection over active-line and search backgrounds. */
 .cm-selectionLayer {
   z-index: 0;
-}
-
-.cm-selectionBackground,
-.cm-content ::selection {
-  background-color: color-mix(in srgb, var(--color-accent) 26%, transparent) !important;
-}
-
-.cm-selectionMatch {
-  background-color: color-mix(in srgb, var(--color-warning) 24%, transparent) !important;
-}
-
-.cm-cursor {
-  border-left-color: var(--color-accent);
-}
-
-.cm-activeLine {
-  background-color: color-mix(in srgb, var(--color-text) 5%, transparent);
-}
-
-.cm-lintRange {
-  background-image: none;
-  text-decoration: underline wavy;
-}
-
-.cm-lintRange-error {
-  text-decoration-color: var(--color-danger);
-}
-
-.cm-lintRange-warning {
-  text-decoration-color: var(--color-warning);
-}
-
-.cm-lintPoint-error::after {
-  border-bottom: 2px dotted var(--color-danger);
-}
-
-.cm-panels {
-  background: var(--color-surface-2);
-  color: var(--color-text);
-  border-color: var(--color-border);
-}
-
-.cm-textfield {
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  background: transparent;
-}
-
-.cm-button {
-  background: var(--color-surface-3);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  border-radius: 0.5rem;
-}
-
-.cm-gutters {
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-}
-
-.cm-gutter-lint {
-  width: 1rem;
-}
-
-.cm-lint-marker {
-  width: 100%;
-  height: 100%;
-}
-
-.cm-lint-marker-error {
-  background: var(--color-danger);
-}
-
-.cm-lint-marker-warning {
-  background: var(--color-warning);
-}
-
-.cm-tooltip {
-  max-width: min(50vw, 28rem);
-  margin: 0;
-  padding: 0;
-  overflow: auto;
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
-  font-family: var(--font-mono);
-}
-
-.cm-tooltip-hover {
-  padding: 0.5rem;
-}
-
-.cm-tooltip-autocomplete {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.cm-tooltip-autocomplete > ul > li {
-  padding: 0.3rem 0.45rem;
-  border-radius: 0.3rem;
-}
-
-.cm-tooltip-autocomplete li[aria-selected="true"] {
-  background: var(--color-accent-soft);
-  color: var(--color-text);
-}
-
-/* Autocomplete icons are Material Symbols ligatures, same font as MsIcon.
-   The ::after content holds the glyph name; the font turns it into a pictogram. */
-.cm-completionIcon {
-  font-family: var(--md-icon-font);
-  font-variation-settings:
-    "FILL" 0,
-    "wght" var(--md-icon-weight);
-  transform: translateY(0.5px);
-  opacity: 0.7;
-}
-
-.cm-completionIcon-syntax::after {
-  content: "code";
-}
-.cm-completionIcon-function::after {
-  content: "function";
-}
-.cm-completionIcon-type::after {
-  content: "category";
-}
-.cm-completionIcon-param::after {
-  content: "settings";
-}
-.cm-completionIcon-constant::after {
-  content: "special_character";
-}
-.cm-completionIcon-path::after {
-  content: "folder";
-}
-.cm-completionIcon-package::after {
-  content: "package";
-}
-.cm-completionIcon-label::after {
-  content: "label";
-}
-.cm-completionIcon-font::after {
-  content: "font_download";
-}
-.cm-completionIcon-symbol::after {
-  content: "tag";
-}
-
-.cm-tooltip-lint .cm-diagnostic {
-  padding: 0.35rem 0.5rem;
-}
-
-.cm-diagnostic-error {
-  color: var(--color-danger);
-  border-left: 3px solid var(--color-danger);
-}
-
-.cm-diagnostic-warning {
-  color: var(--color-warning);
-  border-left: 3px solid var(--color-warning);
-}
-
-.cm-diagnostic-hint {
-  color: var(--color-text-secondary);
-  border-left: 3px solid var(--color-border-strong);
 }
 
 /* Typst syntax tags from the wasm highlighter, mapped to theme tokens. */
@@ -276,13 +71,13 @@
 }
 
 .typ-heading-level-2 {
-  color: var(--color-ok);
+  color: var(--color-text);
   font-size: 1.5rem;
   font-weight: 400;
 }
 
 .typ-heading-level-3 {
-  color: var(--color-warning);
+  color: var(--color-text-secondary);
   font-size: 1.25rem;
   font-weight: 400;
 }
@@ -294,13 +89,13 @@
 }
 
 .typ-heading-level-5 {
-  color: var(--color-ok);
+  color: var(--color-text);
   font-size: 1rem;
   font-weight: 500;
 }
 
 .typ-heading-level-6 {
-  color: var(--color-warning);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -344,11 +139,6 @@
   color: var(--color-danger);
 }
 
-/* Inline rendered widgets (WYSIWYG) + hover popup renders. The SVG is pinned
-   to its compiled size via --render-w/--render-h (set by the widget), so a
-   stale render keeps its size while the pane resizes instead of scaling with
-   it. max-width keeps the widget inside the line: an explicit width wider
-   than the line would make CodeMirror grow the content width forever. */
 .typst-render {
   display: inline-block;
   max-width: 100%;
@@ -378,6 +168,9 @@
 
 .typst-popup-render {
   padding: 1rem;
+  max-height: min(70vh, 32rem);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .typst-popup-render div {

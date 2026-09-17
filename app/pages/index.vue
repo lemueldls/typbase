@@ -302,6 +302,9 @@ definePageMeta({ ssr: false });
             :max-size="480"
             collapsible
             :collapsed-size="0"
+            @collapse="sidebarCollapsed = true"
+            @expand="sidebarCollapsed = false"
+            @resize="syncSidebarCollapsed"
           >
             <Sidebar
               :store="workspace"
@@ -330,11 +333,11 @@ definePageMeta({ ssr: false });
                 @close-plugin="closePlugin"
               >
                 <template #nav-toggle>
-                  <!-- Desktop: reappears only while the sidebar is collapsed. -->
                   <UiIconButton
-                    v-if="sidebarCollapsed"
-                    icon="chevron_right"
-                    :label="$t('sidebar.showSidebar')"
+                    :icon="sidebarCollapsed ? 'chevron_right' : 'chevron_left'"
+                    :label="
+                      sidebarCollapsed ? $t('sidebar.showSidebar') : $t('sidebar.hideSidebar')
+                    "
                     class="app__nav-toggle app__nav-toggle--desktop"
                     @click="toggleSidebar"
                   />
@@ -534,8 +537,8 @@ definePageMeta({ ssr: false });
    floating over it. Slot content is compiled in this component's scope, so
    the toggle styles belong here, not in MainPane.
 
-   The desktop variant only renders while the sidebar is collapsed (v-if in
-   the shell), so it is visible at any width. */
+   The desktop variant renders whenever the desktop shell does; its icon and
+   label flip with the sidebar state so it can collapse and expand. */
 /* :deep() targets UiIconButton's inner button; component-wrapped buttons do
    not receive the consumer's scope attribute. */
 .app__main :deep(.app__nav-toggle),
@@ -549,11 +552,14 @@ definePageMeta({ ssr: false });
   margin-right: 0.25rem;
 }
 
-/* The toggle is a chrome control, not a form control: no outline ring. A
-   focus background keeps keyboard users oriented instead. */
+/* The toggle is a chrome control, not a form control: no outline ring and no
+   tap flash on touch screens. A focus background keeps keyboard users
+   oriented instead. */
 .app__main :deep(.app__nav-toggle),
 .app__main :deep(.app__nav-toggle--desktop) {
   outline: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .app__main :deep(.app__nav-toggle:focus-visible),

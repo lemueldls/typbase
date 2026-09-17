@@ -505,9 +505,6 @@ const modes: Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }> = VIEW
   }),
 );
 
-/** Desktop shows the inline control; phones get a single menu button. */
-const isDesktop = useMediaQuery("(min-width: 769px)");
-
 const activeMode = computed(() => modes.find((mode) => mode.id === props.modelValue) ?? modes[0]!);
 
 // Arrow keys move between view modes, per the tabs pattern.
@@ -529,8 +526,16 @@ function onModeKeydown(event: KeyboardEvent) {
              covers the title. -->
         <slot name="nav-toggle" />
         <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
+        <!-- Rides with the mode control; button--small matches its height. -->
+        <UiIconButton
+          v-if="modelValue !== 'read' && !formatOpen"
+          icon="text_format"
+          :label="$t('formatting.title')"
+          :pressed="false"
+          class="page-view__format-toggle"
+          @click="formatOpen = true"
+        />
         <div
-          v-if="isDesktop"
           class="page-view__modes"
           role="tablist"
           :aria-label="$t('pageView.viewMode')"
@@ -554,48 +559,43 @@ function onModeKeydown(event: KeyboardEvent) {
           </button>
         </div>
 
-        <!-- Phones get one button so the toolbar row stays with the title. -->
-        <UiMenu v-else align="end">
-          <template #trigger>
-            <UiIconButton
-              :icon="activeMode.icon"
-              :label="`${$t('pageView.viewMode')}: ${$t(activeMode.key)}`"
-              :disabled="!ready"
-            />
-          </template>
-
-          <DropdownMenuRadioGroup
-            :model-value="modelValue"
-            @update:model-value="(value) => emit('update:modelValue', value as ViewModeId)"
-          >
-            <DropdownMenuRadioItem
-              v-for="mode in modes"
-              :key="mode.id"
-              :value="mode.id"
-              class="menu__item page-view__mode-option"
-            >
-              <MsIcon :name="mode.icon" :size="18" />
-              {{ $t(mode.key) }}
-              <MsIcon
-                v-if="modelValue === mode.id"
-                name="check"
-                :size="16"
-                class="page-view__mode-check"
+        <!-- Narrow panes get one button so the row stays with the title. Both
+             variants render; the container query in the styles swaps them. -->
+        <span class="page-view__modes-menu">
+          <UiMenu align="end">
+            <template #trigger>
+              <UiIconButton
+                :icon="activeMode.icon"
+                :label="`${$t('pageView.viewMode')}: ${$t(activeMode.key)}`"
+                :disabled="!ready"
               />
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </UiMenu>
+            </template>
+
+            <DropdownMenuRadioGroup
+              :model-value="modelValue"
+              @update:model-value="(value) => emit('update:modelValue', value as ViewModeId)"
+            >
+              <DropdownMenuRadioItem
+                v-for="mode in modes"
+                :key="mode.id"
+                :value="mode.id"
+                class="menu__item page-view__mode-option"
+              >
+                <MsIcon :name="mode.icon" :size="18" />
+                {{ $t(mode.key) }}
+                <MsIcon
+                  v-if="modelValue === mode.id"
+                  name="check"
+                  :size="16"
+                  class="page-view__mode-check"
+                />
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </UiMenu>
+        </span>
       </div>
 
       <div class="page-view__toolbar-actions">
-        <UiIconButton
-          v-if="modelValue !== 'read' && !formatOpen"
-          icon="text_format"
-          :label="$t('formatting.title')"
-          :pressed="false"
-          class="page-view__format-toggle"
-          @click="formatOpen = true"
-        />
         <AIMenu
           v-if="store && aiEnabled"
           :page-id="pageId"
@@ -676,6 +676,10 @@ function onModeKeydown(event: KeyboardEvent) {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  /* Toolbar layout queries the pane, not the viewport, so expanding the
+     sidebar collapses the toolbar the way a narrow window would. */
+  container-type: inline-size;
+  container-name: page-view;
 }
 
 .page-view__toolbar {
@@ -721,10 +725,20 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 /* :deep() targets UiIconButton's inner button; component-wrapped buttons do
-   not receive the consumer's scope attribute. */
-.page-view__toolbar-actions :deep(.page-view__format-toggle[aria-pressed="true"]) {
+   not receive the consumer's scope attribute. The toggle rides with the mode
+   control, so it is sized to the mode buttons (button--small is 1.9rem). */
+.page-view__toolbar-main :deep(.page-view__format-toggle) {
+  flex: none;
+}
+
+.page-view__toolbar-main :deep(.page-view__format-toggle[aria-pressed="true"]) {
   color: var(--color-accent);
   background: var(--color-accent-soft);
+}
+
+.page-view__modes-menu {
+  display: none;
+  flex: none;
 }
 
 /* Chevron pinned to the strip's right edge; matches the edit button size. */
@@ -772,9 +786,11 @@ function onModeKeydown(event: KeyboardEvent) {
   flex: none;
 }
 
-/* Mobile: the toolbar stacks. Title + modes on top, then the AI/publish
-   actions as one horizontally scrollable row so nothing gets buried. */
-@media (max-width: 768px) {
+/* Narrow panes: the toolbar stacks. Title + modes on top, then the AI/publish
+   actions as one horizontally scrollable row so nothing gets buried. Keyed to
+   the pane rather than the viewport, so a desktop with an expanded sidebar
+   collapses the same way a phone does. */
+@container page-view (max-width: 48rem) {
   .page-view__toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -805,6 +821,16 @@ function onModeKeydown(event: KeyboardEvent) {
 
   .page-view__format {
     padding: 0.2rem 0.5rem;
+  }
+
+  /* One mode button instead of the tab strip. Scoped under the main row so it
+     beats the base `.page-view__modes` rule declared later in this file. */
+  .page-view__toolbar-main .page-view__modes {
+    display: none;
+  }
+
+  .page-view__toolbar-main .page-view__modes-menu {
+    display: inline-flex;
   }
 }
 
