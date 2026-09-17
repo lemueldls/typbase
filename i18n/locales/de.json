@@ -14,6 +14,7 @@
   "boot": {
     "title": "Arbeitsbereich wird geöffnet",
     "switching": "Arbeitsbereich wird gewechselt…",
+    "switchingTo": "Wechsle zu {name}…",
     "storage": "Lokalen Speicher öffnen",
     "workspace": "Arbeitsbereich-Dokumente laden",
     "atproto": "atproto-Sitzung prüfen",
@@ -256,6 +257,15 @@
     "bulletList": "Aufzählung",
     "orderedList": "Nummerierte Liste",
     "collapse": "Formatierungsleiste einklappen"
+  },
+  "assets": {
+    "title": "Medium einfügen",
+    "search": "Medien suchen",
+    "upload": "Hochladen",
+    "loading": "Medien werden geladen…",
+    "empty": "Noch keine Medien. Lade welche hoch, um sie in Notizen wiederzuverwenden.",
+    "noMatches": "Keine Medien passen zur Suche.",
+    "hint": "Klicke ein Medium an, um es an der Cursorposition einzufügen."
   },
   "storage": {
     "setupTitle": "Speicherort wählen",

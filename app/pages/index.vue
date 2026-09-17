@@ -6,6 +6,7 @@ import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
 const {
   workspace,
+  workspaces,
   error,
   ensure,
   dataRevision,
@@ -25,6 +26,11 @@ const paletteOpen = ref(false);
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter; mobile keeps the drawer. */
 const isDesktop = useMediaQuery("(min-width: 769px)");
+
+/** Name of the workspace being opened, for the switching pill. */
+const switchingName = computed(
+  () => workspaces.value.find((entry) => entry.id === switching.value)?.name ?? null,
+);
 
 /** Desktop sidebar collapse. Reka-ui persists the collapsed layout, so the
  *  initial state is read from the panel rather than assumed. */
@@ -248,8 +254,10 @@ definePageMeta({ ssr: false });
 <template>
   <main class="app">
     <div v-if="loaded && switching" class="app__switching" role="status">
-      <span class="app__switching-label">{{ $t("boot.switching") }}</span>
-      <span class="app__switching-track"><span class="app__switching-bar" /></span>
+      <span class="app__switching-spinner" aria-hidden="true" />
+      <span class="app__switching-label">
+        {{ switchingName ? $t("boot.switchingTo", { name: switchingName }) : $t("boot.switching") }}
+      </span>
     </div>
 
     <div v-if="!loaded" class="app__loading">
@@ -426,52 +434,58 @@ definePageMeta({ ssr: false });
 /* Workspace switch feedback: a pill + indeterminate bar over the shell, and
    a dimmed, inert content area until the new store is live. The content div
    is `display: contents`, so the dim has to target its children. */
+/* Workspace switch feedback: a floating status pill over the dimmed, inert
+   content area (see .app__content--switching). */
 .app__switching {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0.9rem;
+  left: 50%;
   z-index: 90;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
   pointer-events: none;
+  animation: app-switching-in 0.15s ease-out;
+  transform: translateX(-50%);
+}
+
+.app__switching-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: none;
+  border: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: app-switching-spin 0.7s linear infinite;
 }
 
 .app__switching-label {
-  margin-top: 0.5rem;
-  padding: 0.25rem 0.7rem;
-  font-size: 0.78rem;
-  color: var(--color-surface);
-  background: var(--color-accent);
-  border-radius: 999px;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.app__switching-track {
-  display: block;
-  width: 100%;
-  height: 2px;
-  margin-top: 0.4rem;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+@keyframes app-switching-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.app__switching-bar {
-  display: block;
-  width: 35%;
-  height: 100%;
-  background: var(--color-accent);
-  animation: app-switching 1.1s ease-in-out infinite;
-}
-
-@keyframes app-switching {
+@keyframes app-switching-in {
   from {
-    transform: translateX(-100%);
+    opacity: 0;
+    transform: translate(-50%, -0.25rem);
   }
 
   to {
-    transform: translateX(286%);
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }
 

@@ -26,6 +26,11 @@
   font-size: 1.25rem;
 }
 
+/* Asset picker: wider than the default dialog so the thumbnail grid breathes. */
+.asset-dialog {
+  width: min(680px, calc(100vw - 2rem));
+}
+
 .dialog__description {
   margin: 0 0 1rem;
   font-size: 0.85rem;

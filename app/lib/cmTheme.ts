@@ -20,7 +20,7 @@ export const typstEditorTheme = EditorView.theme({
   },
   ".cm-content": {
     fontFamily: "var(--font-mono)",
-    padding: "1rem 1.25rem",
+    // padding: "1rem 1.25rem",
   },
   ".cm-line": {
     padding: "0",

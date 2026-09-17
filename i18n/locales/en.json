@@ -14,6 +14,7 @@
   "boot": {
     "title": "Opening workspace",
     "switching": "Switching workspace…",
+    "switchingTo": "Switching to {name}…",
     "storage": "Opening local storage",
     "workspace": "Loading workspace documents",
     "atproto": "Checking atproto session",
@@ -256,6 +257,15 @@
     "bulletList": "Bullet list",
     "orderedList": "Numbered list",
     "collapse": "Collapse formatting toolbar"
+  },
+  "assets": {
+    "title": "Insert asset",
+    "search": "Search assets",
+    "upload": "Upload",
+    "loading": "Loading assets…",
+    "empty": "No assets yet. Upload one to reuse it in notes.",
+    "noMatches": "No assets match that search.",
+    "hint": "Click an asset to insert it at the cursor."
   },
   "storage": {
     "setupTitle": "Choose storage location",

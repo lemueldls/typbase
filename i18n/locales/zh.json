@@ -14,6 +14,7 @@
   "boot": {
     "title": "正在打开工作区",
     "switching": "正在切换工作区…",
+    "switchingTo": "正在切换到 {name}…",
     "storage": "正在打开本地存储",
     "workspace": "正在加载工作区文档",
     "atproto": "正在检查 atproto 会话",
@@ -256,6 +257,15 @@
     "bulletList": "项目符号列表",
     "orderedList": "编号列表",
     "collapse": "收起格式工具栏"
+  },
+  "assets": {
+    "title": "插入资源",
+    "search": "搜索资源",
+    "upload": "上传",
+    "loading": "正在加载资源…",
+    "empty": "还没有资源。上传后即可在笔记中复用。",
+    "noMatches": "没有匹配的资源。",
+    "hint": "点击资源即可插入到光标位置。"
   },
   "storage": {
     "setupTitle": "选择存储位置",

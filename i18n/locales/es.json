@@ -14,6 +14,7 @@
   "boot": {
     "title": "Abriendo espacio de trabajo",
     "switching": "Cambiando de espacio de trabajo…",
+    "switchingTo": "Cambiando a {name}…",
     "storage": "Abriendo almacenamiento local",
     "workspace": "Cargando documentos del espacio",
     "atproto": "Comprobando sesión atproto",
@@ -256,6 +257,15 @@
     "bulletList": "Lista con viñetas",
     "orderedList": "Lista numerada",
     "collapse": "Contraer barra de formato"
+  },
+  "assets": {
+    "title": "Insertar recurso",
+    "search": "Buscar recursos",
+    "upload": "Subir",
+    "loading": "Cargando recursos…",
+    "empty": "Aún no hay recursos. Sube uno para reutilizarlo en las notas.",
+    "noMatches": "Ningún recurso coincide con la búsqueda.",
+    "hint": "Haz clic en un recurso para insertarlo en el cursor."
   },
   "storage": {
     "setupTitle": "Elegir ubicación de almacenamiento",

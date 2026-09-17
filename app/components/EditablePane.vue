@@ -313,8 +313,12 @@ defineExpose({ view, recompile, revealRange, insertAt });
 <template>
   <section ref="container" class="editable-pane" :class="{ 'editable-pane--dragging': dragActive }">
     <div v-if="dragActive" class="editable-pane__drop" aria-hidden="true">
-      <span class="editable-pane__drop-label">{{ $t("pageView.dropMedia") }}</span>
-      <span class="editable-pane__drop-line" :style="{ top: `${dropTop}px` }" />
+      <span class="editable-pane__drop-line" :style="{ top: `${dropTop}px` }">
+        <span class="editable-pane__drop-label">
+          <MsIcon name="add_photo_alternate" :size="15" />
+          {{ $t("pageView.dropMedia") }}
+        </span>
+      </span>
     </div>
   </section>
 </template>
@@ -331,7 +335,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
 }
 
 .editable-pane--dragging :deep(.cm-editor) {
-  box-shadow: inset 0 0 0 2px var(--color-accent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
 .editable-pane__drop {
@@ -339,26 +343,68 @@ defineExpose({ view, recompile, revealRange, insertAt });
   inset: 0;
   z-index: 5;
   pointer-events: none;
+  background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+  animation: editable-pane-drop-in 0.12s ease-out;
+}
+
+/* Insertion line: rides the pointer's line and carries the hint chip, so the
+   text marks where the media lands instead of floating at the pane top. */
+.editable-pane__drop-line {
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.editable-pane__drop-line::before,
+.editable-pane__drop-line::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  transform: translateY(-50%);
+}
+
+.editable-pane__drop-line::before {
+  left: -0.25rem;
+}
+
+.editable-pane__drop-line::after {
+  right: -0.25rem;
 }
 
 .editable-pane__drop-label {
   position: absolute;
-  top: 0.5rem;
+  bottom: 0.45rem;
   left: 50%;
   transform: translateX(-50%);
-  padding: 0.2rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
   font-size: 0.75rem;
-  color: #fff;
-  background: var(--color-accent);
+  font-weight: 500;
+  color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
   border-radius: 999px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+  white-space: nowrap;
 }
 
-.editable-pane__drop-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-surface);
+@keyframes editable-pane-drop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 </style>

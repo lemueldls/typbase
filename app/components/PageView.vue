@@ -379,6 +379,20 @@ async function handleAssetDrop(
   }
 }
 
+/** Picked blobs land at the cursor: images inline, everything else as a link. */
+function insertAsset(asset: { hash: string; mime: string; reference: string }): void {
+  const view = editorPane.value?.view;
+  const position = view?.state.selection.main.head ?? 0;
+  const extension = asset.reference.split(".").pop() ?? "asset";
+  const insert = asset.mime.startsWith("image/")
+    ? `#image("${asset.reference}")`
+    : `#link("${asset.reference}")[${extension.toUpperCase()}]`;
+
+  editorPane.value?.insertAt(position, insert);
+  // The dialog restores focus to its trigger as it closes; take it back.
+  void nextTick(() => view?.focus());
+}
+
 function onRequests(requests: unknown[], spaceId: string) {
   return requestService!.handler(requests as never, spaceId);
 }
@@ -590,6 +604,14 @@ function onModeKeydown(event: KeyboardEvent) {
           class="page-view__format-toggle"
           @click="formatOpen = true"
         />
+        <AssetPicker v-if="modelValue !== 'read' && store" :store="store" @select="insertAsset">
+          <UiIconButton
+            icon="image"
+            :label="$t('assets.title')"
+            :disabled="!ready"
+            class="page-view__asset-toggle"
+          />
+        </AssetPicker>
       </div>
 
       <div class="page-view__toolbar-actions">

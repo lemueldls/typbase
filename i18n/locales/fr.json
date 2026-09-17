@@ -14,6 +14,7 @@
   "boot": {
     "title": "Ouverture de l'espace de travail",
     "switching": "Changement d'espace de travail…",
+    "switchingTo": "Bascule vers {name}…",
     "storage": "Ouverture du stockage local",
     "workspace": "Chargement des documents",
     "atproto": "Vérification de la session atproto",
@@ -256,6 +257,15 @@
     "bulletList": "Liste à puces",
     "orderedList": "Liste numérotée",
     "collapse": "Réduire la barre de mise en forme"
+  },
+  "assets": {
+    "title": "Insérer un média",
+    "search": "Rechercher des médias",
+    "upload": "Importer",
+    "loading": "Chargement des médias…",
+    "empty": "Pas encore de médias. Importez-en pour les réutiliser dans vos notes.",
+    "noMatches": "Aucun média ne correspond à cette recherche.",
+    "hint": "Cliquez sur un média pour l'insérer au curseur."
   },
   "storage": {
     "setupTitle": "Choisir l'emplacement de stockage",
