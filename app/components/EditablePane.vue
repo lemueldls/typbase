@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SpellcheckMode } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 import type { FileId, TypstState } from "@typbase/wasm";
 
@@ -33,6 +34,7 @@ import {
 } from "@typbase/codemirror";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
+import { spellcheckCompartment, spellcheckExtension } from "~/lib/spellcheck";
 
 const props = defineProps<{
   fileId: FileId;
@@ -42,6 +44,8 @@ const props = defineProps<{
   prelude: TextRef;
   /** WYSIWYG (inline previews) vs plain source editing. */
   wysiwyg: boolean;
+  /** Spellcheck provider; reconfigured in place when it changes. */
+  spellcheck?: SpellcheckMode;
   typstState: TypstState;
   onRequests?: (requests: TypstRequest[], spaceId: string) => Promise<boolean> | boolean;
   revision?: () => string | number | undefined;
@@ -189,6 +193,17 @@ watch(
   },
 );
 
+// The spellcheck provider is swapped in place; the Harper source only loads
+// its worker once something selects it.
+watch(
+  () => props.spellcheck,
+  (mode) => {
+    view.value?.dispatch({
+      effects: spellcheckCompartment.reconfigure(spellcheckExtension(mode)),
+    });
+  },
+);
+
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
 
@@ -230,6 +245,7 @@ function createStateConfig(): EditorStateConfig {
   }
 
   extensions.push(
+    spellcheckCompartment.of(spellcheckExtension(props.spellcheck)),
     EditorView.exceptionSink.of((error) => {
       console.error(error);
     }),

@@ -36,13 +36,11 @@ export default defineNuxtConfig({
     // experimental: { bundledDev: true },
     resolve: {
       alias: {
-        // See app/lib/node-dns-shim.ts: Vite's browser-external stub for this
-        // module throws on access, and airspace only needs it to be absent.
         "node:dns/promises": fileURLToPath(new URL("./app/lib/node-dns-shim.ts", import.meta.url)),
       },
     },
     optimizeDeps: {
-      exclude: ["loro-crdt", "sqlite-wasm-vec"],
+      exclude: ["loro-crdt", "sqlite-wasm-vec", "harper.js", "harper.js/binaryInlined"],
       include: ["@typbase/wasm"],
     },
     server: {

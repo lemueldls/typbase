@@ -253,6 +253,9 @@ importers:
       h3:
         specifier: 2.0.1-rc.22
         version: 2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22))
+      harper.js:
+        specifier: ^2.10.0
+        version: 2.10.0
       lru-cache:
         specifier: ^11.2.5
         version: 11.5.2
@@ -3184,6 +3187,9 @@ packages:
       picomatch:
         optional: true
 
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
+
   file-entry-cache@11.1.5:
     resolution: {integrity: sha512-+PFTHITI08JIGhnNpGNI8T8inUpgZfk3GNEqfT9R2zZV2iFXg3CvqzSl/uEhs7TSGujYRELEANyDvS8Fj7+S7Q==}
 
@@ -3285,6 +3291,9 @@ packages:
         optional: true
       ocache:
         optional: true
+
+  harper.js@2.10.0:
+    resolution: {integrity: sha512-s6BDuqtRbX8M/5exH1G5M7VzAuv6l0TagbRxMY37OsrT/1kWFjWmqHydWrkYFqTUW+fFhu4Hj2yUxvChp862Pg==}
 
   has-property-descriptors@1.0.2:
     resolution: {integrity: sha512-55JNKuIW+vq4Ke1BjOTjM2YctQIvCT7GFzHwmfZPGo5wnrgkid0YQtnAleFSqumZm4az3n2BS+erby5ipJdgrg==}
@@ -7112,6 +7121,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
+  fflate@0.8.3: {}
+
   file-entry-cache@11.1.5:
     dependencies:
       flat-cache: 6.1.23
@@ -7221,6 +7232,10 @@ snapshots:
       srvx: 1.0.4
     optionalDependencies:
       crossws: 0.4.12(srvx@0.11.22)
+
+  harper.js@2.10.0:
+    dependencies:
+      fflate: 0.8.3
 
   has-property-descriptors@1.0.2:
     dependencies:

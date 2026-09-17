@@ -95,6 +95,12 @@ export interface SearchSettings {
 
 export type ThemeMode = "auto" | "light" | "dark";
 
+/**
+ * Editor spellcheck provider: "off", the browser's own checker ("native"), or
+ * Harper's local WASM grammar checker ("harper").
+ */
+export type SpellcheckMode = "off" | "native" | "harper";
+
 /** Palette token names, in display order. The renderer maps them 1:1. */
 export const THEME_PALETTE_TOKEN_KEYS = [
   "surface",
@@ -148,6 +154,8 @@ export interface WorkspaceSettings {
    * shows 16px source text, so the default 16pt matches it).
    */
   textSize: number;
+  /** Editor spellcheck provider; synced with the workspace like fonts. */
+  spellcheck: SpellcheckMode;
   /** Theme mode; "auto" follows the OS preference. Synced like everything else. */
   theme: ThemeMode;
   /** Named theme from the registry ("default", "catppuccin", "custom", ...). */
@@ -176,6 +184,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   mathFont: "New Computer Modern Math",
   codeFont: null,
   textSize: 16,
+  spellcheck: "off",
   theme: "auto",
   themeName: "default",
   themeCustom: null,

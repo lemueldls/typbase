@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
-import type { ThemePaletteToken, ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
+import type {
+  SpellcheckMode,
+  ThemePaletteToken,
+  ThemePaletteTokens,
+  WorkspaceSettings,
+} from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { isTauri } from "@typbase/storage";
@@ -178,6 +183,12 @@ function onDailyTemplateChange(event: Event) {
 function onPagePreludeChange(event: Event) {
   props.store.updateSettings({
     pagePrelude: (event.target as HTMLTextAreaElement).value,
+  });
+}
+
+function onSpellcheckChange(event: Event) {
+  props.store.updateSettings({
+    spellcheck: (event.target as HTMLSelectElement).value as SpellcheckMode,
   });
 }
 
@@ -470,6 +481,20 @@ function onTextSizeChange(event: Event) {
               @change="onPagePreludeChange"
             />
             <span class="settings__hint">{{ $t("settings.preludeHint") }}</span>
+          </Label>
+
+          <Label class="settings__field">
+            <span>{{ $t("settings.spellcheck") }}</span>
+            <select
+              class="settings__input"
+              :value="settings.spellcheck ?? 'off'"
+              @change="onSpellcheckChange"
+            >
+              <option value="off">{{ $t("settings.spellcheckOff") }}</option>
+              <option value="native">{{ $t("settings.spellcheckNative") }}</option>
+              <option value="harper">{{ $t("settings.spellcheckHarper") }}</option>
+            </select>
+            <span class="settings__hint">{{ $t("settings.spellcheckHint") }}</span>
           </Label>
         </section>
 

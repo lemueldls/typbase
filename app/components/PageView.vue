@@ -121,6 +121,13 @@ let unsubscribeFontScan: (() => void) | undefined;
 let detachScrollSync: (() => void) | undefined;
 let pageDisposed = false;
 
+/** Editor spellcheck follows the workspace setting; dataRevision re-reads it. */
+const spellcheckMode = computed(() => {
+  void dataRevision.value;
+
+  return store?.getSettings().spellcheck ?? "off";
+});
+
 const aiEnabled = computed(() => store.getAiConfig().enabled);
 
 const TEXT_PUSH_MS = 300;
@@ -630,6 +637,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :space-id="workspaceId"
         :path="meta?.path ?? ''"
         :wysiwyg="modelValue === 'write'"
+        :spellcheck="spellcheckMode"
         :typst-state="boundState"
         :on-requests="onRequests"
         :revision="editorRevision"

@@ -46,6 +46,7 @@
     "@vueuse/nuxt": "14.4.0",
     "@vueuse/router": "^14.4.0",
     "h3": "2.0.1-rc.22",
+    "harper.js": "^2.10.0",
     "lru-cache": "^11.2.5",
     "material-symbols": "0.40.2",
     "nuxt": "npm:nuxt-nightly@5.0.0-29803630.047484a6",
