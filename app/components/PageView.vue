@@ -522,19 +522,9 @@ function onModeKeydown(event: KeyboardEvent) {
   <div class="page-view">
     <div class="page-view__toolbar">
       <div class="page-view__toolbar-main">
-        <!-- Mobile nav toggle, provided by the shell; flows inline so it never
-             covers the title. -->
         <slot name="nav-toggle" />
         <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
-        <!-- Rides with the mode control; button--small matches its height. -->
-        <UiIconButton
-          v-if="modelValue !== 'read' && !formatOpen"
-          icon="text_format"
-          :label="$t('formatting.title')"
-          :pressed="false"
-          class="page-view__format-toggle"
-          @click="formatOpen = true"
-        />
+
         <div
           class="page-view__modes"
           role="tablist"
@@ -559,8 +549,6 @@ function onModeKeydown(event: KeyboardEvent) {
           </button>
         </div>
 
-        <!-- Narrow panes get one button so the row stays with the title. Both
-             variants render; the container query in the styles swaps them. -->
         <span class="page-view__modes-menu">
           <UiMenu align="end">
             <template #trigger>
@@ -593,6 +581,15 @@ function onModeKeydown(event: KeyboardEvent) {
             </DropdownMenuRadioGroup>
           </UiMenu>
         </span>
+
+        <UiIconButton
+          v-if="modelValue !== 'read' && !formatOpen"
+          icon="text_format"
+          :label="$t('formatting.title')"
+          :pressed="false"
+          class="page-view__format-toggle"
+          @click="formatOpen = true"
+        />
       </div>
 
       <div class="page-view__toolbar-actions">
@@ -722,18 +719,6 @@ function onModeKeydown(event: KeyboardEvent) {
   align-items: center;
   gap: 0.6rem;
   max-width: 100%;
-}
-
-/* :deep() targets UiIconButton's inner button; component-wrapped buttons do
-   not receive the consumer's scope attribute. The toggle rides with the mode
-   control, so it is sized to the mode buttons (button--small is 1.9rem). */
-.page-view__toolbar-main :deep(.page-view__format-toggle) {
-  flex: none;
-}
-
-.page-view__toolbar-main :deep(.page-view__format-toggle[aria-pressed="true"]) {
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
 }
 
 .page-view__modes-menu {
