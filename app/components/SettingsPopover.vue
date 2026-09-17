@@ -430,7 +430,7 @@ function onTextSizeChange(event: Event) {
 
           <div class="settings__field">
             <span>{{ $t("switcher.iconLabel") }}</span>
-            <IconPicker v-model="workspaceIcon" :limit="200" />
+            <IconPicker v-model="workspaceIcon" />
           </div>
 
           <Label class="settings__field">

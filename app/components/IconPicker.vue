@@ -9,7 +9,7 @@ const props = withDefaults(
     /** How many results render before "refine your search" is shown. */
     limit?: number;
   }>(),
-  { limit: 300 },
+  { limit: 350 },
 );
 
 const emit = defineEmits<{
