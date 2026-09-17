@@ -95,16 +95,26 @@ watch(
   () => scheduleRender(),
 );
 
+/** Platform scrollbars vary; erring low keeps frames inside the pane. */
+const SCROLLBAR_ALLOWANCE = 12;
+
 function measureWidth(): number {
   const scrollerEl = scroller.value;
   if (!scrollerEl) return 0;
 
   const inner = scrollerEl.querySelector<HTMLElement>(".paged-preview__inner");
-  if (!inner) return scrollerEl.clientWidth;
+  const style = getComputedStyle(inner ?? scrollerEl);
 
-  const style = getComputedStyle(inner);
-
-  return inner.clientWidth - (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight));
+  // The scroller's border box includes any scrollbar and does not depend on
+  // the rendered frames, so a reflow cannot change this width and set off
+  // another compile. Content-box measurements crept as the scrollbar toggled.
+  return Math.max(
+    0,
+    scrollerEl.getBoundingClientRect().width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight) -
+      SCROLLBAR_ALLOWANCE,
+  );
 }
 
 function frameStyle(frame: SvgRangedFrame): Record<string, string> {
@@ -118,10 +128,12 @@ function frameStyle(frame: SvgRangedFrame): Record<string, string> {
 onMounted(() => {
   resizeObserver = new ResizeObserver(() => {
     const width = measureWidth();
-    if (width > 0) {
-      props.typstState.resize(props.fileId, width);
-      scheduleRender();
-    }
+    if (width <= 0) return;
+
+    // resize() reports whether the width actually changed. Height-only
+    // observer ticks must not schedule another compile, or the pane keeps
+    // reflowing after it has settled.
+    if (props.typstState.resize(props.fileId, width)) scheduleRender();
   });
   if (scroller.value) resizeObserver.observe(scroller.value);
   scroller.value?.addEventListener("click", onPreviewClick);
@@ -195,8 +207,30 @@ defineExpose({ scroller, getFrameLayout });
 .paged-preview {
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
+  /* Always reserve the scrollbar. The frame width is compiled from the pane
+     box, so the available width must not toggle a reflow. */
+  overflow-y: scroll;
   background: var(--color-surface);
+}
+
+.paged-preview::-webkit-scrollbar {
+  width: 10px;
+}
+
+.paged-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.paged-preview::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.paged-preview::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-secondary);
+  background-clip: content-box;
 }
 
 .paged-preview :deep(a[href]) {

@@ -183,6 +183,23 @@ function compileCacheKey(
   return `${path}:${typstState.revision()}:${revision?.() ?? ""}`;
 }
 
+const SCROLLBAR_ALLOWANCE = 12;
+
+function editorRenderWidth(scrollDOM: HTMLElement, contentDOM: HTMLElement): number {
+  const pane = scrollDOM.getBoundingClientRect();
+  const gutters = scrollDOM.querySelector<HTMLElement>(".cm-gutters");
+  const style = getComputedStyle(contentDOM);
+
+  return Math.max(
+    0,
+    pane.width -
+      (gutters?.getBoundingClientRect().width ?? 0) -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight) -
+      SCROLLBAR_ALLOWANCE,
+  );
+}
+
 export const tooltipsStateEffect = StateEffect.define<SvgRangedFrame[]>();
 
 export const tooltipsStateField = StateField.define<SvgRangedFrame[]>({
@@ -381,8 +398,7 @@ export const typstViewPlugin = (
 
           widthChanged = typstState.resize(
             fileId,
-            contentDOM.clientWidth - 16,
-            // editorWidth(scrollDOM, contentDOM),
+            editorRenderWidth(scrollDOM, contentDOM),
             locked ? scrollDOM.clientHeight : undefined,
           );
         }

@@ -5,7 +5,10 @@
 
 .cm-scroller {
   overflow-x: hidden;
-  overflow-y: auto;
+  /* Always reserve the custom scrollbar's width. The text column is what the
+     inline widgets compile against, so it must be a constant function of the
+     pane box, not something that changes when a scrollbar appears. */
+  overflow-y: scroll;
   /* The root sets a standard scrollbar-color; opt back into the custom
      webkit scrollbar styled below. */
   scrollbar-color: auto;

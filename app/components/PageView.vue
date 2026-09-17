@@ -498,6 +498,11 @@ const modes: Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }> = VIEW
   }),
 );
 
+/** Desktop shows the inline control; phones get a single menu button. */
+const isDesktop = useMediaQuery("(min-width: 769px)");
+
+const activeMode = computed(() => modes.find((mode) => mode.id === props.modelValue) ?? modes[0]!);
+
 // Arrow keys move between view modes, per the tabs pattern.
 function onModeKeydown(event: KeyboardEvent) {
   if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
@@ -518,36 +523,61 @@ function onModeKeydown(event: KeyboardEvent) {
         <slot name="nav-toggle" />
         <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
         <div
+          v-if="isDesktop"
           class="page-view__modes"
           role="tablist"
-          aria-label="View mode"
+          :aria-label="$t('pageView.viewMode')"
           aria-orientation="horizontal"
           @keydown="onModeKeydown"
         >
-          <UiTooltip
+          <button
             v-for="mode in modes"
             :key="mode.id"
-            :text="$t(mode.key)"
-            :disabled="modelValue === mode.id"
+            type="button"
+            role="tab"
+            :aria-selected="modelValue === mode.id"
+            :tabindex="modelValue === mode.id ? 0 : -1"
+            class="page-view__mode"
+            :class="{ 'page-view__mode--active': modelValue === mode.id }"
+            :disabled="!ready"
+            @click="emit('update:modelValue', mode.id)"
           >
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="modelValue === mode.id"
-              :aria-label="$t(mode.key)"
-              :tabindex="modelValue === mode.id ? 0 : -1"
-              class="page-view__mode"
-              :class="{ 'page-view__mode--active': modelValue === mode.id }"
+            <MsIcon :name="mode.icon" :size="18" />
+            <span class="page-view__mode-label">{{ $t(mode.key) }}</span>
+          </button>
+        </div>
+
+        <!-- Phones get one button so the toolbar row stays with the title. -->
+        <UiMenu v-else align="end">
+          <template #trigger>
+            <UiIconButton
+              :icon="activeMode.icon"
+              :label="`${$t('pageView.viewMode')}: ${$t(activeMode.key)}`"
               :disabled="!ready"
-              @click="emit('update:modelValue', mode.id)"
+            />
+          </template>
+
+          <DropdownMenuRadioGroup
+            :model-value="modelValue"
+            @update:model-value="(value) => emit('update:modelValue', value as ViewModeId)"
+          >
+            <DropdownMenuRadioItem
+              v-for="mode in modes"
+              :key="mode.id"
+              :value="mode.id"
+              class="menu__item page-view__mode-option"
             >
               <MsIcon :name="mode.icon" :size="18" />
-              <span v-if="modelValue === mode.id" class="page-view__mode-label">
-                {{ $t(mode.key) }}
-              </span>
-            </button>
-          </UiTooltip>
-        </div>
+              {{ $t(mode.key) }}
+              <MsIcon
+                v-if="modelValue === mode.id"
+                name="check"
+                :size="16"
+                class="page-view__mode-check"
+              />
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </UiMenu>
       </div>
 
       <div class="page-view__toolbar-actions">
@@ -750,11 +780,6 @@ function onModeKeydown(event: KeyboardEvent) {
     gap: 0.4rem;
   }
 
-  .page-view__mode {
-    height: 2.1rem;
-    padding: 0 0.7rem;
-  }
-
   .page-view__toolbar-actions {
     width: 100%;
     overflow-x: auto;
@@ -827,6 +852,18 @@ function onModeKeydown(event: KeyboardEvent) {
 
 .page-view__mode-label {
   white-space: nowrap;
+}
+
+/* Mobile mode menu: the checked row gets the accent check mark. */
+.page-view__mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.page-view__mode-check {
+  margin-left: auto;
+  color: var(--color-accent);
 }
 
 .page-view__error {
