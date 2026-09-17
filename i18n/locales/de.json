@@ -113,6 +113,12 @@
     "apiKey": "API-Schlüssel (nur dieses Gerät)",
     "keysHint": "Schlüssel bleiben in local.json, nie in synchronisierten Einstellungen.",
     "semantic": "Semantische Suche (lädt ein Modell herunter)",
+    "searchModelIdle": "Modell noch nicht geladen",
+    "searchModelDownloading": "Modell wird geladen…",
+    "searchModelReady": "Modell bereit",
+    "searchModelError": "Modell fehlgeschlagen: {error}",
+    "searchNoVec": "Dieser Build hat keine Vektorunterstützung; die semantische Suche bleibt aus.",
+    "searchIndexError": "Indexierung fehlgeschlagen: {error}",
     "indexStatus": "Index: {docs} Seiten · {blocks} Blöcke · {mode}",
     "indexPersistent": "persistent",
     "indexMemory": "im Speicher (kein OPFS/Isolation)",
@@ -192,7 +198,12 @@
     "label": "Seiten und Blöcke durchsuchen",
     "searching": "Suche…",
     "noMatches": "Keine Treffer.",
-    "prompt": "Tippe, um jeden Block im Arbeitsbereich zu durchsuchen."
+    "prompt": "Tippe, um jeden Block im Arbeitsbereich zu durchsuchen.",
+    "modeText": "Textsuche",
+    "modeHybrid": "Text- und semantische Suche",
+    "modeLoading": "Textsuche · semantisches Modell lädt",
+    "modeUnavailable": "Textsuche · semantische Suche nicht verfügbar",
+    "indexError": "Fehler im Suchindex: {error}"
   },
   "calendar": {
     "title": "Tägliche Notizen",

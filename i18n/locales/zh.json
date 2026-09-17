@@ -113,6 +113,12 @@
     "apiKey": "API 密钥（仅本机）",
     "keysHint": "密钥存于 local.json，绝不进入同步设置。",
     "semantic": "语义搜索（需下载模型）",
+    "searchModelIdle": "模型未加载",
+    "searchModelDownloading": "模型下载中…",
+    "searchModelReady": "模型就绪",
+    "searchModelError": "模型加载失败：{error}",
+    "searchNoVec": "此版本不支持向量，语义搜索将保持关闭。",
+    "searchIndexError": "索引失败：{error}",
     "indexStatus": "索引：{docs} 个页面 · {blocks} 个块 · {mode}",
     "indexPersistent": "持久化",
     "indexMemory": "内存中（无 OPFS/隔离）",
@@ -192,7 +198,12 @@
     "label": "搜索页面和文本块",
     "searching": "搜索中…",
     "noMatches": "没有匹配项。",
-    "prompt": "输入以搜索工作区中的每个文本块。"
+    "prompt": "输入以搜索工作区中的每个文本块。",
+    "modeText": "文本搜索",
+    "modeHybrid": "文本 + 语义搜索",
+    "modeLoading": "文本搜索 · 语义模型加载中",
+    "modeUnavailable": "文本搜索 · 语义搜索不可用",
+    "indexError": "搜索索引错误：{error}"
   },
   "calendar": {
     "title": "每日笔记",

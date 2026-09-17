@@ -15,7 +15,7 @@ const locales: LocaleObject[] = [
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-31",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   future: { compatibilityVersion: 5 },
   modules: ["@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
   css: ["~/assets/css/main.css"],
@@ -60,6 +60,14 @@ export default defineNuxtConfig({
     prerender: {
       routes: ["/"],
       crawlLinks: true,
+    },
+    routeRules: {
+      "/**": {
+        headers: {
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Cross-Origin-Embedder-Policy": "credentialless",
+        },
+      },
     },
   },
   i18n: {

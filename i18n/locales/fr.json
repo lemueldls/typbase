@@ -113,6 +113,12 @@
     "apiKey": "Clé API (appareil uniquement)",
     "keysHint": "Les clés restent dans local.json, jamais dans les paramètres synchronisés.",
     "semantic": "Recherche sémantique (télécharge un modèle)",
+    "searchModelIdle": "modèle non chargé",
+    "searchModelDownloading": "téléchargement du modèle…",
+    "searchModelReady": "modèle prêt",
+    "searchModelError": "échec du modèle : {error}",
+    "searchNoVec": "Cette version ne prend pas en charge les vecteurs ; la recherche sémantique reste désactivée.",
+    "searchIndexError": "Échec de l'indexation : {error}",
     "indexStatus": "Index : {docs} pages · {blocks} blocs · {mode}",
     "indexPersistent": "persistant",
     "indexMemory": "en mémoire (pas d'OPFS/isolation)",
@@ -192,7 +198,12 @@
     "label": "Rechercher dans les pages et blocs",
     "searching": "Recherche…",
     "noMatches": "Aucun résultat.",
-    "prompt": "Tapez pour chercher dans tous les blocs de l'espace."
+    "prompt": "Tapez pour chercher dans tous les blocs de l'espace.",
+    "modeText": "Recherche textuelle",
+    "modeHybrid": "Recherche textuelle et sémantique",
+    "modeLoading": "Recherche textuelle · chargement du modèle sémantique",
+    "modeUnavailable": "Recherche textuelle · recherche sémantique indisponible",
+    "indexError": "Erreur de l'index de recherche : {error}"
   },
   "calendar": {
     "title": "Notes quotidiennes",

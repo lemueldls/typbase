@@ -113,6 +113,12 @@
     "apiKey": "API key (device only)",
     "keysHint": "Keys stay in local.json, never in synced settings.",
     "semantic": "Semantic search (downloads a model)",
+    "searchModelIdle": "model not loaded yet",
+    "searchModelDownloading": "model downloading…",
+    "searchModelReady": "model ready",
+    "searchModelError": "model failed: {error}",
+    "searchNoVec": "This build has no vector support, so semantic search stays off.",
+    "searchIndexError": "Indexing failed: {error}",
     "indexStatus": "Index: {docs} pages · {blocks} blocks · {mode}",
     "indexPersistent": "persistent",
     "indexMemory": "in-memory (no OPFS/isolation)",
@@ -192,7 +198,12 @@
     "label": "Search pages and blocks",
     "searching": "Searching…",
     "noMatches": "No matches.",
-    "prompt": "Type to search every block in the workspace."
+    "prompt": "Type to search every block in the workspace.",
+    "modeText": "Text search",
+    "modeHybrid": "Text + semantic search",
+    "modeLoading": "Text search · semantic model loading",
+    "modeUnavailable": "Text search · semantic search unavailable",
+    "indexError": "Search index error: {error}"
   },
   "calendar": {
     "title": "Daily notes",

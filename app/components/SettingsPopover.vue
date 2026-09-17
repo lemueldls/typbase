@@ -193,10 +193,20 @@ function onSpellcheckChange(event: Event) {
 }
 
 // Search status.
-const { ensure: ensureSearch, search } = useSearch();
-const searchStatus = computed(() => search.value?.status ?? null);
+const { ensure: ensureSearch, search, status: searchStatus } = useSearch();
+const searchModelLabel = computed(() => {
+  const status = searchStatus.value;
+  if (!status) return "";
+  if (status.model === "downloading") return t("settings.searchModelDownloading");
+  if (status.model === "ready") return t("settings.searchModelReady");
+  if (status.model === "error") {
+    return t("settings.searchModelError", { error: status.error ?? "" });
+  }
+
+  return t("settings.searchModelIdle");
+});
 async function onRebuildIndex() {
-  await search.value?.rebuild();
+  await (search.value ?? (await ensureSearch(props.store))).rebuild();
 }
 function setAiEnabled(value: boolean) {
   updateAiPatching({ enabled: value });
@@ -207,7 +217,8 @@ async function toggleSemantic(semantic: boolean) {
     search: { ...props.store.getSearchSettings(), semantic },
   });
   if (semantic) {
-    await search.value?.reembedAll();
+    const manager = search.value ?? (await ensureSearch(props.store));
+    await manager.reembedAll();
   }
 }
 
@@ -756,9 +767,15 @@ function onTextSizeChange(event: Event) {
               <template v-if="searchStatus">
                 Index: {{ searchStatus.docs }} pages · {{ searchStatus.blocks }} blocks ·
                 {{ searchStatus.mode === "opfs" ? "persistent" : "in-memory (no OPFS/isolation)" }}
-                <template v-if="searchStatus.semantic"> · model ready</template>
+                <template v-if="searchStatus.semantic"> · {{ searchModelLabel }}</template>
               </template>
               <template v-else>Index is starting...</template>
+            </p>
+            <p v-if="searchStatus?.semantic && !searchStatus.vecReady" class="settings__error">
+              {{ $t("settings.searchNoVec") }}
+            </p>
+            <p v-if="searchStatus?.indexError" class="settings__error">
+              {{ $t("settings.searchIndexError", { error: searchStatus.indexError }) }}
             </p>
             <button type="button" class="button button--small" @click="onRebuildIndex">
               Rebuild

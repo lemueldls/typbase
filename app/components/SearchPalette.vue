@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 
-import type { SearchResultItem } from "~/lib/search";
+import type { SearchQueryMode, SearchResultItem } from "~/lib/search";
 
 import { requestReveal } from "~/lib/reveal";
+import { searchQueryMode } from "~/lib/search";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -11,12 +12,23 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (e: "close"): void }>();
 
-const { search } = useSearch();
+const { search, status } = useSearch();
 
 const query = ref("");
 const results = ref<SearchResultItem[]>([]);
 const active = ref(0);
 const searching = ref(false);
+
+const modeKey = computed(() => {
+  const keys: Record<SearchQueryMode, string> = {
+    text: "palette.modeText",
+    hybrid: "palette.modeHybrid",
+    loading: "palette.modeLoading",
+    unavailable: "palette.modeUnavailable",
+  };
+
+  return keys[searchQueryMode(status.value)];
+});
 
 const input = useTemplateRef("input");
 
@@ -76,7 +88,7 @@ function open(result: SearchResultItem) {
   <div class="search-palette" @keydown="onKeydown" @click.self="emit('close')">
     <div class="search-palette__box" role="dialog" aria-label="Search">
       <div class="search-palette__field">
-        <MsIcon name="search" :size="16" class="search-palette__icon" />
+        <MsIcon name="search" :size="20" class="search-palette__icon" />
         <input
           ref="input"
           v-model="query"
@@ -114,8 +126,15 @@ function open(result: SearchResultItem) {
           <div class="search-palette__snippet">{{ result.snippet }}</div>
         </li>
       </ul>
+      <p
+        v-else-if="query.trim() && status?.indexError"
+        class="search-palette__hint search-palette__hint--error"
+      >
+        {{ $t("palette.indexError", { error: status.indexError }) }}
+      </p>
       <p v-else-if="query.trim()" class="search-palette__hint">{{ $t("palette.noMatches") }}</p>
       <p v-else class="search-palette__hint">{{ $t("palette.prompt") }}</p>
+      <p class="search-palette__mode">{{ $t(modeKey) }}</p>
     </div>
   </div>
 </template>
@@ -157,7 +176,7 @@ function open(result: SearchResultItem) {
 
 .search-palette__input {
   width: 100%;
-  padding: 0.6rem 0.75rem 0.6rem 2.2rem;
+  padding: 0.6rem 0.75rem 0.6rem 2.4rem;
   font-size: 1rem;
   font-family: inherit;
   border: 1px solid var(--color-border);
@@ -174,6 +193,18 @@ function open(result: SearchResultItem) {
 .search-palette__hint {
   margin: 0.6rem;
   font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.search-palette__hint--error {
+  color: var(--color-danger);
+}
+
+.search-palette__mode {
+  margin: 0.5rem 0.6rem 0.1rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.72rem;
   color: var(--color-text-secondary);
 }
 

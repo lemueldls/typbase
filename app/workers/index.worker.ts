@@ -11,8 +11,9 @@ import sqlite3InitModule from "sqlite-wasm-vec";
 export interface IndexedBlock {
   kind: string;
   plain: string;
-  rangeStart: number;
-  rangeEnd: number;
+  /** Wasm `FlattenedBlock` fields are snake_case; keep them as sent. */
+  range_start: number;
+  range_end: number;
   /** raw byte offset per plain byte, as a plain number array over the wire */
   map: number[];
 }
@@ -65,6 +66,8 @@ type WorkerResponse = {
   blockIds?: number[];
   docId?: string;
   vectors?: Array<{ blockId: number; vector: number[] }>;
+  /** Request type that failed; lets `queryWorker` resolve its callers. */
+  requestType?: string;
   error?: string;
 };
 
@@ -92,7 +95,6 @@ async function ensureDb(dbName: string): Promise<void> {
   db = opened;
 
   opened.exec(`
-    PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS pages(
       doc_id TEXT PRIMARY KEY, path TEXT NOT NULL, title TEXT NOT NULL,
       updated_at INTEGER NOT NULL
@@ -107,6 +109,14 @@ async function ensureDb(dbName: string): Promise<void> {
     CREATE INDEX IF NOT EXISTS blocks_doc ON blocks(doc_id);
     CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(plain);
   `);
+  try {
+    // The OPFS VFS has no shared memory, so WAL is not available there; the
+    // default journal is fine for a rebuildable cache. Keep this separate
+    // from the schema so a refusal cannot take the whole index down.
+    opened.exec("PRAGMA journal_mode = WAL");
+  } catch {
+    // Ignore: journal mode is an optimization, not a requirement.
+  }
   try {
     opened.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS vec USING vec0(embedding float[384])`);
     vecReady = true;
@@ -134,6 +144,11 @@ async function handle(request: WorkerRequest): Promise<void> {
         db.exec("DELETE FROM fts WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)", {
           bind: [request.docId],
         });
+        // Vectors key on the block row id, so the old ones have to go with
+        // the rows or they pile up and shadow real hits in semantic queries.
+        db.exec("DELETE FROM vec WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)", {
+          bind: [request.docId],
+        });
         db.exec("DELETE FROM blocks WHERE doc_id = ?", {
           bind: [request.docId],
         });
@@ -145,7 +160,11 @@ async function handle(request: WorkerRequest): Promise<void> {
           },
         );
         for (const [i, block] of request.blocks.entries()) {
-          if (!block.plain.trim()) continue;
+          if (!block.plain.trim()) {
+            // Keep blockIds aligned with the request; 0 means "not stored".
+            blockIds.push(0);
+            continue;
+          }
           const ids = db.selectArrays(
             "INSERT INTO blocks(doc_id, block_index, kind, plain, range_start, range_end, map) VALUES(?, ?, ?, ?, ?, ?, ?) RETURNING id",
             [
@@ -153,17 +172,17 @@ async function handle(request: WorkerRequest): Promise<void> {
               i,
               block.kind,
               block.plain,
-              block.rangeStart,
-              block.rangeEnd,
+              block.range_start,
+              block.range_end,
               packMap(block.map),
             ],
           );
           const rowid = Number(ids[0]?.[0]);
+          blockIds.push(rowid > 0 ? rowid : 0);
           if (rowid > 0) {
             db.exec("INSERT INTO fts(rowid, plain) VALUES(?, ?)", {
               bind: [rowid, block.plain],
             });
-            blockIds.push(rowid);
           }
         }
         db.exec("COMMIT");
@@ -178,16 +197,26 @@ async function handle(request: WorkerRequest): Promise<void> {
       db.exec("DELETE FROM fts WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)", {
         bind: [request.docId],
       });
+      db.exec("DELETE FROM vec WHERE rowid IN (SELECT id FROM blocks WHERE doc_id = ?)", {
+        bind: [request.docId],
+      });
       db.exec("DELETE FROM blocks WHERE doc_id = ?", { bind: [request.docId] });
       db.exec("DELETE FROM pages WHERE doc_id = ?", { bind: [request.docId] });
       break;
     }
     case "query": {
       const escaped = request.text.replace(/["']/g, " ");
-      const match = `"${escaped.trim().split(/\s+/).slice(0, 8).join('" "')}"`;
+      const terms = escaped.trim().split(/\s+/).filter(Boolean).slice(0, 8);
+      if (terms.length === 0) {
+        post({ type: "query", hits: [] });
+        break;
+      }
+      const match = `"${terms.join('" "')}"`;
+      // No `offsets()` in this sqlite build; `highlight()` marks the matches
+      // with control characters and the marker positions give the same range.
       const rows = db.selectArrays(
         `SELECT b.doc_id, b.block_index, b.kind, b.plain, b.range_start, b.range_end,
-                bm25(fts) AS score, offsets(fts) AS offs
+                bm25(fts) AS score, highlight(fts, 0, char(2), char(3)) AS marked
          FROM fts JOIN blocks b ON b.id = fts.rowid
          WHERE fts MATCH ?
          ORDER BY score LIMIT ?`,
@@ -195,7 +224,7 @@ async function handle(request: WorkerRequest): Promise<void> {
       );
       const hitMap = new Map<string, SearchHit>();
       for (const row of rows) {
-        const [docId, blockIndex, kind, plain, rangeStart, rangeEnd, score, offs] = row as [
+        const [docId, blockIndex, kind, plain, rangeStart, rangeEnd, score, marked] = row as [
           string,
           number,
           string,
@@ -206,7 +235,7 @@ async function handle(request: WorkerRequest): Promise<void> {
           string,
         ];
         const existing = hitMap.get(docId);
-        const offsets = parseOffsets(offs);
+        const offsets = offsetsFromHighlight(String(marked));
         const hit: SearchHit = {
           docId: String(docId),
           path: "",
@@ -316,17 +345,28 @@ function status(): IndexStatus {
   return { mode, docs: Number(pages), blocks: Number(blocks), vecReady };
 }
 
-function parseOffsets(offsets: string): Array<[number, number]> {
-  // FTS5 offsets(): groups of "column term byteStart byteEnd".
-  const parts = offsets.split(" ").filter(Boolean).map(Number);
-  const out: Array<[number, number]> = [];
-  for (let i = 0; i + 3 < parts.length; i += 4) {
-    const start = parts[i + 2];
-    const end = parts[i + 3];
-    if (start !== undefined && end !== undefined) out.push([start, end]);
-  }
+/** First match span in `plain`, recovered from `highlight()` markers. */
+function offsetsFromHighlight(marked: string): Array<[number, number]> {
+  const open = "\u0002";
+  const close = "\u0003";
+  const start = marked.indexOf(open);
+  if (start < 0) return [];
 
-  return out;
+  // Marker characters are not in the source, so subtract them from the
+  // prefix to get the offset in `plain`. FTS offsets and the wasm byte map
+  // both count UTF-8 bytes, so encode before measuring.
+  const before = marked.slice(0, start).split(open).join("").split(close).join("");
+  const end = marked.indexOf(close, start + 1);
+  const term = end < 0 ? marked.slice(start + 1) : marked.slice(start + 1, end);
+
+  const from = utf8Length(before);
+  return [[from, from + utf8Length(term)]];
+}
+
+const utf8 = new TextEncoder();
+
+function utf8Length(text: string): number {
+  return utf8.encode(text).length;
 }
 
 function packMap(map: number[]): Uint8Array {
@@ -343,6 +383,8 @@ self.addEventListener("message", (event: MessageEvent<WorkerRequest>) => {
   void handle(event.data).catch((error: unknown) => {
     post({
       type: "error",
+      docId: (event.data as { docId?: string }).docId,
+      requestType: event.data.type,
       error: error instanceof Error ? error.message : String(error),
     });
   });
