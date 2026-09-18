@@ -30,10 +30,10 @@ expression: summarize(&render.chunks)
       58,
       63
     ],
-    "items": 2,
-    "width": 45.44,
+    "items": 7,
+    "width": 26.24,
     "height": 9.12,
-    "x": 1.2,
+    "x": 18.8,
     "y": 315.76
   },
   {
@@ -41,7 +41,7 @@ expression: summarize(&render.chunks)
       64,
       80
     ],
-    "items": 17,
+    "items": 15,
     "width": 72.16,
     "height": 37.5,
     "x": 17.6,
@@ -52,10 +52,10 @@ expression: summarize(&render.chunks)
       82,
       88
     ],
-    "items": 8,
-    "width": 55.28,
+    "items": 15,
+    "width": 35.82,
     "height": 14.32,
-    "x": 1.04,
+    "x": 28.5,
     "y": 422.4
   },
   {
@@ -63,7 +63,7 @@ expression: summarize(&render.chunks)
       89,
       95
     ],
-    "items": 8,
+    "items": 6,
     "width": 35.82,
     "height": 14.32,
     "x": 28.5,
@@ -74,7 +74,7 @@ expression: summarize(&render.chunks)
       97,
       106
     ],
-    "items": 9,
+    "items": 11,
     "width": 8.32,
     "height": 113.6,
     "x": 0.0,

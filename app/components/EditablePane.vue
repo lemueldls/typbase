@@ -28,6 +28,7 @@ import {
   typstHoverTooltip,
   typstKeymap,
   typstLanguageData,
+  typstLinter,
   typstPlugin,
   typstRecompileEffect,
   typstSyntaxHighlighting,
@@ -245,6 +246,13 @@ function createStateConfig(): EditorStateConfig {
   }
 
   extensions.push(
+    // Diagnostics in every mode: the linter source combines with the
+    // spellcheck source instead of replacing it, and split/source have no
+    // WYSIWYG plugin to compile for them.
+    typstLinter(props.fileId, props.spaceId, props.path, props.prelude, props.typstState, {
+      onRequests: props.onRequests,
+      onPanic: props.onPanic,
+    }),
     spellcheckCompartment.of(spellcheckExtension(props.spellcheck)),
     EditorView.exceptionSink.of((error) => {
       console.error(error);

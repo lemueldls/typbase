@@ -1,26 +1,15 @@
 import type { EditorState } from "@codemirror/state";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
-import type {
-  FileId,
-  SvgRangedFrame,
-  TypstDiagnostic,
-  TypstRequest,
-  TypstState,
-} from "@typbase/wasm";
+import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typbase/wasm";
 
 import { setDiagnostics } from "@codemirror/lint";
 import { type Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
-import type { TextRef } from "./types";
+import type { TextRef, TypstRequestHandler } from "./types";
 
-import { parseBackticks } from "./highlight";
-
-export type TypstRequestHandler = (
-  requests: TypstRequest[],
-  spaceId: string,
-) => Promise<boolean> | boolean;
+import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
 
 // Frame geometry comes back in the app's display units: one Typst point per
 // CSS pixel, so pt values are used as px directly. Converting px <-> true pt
@@ -267,6 +256,7 @@ function decorate({
       return { decorations: Decoration.none, tooltips: [] };
     }
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
+    rememberDiagnostics(path, text, compileResult.diagnostics);
 
     if (compileResult.requests.length > 0 && onRequests) {
       void Promise.resolve(onRequests(compileResult.requests, spaceId)).then((wasUpdated) => {
@@ -489,36 +479,5 @@ function dispatchDiagnostics(
   state: EditorState,
   view: EditorView,
 ) {
-  if (typstDiagnostics.length > 0) {
-    const diagnostics = typstDiagnostics.map((diagnostic) => ({
-      from: diagnostic.range.start,
-      to: diagnostic.range.end,
-      severity: diagnostic.severity,
-      message: diagnostic.message,
-      renderMessage() {
-        const frag = document.createDocumentFragment();
-        const p = document.createElement("p");
-        parseBackticks(diagnostic.message, p);
-        frag.append(p);
-
-        if (diagnostic.hints.length) {
-          const ul = document.createElement("ul");
-          ul.className = "typst-hints";
-
-          for (const hint of diagnostic.hints) {
-            const li = document.createElement("li");
-            parseBackticks(hint, li);
-            ul.append(li);
-          }
-
-          frag.append(ul);
-        }
-
-        return frag;
-      },
-    }));
-
-    const transaction = setDiagnostics(state, diagnostics);
-    view.dispatch(transaction);
-  } else view.dispatch(setDiagnostics(state, []));
+  view.dispatch(setDiagnostics(state, toLintDiagnostics(typstDiagnostics)));
 }

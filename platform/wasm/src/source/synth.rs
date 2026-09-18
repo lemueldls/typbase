@@ -151,7 +151,14 @@ fn emit_blank_lines(builder: &mut SourceBuilder, at: usize, blank_lines: usize) 
         return;
     }
 
-    builder.generated(at, &format!("#v({BLANK_LINE_EM}em)"), SegmentKind::Spacing);
+    // The trailing newline matters: the next block must start at the beginning
+    // of a line, or a list marker, heading, or code fence glued to `#v(...)`
+    // parses as plain text.
+    builder.generated(
+        at,
+        &format!("#v({BLANK_LINE_EM}em)\n"),
+        SegmentKind::Spacing,
+    );
 }
 
 /// Builds a synth from a plain text source.

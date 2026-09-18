@@ -184,3 +184,54 @@ fn link_underline_stays_with_its_item() {
         );
     }
 }
+
+/// List markers are generated text with no span of their own. Each one must
+/// land in its own item's chunk, or the first item renders without a bullet.
+#[test]
+fn list_markers_stay_with_their_items() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+    use typst::layout::FrameItem;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let source = "test\n\n- one\n- two \n";
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "list_markers");
+    state.resize(&id, Some(600.0), None);
+
+    let render = chunk_by_items(&id, source, "", RenderTarget::Svg, &mut state);
+
+    let texts = |chunk: &FrameItemsChunk| {
+        chunk
+            .items
+            .iter()
+            .filter_map(|item| match &item.item {
+                FrameItem::Text(text) => Some(text.text.to_string()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let first = render
+        .chunks
+        .iter()
+        .find(|chunk| chunk.range.start == 6)
+        .expect("first item chunk missing");
+    let first_texts = texts(first);
+    assert!(
+        first_texts.iter().any(|text| text == "•"),
+        "first item lost its marker: {first_texts:?}",
+    );
+    assert!(
+        first_texts.iter().any(|text| text == "one"),
+        "first item lost its text: {first_texts:?}",
+    );
+    assert!(
+        !first_texts.iter().any(|text| text == "- one"),
+        "list marker parsed as plain text: {first_texts:?}",
+    );
+}

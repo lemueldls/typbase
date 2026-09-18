@@ -7,7 +7,7 @@ import { indentService } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 
 import type { TextRef } from "./types";
-import type { TypstRequestHandler } from "./widgets";
+import type { TypstRequestHandler } from "./types";
 
 import { typstSyntaxHighlighting } from "./highlight";
 import { typstHoverTooltip } from "./hover";
