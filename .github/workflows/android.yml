@@ -1,0 +1,133 @@
+name: Android
+
+on:
+  workflow_call:
+    inputs:
+      tagName:
+        description: Release tag to upload assets to; empty builds artifacts only.
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: Release tag to upload assets to; leave empty for a test build.
+        required: false
+        type: string
+
+env:
+  NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+  NDK_VERSION: "27.0.11902837"
+
+jobs:
+  build:
+    name: 🤖 Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 📝 Extract version from tauri.conf.json
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(jq -r '.version' platform/tauri/tauri.conf.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: 🛡️ Verify tag matches version (publish only)
+        if: inputs.tagName
+        shell: bash
+        run: |
+          TAG="${{ inputs.tagName }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ "$TAG" != *"$VERSION" ]]; then
+            echo "The tag $TAG does not match the version $VERSION from tauri.conf.json"
+            exit 1
+          fi
+
+      - name: 🦀 Setup Rust
+        uses: moonrepo/setup-rust@abb2d32350334249b178c401e5ec5836e0cd88d3 # v1.3.0
+        with:
+          bins: wasm-pack
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android,wasm32-unknown-unknown
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+
+      - name: 🛠️ Install NDK
+        run: sdkmanager "ndk;${{ env.NDK_VERSION }}"
+
+      - name: 🌙 Setup moon
+        uses: ./.github/actions/setup-moon
+        with:
+          node-version: "26"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔑 Extract Android signing key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PROPERTIES: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
+        run: |
+          if [[ -z "$ANDROID_KEYSTORE" || -z "$ANDROID_KEYSTORE_PROPERTIES" ]]; then
+            echo "No Android signing secrets set; the release APK stays unsigned."
+            exit 0
+          fi
+
+          echo "$ANDROID_KEYSTORE" | base64 --decode > platform/tauri/gen/android/app/key.jks
+          echo "$ANDROID_KEYSTORE_PROPERTIES" | base64 --decode > platform/tauri/gen/android/keystore.properties
+
+      - name: 🔨 Build Android app
+        run: pnpm moon run tauri:android-build
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: ✏️ Collect artifacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          VERSION="${{ steps.version.outputs.version }}"
+
+          APK=$(find platform/tauri/gen/android/app/build/outputs/apk -name '*-release.apk' | head -1)
+          AAB=$(find platform/tauri/gen/android/app/build/outputs/bundle -name '*-release.aab' | head -1)
+
+          if [[ -n "$APK" ]]; then
+            cp "$APK" "dist/Typbase_${VERSION}_universal.apk"
+          fi
+          if [[ -n "$AAB" ]]; then
+            cp "$AAB" "dist/Typbase_${VERSION}_universal.aab"
+          fi
+
+          ls -la dist
+
+      - name: 📤 Upload build artifacts (test builds only)
+        if: (!inputs.tagName)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android
+          path: dist/*
+
+      - name: 🚀 Attach to release (publish only)
+        if: inputs.tagName
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        with:
+          tag_name: ${{ inputs.tagName }}
+          draft: true
+          files: dist/*
+
+      - name: 🛡️ Attest build provenance (publish only)
+        if: inputs.tagName
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: dist/*

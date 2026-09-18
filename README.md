@@ -84,6 +84,10 @@ pnpm dev
 - `pnpm lint` and `pnpm fmt:check` are the CI gates.
 - `pnpm typecheck` checks the app and the shared packages.
 
+## Releases
+
+Desktop bundles for Linux, macOS, and Windows, a signed Android APK/AAB, and packages for the AUR, Void, and Nix ship from tagged releases. See [RELEASING.md](RELEASING.md) for the flow and the required secrets.
+
 ## License
 
 AGPL-3.0. See [LICENSE](LICENSE).

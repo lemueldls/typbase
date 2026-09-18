@@ -1,0 +1,182 @@
+name: Nix
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      tagName:
+        description: Release tag to package.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: Release tag to package.
+        required: true
+        type: string
+
+jobs:
+  update-flake:
+    name: ❄️ Update flake
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: 🏷️ Resolve version
+        id: version
+        shell: bash
+        run: |
+          TAG="${{ inputs.tagName || github.event.release.tag_name }}"
+          if [[ -z "$TAG" ]]; then
+            echo "No release tag; run this from a release or pass tagName."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#typbase-v}" >> "$GITHUB_OUTPUT"
+
+      - name: ⚙️ Setup SSH signing key
+        shell: bash
+        env:
+          SSH_SIGNING_KEY: ${{ secrets.SSH_SIGNING_KEY }}
+        run: |
+          if [[ -z "$SSH_SIGNING_KEY" ]]; then
+            echo "SSH_SIGNING_KEY is not set; commits stay unsigned."
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_SIGNING_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          git config --global gpg.format ssh
+          git config --global user.signingKey ~/.ssh/id_ed25519
+          git config --global user.name "Lemuel DLS"
+          git config --global user.email "noreply@git.lemueldls.dev"
+
+      - name: ❄️ Install nix
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: ❄️ Install nix-update
+        run: nix profile add nixpkgs#nix-update
+
+      - name: 🔄 Update nix derivations
+        run: |
+          nix-update --flake --version "${{ steps.version.outputs.version }}" --build typbase
+          nix-update --flake --version "${{ steps.version.outputs.version }}" --build typbase-bin
+
+      - name: 💾 Commit and push
+        shell: bash
+        env:
+          SIGN: ${{ secrets.SSH_SIGNING_KEY != '' && '-S' || '' }}
+        run: |
+          sign=()
+          if [[ -n "$SIGN" ]]; then sign=(-S); fi
+
+          git add -A
+          git commit "${sign[@]}" -m "chore: update nix flake to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+          git push
+
+  nixpkgs-pr:
+    name: 📦 nixpkgs PR
+    needs: update-flake
+    if: vars.NIXPKGS_FORK != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: 🏷️ Resolve version
+        id: version
+        shell: bash
+        run: |
+          TAG="${{ inputs.tagName || github.event.release.tag_name }}"
+          echo "version=${TAG#typbase-v}" >> "$GITHUB_OUTPUT"
+
+      - name: ❄️ Install nix
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: ❄️ Install nix-update
+        run: nix profile add nixpkgs#nix-update
+
+      - name: 🔄 Prepare the nixpkgs fork
+        id: prepare
+        shell: bash
+        env:
+          NIXPKGS_TOKEN: ${{ secrets.NIXPKGS_TOKEN }}
+        run: |
+          if [[ -z "$NIXPKGS_TOKEN" ]]; then
+            echo "NIXPKGS_TOKEN is not set; skipping the nixpkgs PR."
+            exit 0
+          fi
+
+          git clone --depth=1 "https://x-access-token:${NIXPKGS_TOKEN}@github.com/${{ vars.NIXPKGS_FORK }}.git" nixpkgs
+          cd nixpkgs
+          git remote add upstream https://github.com/NixOS/nixpkgs.git
+          git fetch --depth=1 upstream master
+          git reset --hard upstream/master
+          git checkout -b "typbase-${{ steps.version.outputs.version }}"
+
+          mkdir -p pkgs/by-name/ty/typbase
+          cp "$GITHUB_WORKSPACE/nix/nixpkgs/typbase.nix" pkgs/by-name/ty/typbase/package.nix
+
+          echo "cloned=true" >> "$GITHUB_OUTPUT"
+
+      - name: 🔄 Update the package
+        if: steps.prepare.outputs.cloned == 'true'
+        shell: bash
+        run: |
+          cd nixpkgs
+          nix-update --version "${{ steps.version.outputs.version }}" --build typbase
+
+      - name: 💾 Commit and push the branch
+        if: steps.prepare.outputs.cloned == 'true'
+        shell: bash
+        run: |
+          cd nixpkgs
+          git config user.name "lemueldls"
+          git config user.email "noreply@git.lemueldls.dev"
+          git add pkgs/by-name/ty/typbase
+          git commit -m "typbase: update to ${{ steps.version.outputs.version }}"
+          git push -u origin "typbase-${{ steps.version.outputs.version }}"
+
+      - name: 🚀 Open the pull request
+        if: steps.prepare.outputs.cloned == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.NIXPKGS_TOKEN }}
+        run: |
+          cd nixpkgs
+          HEAD="${{ vars.NIXPKGS_FORK }}:typbase-${{ steps.version.outputs.version }}"
+
+          if gh pr list --repo NixOS/nixpkgs --head "$HEAD" --json number --jq '.[0].number' | grep -q .; then
+            echo "A pull request for this version already exists."
+            exit 0
+          fi
+
+          gh pr create \
+            --repo NixOS/nixpkgs \
+            --base master \
+            --head "$HEAD" \
+            --title "typbase: update to ${{ steps.version.outputs.version }}" \
+            --body "Automated update from the typbase release workflow.
+
+          Release: https://github.com/lemueldls/typbase/releases/tag/typbase-v${{ steps.version.outputs.version }}"

@@ -1,0 +1,157 @@
+name: Arch Linux AUR
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      tagName:
+        description: Release tag to package.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: Release tag to package.
+        required: true
+        type: string
+
+jobs:
+  update:
+    name: 🏔️ ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: typbase
+            script: platform/aur/generate-typbase.sh
+          - name: typbase-bin
+            script: platform/aur/generate-typbase-bin.sh
+    steps:
+      - name: 🛠️ Install tools
+        run: |
+          pacman -Sy --noconfirm --needed git openssh namcap sudo curl jq
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
+
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: 🏷️ Resolve version
+        id: version
+        shell: bash
+        run: |
+          TAG="${{ inputs.tagName || github.event.release.tag_name }}"
+          if [[ -z "$TAG" ]]; then
+            echo "No release tag; run this from a release or pass tagName."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#typbase-v}" >> "$GITHUB_OUTPUT"
+
+      - name: 🔢 Get sha256sum
+        id: sums
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ "${{ matrix.name }}" == "typbase-bin" ]]; then
+            URL="https://github.com/lemueldls/typbase/releases/download/typbase-v${VERSION}/Typbase_${VERSION}_amd64.deb"
+          else
+            URL="https://github.com/lemueldls/typbase/archive/refs/tags/typbase-v${VERSION}.tar.gz"
+          fi
+
+          echo "getting $URL"
+          SUM=$(curl -LfsS "$URL" | sha256sum | cut -f1 -d ' ')
+          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
+
+      - name: 📐 Lint generated PKGBUILD
+        shell: bash
+        run: |
+          su builder -c "
+            set -o errexit
+            mkdir -p ~/lint
+            \"$GITHUB_WORKSPACE/${{ matrix.script }}\" ${{ steps.version.outputs.version }} ${{ steps.sums.outputs.sha256 }} > ~/lint/PKGBUILD
+            cd ~/lint
+            bash \"$GITHUB_WORKSPACE/platform/aur/makepkg-lint.sh\"
+          "
+
+      - name: 🛠️ Setup deployment key
+        if: github.event_name == 'release' || inputs.tagName != ''
+        shell: bash
+        env:
+          AUR_DEPLOY_KEY: ${{ secrets.AUR_DEPLOY_KEY }}
+        run: |
+          if [[ -z "$AUR_DEPLOY_KEY" ]]; then
+            echo "AUR_DEPLOY_KEY is not set; skipping the push."
+            exit 0
+          fi
+
+          mkdir -p /home/builder/.ssh
+          printf '%s\n' "$AUR_DEPLOY_KEY" > /home/builder/.ssh/aur
+          chmod 600 /home/builder/.ssh/aur
+          cat > /home/builder/.ssh/config <<'EOF'
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            User aur
+          EOF
+          ssh-keyscan -H aur.archlinux.org >> /home/builder/.ssh/known_hosts 2>/dev/null
+          chown -R builder:builder /home/builder/.ssh
+
+      - name: 🔄 Clone AUR repo
+        if: github.event_name == 'release' || inputs.tagName != ''
+        shell: bash
+        run: |
+          su builder -c '
+            set -o errexit
+            if ! git clone --depth=1 "ssh://aur@aur.archlinux.org/${{ matrix.name }}.git" ~/aur; then
+              echo "Could not clone the AUR repo. Create ${{ matrix.name }} on aur.archlinux.org first."
+              exit 1
+            fi
+          '
+
+      - name: 🔍 Check version
+        if: github.event_name == 'release' || inputs.tagName != ''
+        shell: bash
+        run: |
+          # shellcheck disable=SC2016
+          su builder -c '
+            set -o errexit
+            cd ~/aur
+            if [[ -f PKGBUILD ]]; then
+              CURRENT_VERSION=$(source PKGBUILD && echo "$pkgver")
+              if [[ "$CURRENT_VERSION" == "${{ steps.version.outputs.version }}" ]] || [[ "$(printf "%s\n%s" "$CURRENT_VERSION" "${{ steps.version.outputs.version }}" | sort -V | head -n1)" != "$CURRENT_VERSION" ]]; then
+                echo "New version ${{ steps.version.outputs.version }} is not higher than $CURRENT_VERSION; nothing to do."
+                exit 0
+              fi
+            fi
+          '
+
+      - name: 🌀 Generate PKGBUILD and publish
+        if: github.event_name == 'release' || inputs.tagName != ''
+        shell: bash
+        run: |
+          su builder -c "
+            set -o errexit
+            \"$GITHUB_WORKSPACE/${{ matrix.script }}\" ${{ steps.version.outputs.version }} ${{ steps.sums.outputs.sha256 }} > ~/aur/PKGBUILD
+            cd ~/aur
+            if [[ -z \$(git status --porcelain) ]]; then
+              echo 'No changes'
+              exit 0
+            fi
+            makepkg --printsrcinfo > .SRCINFO
+            makepkg
+            makepkg --install --noconfirm
+            git config user.name 'lemueldls'
+            git config user.email 'aur@lemueldls.dev'
+            git add PKGBUILD .SRCINFO
+            git commit -m 'New upstream release ${{ steps.version.outputs.version }}'
+            git push origin master
+          "

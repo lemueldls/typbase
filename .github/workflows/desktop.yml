@@ -1,0 +1,132 @@
+name: Desktop
+
+on:
+  workflow_call:
+    inputs:
+      tagName:
+        description: Release tag to upload assets to; empty builds artifacts only.
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: Release tag to upload assets to; leave empty for a test build.
+        required: false
+        type: string
+
+env:
+  # Baked into the web bundle. The OAuth client id is derived from this origin,
+  # so release builds must point at the deployed app.
+  NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+
+jobs:
+  build:
+    name: ${{ matrix.symbol }} Desktop
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            symbol: 🐧
+            platform: linux
+          - os: macos-latest
+            symbol: 🍏
+            platform: macos
+            args: "--target universal-apple-darwin"
+          - os: windows-latest
+            symbol: 🪟
+            platform: windows
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 📝 Extract version from tauri.conf.json
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(jq -r '.version' platform/tauri/tauri.conf.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: 🛡️ Verify tag matches version (publish only)
+        if: inputs.tagName
+        shell: bash
+        run: |
+          TAG="${{ inputs.tagName }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ "$TAG" != *"$VERSION" ]]; then
+            echo "The tag $TAG does not match the version $VERSION from tauri.conf.json"
+            exit 1
+          fi
+
+      - name: 🦀 Setup Rust
+        uses: moonrepo/setup-rust@abb2d32350334249b178c401e5ec5836e0cd88d3 # v1.3.0
+        with:
+          bins: wasm-pack
+          targets: ${{ matrix.platform == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin,wasm32-unknown-unknown' || 'wasm32-unknown-unknown' }}
+
+      - name: 🐧 Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            file \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libsoup-3.0-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            wget
+
+      - name: 🌙 Setup moon
+        uses: ./.github/actions/setup-moon
+        with:
+          node-version: "26"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build bundles
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ inputs.tagName }}
+          releaseDraft: true
+          prerelease: false
+          assetNamePattern: "[name]_[version]_[arch][ext]"
+          updaterJsonPreferNsis: true
+          uploadPlainBinary: true
+          retryAttempts: 2
+          args: ${{ matrix.args }}
+
+      - name: 📤 Upload build artifacts (test builds only)
+        if: (!inputs.tagName)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: |
+            platform/target/**/release/bundle
+            platform/target/**/release/typbase
+            platform/target/release/typbase.exe
+
+      - name: 🛡️ Attest build provenance (publish only)
+        if: inputs.tagName
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: |
+            platform/target/release/bundle/deb/*.deb
+            platform/target/release/bundle/rpm/*.rpm
+            platform/target/release/bundle/appimage/*.AppImage
+            platform/target/**/release/bundle/dmg/*.dmg
+            platform/target/**/release/bundle/macos/*.app.tar.gz
+            platform/target/release/bundle/nsis/*.exe
+            platform/target/release/bundle/msi/*.msi
+            platform/target/**/release/typbase
+            platform/target/release/typbase.exe

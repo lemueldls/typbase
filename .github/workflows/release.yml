@@ -1,0 +1,156 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "typbase-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing typbase-v* tag to (re)release
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: 🏷️ Prepare
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🏷️ Resolve tag and create the draft release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#typbase-v}"
+
+          if [[ "$TAG" == "$VERSION" ]]; then
+            echo "Tag $TAG does not start with typbase-v"
+            exit 1
+          fi
+
+          CONFIG_VERSION=$(jq -r '.version' platform/tauri/tauri.conf.json)
+          if [[ "$VERSION" != "$CONFIG_VERSION" ]]; then
+            echo "Tag version $VERSION does not match tauri.conf.json $CONFIG_VERSION"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --draft \
+              --title "Typbase v$VERSION" \
+              --generate-notes
+          fi
+
+  desktop:
+    name: 🖥️ Desktop
+    needs: prepare
+    permissions:
+      actions: read
+      attestations: write
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/desktop.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}
+
+  android:
+    name: 📱 Android
+    needs: prepare
+    permissions:
+      actions: read
+      attestations: write
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}
+
+  publish-release:
+    name: 🚀 Publish release
+    needs:
+      - prepare
+      - desktop
+      - android
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    steps:
+      - name: 🚀 Undraft the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ needs.prepare.outputs.tag }}" --draft=false --latest
+
+  npm:
+    name: 📦 npm
+    needs:
+      - prepare
+      - publish-release
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}
+
+  aur:
+    name: 🏔️ AUR
+    needs:
+      - prepare
+      - publish-release
+    permissions:
+      contents: read
+    uses: ./.github/workflows/aur.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}
+
+  void:
+    name: 🌑 Void
+    needs:
+      - prepare
+      - publish-release
+    permissions:
+      actions: read
+      attestations: write
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/void.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}
+
+  nix:
+    name: ❄️ Nix
+    needs:
+      - prepare
+      - publish-release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/nix.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}

@@ -1,0 +1,156 @@
+name: Void Linux XBPS
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      tagName:
+        description: Release tag to package.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: Release tag to package.
+        required: true
+        type: string
+
+env:
+  NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+  XBPS_ALLOW_RESTRICTED: "yes"
+  XBPS_CHROOT_CMD: ethereal
+  XBPS_ALLOW_CHROOT_BREAKOUT: "yes"
+  WASM_PACK_VERSION: "0.15.0"
+
+jobs:
+  build:
+    name: 🌑 Void xbps
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/void-linux/void-glibc-full:latest
+    permissions:
+      actions: read
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - name: 🛠️ Install tools
+        run: |
+          xbps-install -Syu xbps
+          xbps-install -y base-devel curl git nodejs pnpm rustup
+
+      - name: 🦀 Install Rust and wasm-pack
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+
+          curl -sSfL "https://github.com/rustwasm/wasm-pack/releases/download/v${WASM_PACK_VERSION}/wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl.tar.gz" | tar -xz -C /tmp
+          install -m755 "/tmp/wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl/wasm-pack" /usr/local/bin/wasm-pack
+
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: 🏷️ Resolve version
+        id: version
+        shell: bash
+        run: |
+          TAG="${{ inputs.tagName || github.event.release.tag_name }}"
+          if [[ -z "$TAG" ]]; then
+            echo "No release tag; run this from a release or pass tagName."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#typbase-v}" >> "$GITHUB_OUTPUT"
+
+      - name: 🔢 Get source tarball checksum
+        id: sums
+        shell: bash
+        run: |
+          URL="https://github.com/lemueldls/typbase/archive/refs/tags/typbase-v${{ steps.version.outputs.version }}.tar.gz"
+          echo "getting $URL"
+          SUM=$(curl -LfsS "$URL" | sha256sum | cut -f1 -d ' ')
+          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
+
+      - name: 🔄 Clone Void packages
+        shell: bash
+        run: |
+          git clone --depth=1 https://github.com/void-linux/void-packages.git "$HOME/void-packages"
+          cd "$HOME/void-packages"
+          # The container rootfs is the masterdir; ethereal mode skips the
+          # chroot initialization check.
+          ln -s / masterdir
+          mkdir -p hostdir
+          cp -a "$HOME/.cargo" "$HOME/.rustup" hostdir/
+
+      - name: 🌀 Generate template
+        shell: bash
+        run: |
+          mkdir -p "$HOME/void-packages/srcpkgs/typbase"
+          bash platform/void/generate-template.sh \
+            "${{ steps.version.outputs.version }}" \
+            "${{ steps.sums.outputs.sha256 }}" \
+            "$NUXT_PUBLIC_APP_URL" \
+            > "$HOME/void-packages/srcpkgs/typbase/template"
+
+      - name: 📐 Lint generated template
+        shell: bash
+        run: |
+          cd "$HOME/void-packages"
+          xlint srcpkgs/typbase/template
+          ./xbps-src -I fetch typbase
+
+      - name: ➕ Add the tauri build style
+        shell: bash
+        run: |
+          cp platform/void/tauri.sh "$HOME/void-packages/common/build-style/"
+
+      - name: 🔨 Build package
+        shell: bash
+        run: |
+          cd "$HOME/void-packages"
+          ./xbps-src pkg typbase
+
+      - name: 🔑 Sign repository and package
+        if: github.event_name == 'release' || inputs.tagName != ''
+        shell: bash
+        env:
+          XBPS_REPOSITORY_SIGNING_KEY: ${{ secrets.XBPS_REPOSITORY_SIGNING_KEY }}
+        run: |
+          if [[ -z "$XBPS_REPOSITORY_SIGNING_KEY" ]]; then
+            echo "XBPS_REPOSITORY_SIGNING_KEY is not set; skipping signing."
+            exit 0
+          fi
+
+          cd "$HOME/void-packages"
+          printf '%s\n' "$XBPS_REPOSITORY_SIGNING_KEY" > private.pem
+          xbps-rindex --privkey private.pem --sign --signedby "void@lemueldls.dev" hostdir/binpkgs
+          xbps-rindex --privkey private.pem --sign-pkg hostdir/binpkgs/*.xbps
+
+      - name: 📤 Upload build artifacts (test builds only)
+        if: (!inputs.tagName && github.event_name != 'release')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: void
+          path: |
+            /root/void-packages/hostdir/binpkgs/*.xbps
+            /root/void-packages/hostdir/binpkgs/x86_64-repodata
+
+      - name: 🚀 Attach to release (publish only)
+        if: github.event_name == 'release' || inputs.tagName != ''
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          draft: true
+          files: |
+            /root/void-packages/hostdir/binpkgs/typbase-${{ steps.version.outputs.version }}_1.x86_64.xbps
+            /root/void-packages/hostdir/binpkgs/x86_64-repodata
+
+      - name: 🛡️ Attest build provenance (publish only)
+        if: github.event_name == 'release' || inputs.tagName != ''
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: /root/void-packages/hostdir/binpkgs/*

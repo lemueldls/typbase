@@ -1,11 +1,11 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
-  "version": "0.3.4",
+  "version": "0.1.0",
   "productName": "Typbase",
   "identifier": "at.typbase.app",
   "build": {
-    "beforeBuildCommand": "pnpm build",
-    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm -w run build",
+    "beforeDevCommand": "pnpm -w run dev",
     "devUrl": "http://127.0.0.1:3000",
     "frontendDist": "../../.output/public"
   },
@@ -21,7 +21,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "targets": ["dmg", "nsis", "deb", "appimage"],
+    "targets": ["dmg", "nsis", "deb", "rpm", "appimage"],
     "linux": {
       "deb": {
         "files": {

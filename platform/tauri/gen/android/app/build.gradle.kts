@@ -1,3 +1,4 @@
+import java.io.FileInputStream
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -25,6 +26,20 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    signingConfigs {
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -41,6 +56,9 @@ android {
         getByName("release") {
             optimization {
                enable = true
+            }
+            if (rootProject.file("keystore.properties").exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
             proguardFiles(
                 *fileTree(".") {
