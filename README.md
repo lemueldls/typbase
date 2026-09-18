@@ -11,7 +11,7 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 ### App
 
 - [Nuxt](https://nuxt.com) 5 (nightly), [Vue](https://vuejs.org) 3.5, [Vue Router](https://router.vuejs.org) 5, and [Nitro](https://nitro.build) 3.
-- [reka-ui](https://reka-ui.com) primitives behind the shared UI components.
+- [Reka UI](https://reka-ui.com) primitives behind the shared UI components.
 
 <!-- - [VueUse](https://vueuse.org) composables and [@nuxtjs/i18n](https://i18n.nuxtjs.org) with English, Spanish, French, German, and Chinese locales. -->
 <!-- - [material-symbols](https://github.com/marella/material-symbols) icons. -->
@@ -19,8 +19,8 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 ### Editor
 
-- [CodeMirror 6](https://codemirror.net) with Typst syntax highlighting, hover, autocomplete, typst-aware keymaps, and WYSIWYG inline widgets.
-- [harper.js](https://writewithharper.com) for optional grammar checking in a worker, alongside the browser's native spellchecker.
+- [CodeMirror](https://codemirror.net) 6 with syntax highlighting, hover, autocomplete, Typst-aware keymaps, and WYSIWYG inline widgets.
+- [Harper](https://writewithharper.com) for optional grammar checking in a worker, alongside the browser's native spellchecker.
 - Four view modes: Write (inline WYSIWYG), Split, Source, and Read.
 
 ### Engine
@@ -52,11 +52,11 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 ### Desktop and mobile
 
-- [Tauri](https://tauri.app) 3 alpha: filesystem storage, system font discovery, deep-link sign-in, updater, and single-instance handling. Custom window chrome is opt-in per device.
+- [Tauri](https://tauri.app) 3 (alpha): filesystem storage, system font discovery, deep-link sign-in, updater, and single-instance handling. Custom window chrome is opt-in per device.
 
 ### Tooling
 
-- [pnpm](https://pnpm.io) workspaces and [moon](https://moonrepo.dev) tasks; [tsdown](https://tsdown.dev) builds the shared TypeScript packages.
+- [pnpm](https://pnpm.io) workspaces and [moonrepo](https://moonrepo.dev) tasks.
 - [oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs/docs/guide/usage/formatter) for linting and formatting, with [golar](https://golar.dev) for Vue type checking.
 
 ## Inspirations
@@ -84,10 +84,6 @@ pnpm dev
 - `pnpm build`, `pnpm generate`, and `pnpm preview` handle production output.
 - `pnpm lint` and `pnpm fmt:check` are the CI gates.
 - `pnpm typecheck` checks the app and the shared packages.
-
-## Releases
-
-Desktop bundles for Linux, macOS, and Windows, a signed Android APK/AAB, and packages for the AUR, Void, and Nix ship from tagged releases. See [RELEASING.md](RELEASING.md) for the flow and the required secrets.
 
 ## License
 
