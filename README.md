@@ -47,7 +47,8 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 - [atproto](https://atproto.com) OAuth with PAR, PKCE, and DPoP; a loopback flow on dev origins and a deep-link flow on desktop.
 - [airspace](https://getair.space) for Spaces. The lexicons cover synced documents and published posts.
-- Documents sync as Loro updates and periodic snapshots in Space records. Publishing renders a page, uploads the artifacts as blobs, and writes a public post record; a public profile page renders published posts from a read-only client.
+
+<!-- - Documents sync as Loro updates and periodic snapshots in Space records. Publishing renders a page, uploads the artifacts as blobs, and writes a public post record; a public profile page renders published posts from a read-only client. -->
 
 ### Desktop and mobile
 
