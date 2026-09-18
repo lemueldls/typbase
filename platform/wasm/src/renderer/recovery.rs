@@ -165,8 +165,22 @@ pub fn try_mark_errornous(
     let marks = error_ranges
         .into_iter()
         .map(|synth_range| {
+            let synth_range = {
+                let source = context.render_source_mut(world).unwrap();
+                expand_math_call(source.text(), synth_range)
+            };
+
+            // Capture the raw boundaries before the edit and the mapper bump:
+            // afterwards the marked span includes the wrapper, and the block's
+            // sparse anchors cannot map it back correctly.
+            let raw_range = context
+                .render_mapper
+                .map_synth_to_raw_from_right(synth_range.start)
+                ..context
+                    .render_mapper
+                    .map_synth_to_raw_from_left(synth_range.end);
+
             let source = context.render_source_mut(world).unwrap();
-            let synth_range = expand_math_call(source.text(), synth_range);
             let original_text = source.text()[synth_range.clone()].to_string();
             // crate::log!("[MARKING]:\n{}", original_text);
 
@@ -183,6 +197,7 @@ pub fn try_mark_errornous(
             ErrorMark {
                 text: original_text,
                 synth_range: synth_range.start..(synth_range.end + total_wrap_len),
+                raw_range,
             }
         })
         .collect();
@@ -231,12 +246,9 @@ fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {
 
 pub fn map_error_mark_index(marked_errors: &MarkedErrors, context: &mut SourceContext) {
     for mark in &marked_errors.marks {
-        // crate::log!("before: {:?}", &context.render_mapper);
-        // crate::log!("delta range: {synth_range:?}");
+        let raw_start = mark.raw_range.start;
+        let raw_end = mark.raw_range.end;
 
-        let raw_start = context
-            .render_mapper
-            .map_synth_to_raw_from_right(mark.synth_range.start);
         context.render_mapper.push_raw_to_synth_kind(
             raw_start,
             mark.synth_range.start + marked_errors.pre_text_len,
@@ -248,19 +260,24 @@ pub fn map_error_mark_index(marked_errors: &MarkedErrors, context: &mut SourceCo
             AnchorKind::ErrorMark,
         );
 
-        let raw_end = context
-            .render_mapper
-            .map_synth_to_raw_from_left(mark.synth_range.end);
+        // `mark.synth_range.end` is already the end of the marked span, wrapper
+        // included: that is where content after the expression starts. The
+        // position just before the trailing wrapper (`end - post`) is the end
+        // of the original text. Pushing the outside position first leaves the
+        // inside position first in anchor order, which is what the two lookup
+        // directions expect.
         context.render_mapper.push_raw_to_synth_kind(
             raw_end,
-            mark.synth_range.end + marked_errors.total_wrap_len,
+            mark.synth_range.end,
             AnchorKind::ErrorWrap,
         );
         context.render_mapper.push_raw_to_synth_kind(
             raw_end,
-            mark.synth_range.end + marked_errors.pre_text_len,
+            mark.synth_range.end - marked_errors.post_text_len,
             AnchorKind::ErrorWrap,
         );
+
+        context.marked_raw_ranges.push(mark.raw_range.clone());
 
         // crate::log!("after: {:?}", &context.render_mapper);
     }
@@ -278,4 +295,7 @@ pub struct MarkedErrors {
 pub struct ErrorMark {
     pub text: String,
     pub synth_range: Range<usize>,
+    /// Raw range of the marked expression, captured before the wrapper was
+    /// inserted.
+    pub raw_range: Range<usize>,
 }

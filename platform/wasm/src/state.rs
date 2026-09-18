@@ -25,7 +25,7 @@ use typst_layout::PagedDocument;
 // use typst_html::html;
 // use typst_pdf::{PdfOptions, pdf};
 use typst_svg::SvgOptions;
-use typst_syntax::{LinkedNode, RootedPath, Side, Tag, VirtualRoot};
+use typst_syntax::{LinkedNode, RootedPath, Side, Source, Tag, VirtualRoot};
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "pdf")]
@@ -167,6 +167,7 @@ impl TypstState {
         self.world.insert_source(source_ctx.synth_id, String::new());
         self.world
             .insert_source(source_ctx.render_id, String::new());
+        self.world.insert_source(source_ctx.ide_id, String::new());
         self.source_context_map.insert(id_wrapper, source_ctx);
 
         // The space context is workspace-shared: fonts/theme are applied to it
@@ -210,6 +211,7 @@ impl TypstState {
             self.world.remove_source(&context.synth_id);
             self.world.remove_source(&context.raw_id);
             self.world.remove_source(&context.render_id);
+            self.world.remove_source(&context.ide_id);
         } else {
             self.world.remove_source(&id.inner());
         }
@@ -468,44 +470,62 @@ impl TypstState {
         .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
     }
 
-    /// Plain-Rust core of [`Self::autocomplete`].
+    /// Picks the parse source and `World::main` for an IDE query at a raw
+    /// cursor.
     ///
-    /// Reads the render source, not the pristine synth: `typst_ide` traces
-    /// the expression by compiling `World::main`, and the pristine synth of a
-    /// page with errors does not compile. The render source is the compilable
-    /// view; its positions map back to raw through `render_mapper`.
+    /// Inside a range error recovery marked, the token under the cursor only
+    /// exists in the pristine file (the patched trace file has a placeholder
+    /// there), so parse that and give up on trace-based resolution, which
+    /// needs a compilable main. Everywhere else the patched file is used: it
+    /// is byte-identical to the pristine one outside the marks and it
+    /// compiles, so tracing resolves property access.
+    fn ide_query_sources(&self, id: &TypstFileId, raw_cursor: usize) -> Option<(FileId, Source)> {
+        let context = self.source_context_map.get(id)?;
+
+        let inside_marked = context
+            .marked_raw_ranges
+            .iter()
+            .any(|range| range.start <= raw_cursor && raw_cursor <= range.end);
+
+        if inside_marked {
+            Some((context.synth_id, context.synth_source(&self.world)?.clone()))
+        } else {
+            Some((context.ide_id, context.ide_source(&self.world)?.clone()))
+        }
+    }
+
+    /// Plain-Rust core of [`Self::autocomplete`].
     pub fn autocomplete_at(
         &mut self,
         id: &TypstFileId,
         raw_cursor_utf16: usize,
         explicit: bool,
     ) -> Option<Autocomplete> {
-        let (render_id, synth_id) = {
-            let context = self.source_context_map.get(id)?;
-            (context.render_id, context.synth_id)
-        };
+        let synth_id = self.source_context_map.get(id)?.synth_id;
+        let raw_source = self.source_context_map.get(id)?.raw_source(&self.world)?;
+        let raw_cursor = raw_source.lines().utf16_to_byte(raw_cursor_utf16)?;
 
-        self.world.main_id = Some(render_id);
+        let (main_id, parse_source) = self.ide_query_sources(id, raw_cursor)?;
+
+        self.world.main_id = Some(main_id);
 
         let result = (|| {
             let context = self.source_context_map.get(id)?;
 
             let raw_source = context.raw_source(&self.world)?;
-            let render_source = context.render_source(&self.world)?;
-
             let raw_lines = raw_source.lines();
             let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let render_cursor = context.map_raw_to_render_from_left(raw_cursor);
+            let synth_cursor = context.map_raw_to_synth_from_left(raw_cursor);
 
-            let (render_offset, completions) = typst_ide::autocomplete(
+            let (synth_offset, completions) = typst_ide::autocomplete(
                 &self.world,
                 context.paged_document.as_ref(),
-                render_source,
-                render_cursor,
+                &parse_source,
+                synth_cursor,
                 explicit,
             )?;
 
-            let raw_offset = context.map_render_to_raw_from_left(render_offset);
+            let raw_offset = context.map_synth_to_raw_from_left(synth_offset);
             let raw_offset_utf16 = raw_lines.byte_to_utf16(raw_offset)?;
 
             Some(Autocomplete {
@@ -807,24 +827,23 @@ impl TypstState {
 
     #[wasm_bindgen]
     pub fn hover(&mut self, id: &TypstFileId, raw_cursor_utf16: usize, side: i8) -> Option<String> {
-        let (render_id, synth_id) = {
-            let context = self.source_context_map.get(id)?;
-            (context.render_id, context.synth_id)
+        let synth_id = self.source_context_map.get(id)?.synth_id;
+        let raw_cursor = {
+            let raw_source = self.source_context_map.get(id)?.raw_source(&self.world)?;
+            raw_source.lines().utf16_to_byte(raw_cursor_utf16)?
         };
 
-        // Same reasoning as autocomplete: tooltips trace the expression by
-        // compiling the main file, so read the compilable render source.
-        self.world.main_id = Some(render_id);
+        let (main_id, parse_source) = self.ide_query_sources(id, raw_cursor)?;
+
+        self.world.main_id = Some(main_id);
 
         let result = (|| {
             let context = self.source_context_map.get(id)?;
 
-            let render_source = context.render_source(&self.world)?;
             let raw_source = context.raw_source(&self.world)?;
-
             let raw_lines = raw_source.lines();
             let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let render_cursor = context.map_raw_to_render_from_right(raw_cursor);
+            let synth_cursor = context.map_raw_to_synth_from_right(raw_cursor);
 
             let side = if side == -1 {
                 Side::Before
@@ -835,8 +854,8 @@ impl TypstState {
             let tooltip = typst_ide::tooltip(
                 &self.world,
                 context.paged_document.as_ref(),
-                render_source,
-                render_cursor,
+                &parse_source,
+                synth_cursor,
                 side,
             );
 

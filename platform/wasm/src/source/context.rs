@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use typst_html::HtmlDocument;
 use typst_layout::PagedDocument;
 use typst_syntax::{FileId, RootedPath, Source};
@@ -84,6 +86,18 @@ pub struct SourceContext {
     /// repaired text) that error recovery is allowed to rewrite.
     pub render_id: FileId,
 
+    /// File ID for the IDE trace source.
+    ///
+    /// Error recovery marks expressions that do not compile. `typst_ide`
+    /// resolves field access by tracing values, and tracing compiles
+    /// `world.main`, so IDE queries need a compilable main. This file is a
+    /// byte-length-equal copy of the pristine synth with each marked range
+    /// replaced by a valid expression. Queries outside the marked ranges parse
+    /// this file and set `main` to it, so tracing works; queries inside a
+    /// marked range parse the pristine synth instead, where the token under
+    /// the cursor is still the user's.
+    pub ide_id: FileId,
+
     /// Which space this note belongs to. Used to look up the associated
     /// [`SpaceContext`] for theme and font settings.
     pub space_id: String,
@@ -100,6 +114,10 @@ pub struct SourceContext {
     /// Delimiter insertions applied between raw and repaired text. Empty for
     /// the vast majority of notes.
     pub render_fixups: RawFixups,
+
+    /// Raw ranges error recovery marked in the current render. Used to build
+    /// the patched IDE trace source; cleared on every sync.
+    pub marked_raw_ranges: Vec<Range<usize>>,
 
     /// The most recently compiled paged document for this note, if any.
     /// Cached here so hover and jump-to-source queries can avoid recompiling.
@@ -122,21 +140,27 @@ impl SourceContext {
     pub fn new(synth_id: FileId, space_id: String) -> Self {
         let raw_id = FileId::new(RootedPath::new(
             synth_id.root().clone(),
-            synth_id.vpath().with_extension("$.typ"),
+            synth_id.vpath().with_extension("raw.typ"),
         ));
         let render_id = FileId::new(RootedPath::new(
             synth_id.root().clone(),
             synth_id.vpath().with_extension("render.typ"),
+        ));
+        let ide_id = FileId::new(RootedPath::new(
+            synth_id.root().clone(),
+            synth_id.vpath().with_extension("ide.typ"),
         ));
 
         Self {
             synth_id,
             raw_id,
             render_id,
+            ide_id,
             space_id,
             index_mapper: IndexMapper::default(),
             render_mapper: IndexMapper::default(),
             render_fixups: RawFixups::default(),
+            marked_raw_ranges: Vec::new(),
             paged_document: None,
             html_document: None,
             width: String::from("auto"),
@@ -166,6 +190,100 @@ impl SourceContext {
 
     pub fn render_source_mut<'a>(&self, world: &'a mut TypstWorld) -> Option<&'a mut Source> {
         world.files.get_mut(&self.render_id)?.source_mut()
+    }
+
+    pub fn ide_source<'a>(&self, world: &'a TypstWorld) -> Option<&'a Source> {
+        world.files.get(&self.ide_id)?.source()
+    }
+
+    /// Rebuilds the patched IDE trace source from the pristine synth.
+    ///
+    /// Error recovery marks expressions that do not compile. `typst_ide`
+    /// resolves field access by tracing values, and tracing compiles
+    /// `world.main`, so IDE queries need a compilable main. Marked ranges are
+    /// replaced with equal-length valid expressions there, which keeps byte
+    /// positions (and therefore all `IndexMapper` offsets) unchanged. IDE
+    /// queries inside a marked range parse the pristine file instead, so the
+    /// token under the cursor is still the user's.
+    pub fn rebuild_ide_source(&self, world: &mut TypstWorld) {
+        let Some(pristine) = self
+            .synth_source(world)
+            .map(|source| source.text().to_string())
+        else {
+            return;
+        };
+
+        let patched = self.patch_marked_ranges(&pristine);
+
+        world.insert_source(self.ide_id, patched);
+    }
+
+    fn patch_marked_ranges(&self, pristine: &str) -> String {
+        let ranges = self.patched_synth_ranges();
+
+        if ranges.is_empty() {
+            return pristine.to_string();
+        }
+
+        let mut patched = pristine.to_string();
+
+        // Equal-length replacements, so applying them in any order keeps the
+        // remaining offsets valid.
+        for range in ranges.into_iter().rev() {
+            let start = range.start.min(patched.len());
+            let end = range.end.min(patched.len()).max(start);
+            let length = end - start;
+
+            if length == 0 {
+                continue;
+            }
+
+            let replacement = if length == 1 {
+                String::from("0")
+            } else {
+                let mut text = String::with_capacity(length);
+                text.push('"');
+                text.push_str(&" ".repeat(length - 2));
+                text.push('"');
+                text
+            };
+
+            patched.replace_range(start..end, &replacement);
+        }
+
+        patched
+    }
+
+    /// Marked raw ranges mapped into pristine-synth coordinates, merged and
+    /// sorted. Marked ranges can nest across recovery passes.
+    fn patched_synth_ranges(&self) -> Vec<Range<usize>> {
+        if self.marked_raw_ranges.is_empty() {
+            return Vec::new();
+        }
+
+        let mut ranges = self
+            .marked_raw_ranges
+            .iter()
+            .map(|raw| {
+                self.index_mapper.map_raw_to_synth_from_left(raw.start)
+                    ..self.index_mapper.map_raw_to_synth_from_right(raw.end)
+            })
+            .collect::<Vec<_>>();
+
+        ranges.sort_by_key(|range| range.start);
+
+        let mut merged: Vec<Range<usize>> = Vec::new();
+        for range in ranges {
+            if let Some(last) = merged.last_mut()
+                && range.start <= last.end
+            {
+                last.end = last.end.max(range.end);
+            } else {
+                merged.push(range);
+            }
+        }
+
+        merged
     }
 
     /// Whether a span belongs to one of this note's compile sources. Spans

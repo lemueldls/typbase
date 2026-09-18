@@ -106,12 +106,14 @@ pub fn sync_source_context(
         None => (render.synth.clone(), render.mapper.clone()),
     };
 
+    world.insert_source(context.ide_id, pristine_synth.clone());
     world.insert_source(context.synth_id, pristine_synth);
     world.insert_source(context.render_id, render.synth.clone());
 
     context.index_mapper = index_mapper;
     context.render_mapper = render.mapper;
     context.render_fixups = fixups;
+    context.marked_raw_ranges.clear();
 
     world.main_id = Some(context.synth_id);
 

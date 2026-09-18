@@ -57,6 +57,13 @@ pub fn chunk_by_items(
 
     state.world.main_id = Some(context.synth_id);
 
+    // If recovery marked ranges, update the patched source IDE queries trace
+    // against. The pristine parse source stays untouched; the patch keeps the
+    // file compilable without moving spans.
+    if !context.marked_raw_ranges.is_empty() {
+        context.rebuild_ide_source(&mut state.world);
+    }
+
     // The repaired document compiles cleanly, so the unclosed-delimiter
     // warnings have to come from the fixup list, not the compiler.
     let mut diagnostics = delimiter_diagnostics(&context.render_fixups, text);

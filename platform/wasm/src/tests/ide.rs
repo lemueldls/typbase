@@ -8,38 +8,48 @@ use crate::{
     tests::{fixtures, harness},
 };
 
-/// A page with one undefined math ident (recovery marks it red) and one
-/// property access that must still complete.
-const RECOVERED_PAGE: &str = "$ notdefined + 1 $\n\n$ integral.triple $\n\nAfter.";
+/// A page with one undefined math ident (recovery marks it red) and two
+/// completion targets after it: a plain math ident and a property access.
+const RECOVERED_PAGE: &str = "$ notdefined + 1 $\n\n$ qu + integral.triple $\n\nAfter.";
 
 fn utf16_offset(text: &str, byte_offset: usize) -> usize {
     text[..byte_offset].chars().map(char::len_utf16).sum()
 }
 
-/// Cursor positions a user types through while completing `integral.triple`:
-/// right after the dot and part-way through the field name.
-fn field_cursors(text: &str) -> [usize; 2] {
-    let dot = text.find("integral.").unwrap() + "integral.".len();
-    let partial = text.find("integral.t").unwrap() + "integral.t".len();
-
-    [utf16_offset(text, dot), utf16_offset(text, partial)]
-}
-
-fn labels_at(
+/// Completes a prefix and asserts both the label and the `from` offset
+/// CodeMirror uses to filter the option list. `expected_from` is the byte
+/// offset the replacement should start at: the start of a plain ident, or the
+/// start of the field part for property access.
+fn assert_completion(
     state: &mut crate::state::TypstState,
     id: &crate::bindings::TypstFileId,
-    cursor: usize,
-) -> Vec<String> {
-    state
+    text: &str,
+    prefix: &str,
+    expected_from: usize,
+    label: &str,
+) {
+    let start = text.find(prefix).expect("prefix missing from fixture");
+    let cursor = utf16_offset(text, start + prefix.len());
+    let expected_from = utf16_offset(text, expected_from);
+
+    let result = state
         .autocomplete_at(id, cursor, true)
-        .map(|result| {
-            result
-                .completions
-                .iter()
-                .map(|completion| completion.label.clone())
-                .collect()
-        })
-        .unwrap_or_default()
+        .expect("autocomplete returned nothing after recovery");
+
+    let labels = result
+        .completions
+        .iter()
+        .map(|completion| completion.label.clone())
+        .collect::<Vec<_>>();
+
+    assert!(
+        labels.iter().any(|candidate| candidate == label),
+        "missing `{label}` for `{prefix}`: {labels:?}",
+    );
+    assert_eq!(
+        result.offset, expected_from,
+        "completion start offset for `{prefix}`",
+    );
 }
 
 #[test]
@@ -49,19 +59,24 @@ fn clean_math_field_completion_works() {
         return;
     }
 
-    let text = "$ integral.triple $";
+    let text = "$ qu + integral.triple $";
     let mut state = harness::state();
     let id = harness::page(&mut state, "ide_autocomplete_clean");
     let _ = harness::compile(&mut state, &id, text);
 
-    for cursor in field_cursors(text) {
-        let labels = labels_at(&mut state, &id, cursor);
+    let integral = text.find("integral").unwrap();
+    let field = integral + "integral.".len();
 
-        assert!(
-            labels.iter().any(|label| label == "triple"),
-            "control fixture does not complete field access at {cursor}: labels={labels:?}",
-        );
-    }
+    assert_completion(
+        &mut state,
+        &id,
+        text,
+        "qu",
+        text.find("qu").unwrap(),
+        "quad",
+    );
+    assert_completion(&mut state, &id, text, "integral.", field, "triple");
+    assert_completion(&mut state, &id, text, "integral.tri", field, "triple");
 }
 
 #[test]
@@ -85,14 +100,33 @@ fn autocomplete_survives_recovered_render() {
         render.diagnostics,
     );
 
-    for cursor in field_cursors(RECOVERED_PAGE) {
-        let labels = labels_at(&mut state, &id, cursor);
+    let integral = RECOVERED_PAGE.find("integral").unwrap();
+    let field = integral + "integral.".len();
 
-        assert!(
-            labels.iter().any(|label| label == "triple"),
-            "property completion lost after recovery at {cursor}: labels={labels:?}",
-        );
-    }
+    assert_completion(
+        &mut state,
+        &id,
+        RECOVERED_PAGE,
+        "qu",
+        RECOVERED_PAGE.find("qu").unwrap(),
+        "quad",
+    );
+    assert_completion(
+        &mut state,
+        &id,
+        RECOVERED_PAGE,
+        "integral.",
+        field,
+        "triple",
+    );
+    assert_completion(
+        &mut state,
+        &id,
+        RECOVERED_PAGE,
+        "integral.tri",
+        field,
+        "triple",
+    );
 }
 
 #[test]
