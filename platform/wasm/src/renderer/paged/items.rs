@@ -368,6 +368,23 @@ pub fn chunk_by_items_with_blocks(
             let block_end_width = block_end_width?.to_pt();
             let block_end_height = block_end_height?.to_pt();
 
+            // Empty content reports an infinite bounding box (Typst uses
+            // `Rect` at +/-inf for "nothing here"). Chunks get filtered by the
+            // positivity check in the partition loop; tooltips need the same
+            // guard or the SVG renderer asserts on a non-finite size.
+            let width = block_end_width - block_start_width;
+            let height = block_end_height - block_start_height;
+
+            if !width.is_finite()
+                || !height.is_finite()
+                || !block_start_width.is_finite()
+                || !block_start_height.is_finite()
+                || width <= 0.0
+                || height <= 0.0
+            {
+                return None;
+            }
+
             let synth_range = items
                 .iter()
                 .filter_map(|item| item.range.clone())
@@ -412,8 +429,8 @@ pub fn chunk_by_items_with_blocks(
             Some(FrameItemsChunk {
                 items: VecDeque::from(items),
                 range: raw_range_utf16,
-                width: block_end_width - block_start_width,
-                height: block_end_height - block_start_height,
+                width,
+                height,
                 x_offset: block_start_width,
                 y_offset: block_start_height,
             })

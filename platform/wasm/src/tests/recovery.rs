@@ -34,8 +34,8 @@ fn broken_math_renders_through_recovery() {
     }
 }
 
-/// Unclosed `$` and math strings are repaired, not swallowed: the fixup list
-/// reports a warning at the raw insertion point.
+/// Unclosed `$`, math strings, and empty sub/sup attachments are repaired,
+/// not swallowed: the fixup list reports a warning at the raw insertion point.
 #[test]
 fn unclosed_delimiters_report_warnings() {
     if !harness::fonts_available() {
@@ -53,6 +53,21 @@ fn unclosed_delimiters_report_warnings() {
             "quote",
             fixtures::MATH_UNCLOSED_QUOTE,
             "unclosed math string",
+        ),
+        (
+            "empty_quotes",
+            fixtures::MATH_EMPTY_QUOTES,
+            "unclosed math string",
+        ),
+        (
+            "empty_sub",
+            fixtures::MATH_EMPTY_SUB_CALL,
+            "empty math attachment",
+        ),
+        (
+            "empty_sup",
+            fixtures::MATH_EMPTY_SUP_CALL,
+            "empty math attachment",
         ),
     ] {
         let mut state = harness::state();
@@ -142,6 +157,8 @@ fn recovery_svg_snapshots() {
         ),
         ("math_unclosed_dollar", fixtures::MATH_UNCLOSED_DOLLAR),
         ("math_unclosed_quote", fixtures::MATH_UNCLOSED_QUOTE),
+        ("math_empty_quotes", fixtures::MATH_EMPTY_QUOTES),
+        ("math_empty_sub_call", fixtures::MATH_EMPTY_SUB_CALL),
         ("math_sub_paren", fixtures::MATH_SUB_PAREN),
     ] {
         let mut state = harness::state();

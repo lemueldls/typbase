@@ -1,0 +1,5 @@
+---
+source: wasm/src/tests/tooltip.rs
+expression: summarize(&render.tooltips)
+---
+[]

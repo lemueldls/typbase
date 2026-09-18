@@ -180,6 +180,7 @@ pub fn delimiter_diagnostics(fixups: &RawFixups, text: &str) -> Vec<TypstDiagnos
                 severity: TypstDiagnosticSeverity::Warning,
                 message: match fix.insertion {
                     "\"" => String::from("unclosed math string; inserted a closing `\"`"),
+                    "#none" => String::from("empty math attachment; inserted `#none`"),
                     _ => String::from("unclosed math equation; inserted a closing `$`"),
                 },
                 hints: Box::default(),
@@ -223,11 +224,60 @@ fn walk(node: &LinkedNode, text: &str, fixes: &mut Vec<DelimiterFix>) {
             insertion: "\"",
         }));
 
+        collect_bare_attachments(node, fixes);
+
         return;
     }
 
     for child in node.children() {
         walk(&child, text, fixes);
+    }
+}
+
+/// Adds a placeholder argument to attachments that have none.
+///
+/// `x_` has no subscript argument, so the parser consumes the next token as
+/// the argument. In `abs((x_))` that token is the closing paren: the paren
+/// nesting breaks and the equation fails with "unclosed delimiter", which
+/// block removal then blanks entirely. `x_#none` attaches nothing and leaves
+/// the paren where it belongs.
+fn collect_bare_attachments(node: &LinkedNode, out: &mut Vec<DelimiterFix>) {
+    if node.kind() == SyntaxKind::MathAttach {
+        let mut operator_end = None;
+        let mut operator_kind = None;
+        let mut last_kind = None;
+        let mut last_text = String::new();
+
+        for child in node.children() {
+            if matches!(child.kind(), SyntaxKind::Underscore | SyntaxKind::Hat) {
+                operator_end = Some(child.range().end);
+                operator_kind = Some(child.kind());
+            }
+
+            last_kind = Some(child.kind());
+            last_text = child.get().leaf_text().to_string();
+        }
+
+        if let (Some(operator_end), Some(operator_kind)) = (operator_end, operator_kind) {
+            let missing = if last_kind == Some(operator_kind) {
+                true
+            } else {
+                last_kind == Some(SyntaxKind::MathAlignPoint)
+                    || (last_kind == Some(SyntaxKind::MathText)
+                        && matches!(last_text.as_str(), ")" | "]" | "}" | "|"))
+            };
+
+            if missing {
+                out.push(DelimiterFix {
+                    raw_offset: operator_end,
+                    insertion: "#none",
+                });
+            }
+        }
+    }
+
+    for child in node.children() {
+        collect_bare_attachments(&child, out);
     }
 }
 
@@ -358,6 +408,41 @@ mod tests {
     fn closed_equations_are_left_alone() {
         assert_eq!(find_fixes("Inline $x + y$ here.\n").len(), 0);
         assert_eq!(find_fixes("$ \"ok\" $\n").len(), 0);
+    }
+
+    #[test]
+    fn bare_attachments_get_a_placeholder() {
+        let text = "Before.\n\n$ abs((x_)) $\n\nAfter.\n";
+
+        assert_eq!(
+            find_fixes(text),
+            vec![DelimiterFix {
+                raw_offset: 18,
+                insertion: "#none",
+            }]
+        );
+
+        let fixed = RawFixups::new(find_fixes(text)).repaired(text);
+        assert_eq!(fixed, "Before.\n\n$ abs((x_#none)) $\n\nAfter.\n");
+    }
+
+    #[test]
+    fn superscript_attachments_get_a_placeholder() {
+        let text = "$ abs(x^) $";
+
+        assert_eq!(
+            find_fixes(text),
+            vec![DelimiterFix {
+                raw_offset: 8,
+                insertion: "#none",
+            }]
+        );
+    }
+
+    #[test]
+    fn filled_attachments_are_left_alone() {
+        assert_eq!(find_fixes("$ f(x)_1 $").len(), 0);
+        assert_eq!(find_fixes("$ (a + b)^2 $").len(), 0);
     }
 
     #[test]

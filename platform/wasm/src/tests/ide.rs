@@ -16,6 +16,32 @@ fn utf16_offset(text: &str, byte_offset: usize) -> usize {
     text[..byte_offset].chars().map(char::len_utf16).sum()
 }
 
+/// Cursor positions a user types through while completing `integral.triple`:
+/// right after the dot and part-way through the field name.
+fn field_cursors(text: &str) -> [usize; 2] {
+    let dot = text.find("integral.").unwrap() + "integral.".len();
+    let partial = text.find("integral.t").unwrap() + "integral.t".len();
+
+    [utf16_offset(text, dot), utf16_offset(text, partial)]
+}
+
+fn labels_at(
+    state: &mut crate::state::TypstState,
+    id: &crate::bindings::TypstFileId,
+    cursor: usize,
+) -> Vec<String> {
+    state
+        .autocomplete_at(id, cursor, true)
+        .map(|result| {
+            result
+                .completions
+                .iter()
+                .map(|completion| completion.label.clone())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 #[test]
 fn clean_math_field_completion_works() {
     if !harness::fonts_available() {
@@ -28,21 +54,14 @@ fn clean_math_field_completion_works() {
     let id = harness::page(&mut state, "ide_autocomplete_clean");
     let _ = harness::compile(&mut state, &id, text);
 
-    let cursor = text.find("integral.").unwrap() + "integral.".len();
-    let result = state
-        .autocomplete_at(&id, utf16_offset(text, cursor), true)
-        .expect("autocomplete returned nothing on a clean page");
+    for cursor in field_cursors(text) {
+        let labels = labels_at(&mut state, &id, cursor);
 
-    let labels = result
-        .completions
-        .iter()
-        .map(|completion| completion.label.clone())
-        .collect::<Vec<_>>();
-
-    assert!(
-        labels.iter().any(|label| label == "triple"),
-        "control fixture does not complete field access: {labels:?}",
-    );
+        assert!(
+            labels.iter().any(|label| label == "triple"),
+            "control fixture does not complete field access at {cursor}: labels={labels:?}",
+        );
+    }
 }
 
 #[test]
@@ -66,21 +85,14 @@ fn autocomplete_survives_recovered_render() {
         render.diagnostics,
     );
 
-    let cursor = RECOVERED_PAGE.find("integral.").unwrap() + "integral.".len();
-    let result = state
-        .autocomplete_at(&id, utf16_offset(RECOVERED_PAGE, cursor), true)
-        .expect("autocomplete returned nothing after recovery");
+    for cursor in field_cursors(RECOVERED_PAGE) {
+        let labels = labels_at(&mut state, &id, cursor);
 
-    let labels = result
-        .completions
-        .iter()
-        .map(|completion| completion.label.clone())
-        .collect::<Vec<_>>();
-
-    assert!(
-        labels.iter().any(|label| label == "triple"),
-        "property completion lost after recovery: {labels:?}",
-    );
+        assert!(
+            labels.iter().any(|label| label == "triple"),
+            "property completion lost after recovery at {cursor}: labels={labels:?}",
+        );
+    }
 }
 
 #[test]

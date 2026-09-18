@@ -81,6 +81,38 @@ $ \"abc > 3 $
 After paragraph.
 ";
 
+pub const MATH_EMPTY_QUOTES: &str = "\
+Before.
+
+$ \"\"\" $
+
+After paragraph.
+";
+
+pub const MATH_EMPTY_SUB_CALL: &str = "\
+Before.
+
+$ abs((x_)) $
+
+After.
+";
+
+pub const MATH_EMPTY_SUP_CALL: &str = "\
+Before.
+
+$ abs((x^)) $
+
+After.
+";
+
+pub const MATH_EMPTY_SUB: &str = "\
+Before.
+
+$ abs(x_) $
+
+After.
+";
+
 pub const MATH_SUB_PAREN: &str = "\
 Before.
 
@@ -160,6 +192,22 @@ pub const BROKEN_MATH: &[Fixture] = &[
     Fixture {
         name: "math_unclosed_quote",
         source: MATH_UNCLOSED_QUOTE,
+    },
+    Fixture {
+        name: "math_empty_quotes",
+        source: MATH_EMPTY_QUOTES,
+    },
+    Fixture {
+        name: "math_empty_sub_call",
+        source: MATH_EMPTY_SUB_CALL,
+    },
+    Fixture {
+        name: "math_empty_sup_call",
+        source: MATH_EMPTY_SUP_CALL,
+    },
+    Fixture {
+        name: "math_empty_sub",
+        source: MATH_EMPTY_SUB,
     },
     Fixture {
         name: "math_sub_paren",
