@@ -27,8 +27,9 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 - [Typst](https://typst.app) 0.15 compiled to WebAssembly with [wasm-bindgen](https://rustwasm.github.io/docs/wasm-bindgen/) and [wasm-pack](https://github.com/rustwasm/wasm-pack).
 - [comemo](https://github.com/typst/comemo) memoization. Each note compiles from several source variants, so error recovery never changes what the IDE and diagnostics read.
-- Plugin views compile through the same engine to HTML, get sanitized, and render into an isolated DOM root with declarative actions. No iframe or messaging bridge.
-- Bundled [Maple Mono](https://github.com/subframe7536/maple-font) and New Computer Modern Math fonts, plus system font discovery on desktop.
+
+<!-- - Plugin views compile through the same engine to HTML, get sanitized, and render into an isolated DOM root with declarative actions. No iframe or messaging bridge. -->
+<!-- - Bundled [Maple Mono](https://github.com/subframe7536/maple-font) and New Computer Modern Math fonts, plus system font discovery on desktop. -->
 
 ### Storage and data
 
@@ -39,7 +40,8 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 - [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec): SQLite in WebAssembly over OPFS with full-text and vector search, queried hybrid (BM25 plus cosine, reciprocal rank fusion) from a worker.
 - [transformers.js](https://github.com/huggingface/transformers.js) embeddings in a worker with a small default model. Semantic search stays off until enabled and the model is downloaded.
-- Provider-agnostic AI: OpenAI-compatible endpoints, Anthropic, and Ollama behind one interface, with keys kept on the device.
+
+<!-- - Provider-agnostic AI: OpenAI-compatible endpoints, Anthropic, and Ollama behind one interface, with keys kept on the device. -->
 
 ### Sync and atproto
 
