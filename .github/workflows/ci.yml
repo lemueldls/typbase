@@ -8,8 +8,6 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # On main, all builds complete even if merging happens faster, so it is
-  # easier to spot where something broke.
   group: ${{ github.ref == 'refs/heads/main' && format('ci-main-{0}', github.sha) || format('ci-{0}', github.ref) }}
   cancel-in-progress: true
 
@@ -31,14 +29,15 @@ jobs:
 
       - name: 🌙 Setup moon
         uses: ./.github/actions/setup-moon
-        with:
-          node-version: "26"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: 🎨 Format check
         run: pnpm fmt:check
+
+      - name: 🦀 Build @typbase/wasm
+        run: pnpm wasm:build
 
       - name: 🧹 Lint
         run: pnpm lint
@@ -63,8 +62,6 @@ jobs:
 
       - name: 🌙 Setup moon
         uses: ./.github/actions/setup-moon
-        with:
-          node-version: "26"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile

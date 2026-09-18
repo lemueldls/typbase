@@ -48,7 +48,7 @@ jobs:
         uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
         with:
           distribution: zulu
-          java-version: "17"
+          java-version: "26"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
@@ -58,8 +58,6 @@ jobs:
 
       - name: 🌙 Setup moon
         uses: ./.github/actions/setup-moon
-        with:
-          node-version: "26"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile

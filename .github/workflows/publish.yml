@@ -39,14 +39,9 @@ jobs:
 
       - name: 🌙 Setup moon
         uses: ./.github/actions/setup-moon
-        with:
-          node-version: "26"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: 🦀 Build @typbase/wasm (release)
-        run: pnpm wasm:build:release
 
       - name: 🔨 Build shared packages
         run: pnpm packages:build

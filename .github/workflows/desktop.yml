@@ -15,8 +15,6 @@ on:
         type: string
 
 env:
-  # Baked into the web bundle. The OAuth client id is derived from this origin,
-  # so release builds must point at the deployed app.
   NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
 
 jobs:
@@ -76,8 +74,6 @@ jobs:
 
       - name: 🌙 Setup moon
         uses: ./.github/actions/setup-moon
-        with:
-          node-version: "26"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
