@@ -151,7 +151,7 @@ function statusFor(info: WorkspaceInfo): string {
           <div class="menu__separator" />
 
           <button type="button" class="menu__item ws-menu__add" @click="openCreate">
-            <MsIcon name="add" :size="18" />
+            <MsIcon name="add" :size="20" />
             {{ $t("switcher.add") }}
           </button>
 

@@ -565,7 +565,6 @@ definePageMeta({ ssr: false });
 .app__main :deep(.app__nav-toggle--desktop) {
   display: inline-flex;
   padding: 0.35rem 0.55rem;
-  margin-right: 0.25rem;
 }
 
 .app__main :deep(.app__nav-toggle:focus-visible),
@@ -576,8 +575,6 @@ definePageMeta({ ssr: false });
 @media (max-width: 768px) {
   .app__main :deep(.app__nav-toggle) {
     display: inline-flex;
-    padding: 0.45rem 0.65rem;
-    margin-right: 0.25rem;
   }
 
   .app__nav {

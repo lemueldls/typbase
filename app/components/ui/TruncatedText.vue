@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false });
+
 const props = withDefaults(
   defineProps<{
     /** Full text; also the tooltip content. */
@@ -11,19 +13,31 @@ const props = withDefaults(
 
 const element = useTemplateRef("element");
 const overflowing = ref(false);
+const attrs = useAttrs();
 
-useResizeObserver(element, () => {
+function measure(): void {
   const node = element.value;
   if (!node) return;
 
   // +1 absorbs sub-pixel rounding at fractional zoom levels.
   overflowing.value = node.scrollWidth > node.clientWidth + 1;
+}
+
+useResizeObserver(element, measure);
+watch(
+  () => props.text,
+  () => void nextTick(measure),
+);
+
+const scopeAttrs = computed<Record<string, string>>(() => {
+  const scopeId = getCurrentInstance()?.vnode.scopeId;
+  return scopeId ? { [scopeId]: "" } : {};
 });
 </script>
 
 <template>
   <UiTooltip :text="text ?? ''" :side="side" :disabled="!overflowing">
-    <span ref="element" class="ui-truncated-text">
+    <span ref="element" v-bind="{ ...scopeAttrs, ...attrs }" class="ui-truncated-text">
       <slot>{{ text }}</slot>
     </span>
   </UiTooltip>

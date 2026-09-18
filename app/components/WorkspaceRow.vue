@@ -39,7 +39,7 @@ const icon = computed(
       @click="emit('select')"
     >
       <span class="ws-row__icon" aria-hidden="true">
-        <MsIcon :name="icon" :size="18" />
+        <MsIcon :name="icon" :size="20" />
       </span>
       <span class="ws-row__text">
         <UiTruncatedText class="ws-row__name" :text="info.name" />

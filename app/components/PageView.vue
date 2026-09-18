@@ -742,7 +742,6 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__toolbar-main-left {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -751,6 +750,7 @@ function onModeKeydown(event: KeyboardEvent) {
   min-width: 0;
   font-size: 1.25rem;
   font-weight: 600;
+  margin-left: 0.5rem;
 }
 
 .page-view__modes-menu {

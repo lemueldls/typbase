@@ -139,7 +139,7 @@ function onCreated(page: PageMeta) {
           <button type="button" class="sidebar__workspace">
             <MsIcon :name="workspaceIcon" :size="20" class="sidebar__icon" />
             <span class="sidebar__name">{{ settings.name }}</span>
-            <MsIcon name="keyboard_arrow_down" :size="16" class="sidebar__chevron" />
+            <MsIcon name="keyboard_arrow_down" :size="20" class="sidebar__chevron" />
           </button>
         </UiTooltip>
       </WorkspaceSwitcher>
