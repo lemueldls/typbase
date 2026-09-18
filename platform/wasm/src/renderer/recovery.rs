@@ -75,10 +75,10 @@ pub fn remove_errornous_block(
         .iter()
         .enumerate()
         .filter_map(|(idx, block)| {
-            let raw_range = &block.range;
+            let repaired_range = &block.range;
 
-            let synth_range_start = context.map_raw_to_synth_from_left(raw_range.start);
-            let synth_range_end = context.map_raw_to_synth_from_right(raw_range.end);
+            let synth_range_start = context.map_repaired_to_render_from_left(repaired_range.start);
+            let synth_range_end = context.map_repaired_to_render_from_right(repaired_range.end);
             let synth_range = synth_range_start..synth_range_end;
 
             let in_block = error_ranges.iter().any(|error_range| {
@@ -92,7 +92,7 @@ pub fn remove_errornous_block(
 
     for synth_range in synth_ranges {
         // fill block with whitespace to stablize ranges
-        let source = context.synth_source_mut(world).unwrap();
+        let source = context.render_source_mut(world).unwrap();
         let len = source.text().len();
         let start_byte = synth_range.start.min(len);
         let end_byte = synth_range.end.min(len).max(start_byte);
@@ -135,8 +135,8 @@ pub fn try_mark_errornous(
     let eq_ranges = eq_ranges
         .iter()
         .map(|eq_range| {
-            let synth_start = context.map_raw_to_synth_from_left(eq_range.start);
-            let synth_end = context.map_raw_to_synth_from_right(eq_range.end);
+            let synth_start = context.map_repaired_to_render_from_left(eq_range.start);
+            let synth_end = context.map_repaired_to_render_from_right(eq_range.end);
 
             synth_start..synth_end
         })
@@ -165,7 +165,8 @@ pub fn try_mark_errornous(
     let marks = error_ranges
         .into_iter()
         .map(|synth_range| {
-            let source = context.synth_source_mut(world).unwrap();
+            let source = context.render_source_mut(world).unwrap();
+            let synth_range = expand_math_call(source.text(), synth_range);
             let original_text = source.text()[synth_range.clone()].to_string();
             // crate::log!("[MARKING]:\n{}", original_text);
 
@@ -174,7 +175,7 @@ pub fn try_mark_errornous(
             source.edit(synth_range.clone(), &marked_text);
 
             context
-                .index_mapper
+                .render_mapper
                 .bump_synth_from(synth_range.end, total_wrap_len);
 
             // crate::log!("[NEW SOURCE]:\n{}", &source.text());
@@ -194,40 +195,74 @@ pub fn try_mark_errornous(
     }
 }
 
+/// Expands a marked range over a math call's argument list.
+///
+/// An unknown variable used as a math callee (`notdefined(x)`) reports its
+/// span on the callee alone. Wrapping just the callee leaves `(x)` to attach
+/// to the inserted code expression, which fails again and spins the recovery
+/// loop. Marking the whole call as red content renders instead.
+fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {
+    let bytes = text.as_bytes();
+
+    if bytes.get(range.end) != Some(&b'(') {
+        return range;
+    }
+
+    let mut depth = 0_usize;
+    let mut index = range.end;
+
+    while index < bytes.len() {
+        match bytes[index] {
+            b'(' => depth += 1,
+            b')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return range.start..index + 1;
+                }
+            }
+            _ => {}
+        }
+
+        index += 1;
+    }
+
+    range
+}
+
 pub fn map_error_mark_index(marked_errors: &MarkedErrors, context: &mut SourceContext) {
     for mark in &marked_errors.marks {
-        // crate::log!("before: {:?}", &context.index_mapper);
+        // crate::log!("before: {:?}", &context.render_mapper);
         // crate::log!("delta range: {synth_range:?}");
 
         let raw_start = context
-            .index_mapper
+            .render_mapper
             .map_synth_to_raw_from_right(mark.synth_range.start);
-        context.index_mapper.push_raw_to_synth_kind(
+        context.render_mapper.push_raw_to_synth_kind(
             raw_start,
             mark.synth_range.start + marked_errors.pre_text_len,
             AnchorKind::ErrorMark,
         );
-        context.index_mapper.push_raw_to_synth_kind(
+        context.render_mapper.push_raw_to_synth_kind(
             raw_start,
             mark.synth_range.start,
             AnchorKind::ErrorMark,
         );
 
         let raw_end = context
-            .index_mapper
+            .render_mapper
             .map_synth_to_raw_from_left(mark.synth_range.end);
-        context.index_mapper.push_raw_to_synth_kind(
+        context.render_mapper.push_raw_to_synth_kind(
             raw_end,
             mark.synth_range.end + marked_errors.total_wrap_len,
             AnchorKind::ErrorWrap,
         );
-        context.index_mapper.push_raw_to_synth_kind(
+        context.render_mapper.push_raw_to_synth_kind(
             raw_end,
             mark.synth_range.end + marked_errors.pre_text_len,
             AnchorKind::ErrorWrap,
         );
 
-        // crate::log!("after: {:?}", &context.index_mapper);
+        // crate::log!("after: {:?}", &context.render_mapper);
     }
 }
 

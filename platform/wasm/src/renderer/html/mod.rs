@@ -18,11 +18,8 @@ pub fn render(
     prelude: &str,
     state: &mut TypstState,
 ) -> HTMLRenderResult {
-    let SynthResult {
-        synth,
-        mut blocks,
-        ..
-    } = sync_source_state(id, text, prelude, RenderTarget::Html, state);
+    let SynthResult { mut blocks, .. } =
+        sync_source_state(id, text, prelude, RenderTarget::Html, state);
 
     let mut last_document = None;
 
@@ -33,11 +30,9 @@ pub fn render(
 
     let context = state.source_context_map.get_mut(id).unwrap();
 
-    context
-        .synth_source_mut(&mut state.world)
-        .unwrap()
-        .replace(&synth);
-    context.unstable_synth = synth;
+    // Compile the render source so recovery can blank blocks without
+    // touching the pristine synth.
+    state.world.main_id = Some(context.render_id);
 
     let mut frames = Vec::new();
 
@@ -79,16 +74,16 @@ pub fn render(
 
                 // crate::log!("[ERROR RANGES]: {error_ranges:?}");
 
-                // let synth_source = context.synth_source(&self.world);
-
                 // Pick the offending block by index and drop it from the
                 // candidate list: blanking it does not change the mapper, so
                 // keeping it around would loop forever on unfixable errors.
                 let Some(index) = blocks.iter().position(|block| {
-                    let raw_range = &block.range;
+                    let repaired_range = &block.range;
 
-                    let synth_range_start = context.map_raw_to_synth_from_right(raw_range.start);
-                    let synth_range_end = context.map_raw_to_synth_from_right(raw_range.end);
+                    let synth_range_start =
+                        context.map_repaired_to_render_from_right(repaired_range.start);
+                    let synth_range_end =
+                        context.map_repaired_to_render_from_right(repaired_range.end);
 
                     error_ranges.iter().any(|error_range| {
                         (synth_range_start <= error_range.start
@@ -100,11 +95,11 @@ pub fn render(
                     break;
                 };
 
-                let raw_range = blocks[index].range.clone();
+                let repaired_range = blocks[index].range.clone();
                 let inline = blocks[index].inline;
                 blocks.remove(index);
 
-                let mut end_byte = context.map_raw_to_synth_from_right(raw_range.end);
+                let mut end_byte = context.map_repaired_to_render_from_right(repaired_range.end);
                 if inline {
                     end_byte += 12;
                 }
@@ -117,11 +112,11 @@ pub fn render(
 
                 crate::error!("[ERRORS]: {diagnostics:?}");
 
-                let start_byte = context.map_raw_to_synth_from_right(raw_range.start);
+                let start_byte = context.map_repaired_to_render_from_right(repaired_range.start);
 
                 // Earlier passes shrink the synth while the mapper still
                 // describes the original text; clamp before blanking.
-                let source = context.synth_source_mut(&mut state.world).unwrap();
+                let source = context.render_source_mut(&mut state.world).unwrap();
                 let len = source.text().len();
                 let start_byte = start_byte.min(len);
                 let end_byte = end_byte.min(len).max(start_byte);
@@ -129,8 +124,10 @@ pub fn render(
 
                 Vec::new()
             }
-        }
+        };
     }
+
+    state.world.main_id = Some(context.synth_id);
 
     crate::debug!("FRAMES: {frames:?}");
 

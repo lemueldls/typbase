@@ -1,0 +1,5 @@
+---
+source: wasm/src/tests/partition.rs
+expression: render.diagnostics
+---
+[]

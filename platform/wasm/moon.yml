@@ -3,6 +3,15 @@ stack: "systems"
 layer: "library"
 
 tasks:
+  test:
+    script: "cargo test -p wasm --lib"
+    inputs:
+      - "Cargo.toml"
+      - "src/**/*"
+      - "/platform/Cargo.toml"
+      - "/platform/Cargo.lock"
+      - "/public/fonts/**/*"
+
   build-dev:
     script: "wasm-pack build --dev --target web --scope typbase . --features wasm-simd"
     inputs:

@@ -1,34 +1,39 @@
 use std::ops::Range;
 
-use typst::{WorldExt, syntax::SyntaxKind};
+use typst_syntax::{LinkedNode, SyntaxKind};
 
 use crate::{
     bindings::TypstFileId,
-    source::{AnchorKind, IndexMapper, SourceContext},
+    source::{AnchorKind, DelimiterFix, IndexMapper, RawFixups, SourceContext, delimiters},
     state::TypstState,
     world::TypstWorld,
 };
 
 /// The result of a synth-building pass.
 pub struct SynthResult {
-    /// The full synth string, ready for Typst to compile.
+    /// The render source text: the repaired raw source with the prelude and
+    /// block wrappers applied. This is what the renderer compiles.
     pub synth: String,
 
-    /// The top-level blocks discovered in the raw source, in source order.
-    /// Each block's `range` is in raw bytes.
+    /// The top-level blocks discovered in the (repaired) raw source, in source
+    /// order. Each block's `range` is in repaired-source bytes.
     pub blocks: Vec<SynthBlock>,
 
-    /// Raw source ranges of all top-level `equation` nodes, used by the math
-    /// error recovery pass to scope finer-grained fixes.
+    /// Repaired-source ranges of all top-level `equation` nodes, used by the
+    /// math error recovery pass to scope finer-grained fixes.
     pub equation_ranges: Vec<Range<usize>>,
+
+    /// Closing delimiters the raw source was missing, as found by
+    /// [`delimiters::find_fixes`].
+    pub delimiter_fixes: Vec<DelimiterFix>,
 }
 
 /// A top-level node or contiguous run of nodes from the raw source,
 /// corresponding to one independently renderable chunk.
 #[derive(Debug, Clone)]
 pub struct SynthBlock {
-    /// Byte range in the **raw** source. This is the range the rendered chunk
-    /// maps back to in the editor.
+    /// Byte range in the **repaired** source. This is the range the rendered
+    /// chunk maps back to in the editor.
     pub range: Range<usize>,
 
     /// True if this block contains inline content (list items, labels,
@@ -62,9 +67,73 @@ pub fn sync_source_state(
     sync_source_context(text, prelude, context, &mut state.world)
 }
 
-/// Builds the synth from the raw source.
+/// Builds all source files for a note and updates its mappers.
 ///
-/// Walks the raw source's top-level syntax nodes and produces an intermediate
+/// Three texts are involved:
+///
+/// - The **raw** text, exactly what the user typed. All editor positions are
+///   in raw coordinates.
+/// - The **pristine synth** (`context.synth_id`), built from the raw text. It
+///   is never mutated after this call; [`IndexMapper`](crate::source::IndexMapper)
+///   describes it, and diagnostics-only compiles read it.
+/// - The **render synth** (`context.render_id`), built from the *repaired*
+///   raw text (missing `$` and quotes closed). Error recovery replaces ranges
+///   of it; the pristine file stays untouched.
+///
+/// When no repair is needed the render synth is byte-identical to the
+/// pristine one and the two mappers match.
+#[typst_macros::time]
+pub fn sync_source_context(
+    text: &str,
+    prelude: String,
+    context: &mut SourceContext,
+    world: &mut TypstWorld,
+) -> SynthResult {
+    let fixups = RawFixups::new(delimiters::find_fixes(text));
+    let repaired = fixups.repaired(text);
+
+    let render = build_synth(&repaired, &prelude);
+    let pristine = if fixups.is_empty() {
+        None
+    } else {
+        Some(build_synth(text, &prelude))
+    };
+
+    context.raw_source_mut(world).unwrap().replace(text);
+
+    let (pristine_synth, index_mapper) = match pristine {
+        Some(pristine) => (pristine.synth, pristine.mapper),
+        None => (render.synth.clone(), render.mapper.clone()),
+    };
+
+    world.insert_source(context.synth_id, pristine_synth);
+    world.insert_source(context.render_id, render.synth.clone());
+
+    context.index_mapper = index_mapper;
+    context.render_mapper = render.mapper;
+    context.render_fixups = fixups;
+
+    world.main_id = Some(context.synth_id);
+
+    SynthResult {
+        synth: render.synth,
+        blocks: render.blocks,
+        equation_ranges: render.equation_ranges,
+        delimiter_fixes: context.render_fixups.fixes().to_vec(),
+    }
+}
+
+/// What one synth-building pass produced.
+struct SynthBuild {
+    synth: String,
+    blocks: Vec<SynthBlock>,
+    equation_ranges: Vec<Range<usize>>,
+    mapper: IndexMapper,
+}
+
+/// Builds a synth from a plain text source.
+///
+/// Walks the text's top-level syntax nodes and produces an intermediate
 /// source string that:
 ///
 /// 1. Begins with the generated prelude (page geometry, color theme, text
@@ -73,7 +142,7 @@ pub fn sync_source_state(
 ///    structural nodes (`let`, `set`, `show`, imports, comments) are passed
 ///    through unmodified.
 /// 3. Records an [`IndexMapper`] anchor at every point where text was inserted
-///    or the alignment between raw and synth shifted.
+///    or the alignment between source and synth shifted.
 ///
 /// ## Block wrapping
 ///
@@ -106,30 +175,12 @@ pub fn sync_source_state(
 /// `SynthBlock::inline` flag is set on any block containing a node from the
 /// inline category.
 #[typst_macros::time]
-pub fn sync_source_context(
-    text: &str,
-    prelude: String,
-    context: &mut SourceContext,
-    world: &mut TypstWorld,
-) -> SynthResult {
-    let mut synth = prelude;
+fn build_synth(text: &str, prelude: &str) -> SynthBuild {
+    let mut synth = String::from(prelude);
+    let mut mapper = IndexMapper::default();
 
-    context.index_mapper = IndexMapper::default();
-    // context.index_mapper.add_raw_to_synth(0, ir.len());
-
-    // context
-    //     .synth_source_mut(&mut world)
-    //     .unwrap()
-    //     .replace(&ir);
-    world.synth_id = Some(context.synth_id);
-
-    context.raw_source_mut(world).unwrap().replace(text);
-    world.raw_id = Some(context.raw_id);
-
-    let raw_source = context.raw_source(world).unwrap();
-
-    let children = raw_source.root().children();
-    let text = raw_source.text();
+    let root = typst_syntax::parse(text);
+    let linked = LinkedNode::new(&root);
 
     let mut equation_ranges = Vec::new();
 
@@ -138,20 +189,19 @@ pub fn sync_source_context(
 
     let mut last_kind: Option<SyntaxKind> = None;
 
-    for node in children {
-        let range = world.range(node.span()).unwrap();
+    for node in linked.children() {
+        let range = node.range();
 
         if node.kind() == SyntaxKind::Equation {
-            // crate::log!("[EQUATION]: {node:?}");
             equation_ranges.push(range.clone());
         }
 
-        if let Some(until_newline) = node.leaf_text().chars().position(|ch| ch == '\n') {
+        if let Some(until_newline) = node.get().leaf_text().chars().position(|ch| ch == '\n') {
             in_block = false;
 
             if let Some(last_block) = blocks.last_mut() {
                 last_block.range.end += until_newline;
-                wrap_block(&mut synth, text, last_block, last_kind, context);
+                wrap_block(&mut synth, text, last_block, last_kind, &mut mapper);
             }
         } else {
             last_kind = Some(node.kind());
@@ -161,7 +211,7 @@ pub fn sync_source_context(
             } else {
                 in_block = true;
 
-                context.index_mapper.push_raw_to_synth_with_kind(
+                mapper.push_raw_to_synth_with_kind(
                     range.start,
                     synth.len(),
                     AnchorKind::BlockStart,
@@ -177,13 +227,14 @@ pub fn sync_source_context(
     if let Some(last_block) = blocks.last_mut()
         && in_block
     {
-        wrap_block(&mut synth, text, last_block, last_kind, context);
+        wrap_block(&mut synth, text, last_block, last_kind, &mut mapper);
     }
 
-    SynthResult {
+    SynthBuild {
         synth,
         blocks,
         equation_ranges,
+        mapper,
     }
 }
 
@@ -195,7 +246,7 @@ fn wrap_block(
     text: &str,
     last_block: &mut SynthBlock,
     last_kind: Option<SyntaxKind>,
-    context: &mut SourceContext,
+    mapper: &mut IndexMapper,
 ) {
     match last_kind {
         Some(
@@ -220,13 +271,13 @@ fn wrap_block(
         }
         _ => {
             *synth += "#block(stroke:0pt,width:100%)[";
-            context.index_mapper.push_raw_to_synth_with_kind(
+            mapper.push_raw_to_synth_with_kind(
                 last_block.range.start,
                 synth.len(),
                 AnchorKind::WrapperOpen,
             );
             *synth += &text[last_block.range.clone()];
-            context.index_mapper.push_raw_to_synth_with_kind(
+            mapper.push_raw_to_synth_with_kind(
                 last_block.range.end,
                 synth.len(),
                 AnchorKind::WrapperClose,
@@ -237,15 +288,7 @@ fn wrap_block(
         }
     }
 
-    context.index_mapper.push_raw_to_synth_with_kind(
-        last_block.range.end,
-        synth.len(),
-        AnchorKind::BlockEnd,
-    );
+    mapper.push_raw_to_synth_with_kind(last_block.range.end, synth.len(), AnchorKind::BlockEnd);
     *synth += "\n";
-    context.index_mapper.push_raw_to_synth_with_kind(
-        last_block.range.end,
-        synth.len(),
-        AnchorKind::BlockNewline,
-    );
+    mapper.push_raw_to_synth_with_kind(last_block.range.end, synth.len(), AnchorKind::BlockNewline);
 }

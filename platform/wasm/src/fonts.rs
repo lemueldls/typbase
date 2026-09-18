@@ -20,7 +20,9 @@ impl FontLoader {
     }
 
     pub fn install<T>(&mut self, bytes: T)
-    where T: AsRef<[u8]> + Send + Sync + 'static {
+    where
+        T: AsRef<[u8]> + Send + Sync + 'static,
+    {
         for font in Font::iter(Bytes::new(bytes)) {
             self.book.push(font.info().clone());
             self.fonts.push(font);

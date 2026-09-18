@@ -9,9 +9,9 @@
 //! calls [`TypstState::compile_paged`] or [`TypstState::compile_html`] on
 //! individual notes as the user edits them.
 //!
-//! ## The Two-File Model
+//! ## The Source Model
 //!
-//! Each note is backed by two Typst source files internally. See the
+//! Each note is backed by three Typst source files internally. See the
 //! [`source`] module documentation for a full explanation. In brief:
 //!
 //! - The `raw` source is exactly what the user typed. All positions returned to
@@ -19,17 +19,24 @@
 //!   coordinates.
 //!
 //! - The `synth` source is a synthesized file built from the raw source plus a
-//!   generated prelude. This is the file Typst actually compiles. Positions in
-//!   compiler output are converted back to raw coordinates before being
-//!   returned.
+//!   generated prelude. It is never mutated after it is built; the index
+//!   mapper tracks raw/synth offsets.
+//!
+//! - The `render` source is the file Typst actually compiles. It is built from
+//!   the repaired raw text (missing `$` and math string quotes closed, see
+//!   [`source::delimiters`]) and error recovery rewrites ranges of it in
+//!   place. IDE queries parse this file because tracing an expression requires
+//!   a compilable main.
 //!
 //! ## Error Recovery
 //!
-//! Compile failures are handled by [`renderer::recovery`]. When the synth
-//! fails to compile, the recovery pass identifies the offending block,
+//! Compile failures are handled by [`renderer::recovery`]. When the render
+//! source fails to compile, the recovery pass identifies the offending block,
 //! overwrites it with length-preserving whitespace, and retries. Math errors
 //! get finer treatment: the broken sub-expression is wrapped in a red-text
 //! marker rather than blanked, so the rest of the equation keeps rendering.
+//! Unclosed delimiters are repaired before the first compile, so they never
+//! de-render the note.
 
 pub mod bindings;
 pub mod flatten;
@@ -39,6 +46,9 @@ pub mod source;
 pub mod state;
 pub mod theme;
 pub mod world;
+
+#[cfg(test)]
+mod tests;
 
 mod utils;
 

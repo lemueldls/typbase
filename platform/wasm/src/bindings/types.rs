@@ -62,17 +62,15 @@ impl TypstDiagnostic {
                     context,
                     world,
                 )
-                .map(|range| {
-                    TypstDiagnostic {
-                        range,
-                        severity: TypstDiagnosticSeverity::from_severity(diagnostic.severity),
-                        message: diagnostic.message.to_string(),
-                        hints: diagnostic
-                            .hints
-                            .into_iter()
-                            .map(|s| s.v.to_string())
-                            .collect(),
-                    }
+                .map(|range| TypstDiagnostic {
+                    range,
+                    severity: TypstDiagnosticSeverity::from_severity(diagnostic.severity),
+                    message: diagnostic.message.to_string(),
+                    hints: diagnostic
+                        .hints
+                        .into_iter()
+                        .map(|s| s.v.to_string())
+                        .collect(),
                 })
             })
             .collect()
@@ -86,13 +84,25 @@ pub fn map_synth_span(
     context: &SourceContext,
     world: &TypstWorld,
 ) -> Option<Range<usize>> {
+    map_synth_span_id(span, is_error, trace, context, world).map(|(_, range)| range)
+}
+
+/// Like [`map_synth_span`], but also reports which source file the range
+/// belongs to. Diagnostics can point into the pristine synth or the render
+/// source; callers need the id to pick the matching mapper.
+pub fn map_synth_span_id(
+    span: impl Into<DiagSpan>,
+    is_error: bool,
+    trace: &[Spanned<Tracepoint>],
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> Option<(FileId, Range<usize>)> {
     let span = span.into();
 
-    let mut synth_range = if Some(context.synth_id) == span.id() {
-        world.range(span)
-    } else {
-        None
-    };
+    let mut synth_range = span
+        .id()
+        .filter(|id| context.owns_span(*id))
+        .and_then(|id| world.range(span).map(|range| (id, range)));
 
     if synth_range.is_none() {
         if !is_error {
@@ -102,9 +112,13 @@ pub fn map_synth_span(
         for tracepoint in trace {
             if synth_range.is_some() {
                 break;
-            } else if Some(context.synth_id) == tracepoint.span.id() {
-                synth_range = world.range(tracepoint.span);
             }
+
+            synth_range = tracepoint
+                .span
+                .id()
+                .filter(|id| context.owns_span(*id))
+                .and_then(|id| world.range(tracepoint.span).map(|range| (id, range)));
         }
     }
 
@@ -120,11 +134,22 @@ pub fn map_raw_span(
 ) -> Option<Range<usize>> {
     let raw_source = context.raw_source(world)?;
 
-    let synth_range = map_synth_span(span, is_error, trace, context, world);
+    let synth_range = map_synth_span_id(span, is_error, trace, context, world);
 
-    let raw_range = if let Some(synth_range) = synth_range {
-        let raw_start = context.map_synth_to_raw_from_right(synth_range.start);
-        let raw_end = context.map_synth_to_raw_from_left(synth_range.end);
+    let raw_range = if let Some((file_id, synth_range)) = synth_range {
+        // Render-source positions go back through the repaired text;
+        // pristine-synth positions use the index mapper directly.
+        let (raw_start, raw_end) = if file_id == context.render_id {
+            (
+                context.map_render_to_raw_from_right(synth_range.start),
+                context.map_render_to_raw_from_left(synth_range.end),
+            )
+        } else {
+            (
+                context.map_synth_to_raw_from_right(synth_range.start),
+                context.map_synth_to_raw_from_left(synth_range.end),
+            )
+        };
 
         raw_start..raw_end
     } else {
@@ -187,12 +212,18 @@ impl TypstJump {
     ) -> Option<Self> {
         match jump {
             typst_ide::Jump::File(id, synth_position) => {
-                if id != context.synth_id {
+                // The document a jump comes from may have been compiled from
+                // the render source (recovery marked it up) or from the
+                // pristine synth (no recovery ran).
+                let raw_position = if id == context.render_id {
+                    context.map_render_to_raw_from_right(synth_position)
+                } else if id == context.synth_id {
+                    context.map_synth_to_raw_from_right(synth_position)
+                } else {
                     return None;
-                }
+                };
 
                 let raw_source = context.raw_source(world)?;
-                let raw_position = context.map_synth_to_raw_from_right(synth_position);
                 let raw_position_utf16 = raw_source.lines().byte_to_utf16(raw_position)?;
 
                 Some(Self::File {
@@ -221,13 +252,13 @@ pub enum TypstCompletionKind {
     Symbol,
 }
 
-#[derive(Tsify, Serialize, Deserialize)]
+#[derive(Tsify, Serialize, Deserialize, Debug)]
 pub struct TypstCompletion {
     #[serde(rename = "type")]
-    kind: TypstCompletionKind,
-    label: String,
-    apply: Option<String>,
-    detail: Option<String>,
+    pub(crate) kind: TypstCompletionKind,
+    pub(crate) label: String,
+    pub(crate) apply: Option<String>,
+    pub(crate) detail: Option<String>,
 }
 
 impl From<typst_ide::Completion> for TypstCompletion {

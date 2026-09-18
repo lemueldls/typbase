@@ -25,7 +25,7 @@ use typst_layout::PagedDocument;
 // use typst_html::html;
 // use typst_pdf::{PdfOptions, pdf};
 use typst_svg::SvgOptions;
-use typst_syntax::{LinkedNode, RootedPath, Side, Source, Tag, VirtualRoot};
+use typst_syntax::{LinkedNode, RootedPath, Side, Tag, VirtualRoot};
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "pdf")]
@@ -164,6 +164,9 @@ impl TypstState {
 
         let source_ctx = SourceContext::new(id, space_id.clone());
         self.world.insert_source(source_ctx.raw_id, String::new());
+        self.world.insert_source(source_ctx.synth_id, String::new());
+        self.world
+            .insert_source(source_ctx.render_id, String::new());
         self.source_context_map.insert(id_wrapper, source_ctx);
 
         // The space context is workspace-shared: fonts/theme are applied to it
@@ -199,8 +202,17 @@ impl TypstState {
 
     #[wasm_bindgen(js_name = "removeFile")]
     pub fn remove_file(&mut self, id: &TypstFileId) {
-        self.source_context_map.remove(id);
-        self.world.remove_source(&id.inner());
+        // For a note, drop the context and every source file it owns. Leaving
+        // the raw and render files behind used to leak one entry per closed
+        // note. Plain project files (requests the caller satisfied by hand)
+        // have no context and are removed as-is.
+        if let Some(context) = self.source_context_map.remove(id) {
+            self.world.remove_source(&context.synth_id);
+            self.world.remove_source(&context.raw_id);
+            self.world.remove_source(&context.render_id);
+        } else {
+            self.world.remove_source(&id.inner());
+        }
     }
 
     #[wasm_bindgen(js_name = "installPackage")]
@@ -255,19 +267,31 @@ impl TypstState {
         text: &str,
         prelude: &str,
     ) -> Result<Ts<IndexCheckReport>, JsError> {
-        let SynthResult { synth, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Svg, self);
+        let report = self.check_index_report(id, text, prelude);
+
+        Ok(report.into_ts()?)
+    }
+}
+
+impl TypstState {
+    /// Plain-Rust core of [`Self::check_index`]. Host tests call this
+    /// directly; the wasm boundary only serializes the report.
+    #[must_use]
+    pub fn check_index_report(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> IndexCheckReport {
+        let SynthResult { .. } = sync_source_state(id, text, prelude, RenderTarget::Svg, self);
 
         let context = self.source_context_map.get_mut(id).unwrap();
-        context
-            .synth_source_mut(&mut self.world)
-            .unwrap()
-            .replace(&synth);
-        context.unstable_synth = synth;
-
         let mapper = &context.index_mapper;
         let raw_len = text.len();
-        let synth_len = context.unstable_synth.len();
+        let synth_len = context
+            .synth_source(&self.world)
+            .map(|source| source.text().len())
+            .unwrap_or_default();
 
         let mut checked = 0_u32;
         let mut mismatches: Vec<String> = Vec::new();
@@ -395,15 +419,112 @@ impl TypstState {
             }
         }
 
-        Ok(IndexCheckReport {
+        IndexCheckReport {
             ok: mismatches.is_empty(),
             checked,
             mismatches,
             anchors: anchor_report,
         }
-        .into_ts()?)
     }
 
+    /// Plain-Rust core of [`Self::jump_paged`].
+    pub fn jump_paged_at(&self, id: &TypstFileId, x: f64, mut y: f64) -> Option<TypstJump> {
+        let context = self.source_context_map.get(id)?;
+        let document = context.paged_document.as_ref()?;
+
+        let index = document
+            .pages()
+            .iter()
+            .rposition(|page| y >= page.frame.height().to_pt())
+            .unwrap_or_default();
+
+        let page_offset = document
+            .pages()
+            .iter()
+            .map(|page| page.frame.height().to_pt())
+            .rfind(|height| y >= *height)
+            .unwrap_or_default();
+        y -= page_offset;
+
+        let position = PagedPosition {
+            page: NonZeroUsize::new(index + 1).unwrap(),
+            point: Point::new(Abs::pt(x), Abs::pt(y)),
+        };
+
+        typst_ide::jump_from_click(&self.world, document, &position)
+            .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
+    }
+
+    /// Plain-Rust core of [`Self::jump_html`].
+    pub fn jump_html_at(&self, id: &TypstFileId, element: Vec<usize>) -> Option<TypstJump> {
+        let context = self.source_context_map.get(id)?;
+        let document = context.html_document.as_ref()?;
+
+        typst_ide::jump_from_click(
+            &self.world,
+            document,
+            &HtmlPosition::new(EcoVec::from(element)),
+        )
+        .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
+    }
+
+    /// Plain-Rust core of [`Self::autocomplete`].
+    ///
+    /// Reads the render source, not the pristine synth: `typst_ide` traces
+    /// the expression by compiling `World::main`, and the pristine synth of a
+    /// page with errors does not compile. The render source is the compilable
+    /// view; its positions map back to raw through `render_mapper`.
+    pub fn autocomplete_at(
+        &mut self,
+        id: &TypstFileId,
+        raw_cursor_utf16: usize,
+        explicit: bool,
+    ) -> Option<Autocomplete> {
+        let (render_id, synth_id) = {
+            let context = self.source_context_map.get(id)?;
+            (context.render_id, context.synth_id)
+        };
+
+        self.world.main_id = Some(render_id);
+
+        let result = (|| {
+            let context = self.source_context_map.get(id)?;
+
+            let raw_source = context.raw_source(&self.world)?;
+            let render_source = context.render_source(&self.world)?;
+
+            let raw_lines = raw_source.lines();
+            let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
+            let render_cursor = context.map_raw_to_render_from_left(raw_cursor);
+
+            let (render_offset, completions) = typst_ide::autocomplete(
+                &self.world,
+                context.paged_document.as_ref(),
+                render_source,
+                render_cursor,
+                explicit,
+            )?;
+
+            let raw_offset = context.map_render_to_raw_from_left(render_offset);
+            let raw_offset_utf16 = raw_lines.byte_to_utf16(raw_offset)?;
+
+            Some(Autocomplete {
+                offset: raw_offset_utf16,
+                completions: completions
+                    .into_iter()
+                    .map(TypstCompletion::from)
+                    .collect::<Box<[_]>>(),
+            })
+        })();
+
+        self.world.main_id = Some(synth_id);
+
+        result
+    }
+}
+
+#[wasm_bindgen]
+impl TypstState {
     fn process_requests(&self) -> Vec<TypstRequest> {
         let mut requests = Vec::new();
 
@@ -491,15 +612,10 @@ impl TypstState {
         text: &str,
         prelude: &str,
     ) -> Result<Ts<CheckResult>, JsError> {
-        let SynthResult { synth, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Svg, self);
+        // Diagnostics-only pass: compile the pristine synth, no recovery.
+        sync_source_state(id, text, prelude, RenderTarget::Svg, self);
 
         let context = self.source_context_map.get_mut(id).unwrap();
-        context
-            .synth_source_mut(&mut self.world)
-            .unwrap()
-            .replace(&synth);
-        context.unstable_synth = synth;
 
         let compiled = compile::<PagedDocument>(&self.world);
         let compiled_warnings = Some(compiled.warnings);
@@ -541,15 +657,10 @@ impl TypstState {
         text: &str,
         prelude: &str,
     ) -> Result<Ts<CheckResult>, JsError> {
-        let SynthResult { synth, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Html, self);
+        // Diagnostics-only pass: compile the pristine synth, no recovery.
+        sync_source_state(id, text, prelude, RenderTarget::Html, self);
 
         let context = self.source_context_map.get_mut(id).unwrap();
-        context
-            .synth_source_mut(&mut self.world)
-            .unwrap()
-            .replace(&synth);
-        context.unstable_synth = synth;
 
         let compiled = compile::<HtmlDocument>(&self.world);
         let compiled_warnings = Some(compiled.warnings);
@@ -661,38 +772,12 @@ impl TypstState {
         &mut self,
         id: &TypstFileId,
         x: f64,
-        mut y: f64,
+        y: f64,
     ) -> Result<Option<Ts<TypstJump>>, JsError> {
-        // The inner closure keeps the Option-returning body (with its `?`)
-        // intact; only the boundary is fallible now.
-        let jump: Option<TypstJump> = (|| {
-            let context = self.source_context_map.get(id)?;
-            let document = context.paged_document.as_ref()?;
-
-            let index = document
-                .pages()
-                .iter()
-                .rposition(|page| y >= page.frame.height().to_pt())
-                .unwrap_or_default();
-
-            let page_offset = document
-                .pages()
-                .iter()
-                .map(|page| page.frame.height().to_pt())
-                .rfind(|height| y >= *height)
-                .unwrap_or_default();
-            y -= page_offset;
-
-            let position = PagedPosition {
-                page: NonZeroUsize::new(index + 1).unwrap(),
-                point: Point::new(Abs::pt(x), Abs::pt(y)),
-            };
-
-            typst_ide::jump_from_click(&self.world, document, &position)
-                .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
-        })();
-
-        Ok(jump.map(|jump| jump.into_ts()).transpose()?)
+        Ok(self
+            .jump_paged_at(id, x, y)
+            .map(|jump| jump.into_ts())
+            .transpose()?)
     }
 
     #[wasm_bindgen(js_name = "jumpHTML")]
@@ -701,19 +786,10 @@ impl TypstState {
         id: &TypstFileId,
         element: Vec<usize>,
     ) -> Result<Option<Ts<TypstJump>>, JsError> {
-        let jump: Option<TypstJump> = (|| {
-            let context = self.source_context_map.get(id)?;
-            let document = context.html_document.as_ref()?;
-
-            typst_ide::jump_from_click(
-                &self.world,
-                document,
-                &HtmlPosition::new(EcoVec::from(element)),
-            )
-            .and_then(|jump| TypstJump::from_mapped(jump, context, &self.world))
-        })();
-
-        Ok(jump.map(|jump| jump.into_ts()).transpose()?)
+        Ok(self
+            .jump_html_at(id, element)
+            .map(|jump| jump.into_ts())
+            .transpose()?)
     }
 
     #[wasm_bindgen]
@@ -723,68 +799,56 @@ impl TypstState {
         raw_cursor_utf16: usize,
         explicit: bool,
     ) -> Result<Option<Ts<Autocomplete>>, JsError> {
-        let result: Option<Autocomplete> = (|| {
-            let context = self.source_context_map.get(id)?;
-
-            let raw_source = context.raw_source(&self.world)?;
-            let synth_source = &Source::new(id.inner(), context.unstable_synth.clone());
-
-            let raw_lines = raw_source.lines();
-            let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let synth_cursor = context.map_raw_to_synth_from_left(raw_cursor);
-
-            let (synth_offset, completions) = typst_ide::autocomplete(
-                &self.world,
-                context.paged_document.as_ref(),
-                synth_source,
-                synth_cursor,
-                explicit,
-            )?;
-
-            let raw_offset = context.map_synth_to_raw_from_left(synth_offset);
-            let raw_offset_utf16 = raw_lines.byte_to_utf16(raw_offset)?;
-
-            Some(Autocomplete {
-                offset: raw_offset_utf16,
-                completions: completions
-                    .into_iter()
-                    .map(TypstCompletion::from)
-                    .collect::<Box<[_]>>(),
-            })
-        })();
-
-        Ok(result.map(|value| value.into_ts()).transpose()?)
+        Ok(self
+            .autocomplete_at(id, raw_cursor_utf16, explicit)
+            .map(|value| value.into_ts())
+            .transpose()?)
     }
 
     #[wasm_bindgen]
-    pub fn hover(&self, id: &TypstFileId, raw_cursor_utf16: usize, side: i8) -> Option<String> {
-        let context = self.source_context_map.get(id).unwrap();
-
-        let synth_source = context.synth_source(&self.world)?;
-        let raw_source = context.raw_source(&self.world)?;
-
-        let raw_lines = raw_source.lines();
-        let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-        let synth_cursor = context.map_raw_to_synth_from_right(raw_cursor);
-
-        let side = if side == -1 {
-            Side::Before
-        } else {
-            Side::After
+    pub fn hover(&mut self, id: &TypstFileId, raw_cursor_utf16: usize, side: i8) -> Option<String> {
+        let (render_id, synth_id) = {
+            let context = self.source_context_map.get(id)?;
+            (context.render_id, context.synth_id)
         };
 
-        let tooltip = typst_ide::tooltip(
-            &self.world,
-            context.paged_document.as_ref(),
-            synth_source,
-            synth_cursor,
-            side,
-        );
+        // Same reasoning as autocomplete: tooltips trace the expression by
+        // compiling the main file, so read the compilable render source.
+        self.world.main_id = Some(render_id);
 
-        tooltip.map(|tooltip| match tooltip {
-            Tooltip::Text(text) => text.to_string(),
-            Tooltip::Code(text) => typst_syntax::highlight_html(&typst_syntax::parse(&text)),
-        })
+        let result = (|| {
+            let context = self.source_context_map.get(id)?;
+
+            let render_source = context.render_source(&self.world)?;
+            let raw_source = context.raw_source(&self.world)?;
+
+            let raw_lines = raw_source.lines();
+            let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
+            let render_cursor = context.map_raw_to_render_from_right(raw_cursor);
+
+            let side = if side == -1 {
+                Side::Before
+            } else {
+                Side::After
+            };
+
+            let tooltip = typst_ide::tooltip(
+                &self.world,
+                context.paged_document.as_ref(),
+                render_source,
+                render_cursor,
+                side,
+            );
+
+            tooltip.map(|tooltip| match tooltip {
+                Tooltip::Text(text) => text.to_string(),
+                Tooltip::Code(text) => typst_syntax::highlight_html(&typst_syntax::parse(&text)),
+            })
+        })();
+
+        self.world.main_id = Some(synth_id);
+
+        result
     }
 
     #[wasm_bindgen]
@@ -821,17 +885,16 @@ impl TypstState {
     ) -> Result<Ts<RenderPdfResult>, JsError> {
         use typst_pdf::{PdfOptions, pdf};
 
-        let SynthResult { synth, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
+        sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
 
         let context = self.source_context_map.get_mut(id).unwrap();
-        context
-            .synth_source_mut(&mut self.world)
-            .unwrap()
-            .replace(&synth);
-        context.unstable_synth = synth;
+
+        // Exports get the delimiter repair too; they compile the render source.
+        self.world.main_id = Some(context.render_id);
 
         let compiled = compile::<PagedDocument>(&self.world);
+
+        self.world.main_id = Some(context.synth_id);
         let mut diagnostics =
             TypstDiagnostic::from_diagnostics(compiled.warnings, context, &self.world).into_vec();
 
@@ -876,17 +939,17 @@ impl TypstState {
         prelude: &str,
         merged: bool,
     ) -> Result<Ts<RenderSvgResult>, JsError> {
-        let SynthResult { synth, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
+        sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
 
         let context = self.source_context_map.get_mut(id).unwrap();
-        context
-            .synth_source_mut(&mut self.world)
-            .unwrap()
-            .replace(&synth);
-        context.unstable_synth = synth;
+
+        // Same render source as the PDF export so the SVG sheets and the PDF
+        // agree on page geometry and repaired delimiters.
+        self.world.main_id = Some(context.render_id);
 
         let compiled = compile::<PagedDocument>(&self.world);
+
+        self.world.main_id = Some(context.synth_id);
         let mut diagnostics =
             TypstDiagnostic::from_diagnostics(compiled.warnings, context, &self.world).into_vec();
 
@@ -942,7 +1005,7 @@ impl TypstState {
         text: &str,
         prelude: &str,
     ) -> Result<Ts<RenderHtmlResult>, JsError> {
-        let SynthResult { synth, blocks, .. } =
+        let SynthResult { blocks, .. } =
             sync_source_state(id, text, prelude, RenderTarget::Html, self);
 
         let mut diagnostics = Vec::new();
@@ -950,11 +1013,9 @@ impl TypstState {
 
         let context = self.source_context_map.get_mut(id).unwrap();
 
-        context
-            .synth_source_mut(&mut self.world)
-            .unwrap()
-            .replace(&synth);
-        context.unstable_synth = synth;
+        // Recovery blanks blocks of the render source; the pristine synth
+        // stays available to the editor.
+        self.world.main_id = Some(context.render_id);
 
         let mut document = None;
         let mut convergence = 0_u8;
@@ -1015,6 +1076,8 @@ impl TypstState {
                 }
             };
         }
+
+        self.world.main_id = Some(context.synth_id);
 
         if let Some(warnings) = compiled_warnings {
             diagnostics.extend(TypstDiagnostic::from_diagnostics(

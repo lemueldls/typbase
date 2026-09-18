@@ -28,6 +28,7 @@
     "node_modules/",
     "platform/target",
     "platform/wasm/pkg",
+    "platform/wasm/src/tests/snapshots/",
     ".output/",
     ".data/",
     ".nuxt/",

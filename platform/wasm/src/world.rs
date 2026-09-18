@@ -12,20 +12,17 @@ use typst::{
 use typst_ide::IdeWorld;
 use typst_syntax::{VirtualPath, VirtualRoot, package::PackageSpec};
 
-use crate::{fonts::FontLoader, source::IndexMapper};
+use crate::fonts::FontLoader;
 
 /// Implementation of Typst's `World` for typbase, managing all loaded files,
 /// fonts, and compilation state.
 #[derive(Debug)]
 pub struct TypstWorld {
-    /// The synth source file id.
-    pub synth_id: Option<FileId>,
-    /// The raw (user/editor/origin) source file id.
-    pub raw_id: Option<FileId>,
+    /// The file [`World::main`] points at: the pristine synth, or the render
+    /// source while a render session is active.
+    pub main_id: Option<FileId>,
     /// All loaded files (sources and binaries) by id.
     pub files: FxHashMap<FileId, FileSlot>,
-    /// Index mapping between raw and synth sources.
-    pub index_mapper: IndexMapper,
     /// The Typst standard library for this world.
     library: LazyHash<Library>,
     /// Font loader and font book.
@@ -45,10 +42,8 @@ impl Default for TypstWorld {
         let library = Library::builder().with_features(features).build();
 
         Self {
-            synth_id: None,
-            raw_id: None,
+            main_id: None,
             files: FxHashMap::default(),
-            index_mapper: IndexMapper::default(),
             library: LazyHash::new(library),
             font_loader: FontLoader::default(),
             requested_sources: DashSet::default(),
@@ -104,7 +99,7 @@ impl World for TypstWorld {
     }
 
     fn main(&self) -> FileId {
-        self.synth_id.unwrap()
+        self.main_id.unwrap()
     }
 
     fn source(&self, id: FileId) -> FileResult<Source> {

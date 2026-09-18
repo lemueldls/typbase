@@ -1,26 +1,30 @@
-use std::{cmp, collections::VecDeque, iter, ops::Range};
+use std::{cmp, collections::VecDeque, ops::Range};
 
-use typst::{
-    WorldExt, compile,
-    introspection::Tag,
-    layout::{FrameItem, Point, Rect},
-    syntax::Span,
-};
+use typst::{compile, layout::FrameItem};
 use typst_layout::PagedDocument;
 
+use super::frame::{BoundFrameSink, bound_frame};
 use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
     renderer::{
         paged::{BoundFrameItem, FrameItemsChunk, PagedRender},
         recovery::{map_error_mark_index, remove_errornous_block, try_mark_errornous},
     },
-    source::{RenderTarget, SourceContext, SynthBlock, SynthResult, sync_source_context},
+    source::{
+        RenderTarget, SourceContext, SynthBlock, SynthResult, delimiter_diagnostics,
+        sync_source_context,
+    },
     state::TypstState,
     world::TypstWorld,
 };
 
 /// Chunks a Typst document into renderable blocks by frame items, handling
 /// diagnostics and error divergence.
+///
+/// The compile runs against the disposable render source, so recovery can
+/// rewrite it without touching the pristine synth. IDE queries parse the
+/// render source too (see `TypstState::hover`), which is why recovery must
+/// keep it compilable: blocks get blanked, math spans get placeholders.
 #[typst_macros::time]
 pub fn chunk_by_items(
     id: &TypstFileId,
@@ -32,26 +36,34 @@ pub fn chunk_by_items(
     let prelude = state.prelude(id, render_target) + prelude + "\n";
     let context = state.source_context_map.get_mut(id).unwrap();
     let SynthResult {
-        synth,
         mut blocks,
         equation_ranges,
+        ..
     } = sync_source_context(text, prelude, context, &mut state.world);
 
-    context
-        .synth_source_mut(&mut state.world)
-        .unwrap()
-        .replace(&synth);
-    context.unstable_synth = synth;
+    // Compile the render source for the rest of this call. The pristine synth
+    // stays in the world for hover/autocomplete/jump.
+    state.world.main_id = Some(context.render_id);
 
     let mut divergence = 0_u8;
 
-    chunk_by_items_with_blocks(
+    let mut render = chunk_by_items_with_blocks(
         &mut blocks,
         &equation_ranges,
         &mut divergence,
         context,
         &mut state.world,
-    )
+    );
+
+    state.world.main_id = Some(context.synth_id);
+
+    // The repaired document compiles cleanly, so the unclosed-delimiter
+    // warnings have to come from the fixup list, not the compiler.
+    let mut diagnostics = delimiter_diagnostics(&context.render_fixups, text);
+    diagnostics.append(&mut render.diagnostics);
+    render.diagnostics = diagnostics;
+
+    render
 }
 
 #[allow(clippy::iter_with_drain)]
@@ -99,7 +111,13 @@ pub fn chunk_by_items_with_blocks(
                         continue;
                     };
 
-                    let raw_range = &block.range;
+                    // Block ranges are in repaired-source coordinates. The
+                    // editor range must be raw: an inserted closer maps back
+                    // to the offset it was inserted at.
+                    let repaired_range = &block.range;
+                    let raw_range = context.map_repaired_to_raw_from_left(repaired_range.start)
+                        ..context.map_repaired_to_raw_from_right(repaired_range.end);
+
                     let raw_lines = raw_source.lines();
                     // Fall back to the raw byte value when the boundary is
                     // mid-character rather than panicking away the whole page.
@@ -111,9 +129,8 @@ pub fn chunk_by_items_with_blocks(
                         .unwrap_or(raw_range.end);
                     let raw_range_utf16 = start_utf16..end_utf16;
 
-                    // let synth_range_start = context.map_raw_to_synth_from_left(raw_range.start);
-                    let synth_range_end = context.map_raw_to_synth_from_right(raw_range.end);
-                    // let synth_range = synth_range_start..synth_range_end;
+                    let synth_range_end =
+                        context.map_repaired_to_render_from_right(repaired_range.end);
 
                     let mut chunk_items = VecDeque::<BoundFrameItem>::new();
                     let mut deferred_items = Vec::<BoundFrameItem>::new();
@@ -257,36 +274,33 @@ pub fn chunk_by_items_with_blocks(
                     try_mark_errornous(&source_diagnostics, eq_ranges, context, world);
 
                 if !marked_errors.marks.is_empty() {
-                    let index_mapper = context.index_mapper.clone();
                     map_error_mark_index(&marked_errors, context);
 
                     let marked_render =
                         chunk_by_items_with_blocks(blocks, eq_ranges, divergence, context, world);
 
-                    let synth_source = context.synth_source_mut(world).unwrap();
+                    let render_source = context.render_source_mut(world).unwrap();
 
                     for mark in &marked_errors.marks {
                         let start_byte = mark.synth_range.start;
                         let end_byte = mark.synth_range.end;
 
-                        // fill with placeholder to stablize ranges
+                        // Replace the marked span with an equal-length
+                        // placeholder. Positions stay put, so the document
+                        // this produces can back hover/jump while the marked
+                        // chunks above keep the red markers.
                         let byte_length = end_byte - start_byte;
                         let placeholder = format!("{:>byte_length$}", "\"\"");
-                        synth_source.edit(start_byte..end_byte, &placeholder);
+                        render_source.edit(start_byte..end_byte, &placeholder);
                     }
 
                     let stable_render =
                         chunk_by_items_with_blocks(blocks, eq_ranges, divergence, context, world);
 
-                    let synth_source = context.synth_source_mut(world).unwrap();
-
-                    for mark in marked_errors.marks {
-                        let start_byte = mark.synth_range.start;
-                        synth_source.edit(start_byte..(start_byte + mark.text.len()), &mark.text);
-                    }
-
-                    context.index_mapper = index_mapper;
-
+                    // The render source stays at the placeholder text. The
+                    // next sync rebuilds it from the raw source, so there is
+                    // nothing to restore here; the pristine synth was never
+                    // touched.
                     return PagedRender {
                         chunks: marked_render.chunks,
                         tooltips: marked_render.tooltips,
@@ -370,8 +384,8 @@ pub fn chunk_by_items_with_blocks(
                 })
                 .unwrap_or(0..0);
 
-            let raw_start = context.map_synth_to_raw_from_left(synth_range.start);
-            let raw_end = context.map_synth_to_raw_from_right(synth_range.end);
+            let raw_start = context.map_render_to_raw_from_left(synth_range.start);
+            let raw_end = context.map_render_to_raw_from_right(synth_range.end);
 
             // crate::log!("raw_range: {:?}", raw_start..raw_end);
 
@@ -413,241 +427,5 @@ pub fn chunk_by_items_with_blocks(
         tooltips,
         diagnostics,
         document,
-    }
-}
-
-/// Recursively bounds a frame item, producing frame blocks with position and
-/// range.
-// #[comemo::memoize]
-#[typst_macros::time]
-fn bound_frame(
-    frame_item: &(Point, FrameItem),
-    parent_point: Option<Point>,
-    sink: &mut BoundFrameSink,
-    context: &SourceContext,
-    world: &TypstWorld,
-) -> Box<[BoundFrameItem]> {
-    let (point, item) = frame_item;
-
-    let bounds = match &item {
-        FrameItem::Text(text) => {
-            let bbox = text.bbox();
-
-            Rect::new(
-                // text runs use a y-up coordinate system
-                Point::new(point.x + bbox.min.x, point.y + bbox.max.y),
-                Point::new(point.x + bbox.max.x, point.y + bbox.min.y),
-            )
-        }
-        FrameItem::Group(group) => {
-            if group.transform.is_identity() {
-                let point = if let Some(parent_point) = parent_point {
-                    parent_point + *point
-                } else {
-                    *point
-                };
-
-                return group
-                    .frame
-                    .items()
-                    .flat_map(|frame_item| {
-                        bound_frame(frame_item, Some(point), sink, context, world)
-                    })
-                    .collect::<Box<[_]>>();
-            }
-
-            let (range, bounds) = group
-                .frame
-                .items()
-                .flat_map(|frame_item| bound_frame(frame_item, None, sink, context, world))
-                .fold(
-                    (
-                        None::<Range<usize>>,
-                        Rect::new(Point::zero(), Point::zero()),
-                    ),
-                    |(range, mut bounds), frame_block| {
-                        let range = match (range, frame_block.range) {
-                            (Some(range), Some(block_range)) => {
-                                let start = cmp::min(range.start, block_range.start);
-                                let end = cmp::max(range.end, block_range.end);
-
-                                Some(start..end)
-                            }
-                            (Some(range), None) => Some(range),
-                            (None, Some(block_range)) => Some(block_range),
-                            (None, None) => None,
-                        };
-
-                        bounds.min.x = cmp::min(bounds.min.x, frame_block.bounds.min.x);
-                        bounds.min.y = cmp::min(bounds.min.y, frame_block.bounds.min.y);
-                        bounds.max.x = cmp::max(bounds.max.x, frame_block.bounds.max.x);
-                        bounds.max.y = cmp::max(bounds.max.y, frame_block.bounds.max.y);
-
-                        // sink.process_tooltips(frame_block);
-
-                        (range, bounds)
-                    },
-                );
-
-            let mut item = BoundFrameItem {
-                range,
-                bounds,
-                item: item.clone(),
-                point: *point,
-            };
-
-            if let Some(point) = parent_point {
-                item.point.x += point.x;
-                item.point.y += point.y;
-                item.bounds.min.x += point.x;
-                item.bounds.min.y += point.y;
-                item.bounds.max.x += point.x;
-                item.bounds.max.y += point.y;
-            }
-
-            sink.process_tooltips(&item);
-
-            return iter::once(item).collect::<Box<[_]>>();
-        }
-        FrameItem::Shape(shape, _span) => {
-            let bbox = shape.bbox(true);
-
-            Rect::new(
-                Point::new(point.x + bbox.min.x, point.y + bbox.min.y),
-                Point::new(point.x + bbox.max.x, point.y + bbox.max.y),
-            )
-        }
-        FrameItem::Image(_image, axes, _span) => Rect::new(*point, Point::new(axes.x, axes.y)),
-        FrameItem::Link(..) => Rect::new(*point, *point),
-        FrameItem::Tag(..) => Rect::new(*point, *point),
-    };
-
-    let range = frame_item_range(item, sink, context, world);
-
-    let mut item = BoundFrameItem {
-        range,
-        bounds,
-        item: item.clone(),
-        point: *point,
-    };
-
-    if let Some(point) = parent_point {
-        item.point.x += point.x;
-        item.point.y += point.y;
-        item.bounds.min.x += point.x;
-        item.bounds.min.y += point.y;
-        item.bounds.max.x += point.x;
-        item.bounds.max.y += point.y;
-    }
-
-    sink.process_tooltips(&item);
-
-    iter::once(item).collect::<Box<[_]>>()
-}
-
-#[derive(Default)]
-struct BoundFrameSink {
-    tooltips: Vec<Vec<BoundFrameItem>>,
-    tag_stack: Vec<(&'static str, Span)>,
-}
-
-// #[comemo::track]
-impl BoundFrameSink {
-    pub fn process_tooltips(&mut self, item: &BoundFrameItem) {
-        if let Some((name, _span)) = self.tag_stack.last()
-            && *name == "equation"
-        {
-            self.tooltips.last_mut().unwrap().push(item.clone());
-        }
-    }
-
-    pub fn push_tag(&mut self, name: &'static str, span: Span) {
-        self.tooltips.push(Vec::new());
-        self.tag_stack.push((name, span));
-    }
-
-    pub fn pop_tag(&mut self) -> Option<(&'static str, Span)> {
-        self.tag_stack.pop()
-    }
-}
-
-/// Determines the source range for a frame item, using tag stack for
-/// introspectable tags.
-#[typst_macros::time]
-fn frame_item_range(
-    item: &FrameItem,
-    sink: &mut BoundFrameSink,
-    context: &SourceContext,
-    world: &TypstWorld,
-) -> Option<Range<usize>> {
-    let span = match item {
-        FrameItem::Group(..) => unreachable!(),
-        FrameItem::Text(text) => {
-            let first_glyph_span = text.glyphs.first()?.span.0;
-            let first_glyph_range = world.range(first_glyph_span)?;
-
-            let last_glyph_span = text.glyphs.last()?.span.0;
-            let last_glyph_range = world.range(last_glyph_span)?;
-
-            return Some(first_glyph_range.start..last_glyph_range.end);
-        }
-        FrameItem::Shape(_shape, span) => *span,
-        FrameItem::Image(_image, _axes, span) => *span,
-        FrameItem::Link(_destination, _axes) => return None,
-        FrameItem::Tag(tag) => {
-            match tag {
-                Tag::Start(c, flags) => {
-                    let name = c.elem().name();
-                    let span = c.span();
-
-                    if flags.introspectable {
-                        sink.push_tag(name, span);
-                    }
-
-                    // crate::log!("[START FLAGS]: {flags:?} {name}");
-
-                    return None;
-                }
-                Tag::End(_location, _key, flags) => {
-                    if flags.introspectable
-                        && let Some((name, span)) = sink.pop_tag()
-                    {
-                        match name {
-                            "equation" => span,
-                            _ => return None,
-                        }
-                        // span
-                    } else {
-                        return None;
-                    }
-
-                    // crate::log!("[END FLAG]: {flags:?}");
-
-                    // let content = document
-                    //     .introspector
-                    //     .query_unique(&Selector::Location(location.clone()));
-
-                    // if let Ok(content) = content {
-                    //     let span = content.span();
-
-                    //     if Some(context.synth_id) == span.id() {
-                    //         let range = world.range(span);
-
-                    //         return range.map(|range| range.end..range.end);
-                    //     } else {
-                    //         return None;
-                    //     }
-                    // } else {
-                    //     Span::detached()
-                    // }
-                }
-            }
-        }
-    };
-
-    if Some(context.synth_id) == span.id() {
-        world.range(span)
-    } else {
-        None
     }
 }

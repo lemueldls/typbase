@@ -122,14 +122,7 @@ impl IndexMapper {
     /// of order; regular synth building appends in order.
     pub fn push_raw_to_synth_kind(&mut self, raw: usize, synth: usize, kind: AnchorKind) {
         match self.anchors.binary_search_by(|anchor| anchor.raw.cmp(&raw)) {
-            Ok(byte) | Err(byte) => self.anchors.insert(
-                byte,
-                Anchor {
-                    raw,
-                    synth,
-                    kind,
-                },
-            ),
+            Ok(byte) | Err(byte) => self.anchors.insert(byte, Anchor { raw, synth, kind }),
         }
     }
 
