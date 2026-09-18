@@ -7,7 +7,7 @@
     "beforeBuildCommand": "pnpm -w run build",
     "beforeDevCommand": "pnpm -w run dev",
     "devUrl": "http://127.0.0.1:3000",
-    "frontendDist": "../../.output/public"
+    "frontendDist": "../../apps/web/.output/public"
   },
   "bundle": {
     "active": true,

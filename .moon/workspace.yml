@@ -1,7 +1,7 @@
 projects:
-  web: "."
-  tauri: "platform/tauri"
-  wasm: "platform/wasm"
+  web: "apps/web"
+  native: "apps/native"
+  wasm: "packages/wasm"
   codemirror: "packages/codemirror"
   typing: "packages/typing"
   storage: "packages/storage"

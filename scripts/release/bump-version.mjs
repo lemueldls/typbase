@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 // Bumps every version source in the repo to the same value:
-//   platform/Cargo.toml, platform/Cargo.lock, platform/tauri/tauri.conf.json,
-//   platform/tauri/gen/android/app/tauri.properties, packages/*/package.json,
+//   Cargo.toml, Cargo.lock, apps/native/tauri.conf.json,
+//   apps/native/gen/android/app/tauri.properties, packages/*/package.json,
 //   and the nix derivations.
 //
 // Usage: node scripts/release/bump-version.mjs <patch|minor|major|x.y.z> [--dry-run]
@@ -47,20 +47,20 @@ function nextVersion(current, kind) {
   throw new Error(`unknown bump: ${kind}`);
 }
 
-const tauriPath = "platform/tauri/tauri.conf.json";
+const tauriPath = "apps/native/tauri.conf.json";
 const tauri = JSON.parse(read(tauriPath));
 const version = nextVersion(tauri.version, bump);
 
-// platform/Cargo.toml
+// Cargo.toml
 {
-  const path = "platform/Cargo.toml";
+  const path = "Cargo.toml";
   const text = read(path).replace(/^package\.version = ".*"$/m, `package.version = "${version}"`);
   write(path, text);
 }
 
-// platform/Cargo.lock
+// Cargo.lock
 {
-  const path = "platform/Cargo.lock";
+  const path = "Cargo.lock";
   let text = read(path);
   for (const name of ["typbase", "wasm"]) {
     const pattern = new RegExp(`(\\[\\[package\\]\\]\\nname = "${name}"\\nversion = ")[^"]+(")`);
@@ -69,15 +69,15 @@ const version = nextVersion(tauri.version, bump);
   write(path, text);
 }
 
-// platform/tauri/tauri.conf.json
+// apps/native/tauri.conf.json
 {
   tauri.version = version;
   write(tauriPath, `${JSON.stringify(tauri, null, 2)}\n`);
 }
 
-// platform/tauri/gen/android/app/tauri.properties
+// apps/native/gen/android/app/tauri.properties
 {
-  const path = "platform/tauri/gen/android/app/tauri.properties";
+  const path = "apps/native/gen/android/app/tauri.properties";
   const [major, minor, patch] = parseVersion(version);
   const code = major * 1000 + minor * 100 + patch;
   const text = read(path)

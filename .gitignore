@@ -7,7 +7,21 @@
 dist
 
 # Rust
-platform/target
+target
+**/*.rs.bk
+
+# wasm-pack output
+packages/wasm/bin/
+packages/wasm/pkg/*
+!packages/wasm/pkg/package.json
+packages/wasm/wasm-pack.log
+
+# Tauri
+apps/native/gen/schemas
+
+# pnpm cargo
+.cargo
+.pnpm
 
 # moon
 .moon/cache

@@ -40,14 +40,14 @@ jobs:
       - name: 🎨 Format check
         run: pnpm fmt:check
 
+      # Lint and typecheck resolve `@typbase/wasm` types from the wasm-pack
+      # output, so the engine has to exist first. The dev build is enough and
+      # much faster than the release build the web build runs later.
+      - name: 🦀 Build @typbase/wasm (dev)
+        run: pnpm wasm:build
+
       - name: 🧹 Lint
         run: pnpm lint
-
-      - name: 🦀 Build @typbase/wasm (release)
-        run: pnpm wasm:build:release
-
-      - name: 🔨 Build shared packages
-        run: pnpm packages:build
 
       - name: 🧠 Typecheck
         run: pnpm typecheck

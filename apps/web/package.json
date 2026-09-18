@@ -1,0 +1,42 @@
+{
+  "name": "@typbase/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --host",
+    "generate": "nuxt generate",
+    "postinstall": "nuxt prepare",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.0",
+    "@codemirror/commands": "^6.10.1",
+    "@codemirror/language": "^6.12.1",
+    "@codemirror/lint": "^6.9.2",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.2",
+    "@codemirror/view": "^6.43.10",
+    "@huggingface/transformers": "^4.2.0",
+    "@internationalized/date": "^3.12.4",
+    "@nuxtjs/i18n": "github:onmax/i18n#agent/nuxt5-nitro3-runtime",
+    "@typbase/codemirror": "workspace:*",
+    "@typbase/spaces": "workspace:*",
+    "@typbase/storage": "workspace:*",
+    "@typbase/typing": "workspace:*",
+    "@typbase/wasm": "workspace:*",
+    "@vueuse/nuxt": "14.4.0",
+    "@vueuse/router": "^14.4.0",
+    "h3": "2.0.1-rc.22",
+    "harper.js": "^2.10.0",
+    "lru-cache": "^11.2.5",
+    "material-symbols": "0.40.2",
+    "nitro": "3.0.260610-beta",
+    "nuxt": "npm:nuxt-nightly@5.0.0-29803630.047484a6",
+    "reka-ui": "^2.10.4",
+    "sqlite-wasm-vec": "^0.1.11",
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.0"
+  }
+}

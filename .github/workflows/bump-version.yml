@@ -34,49 +34,11 @@ jobs:
         with:
           node-version: "26"
 
-      - name: 🔢 Bump version files
+      - name: 🔢 Bump, commit, and tag
         id: bump
         shell: bash
-        run: |
-          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-            VERSION=$(node scripts/release/bump-version.mjs "${{ inputs.version }}" --dry-run)
-          else
-            VERSION=$(node scripts/release/bump-version.mjs "${{ inputs.version }}")
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Next version: $VERSION"
-
-      - name: ⚙️ Setup SSH signing key
-        if: inputs.dry-run == false
-        shell: bash
         env:
+          BUMP: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry-run }}
           SSH_SIGNING_KEY: ${{ secrets.SSH_SIGNING_KEY }}
-        run: |
-          if [[ -z "$SSH_SIGNING_KEY" ]]; then
-            echo "SSH_SIGNING_KEY is not set; commits and tags stay unsigned."
-            exit 0
-          fi
-
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_SIGNING_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          git config --global gpg.format ssh
-          git config --global user.signingKey ~/.ssh/id_ed25519
-          git config --global user.name "Lemuel DLS"
-          git config --global user.email "noreply@git.lemueldls.dev"
-
-      - name: 💾 Commit, tag and push
-        if: inputs.dry-run == false
-        shell: bash
-        env:
-          SIGN: ${{ secrets.SSH_SIGNING_KEY != '' && '-S' || '' }}
-          VERSION: ${{ steps.bump.outputs.version }}
-        run: |
-          sign=()
-          if [[ -n "$SIGN" ]]; then sign=(-S); fi
-
-          git add -A
-          git commit "${sign[@]}" -m "chore: bump version to $VERSION" || echo "No changes to commit"
-          git tag "${sign[@]}" -a "typbase-v$VERSION" -m "Typbase Release v$VERSION"
-          git push
-          git push origin "typbase-v$VERSION"
+        run: bash scripts/ci/bump-version.sh

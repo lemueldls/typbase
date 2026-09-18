@@ -20,7 +20,7 @@ const FONTS: &[&str] = &[
 
 #[must_use]
 pub fn fonts_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../public/fonts")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../apps/web/public/fonts")
 }
 
 /// True when every font file exists on disk. Render tests bail early without

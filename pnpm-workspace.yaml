@@ -1,6 +1,10 @@
 packages:
-  - platform/wasm/pkg
+  - apps/web
   - packages/*
+  - packages/wasm/pkg
+
+cargo:
+  enabled: true
 
 minimumReleaseAge: 0
 

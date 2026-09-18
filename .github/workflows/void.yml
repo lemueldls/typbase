@@ -56,79 +56,25 @@ jobs:
       - name: 🏷️ Resolve version
         id: version
         shell: bash
-        run: |
-          TAG="${{ inputs.tagName || github.event.release.tag_name }}"
-          if [[ -z "$TAG" ]]; then
-            echo "No release tag; run this from a release or pass tagName."
-            exit 1
-          fi
-
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#typbase-v}" >> "$GITHUB_OUTPUT"
+        env:
+          TAG: ${{ inputs.tagName || github.event.release.tag_name }}
+        run: bash scripts/ci/resolve-version.sh
 
       - name: 🔢 Get source tarball checksum
         id: sums
         shell: bash
         run: |
           URL="https://github.com/lemueldls/typbase/archive/refs/tags/typbase-v${{ steps.version.outputs.version }}.tar.gz"
-          echo "getting $URL"
-          SUM=$(curl -LfsS "$URL" | sha256sum | cut -f1 -d ' ')
-          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
-
-      - name: 🔄 Clone Void packages
-        shell: bash
-        run: |
-          git clone --depth=1 https://github.com/void-linux/void-packages.git "$HOME/void-packages"
-          cd "$HOME/void-packages"
-          # The container rootfs is the masterdir; ethereal mode skips the
-          # chroot initialization check.
-          ln -s / masterdir
-          mkdir -p hostdir
-          cp -a "$HOME/.cargo" "$HOME/.rustup" hostdir/
-
-      - name: 🌀 Generate template
-        shell: bash
-        run: |
-          mkdir -p "$HOME/void-packages/srcpkgs/typbase"
-          bash platform/void/generate-template.sh \
-            "${{ steps.version.outputs.version }}" \
-            "${{ steps.sums.outputs.sha256 }}" \
-            "$NUXT_PUBLIC_APP_URL" \
-            > "$HOME/void-packages/srcpkgs/typbase/template"
-
-      - name: 📐 Lint generated template
-        shell: bash
-        run: |
-          cd "$HOME/void-packages"
-          xlint srcpkgs/typbase/template
-          ./xbps-src -I fetch typbase
-
-      - name: ➕ Add the tauri build style
-        shell: bash
-        run: |
-          cp platform/void/tauri.sh "$HOME/void-packages/common/build-style/"
+          echo "sha256=$(bash scripts/ci/url-sha256.sh "$URL")" >> "$GITHUB_OUTPUT"
 
       - name: 🔨 Build package
         shell: bash
-        run: |
-          cd "$HOME/void-packages"
-          ./xbps-src pkg typbase
-
-      - name: 🔑 Sign repository and package
-        if: github.event_name == 'release' || inputs.tagName != ''
-        shell: bash
         env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA256: ${{ steps.sums.outputs.sha256 }}
+          APP_URL: ${{ env.NUXT_PUBLIC_APP_URL }}
           XBPS_REPOSITORY_SIGNING_KEY: ${{ secrets.XBPS_REPOSITORY_SIGNING_KEY }}
-        run: |
-          if [[ -z "$XBPS_REPOSITORY_SIGNING_KEY" ]]; then
-            echo "XBPS_REPOSITORY_SIGNING_KEY is not set; skipping signing."
-            exit 0
-          fi
-
-          cd "$HOME/void-packages"
-          printf '%s\n' "$XBPS_REPOSITORY_SIGNING_KEY" > private.pem
-          xbps-rindex --privkey private.pem --sign --signedby "void@lemueldls.dev" hostdir/binpkgs
-          xbps-rindex --privkey private.pem --sign-pkg hostdir/binpkgs/*.xbps
+        run: bash scripts/ci/void-package.sh
 
       - name: 📤 Upload build artifacts (test builds only)
         if: (!inputs.tagName && github.event_name != 'release')

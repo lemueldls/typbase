@@ -7,7 +7,7 @@ import { useRuntimeConfig } from "nitro/runtime-config";
  * live at an HTTPS URL, so this document is served by the deployed app; the
  * shell's client_id is `${appUrl}/client-metadata/native`. The redirect is a
  * private-use URI scheme: the OS opens Typbase with the response, which
- * `app/lib/nativeAuth.ts` feeds into `initCallback`.
+ * `apps/web/src/lib/nativeAuth.ts` feeds into `initCallback`.
  */
 export default defineEventHandler(() => {
   const config = useRuntimeConfig();

@@ -52,7 +52,7 @@ jobs:
         run: pnpm packages:build
 
       - name: 📦 Publish @typbase/wasm
-        run: pnpm -C platform/wasm/pkg publish --no-git-checks --provenance
+        run: pnpm -C packages/wasm/pkg publish --no-git-checks --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

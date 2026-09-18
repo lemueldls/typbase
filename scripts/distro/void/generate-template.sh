@@ -33,17 +33,18 @@ do_build() {
 	. /tmp/.cargo/env
 	export RUSTUP_TOOLCHAIN=stable
 	rustup target add wasm32-unknown-unknown
-	cargo fetch --locked --target "\$(rustc -vV | sed -n 's/host: //p')"
 	export NUXT_PUBLIC_APP_URL="$app_url"
-	cd platform/tauri || exit 1
+	pnpm install --frozen-lockfile
+	cargo fetch --locked --target "\$(rustc -vV | sed -n 's/host: //p')"
+	cd apps/native || exit 1
 	pnpm tauri build -b deb -c tauri.package.conf.json
 }
 
 do_install() {
-	vbin platform/target/release/typbase
+	vbin target/release/typbase
 	vlicense LICENSE
 
-	cd platform/target/release/bundle/deb/Typbase_\${version}_amd64/data || exit 1
+	cd target/release/bundle/deb/Typbase_\${version}_amd64/data || exit 1
 	vcopy usr/share/applications/Typbase.desktop usr/share/applications
 	vcopy usr/share/icons/hicolor/32x32/apps/typbase.png usr/share/icons/hicolor/32x32/apps
 	vcopy usr/share/icons/hicolor/128x128/apps/typbase.png usr/share/icons/hicolor/128x128/apps

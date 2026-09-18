@@ -10,8 +10,8 @@ tasks:
       - "pkg/package.json"
       - "src/**/*"
       - "build.rs"
-      - "/platform/Cargo.toml"
-      - "/platform/Cargo.lock"
+      - "/Cargo.toml"
+      - "/Cargo.lock"
     outputs:
       - "pkg/**/*"
 
@@ -22,8 +22,8 @@ tasks:
       - "pkg/package.json"
       - "src/**/*"
       - "build.rs"
-      - "/platform/Cargo.toml"
-      - "/platform/Cargo.lock"
+      - "/Cargo.toml"
+      - "/Cargo.lock"
     outputs:
       - "pkg/**/*"
 
@@ -32,6 +32,6 @@ tasks:
     inputs:
       - "Cargo.toml"
       - "src/**/*"
-      - "/platform/Cargo.toml"
-      - "/platform/Cargo.lock"
-      - "/public/fonts/**/*"
+      - "/Cargo.toml"
+      - "/Cargo.lock"
+      - "/apps/web/public/fonts/**/*"

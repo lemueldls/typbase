@@ -26,8 +26,8 @@
   "ignorePatterns": [
     "dist/",
     "node_modules/",
-    "platform/target",
-    "platform/wasm/pkg",
+    "target",
+    "packages/wasm/pkg",
     ".output/",
     ".data/",
     ".nuxt/",
@@ -37,7 +37,7 @@
     ".android/",
     ".vercel/",
     ".netlify/",
-    "app/assets/symbols.json",
+    "apps/web/src/assets/symbols.json",
     "pnpm-lock.yaml"
   ]
 }

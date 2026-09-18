@@ -46,20 +46,12 @@ jobs:
       - name: 📝 Extract version from tauri.conf.json
         id: version
         shell: bash
-        run: |
-          VERSION=$(jq -r '.version' platform/tauri/tauri.conf.json)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(bash scripts/ci/tauri-version.sh)" >> "$GITHUB_OUTPUT"
 
       - name: 🛡️ Verify tag matches version (publish only)
         if: inputs.tagName
         shell: bash
-        run: |
-          TAG="${{ inputs.tagName }}"
-          VERSION="${{ steps.version.outputs.version }}"
-          if [[ "$TAG" != *"$VERSION" ]]; then
-            echo "The tag $TAG does not match the version $VERSION from tauri.conf.json"
-            exit 1
-          fi
+        run: bash scripts/ci/check-tag-version.sh "${{ inputs.tagName }}"
 
       - name: 🦀 Setup Rust
         uses: moonrepo/setup-rust@abb2d32350334249b178c401e5ec5836e0cd88d3 # v1.3.0
@@ -97,6 +89,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          projectPath: apps/native
+          tauriScript: pnpm tauri
           tagName: ${{ inputs.tagName }}
           releaseDraft: true
           prerelease: false
@@ -112,21 +106,21 @@ jobs:
         with:
           name: desktop-${{ matrix.platform }}
           path: |
-            platform/target/**/release/bundle
-            platform/target/**/release/typbase
-            platform/target/release/typbase.exe
+            target/**/release/bundle
+            target/**/release/typbase
+            target/release/typbase.exe
 
       - name: 🛡️ Attest build provenance (publish only)
         if: inputs.tagName
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
           subject-path: |
-            platform/target/release/bundle/deb/*.deb
-            platform/target/release/bundle/rpm/*.rpm
-            platform/target/release/bundle/appimage/*.AppImage
-            platform/target/**/release/bundle/dmg/*.dmg
-            platform/target/**/release/bundle/macos/*.app.tar.gz
-            platform/target/release/bundle/nsis/*.exe
-            platform/target/release/bundle/msi/*.msi
-            platform/target/**/release/typbase
-            platform/target/release/typbase.exe
+            target/release/bundle/deb/*.deb
+            target/release/bundle/rpm/*.rpm
+            target/release/bundle/appimage/*.AppImage
+            target/**/release/bundle/dmg/*.dmg
+            target/**/release/bundle/macos/*.app.tar.gz
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/msi/*.msi
+            target/**/release/typbase
+            target/release/typbase.exe

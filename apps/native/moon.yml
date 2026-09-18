@@ -18,13 +18,13 @@ tasks:
       - "tauri.package.conf.json"
       - "capabilities/**/*"
       - "icons/**/*"
-      - "/platform/Cargo.toml"
-      - "/platform/Cargo.lock"
+      - "/Cargo.toml"
+      - "/Cargo.lock"
       - "project://web"
       - "project://wasm"
     outputs:
-      - "/platform/target/**/release/bundle/**/*"
-      - "/platform/target/**/release/typbase*"
+      - "/target/**/release/bundle/**/*"
+      - "/target/**/release/typbase*"
 
   android-build:
     script: "pnpm tauri android build"

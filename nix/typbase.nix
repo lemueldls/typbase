@@ -32,10 +32,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
     hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
-  cargoRoot = "platform";
   cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
-  buildAndTestSubdir = "${finalAttrs.cargoRoot}/tauri";
+  buildAndTestSubdir = "apps/native";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;

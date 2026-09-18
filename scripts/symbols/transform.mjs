@@ -1,4 +1,4 @@
-// Builds app/assets/symbols.json from two sources:
+// Builds apps/web/src/assets/symbols.json from two sources:
 // - `material-symbols`'s type union (`node_modules/material-symbols/index.d.ts`)
 //   lists every ligature the shipped woff2 knows, so the search index can
 //   never show an icon the font can't render.
@@ -16,7 +16,7 @@ import metadata from "./metadata.json" with { type: "json" };
 const dtsPath = fileURLToPath(
   new URL("../../node_modules/material-symbols/index.d.ts", import.meta.url),
 );
-const outPath = fileURLToPath(new URL("../../app/assets/symbols.json", import.meta.url));
+const outPath = fileURLToPath(new URL("../../apps/web/src/assets/symbols.json", import.meta.url));
 
 const dts = await fs.readFile(dtsPath, "utf8");
 

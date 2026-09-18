@@ -1,7 +1,7 @@
 import type { StorageBackend, StorageEntryStat } from "./backend";
 
 /**
- * Storage through the Tauri shell's Rust commands (`platform/tauri/src/storage.rs`).
+ * Storage through the Tauri shell's Rust commands (`apps/native/src/storage.rs`).
  * The Rust side owns the active root (app data, device documents, or a picked
  * folder) and all paths cross the IPC boundary relative to it, so nothing in
  * the webview ever handles an absolute path except to display it.

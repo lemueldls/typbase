@@ -34,31 +34,9 @@ jobs:
         id: release
         shell: bash
         env:
+          TAG: ${{ inputs.tag || github.ref_name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          VERSION="${TAG#typbase-v}"
-
-          if [[ "$TAG" == "$VERSION" ]]; then
-            echo "Tag $TAG does not start with typbase-v"
-            exit 1
-          fi
-
-          CONFIG_VERSION=$(jq -r '.version' platform/tauri/tauri.conf.json)
-          if [[ "$VERSION" != "$CONFIG_VERSION" ]]; then
-            echo "Tag version $VERSION does not match tauri.conf.json $CONFIG_VERSION"
-            exit 1
-          fi
-
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --draft \
-              --title "Typbase v$VERSION" \
-              --generate-notes
-          fi
+        run: bash scripts/ci/release-prepare.sh
 
   desktop:
     name: 🖥️ Desktop

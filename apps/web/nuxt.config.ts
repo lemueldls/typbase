@@ -14,6 +14,7 @@ const locales: LocaleObject[] = [
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  srcDir: "src",
   compatibilityDate: "2026-08-31",
   devtools: { enabled: false },
   future: { compatibilityVersion: 5 },
@@ -36,7 +37,7 @@ export default defineNuxtConfig({
     // experimental: { bundledDev: true },
     resolve: {
       alias: {
-        "node:dns/promises": fileURLToPath(new URL("./app/lib/node-dns-shim.ts", import.meta.url)),
+        "node:dns/promises": fileURLToPath(new URL("./src/lib/node-dns-shim.ts", import.meta.url)),
       },
     },
     optimizeDeps: {

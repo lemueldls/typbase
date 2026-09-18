@@ -22,15 +22,15 @@ makedepends=('cargo' 'nodejs' 'pnpm' 'git' 'file' 'appmenu-gtk-module' 'libappin
 options=('!strip' '!emptydirs')
 source=("typbase-v\$pkgver.tar.gz::https://github.com/lemueldls/typbase/archive/refs/tags/typbase-v\$pkgver.tar.gz")
 sha256sums=('$sha256sum')
-_builddir="\$pkgname-typbase-v\$pkgver/platform"
+_builddir="\$pkgname-typbase-v\$pkgver"
 
 prepare() {
     cd "\$srcdir/\$_builddir" || exit 1
     export RUSTUP_TOOLCHAIN=stable
     rustup toolchain install \$RUSTUP_TOOLCHAIN --profile minimal --no-self-update
     rustup target add wasm32-unknown-unknown
-    cargo fetch --locked --target "\$(rustc -vV | sed -n 's/host: //p')"
     pnpm install --frozen-lockfile
+    cargo fetch --locked --target "\$(rustc -vV | sed -n 's/host: //p')"
 }
 
 build() {
@@ -39,7 +39,7 @@ build() {
     # LTO flags from makepkg.conf break linking for some native deps; clear them.
     export CFLAGS="\${CFLAGS//-flto=auto//}"
     export NUXT_PUBLIC_APP_URL="https://typbase.at"
-    cd tauri || exit 1
+    cd apps/native || exit 1
     pnpm tauri build -b deb -c tauri.package.conf.json
 }
 
