@@ -323,6 +323,18 @@ function cleanupScrollSync() {
 const editorPane = useTemplateRef("editorPane");
 const previewPane = useTemplateRef("previewPane");
 
+// Clicking a rendered item maps back to its source position. From read mode
+// there is no visible editor, so switch to split first and reveal there.
+function onPreviewJump(range: { from: number; to: number }) {
+  if (props.modelValue === "read") {
+    emit("update:modelValue", "split");
+    void nextTick(() => editorPane.value?.revealRange(range.from, range.to));
+    return;
+  }
+
+  editorPane.value?.revealRange(range.from, range.to);
+}
+
 // Search palette / generated-content reveal requests for this page.
 watch(
   revealRequests,
@@ -456,9 +468,16 @@ function syncFromEditor(view: EditorView, scroller: HTMLElement) {
   const block = view.lineBlockAtHeight(Math.min(y, view.contentHeight - 1));
   const pos = block ? block.from : 0;
 
-  const index = layout.ranges.findIndex(
+  // The top of the viewport can sit in a blank-line gap between frames; fall
+  // back to the next frame, or the last one when past the end.
+  let index = layout.ranges.findIndex(
     (range) => pos >= range.start && pos <= Math.max(range.start, range.end - 1),
   );
+  if (index === -1) {
+    index = layout.ranges.findIndex((range) => range.start >= pos);
+    if (index === -1) index = layout.ranges.length - 1;
+  }
+
   const top = layout.tops[index];
   if (top === undefined || Math.abs(scroller.scrollTop - top) < 4) return;
 
@@ -703,6 +722,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :on-panic="handlePanic"
         @navigate="emit('openPage', $event)"
         @navigate-plugin="emit('openPlugin', $event)"
+        @jump="onPreviewJump"
       />
     </div>
   </div>

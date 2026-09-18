@@ -89,3 +89,59 @@ fn synth_is_deterministic() {
         );
     }
 }
+
+/// Blank source lines become explicit vertical space, so the PDF and read
+/// view keep the paragraph gaps the editor shows. A single line break is not
+/// a blank line and adds nothing, and runs of blank lines collapse into one.
+#[test]
+fn blank_lines_become_vertical_space() {
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "synth_blank_lines");
+
+    let result = sync_source_state(
+        &id,
+        "First.\n\nSecond.\n\n\n\nThird.\n",
+        "",
+        RenderTarget::Svg,
+        &mut state,
+    );
+
+    assert!(
+        result.synth.contains("#v(1.4em)"),
+        "blank line missing from synth:\n{}",
+        result.synth,
+    );
+    assert!(
+        !result.synth.contains("#v(2.8em)"),
+        "run of blank lines did not collapse:\n{}",
+        result.synth,
+    );
+    assert_eq!(
+        result.synth.matches("#v(1.4em)").count(),
+        2,
+        "expected one gap per block boundary:\n{}",
+        result.synth,
+    );
+
+    let single = sync_source_state(
+        &id,
+        "Line one\nline two\n",
+        "",
+        RenderTarget::Svg,
+        &mut state,
+    );
+
+    assert!(
+        !single.synth.contains("#v("),
+        "single line break became vertical space:\n{}",
+        single.synth,
+    );
+
+    let leading = sync_source_state(&id, "\n\n\nFirst.\n", "", RenderTarget::Svg, &mut state);
+
+    assert!(
+        !leading.synth.contains("#v("),
+        "leading blank lines added space before the first block:\n{}",
+        leading.synth,
+    );
+}

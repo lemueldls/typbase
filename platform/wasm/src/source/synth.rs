@@ -135,6 +135,25 @@ struct SynthBuild {
     map: SourceMap,
 }
 
+/// Vertical space emitted for one blank line, in ems. The editor's line
+/// height is 1.4, so a blank source line occupies 1.4em there too.
+const BLANK_LINE_EM: f64 = 1.4;
+
+/// Emits `#v(...)` for the blank lines that sat between two blocks. One blank
+/// line in the editor is one line height; the compiled output adds that on top
+/// of Typst's normal block spacing, so the PDF and read view keep the
+/// paragraph gaps the source shows.
+///
+/// Runs of blank lines collapse into one, the same way the editor treats them
+/// as a single visual break, and leading blank lines add nothing.
+fn emit_blank_lines(builder: &mut SourceBuilder, at: usize, blank_lines: usize) {
+    if blank_lines == 0 {
+        return;
+    }
+
+    builder.generated(at, &format!("#v({BLANK_LINE_EM}em)"), SegmentKind::Spacing);
+}
+
 /// Builds a synth from a plain text source.
 ///
 /// Walks the text's top-level syntax nodes and produces an intermediate
@@ -181,7 +200,7 @@ struct SynthBuild {
 #[typst_macros::time]
 fn build_synth(text: &str, prelude: &str) -> SynthBuild {
     let mut builder = SourceBuilder::new(text);
-    builder.generated(0, prelude, SegmentKind::Prelude);
+    builder.prefix(prelude);
 
     let root = typst_syntax::parse(text);
     let linked = LinkedNode::new(&root);
@@ -203,9 +222,17 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
         if let Some(until_newline) = node.get().leaf_text().chars().position(|ch| ch == '\n') {
             in_block = false;
 
+            let leaf = node.get().leaf_text();
+            let newlines = leaf.matches('\n').count();
+
             if let Some(last_block) = blocks.last_mut() {
                 last_block.range.end += until_newline;
+                // The first newline ends the block's last line; every newline
+                // after it is a blank line in the editor. Leading blank lines
+                // are dropped: the first block sits at the top.
+                let blank_lines = newlines.saturating_sub(1);
                 wrap_block(&mut builder, last_block, last_kind);
+                emit_blank_lines(&mut builder, last_block.range.end, blank_lines);
             }
         } else {
             last_kind = Some(node.kind());

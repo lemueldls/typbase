@@ -51,6 +51,8 @@ pub enum SegmentKind {
     Wrapper,
     /// A generated block separator newline.
     Separator,
+    /// Generated vertical space for blank source lines.
+    Spacing,
     /// An inserted delimiter repair.
     Fixup,
     /// A generated error mark or recovery placeholder.
@@ -67,6 +69,7 @@ impl SegmentKind {
             Self::Prelude => "prelude",
             Self::Wrapper => "wrapper",
             Self::Separator => "separator",
+            Self::Spacing => "spacing",
             Self::Fixup => "fixup",
             Self::ErrorMark => "error-mark",
             Self::Unknown => "unknown",
@@ -384,7 +387,7 @@ impl SourceMap {
     pub fn backward(&self, to: usize) -> usize {
         let to = to.min(self.to_len);
 
-        if to <= self.prefix {
+        if to < self.prefix {
             return 0;
         }
 
@@ -633,11 +636,11 @@ impl SourceMap {
             ));
         }
 
-        if self.backward(self.prefix) != 0 {
+        if self.prefix > 0 && self.backward(self.prefix - 1) != 0 {
             problems.push(format!(
-                "backward(prefix {}) returned {} instead of 0",
-                self.prefix,
-                self.backward(self.prefix),
+                "backward({}) inside the prefix returned {} instead of 0",
+                self.prefix - 1,
+                self.backward(self.prefix - 1),
             ));
         }
 

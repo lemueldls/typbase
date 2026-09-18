@@ -201,7 +201,10 @@ fn leading_blank_lines_clamp_instead_of_underflowing() {
     assert_eq!(context.map_raw_to_synth(0, Side::Before), prefix);
     assert!(context.map_raw_to_synth(0, Side::After) >= prefix);
     assert_eq!(context.map_synth_to_raw(0), 0);
-    assert_eq!(context.map_synth_to_raw(prefix), 0);
+    assert_eq!(context.map_synth_to_raw(prefix.saturating_sub(1)), 0);
+    // The boundary itself is the first generated wrapper, which sits after
+    // the dropped blank lines.
+    assert_eq!(context.map_synth_to_raw(prefix), 2);
 }
 
 /// Cursor queries at offset 0 of a document with leading blank lines used to

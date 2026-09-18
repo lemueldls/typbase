@@ -6,7 +6,7 @@
 use serde::Serialize;
 
 use crate::{
-    renderer::paged::FrameItemsChunk,
+    renderer::paged::{FrameItemsChunk, svg::render_svgs_by_items},
     tests::{fixtures, harness},
 };
 
@@ -141,6 +141,46 @@ fn recovery_partition_snapshots() {
         insta::assert_json_snapshot!(
             format!("recovery_{}_diagnostics", fixture.name),
             render.diagnostics,
+        );
+    }
+}
+
+/// A generated decoration with no span of its own (the underline from
+/// `#show link:underline`) must stay in the chunk of the text it decorates,
+/// not leak into the next inline item, where it would be drawn outside the
+/// frame and clipped.
+#[test]
+fn link_underline_stays_with_its_item() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let source = "- #link(\"https://example.com\")[one]\n- two\n";
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "link_underline");
+    state.resize(&id, Some(600.0), None);
+
+    let render = render_svgs_by_items(&id, source, "", &mut state);
+    assert!(render.frames.len() >= 2, "expected two item chunks");
+
+    let underlined = |svg: &str| svg.contains("stroke-width=\"0.8\"");
+
+    let link = render
+        .frames
+        .iter()
+        .find(|frame| frame.range.start == 0)
+        .expect("link chunk missing");
+    assert!(
+        underlined(&link.render.svg),
+        "link underline missing from its own chunk",
+    );
+
+    for frame in render.frames.iter().filter(|frame| frame.range.start != 0) {
+        assert!(
+            !underlined(&frame.render.svg),
+            "link underline leaked into {:?}",
+            frame.range,
         );
     }
 }

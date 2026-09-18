@@ -1,6 +1,9 @@
 use std::{cmp, collections::VecDeque, ops::Range};
 
-use typst::{compile, layout::FrameItem};
+use typst::{
+    compile,
+    layout::{Abs, FrameItem},
+};
 use typst_layout::PagedDocument;
 
 use super::frame::{BoundFrameSink, bound_frame};
@@ -142,33 +145,8 @@ pub fn chunk_by_items_with_blocks(
                     let mut chunk_items = VecDeque::<BoundFrameItem>::new();
                     let mut deferred_items = Vec::<BoundFrameItem>::new();
 
-                    let mut block_start_width = None;
-                    let mut block_start_height = None;
-                    let mut block_end_width = None;
-                    let mut block_end_height = None;
-
                     // Grow the block's bounding box with each item it keeps.
-                    let mut absorb = |block: &BoundFrameItem| {
-                        match block_start_width {
-                            Some(width) if width < block.bounds.min.x => {}
-                            _ => block_start_width = Some(block.bounds.min.x),
-                        }
-
-                        match block_start_height {
-                            Some(height) if height < block.bounds.min.y => {}
-                            _ => block_start_height = Some(block.bounds.min.y),
-                        }
-
-                        match block_end_width {
-                            Some(width) if width > block.bounds.max.x => {}
-                            _ => block_end_width = Some(block.bounds.max.x),
-                        }
-
-                        match block_end_height {
-                            Some(height) if height > block.bounds.max.y => {}
-                            _ => block_end_height = Some(block.bounds.max.y),
-                        }
-                    };
+                    let mut bounds = BlockBounds::default();
 
                     while let Some(frame_block) = bound_frame_items.peek() {
                         if let Some(range) = &frame_block.range {
@@ -177,10 +155,10 @@ pub fn chunk_by_items_with_blocks(
 
                                 // crate::log!("{frame_block:#?}");
 
-                                absorb(&frame_block);
+                                bounds.absorb(&frame_block);
 
                                 for deferred in deferred_items.drain(..) {
-                                    absorb(&deferred);
+                                    bounds.absorb(&deferred);
                                     chunk_items.push_back(deferred);
                                 }
                                 chunk_items.push_back(frame_block);
@@ -189,7 +167,21 @@ pub fn chunk_by_items_with_blocks(
                             }
                         } else {
                             let frame_block = bound_frame_items.next().unwrap();
-                            deferred_items.push(frame_block);
+
+                            // Span-less items are generated decoration: a
+                            // link underline trails the text it belongs to, a
+                            // list marker leads the next item. Overlap with
+                            // the chunk so far decides which side it is.
+                            let trails = bounds
+                                .bottom()
+                                .is_some_and(|bottom| frame_block.bounds.min.y <= bottom);
+
+                            if chunk_items.is_empty() || !trails {
+                                deferred_items.push(frame_block);
+                            } else {
+                                bounds.absorb(&frame_block);
+                                chunk_items.push_back(frame_block);
+                            }
                         }
                     }
 
@@ -200,15 +192,15 @@ pub fn chunk_by_items_with_blocks(
                     // a chunk mapped to the include line instead.
                     if chunk_items.is_empty() && !deferred_items.is_empty() {
                         for deferred in deferred_items.drain(..) {
-                            absorb(&deferred);
+                            bounds.absorb(&deferred);
                             chunk_items.push_back(deferred);
                         }
                     }
 
-                    let block_start_width = block_start_width.unwrap_or_default().to_pt();
-                    let block_start_height = block_start_height.unwrap_or_default().to_pt();
-                    let block_end_width = block_end_width.unwrap_or_default().to_pt();
-                    let block_end_height = block_end_height.unwrap_or_default().to_pt();
+                    let block_start_width = bounds.start_width.unwrap_or_default().to_pt();
+                    let block_start_height = bounds.start_height.unwrap_or_default().to_pt();
+                    let block_end_width = bounds.end_width.unwrap_or_default().to_pt();
+                    let block_end_height = bounds.end_height.unwrap_or_default().to_pt();
 
                     match context.height {
                         Some(height) if block_start_height >= height => {
@@ -450,5 +442,41 @@ pub fn chunk_by_items_with_blocks(
         tooltips,
         diagnostics,
         document,
+    }
+}
+
+/// Running bounding box for one chunk's items.
+#[derive(Default)]
+struct BlockBounds {
+    start_width: Option<Abs>,
+    start_height: Option<Abs>,
+    end_width: Option<Abs>,
+    end_height: Option<Abs>,
+}
+
+impl BlockBounds {
+    /// Grows the box to include one item.
+    fn absorb(&mut self, block: &BoundFrameItem) {
+        self.start_width = Some(
+            self.start_width
+                .map_or(block.bounds.min.x, |width| width.min(block.bounds.min.x)),
+        );
+        self.start_height = Some(
+            self.start_height
+                .map_or(block.bounds.min.y, |height| height.min(block.bounds.min.y)),
+        );
+        self.end_width = Some(
+            self.end_width
+                .map_or(block.bounds.max.x, |width| width.max(block.bounds.max.x)),
+        );
+        self.end_height = Some(
+            self.end_height
+                .map_or(block.bounds.max.y, |height| height.max(block.bounds.max.y)),
+        );
+    }
+
+    /// Bottom edge of the box, if anything was absorbed.
+    fn bottom(&self) -> Option<Abs> {
+        self.end_height
     }
 }
