@@ -50,14 +50,15 @@ function linkAt(event: MouseEvent, frameEl: HTMLElement | null): string | null {
 
 // App-internal links (typbase://page/<id>, typbase://plugin/<id>) stay in the
 // app; external links leave it, so confirm first and open in a new tab.
-// Everything else in a frame is click-to-jump: the click maps back into the
-// compiled document and the parent reveals that source position.
+// Alt-click skips activation and jumps into the link source instead, so it can
+// be edited. Everything else in a frame is click-to-jump: the click maps back
+// into the compiled document and the parent reveals that source position.
 function onPreviewClick(event: MouseEvent) {
   const target = event.target as Element | null;
   const frameEl = target?.closest?.("[data-frame]") as HTMLElement | null;
 
   const href = linkAt(event, frameEl);
-  if (href !== null) {
+  if (href !== null && !event.altKey) {
     if (href.startsWith("typbase://page/")) {
       event.preventDefault();
       const pageId = href.slice("typbase://page/".length);
@@ -81,6 +82,10 @@ function onPreviewClick(event: MouseEvent) {
 
     return;
   }
+
+  // Alt-click on a link falls through to here; stop the SVG anchor from
+  // following the href before jumping.
+  if (href !== null) event.preventDefault();
 
   const frame = frameEl ? frames.value[Number(frameEl.dataset.frame)] : undefined;
   if (!frame) return;

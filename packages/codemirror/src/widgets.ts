@@ -101,7 +101,10 @@ class TypstWidget extends WidgetType {
 
     const target = event.target as Element | null;
     const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
-    if (anchor) {
+
+    // Alt-click edits the link instead of following it: fall through to the
+    // jump so the cursor lands in the link source and the block opens.
+    if (anchor && !event.altKey) {
       if (event.type !== "click") return;
 
       const href = anchor.getAttribute("href") ?? "";
