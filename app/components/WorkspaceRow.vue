@@ -42,7 +42,7 @@ const icon = computed(
         <MsIcon :name="icon" :size="18" />
       </span>
       <span class="ws-row__text">
-        <span class="ws-row__name">{{ info.name }}</span>
+        <UiTruncatedText class="ws-row__name" :text="info.name" />
         <span class="ws-row__meta">{{ status }}</span>
       </span>
       <span v-if="switching" class="ws-row__spinner" aria-hidden="true" />
@@ -137,9 +137,6 @@ const icon = computed(
 
 .ws-row__name {
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .ws-row__meta {

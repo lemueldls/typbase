@@ -267,6 +267,36 @@
     "noMatches": "Ningún recurso coincide con la búsqueda.",
     "hint": "Haz clic en un recurso para insertarlo en el cursor."
   },
+  "exportPage": {
+    "title": "Exportar página",
+    "description": "Elige qué guardar. Si hay más de un archivo, se escribe un paquete .zip.",
+    "export": "Exportar",
+    "working": "Trabajando…",
+    "html": "Documento HTML",
+    "pdf": "Documento PDF",
+    "svg": "Páginas SVG",
+    "svgMerged": "Combinar las páginas SVG en un solo archivo",
+    "project": "Proyecto Typst (código, biblioteca, datos)",
+    "fonts": "Incluir fuentes",
+    "dialogHint": "El proyecto Typst se compila fuera de la app: typst compile --root . --font-path typbase/fonts.",
+    "theme": "Tema",
+    "themeLight": "Claro (legible)",
+    "themeWorkspace": "Igual que el espacio",
+    "pageSize": "Tamaño de página"
+  },
+  "exportWorkspace": {
+    "title": "Exportar espacio de trabajo",
+    "description": "Elige páginas y formatos. Todo se guarda en un único .zip.",
+    "search": "Buscar páginas",
+    "daily": "Solo notas diarias",
+    "all": "Todas",
+    "none": "Ninguna",
+    "selectedCount": "{count} seleccionadas",
+    "separate": "Guardar cada página por separado",
+    "combined": "Combinar las páginas seleccionadas en un documento",
+    "empty": "No hay páginas que coincidan.",
+    "hint": "PDF y SVG de muchas páginas tardan. Solo notas diarias combinadas crean un archivo cronológico."
+  },
   "storage": {
     "setupTitle": "Elegir ubicación de almacenamiento",
     "setupIntroNative": "Elige dónde guarda Typbase tus espacios de trabajo. Puedes cambiarlo después en ajustes.",

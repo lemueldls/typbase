@@ -2,8 +2,8 @@
 // them as vector curves inside a note, wrapped in a `typbase://plugin/<id>`
 // link so clicking the drawing opens this plugin's canvas.
 
-#import "/typbase.typ" as typbase
-#import "/typbase-ui.typ": *
+#import "/typbase/lib.typ" as typbase
+#import "/typbase/ui.typ": *
 
 #let colors = ("#1f2328", "#b42828", "#2f6f4f", "#1e5aa0", "#96660f", "#7a3fa0")
 
@@ -58,11 +58,16 @@
       [
         #for stroke in all [
           #let bounds = stroke-bounds(stroke)
-          #let segs = stroke.points.enumerate().map(((index, point)) => {
-            let px = ((point.at(0) - bounds.at(0)) * scale) * 1pt
-            let py = ((point.at(1) - bounds.at(1)) * scale) * 1pt
-            if index == 0 { curve.move((px, py)) } else { curve.line((px, py)) }
-          })
+          #let segs = (
+            stroke
+              .points
+              .enumerate()
+              .map(((index, point)) => {
+                let px = ((point.at(0) - bounds.at(0)) * scale) * 1pt
+                let py = ((point.at(1) - bounds.at(1)) * scale) * 1pt
+                if index == 0 { curve.move((px, py)) } else { curve.line((px, py)) }
+              })
+          )
           #place(
             dx: ((bounds.at(0) - min-x) * scale) * 1pt,
             dy: ((bounds.at(1) - min-y) * scale) * 1pt,
@@ -87,12 +92,14 @@
   if name == "stroke.add" {
     let stroke = action.args.at("stroke", default: none)
     if stroke == none { none } else {
-      patch-state((op-append("strokes", (
-        id: action.id,
-        color: stroke.at("color", default: "#1f2328"),
-        width: stroke.at("width", default: 3),
-        points: stroke.at("points", default: ()),
-      )),))
+      patch-state((
+        op-append("strokes", (
+          id: action.id,
+          color: stroke.at("color", default: "#1f2328"),
+          width: stroke.at("width", default: 3),
+          points: stroke.at("points", default: ()),
+        )),
+      ))
     }
   } else if name == "stroke.clear" {
     let ops = ()
@@ -118,14 +125,17 @@
   [
     #patch-holder(patch)
     #panel(title: "Drawing", body: [
-      #row(body: [
-        #for swatch in colors [
-          #button("●", "draw.color", args: (color: swatch), kind: (if color == swatch { "primary" } else { "ghost" }))
-        ]
-        #button("Thin", "draw.width", args: (width: 2), kind: (if width == 2 { "primary" } else { "ghost" }))
-        #button("Thick", "draw.width", args: (width: 6), kind: (if width == 6 { "primary" } else { "ghost" }))
-        #button("Clear", "stroke.clear", kind: "danger")
-      ], gap: "0.25rem")
+      #row(
+        body: [
+          #for swatch in colors [
+            #button("●", "draw.color", args: (color: swatch), kind: (if color == swatch { "primary" } else { "ghost" }))
+          ]
+          #button("Thin", "draw.width", args: (width: 2), kind: (if width == 2 { "primary" } else { "ghost" }))
+          #button("Thick", "draw.width", args: (width: 6), kind: (if width == 6 { "primary" } else { "ghost" }))
+          #button("Clear", "stroke.clear", kind: "danger")
+        ],
+        gap: "0.25rem",
+      )
 
       #canvas(
         "stroke.add",
@@ -146,14 +156,22 @@
       #if ctx.page == none [
         #muted(body: "Open a note first, then insert the drawing.")
       ] else [
-        #button("Insert embed in the open note", "app.page-append", args: (
-          pageId: ctx.page.id,
-          text: "\n#import \"/typbase-plugin/local-drawing/main.typ\": embed\n#embed(\"" + ctx.instance.id + "\")\n",
-          separator: "\n",
-        ), kind: "primary")
+        #button(
+          "Insert embed in the open note",
+          "app.page-append",
+          args: (
+            pageId: ctx.page.id,
+            text: "\n#import \"/typbase/plugin/local-drawing/main.typ\": embed\n#embed(\"" + ctx.instance.id + "\")\n",
+            separator: "\n",
+          ),
+          kind: "primary",
+        )
       ]
       #muted(body: "Or paste this in any note:")
-      #raw(lang: "typst", "#import \"/typbase-plugin/local-drawing/main.typ\": embed\n#embed(\"" + ctx.instance.id + "\")")
+      #raw(
+        lang: "typst",
+        "#import \"/typbase/plugin/local-drawing/main.typ\": embed\n#embed(\"" + ctx.instance.id + "\")",
+      )
     ])
   ]
 }

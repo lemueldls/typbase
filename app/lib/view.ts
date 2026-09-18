@@ -14,5 +14,5 @@ export const VIEW_MODES: ViewMode[] = [
   { id: "write", icon: "edit_square" },
   { id: "split", icon: "split_scene" },
   { id: "source", icon: "frame_source" },
-  { id: "read", icon: "post" },
+  { id: "read", icon: "article" },
 ] as const;

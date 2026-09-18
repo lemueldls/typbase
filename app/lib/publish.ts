@@ -43,12 +43,20 @@ export async function publishPage(
 
   const source = await store.loadPageText(pageId);
   const appSettings = store.getSettings();
+  // Published pages are read on white in the public reader, so they get the
+  // light palette and real page geometry rather than the workspace theme.
+  const htmlPrelude = publishPrelude(appSettings, { theme: "light", paged: false });
+  const pdfPrelude = publishPrelude(appSettings, {
+    theme: "light",
+    pageSize: "a4",
+    paged: true,
+  });
 
   setPublishRequestStore(store);
   const rendered = await renderInWorker({
     pagePath: page.path,
     source,
-    prelude: publishPrelude(appSettings),
+    prelude: htmlPrelude,
     wants: "html",
     spaceId: store.workspaceId,
   });
@@ -66,7 +74,7 @@ export async function publishPage(
     const renderedPdf = await renderInWorker({
       pagePath: page.path,
       source,
-      prelude: publishPrelude(appSettings),
+      prelude: pdfPrelude,
       wants: "pdf",
       spaceId: store.workspaceId,
     });

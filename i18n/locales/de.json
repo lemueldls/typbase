@@ -267,6 +267,36 @@
     "noMatches": "Keine Medien passen zur Suche.",
     "hint": "Klicke ein Medium an, um es an der Cursorposition einzufügen."
   },
+  "exportPage": {
+    "title": "Seite exportieren",
+    "description": "Wähle aus, was gespeichert wird. Mehrere Dateien werden als .zip-Bundle geschrieben.",
+    "export": "Exportieren",
+    "working": "Läuft…",
+    "html": "HTML-Dokument",
+    "pdf": "PDF-Dokument",
+    "svg": "SVG-Seiten",
+    "svgMerged": "SVG-Seiten in einer Datei zusammenfassen",
+    "project": "Typst-Projekt (Quelltext, Bibliothek, Daten)",
+    "fonts": "Schriften mitliefern",
+    "dialogHint": "Das Typst-Projekt lässt sich außerhalb der App kompilieren: typst compile --root . --font-path typbase/fonts.",
+    "theme": "Design",
+    "themeLight": "Hell (lesbar)",
+    "themeWorkspace": "Wie Workspace",
+    "pageSize": "Seitengröße"
+  },
+  "exportWorkspace": {
+    "title": "Workspace exportieren",
+    "description": "Wähle Seiten und Formate. Alles wird als ein .zip-Bundle geschrieben.",
+    "search": "Seiten suchen",
+    "daily": "Nur Tagesnotizen",
+    "all": "Alle",
+    "none": "Keine",
+    "selectedCount": "{count} ausgewählt",
+    "separate": "Jede Seite einzeln schreiben",
+    "combined": "Ausgewählte Seiten zu einem Dokument zusammenfassen",
+    "empty": "Keine Seiten gefunden.",
+    "hint": "PDF und SVG für viele Seiten dauern. Nur Tagesnotizen kombiniert ergeben ein chronologisches Archiv."
+  },
   "storage": {
     "setupTitle": "Speicherort wählen",
     "setupIntroNative": "Wähle, wo Typbase deine Arbeitsbereiche ablegt. Später in den Einstellungen änderbar.",

@@ -11,10 +11,13 @@ withDefaults(
   }>(),
   { align: "end", side: "bottom", sideOffset: 4 },
 );
+
+/** Optional so menus that close themselves on select can be driven too. */
+const open = defineModel<boolean>("open", { default: false });
 </script>
 
 <template>
-  <DropdownMenuRoot>
+  <DropdownMenuRoot v-model:open="open">
     <DropdownMenuTrigger as-child>
       <slot name="trigger" />
     </DropdownMenuTrigger>

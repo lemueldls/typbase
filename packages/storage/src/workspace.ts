@@ -217,6 +217,15 @@ export class WorkspaceStore {
     return `workspaces/${this.workspaceId}/sources/${page.path}`;
   }
 
+  /**
+   * Writes a file under the mirror root but outside the page tree
+   * (`typbase/...`). Used for the compilable project view: the library,
+   * per-page entries, and the request data external tools need.
+   */
+  async writeProjectFile(path: string, bytes: Uint8Array): Promise<void> {
+    await this.backend.write(`workspaces/${this.workspaceId}/sources/${path}`, bytes);
+  }
+
   private async loadSourceHashes(): Promise<Record<string, { pageId: string; hash: string }>> {
     this.sourceHashes ??=
       (await this.sourceSync?.get<Record<string, { pageId: string; hash: string }>>(
@@ -260,6 +269,10 @@ export class WorkspaceStore {
     }
 
     for (const name of entries) {
+      // `typbase/` is the generated project view (library, entries, request
+      // data); it is not page content and must never import as pages.
+      if (!relative && name === "typbase") continue;
+
       const path = `${dir}/${name}`;
       const stat = await this.backend.stat(path).catch(() => null);
       if (!stat) continue;
@@ -1210,7 +1223,7 @@ export class WorkspaceStore {
 
     for (const page of this.listPages()) {
       const text = await this.loadPageText(page.id);
-      for (const match of text.matchAll(/typbase-blob\/([0-9a-f]{64})/g)) add(match[1]!, page.id);
+      for (const match of text.matchAll(/typbase\/blob\/([0-9a-f]{64})/g)) add(match[1]!, page.id);
 
       for (const asset of Object.values(this.getAssets(page.id))) {
         if (asset.hash) add(asset.hash, page.id);

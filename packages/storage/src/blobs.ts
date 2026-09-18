@@ -94,5 +94,5 @@ export function mimeExtension(mime: string): string {
 
 /** Virtual path a page can hand to `#image(...)` or `#link(...)`. */
 export function blobReference(hash: string, mime: string): string {
-  return `/typbase-blob/${hash}.${mimeExtension(mime)}`;
+  return `/typbase/blob/${hash}.${mimeExtension(mime)}`;
 }

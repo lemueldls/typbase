@@ -57,7 +57,7 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
         >
           {{ $t("plugins.installFolder") }}
         </button>
-        <span class="plugin-manager__hint">{{ $t("plugins.localHint") }}</span>
+        <!-- <span class="plugin-manager__hint">{{ $t("plugins.localHint") }}</span> -->
       </div>
 
       <p v-if="plugins.catalog.value.length === 0" class="plugin-manager__empty">

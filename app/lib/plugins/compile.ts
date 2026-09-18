@@ -4,15 +4,9 @@ import { themeColorsFromPalette } from "~/lib/rendererPalette";
 
 import type { PluginSurfaceInput, PluginSurfaceResult } from "./protocol";
 
-/**
- * Compiles one plugin surface against a TypstState. Shared by the plugin
- * worker (isolated) and the main-thread fallback, so both produce identical
- * HTML and diagnostics. No DOM or Vue here.
- */
-
 const PLUGIN_SPACE = "plugin-host";
-const CTX_PATH = "/typbase-plugin/ctx.json";
-const WRAPPER_PATH = "/typbase-plugin-surface";
+const CTX_PATH = "/typbase/plugin/ctx.json";
+const WRAPPER_PATH = "/typbase/surface";
 
 const styleKeys = new WeakMap<TypstState, string>();
 
@@ -21,7 +15,7 @@ function applyStyle(typstState: TypstState, input: PluginSurfaceInput): void {
   if (styleKeys.get(typstState) === key) return;
   styleKeys.set(typstState, key);
 
-  const configId = typstState.createSourceId("typbase-plugin-config", PLUGIN_SPACE);
+  const configId = typstState.createSourceId("typbase/config", PLUGIN_SPACE);
   typstState.setFont(configId, input.style.font);
   typstState.setMathFont(configId, input.style.mathFont);
   typstState.setCodeFont(configId, input.style.codeFont);
@@ -31,7 +25,7 @@ function applyStyle(typstState: TypstState, input: PluginSurfaceInput): void {
 
 function wrapperSource(input: PluginSurfaceInput): string {
   return [
-    `#import "/typbase-plugin/${input.slug}/${input.entry}": ${input.fn}`,
+    `#import "/typbase/plugin/${input.slug}/${input.entry}": ${input.fn}`,
     `#let ctx = json("${CTX_PATH}")`,
     `#${input.fn}(ctx)`,
     "",

@@ -64,6 +64,13 @@ export function exportTauriStorageFile(path: string): Promise<string | null> {
   return invoke<string | null>("storage_export", { path });
 }
 
+/** Saves arbitrary bytes through the native save dialog (desktop). */
+export function saveExportFile(name: string, bytes: Uint8Array): Promise<string | null> {
+  return invoke<string | null>("export_save_file", bytes, {
+    headers: { name: encodeURIComponent(name) },
+  });
+}
+
 /** Joins a relative storage path onto the native root for display or reveal. */
 export function resolveStoragePath(state: TauriStorageState, path = ""): string {
   const separator = state.root.includes("\\") ? "\\" : "/";

@@ -35,3 +35,11 @@ pub struct RenderPdfResult {
     pub diagnostics: Vec<TypstDiagnostic>,
     pub requests: Vec<TypstRequest>,
 }
+
+/// SVG export: one string per page, or a single merged document.
+#[derive(Tsify, Serialize, Deserialize)]
+pub struct RenderSvgResult {
+    pub pages: Vec<String>,
+    pub diagnostics: Vec<TypstDiagnostic>,
+    pub requests: Vec<TypstRequest>,
+}

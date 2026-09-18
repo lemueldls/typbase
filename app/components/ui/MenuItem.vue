@@ -12,7 +12,7 @@ withDefaults(
     /** Styles the item as destructive. */
     danger?: boolean;
   }>(),
-  { iconSize: 16, danger: false },
+  { iconSize: 20, danger: false },
 );
 
 const emit = defineEmits<{ (e: "select", event: Event): void }>();

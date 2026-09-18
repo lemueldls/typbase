@@ -4,7 +4,7 @@ import type { TypstRequest } from "@typbase/wasm";
 /** Types crossing the host <-> plugin-worker boundary. */
 
 export interface PluginSurfaceSource {
-  /** Virtual path under `/typbase-plugin/<slug>/` or the UI library path. */
+  /** Virtual path under `/typbase/plugin/<slug>/` or the UI library path. */
   path: string;
   text: string;
 }

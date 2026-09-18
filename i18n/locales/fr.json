@@ -267,6 +267,36 @@
     "noMatches": "Aucun média ne correspond à cette recherche.",
     "hint": "Cliquez sur un média pour l'insérer au curseur."
   },
+  "exportPage": {
+    "title": "Exporter la page",
+    "description": "Choisissez ce qu'il faut enregistrer. Plusieurs fichiers sont écrits dans un paquet .zip.",
+    "export": "Exporter",
+    "working": "En cours…",
+    "html": "Document HTML",
+    "pdf": "Document PDF",
+    "svg": "Pages SVG",
+    "svgMerged": "Fusionner les pages SVG en un seul fichier",
+    "project": "Projet Typst (source, bibliothèque, données)",
+    "fonts": "Inclure les polices",
+    "dialogHint": "Le projet Typst se compile hors de l'application : typst compile --root . --font-path typbase/fonts.",
+    "theme": "Thème",
+    "themeLight": "Clair (lisible)",
+    "themeWorkspace": "Comme l'espace de travail",
+    "pageSize": "Format de page"
+  },
+  "exportWorkspace": {
+    "title": "Exporter l'espace de travail",
+    "description": "Choisissez les pages et les formats. Tout est écrit dans un seul .zip.",
+    "search": "Rechercher des pages",
+    "daily": "Notes quotidiennes uniquement",
+    "all": "Toutes",
+    "none": "Aucune",
+    "selectedCount": "{count} sélectionnées",
+    "separate": "Écrire chaque page séparément",
+    "combined": "Fusionner les pages sélectionnées en un document",
+    "empty": "Aucune page ne correspond.",
+    "hint": "PDF et SVG pour beaucoup de pages prennent du temps. Les notes quotidiennes fusionnées forment une archive chronologique."
+  },
   "storage": {
     "setupTitle": "Choisir l'emplacement de stockage",
     "setupIntroNative": "Choisissez où Typbase garde vos espaces de travail. Modifiable plus tard dans les réglages.",

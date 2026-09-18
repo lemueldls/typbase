@@ -179,16 +179,18 @@ function formatSize(bytes: number): string {
 
       <ul v-else class="picker__grid">
         <li v-for="asset in filtered" :key="asset.hash">
-          <button type="button" class="picker__card" :title="asset.hash" @click="choose(asset)">
-            <span class="picker__thumb">
-              <img v-if="asset.url" :src="asset.url" :alt="asset.mime" />
-              <MsIcon v-else :name="iconFor(asset.mime)" :size="30" />
-            </span>
-            <span class="picker__meta">
-              <span class="picker__ext">{{ extension(asset.mime) }}</span>
-              <span>{{ formatSize(asset.size) }}</span>
-            </span>
-          </button>
+          <UiTooltip :text="asset.hash">
+            <button type="button" class="picker__card" @click="choose(asset)">
+              <span class="picker__thumb">
+                <img v-if="asset.url" :src="asset.url" :alt="asset.mime" />
+                <MsIcon v-else :name="iconFor(asset.mime)" :size="30" />
+              </span>
+              <span class="picker__meta">
+                <span class="picker__ext">{{ extension(asset.mime) }}</span>
+                <span>{{ formatSize(asset.size) }}</span>
+              </span>
+            </button>
+          </UiTooltip>
         </li>
       </ul>
 

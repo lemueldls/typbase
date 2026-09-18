@@ -454,9 +454,11 @@ function onTextSizeChange(event: Event) {
             <div class="settings__storage">
               <span class="settings__storage-info">
                 <span class="settings__storage-label">{{ storageLocation.label }}</span>
-                <span v-if="storageLocation.path" class="settings__storage-path">
-                  {{ storageLocation.path }}
-                </span>
+                <UiTruncatedText
+                  v-if="storageLocation.path"
+                  class="settings__storage-path"
+                  :text="storageLocation.path"
+                />
               </span>
               <button type="button" class="button button--tiny" @click="openStorageSetup">
                 {{ $t("settings.changeStorage") }}
@@ -995,12 +997,9 @@ function onTextSizeChange(event: Event) {
 }
 
 .settings__storage-path {
+  max-width: 14rem;
   font-size: 0.75rem;
   color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 14rem;
 }
 
 .settings__ok {

@@ -31,6 +31,7 @@ use tauri::{
     AppHandle, Manager, Runtime, State,
     ipc::{InvokeBody, Request, Response},
 };
+use tauri_plugin_dialog::DialogExt as _;
 
 /// Subdirectory of the app data dir used for `App` mode.
 const STORAGE_DIR: &str = "storage";
@@ -255,8 +256,6 @@ pub fn storage_configure(
 pub async fn storage_pick_directory<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<Option<String>, String> {
-    use tauri_plugin_dialog::DialogExt as _;
-
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
@@ -284,8 +283,6 @@ pub async fn storage_export<R: Runtime>(
     state: State<'_, StorageState>,
     path: String,
 ) -> Result<Option<String>, String> {
-    use tauri_plugin_dialog::DialogExt as _;
-
     let target = state.resolve(&path)?;
     let bytes = fs::read(&target)
         .map_err(|error| format!("failed to read {}: {error}", target.display()))?;
@@ -319,6 +316,51 @@ pub async fn storage_export<R: Runtime>(
 pub async fn storage_export(path: String) -> Result<Option<String>, String> {
     let _ = path;
     Err("exporting files needs the desktop app; use the browser download".into())
+}
+
+/// Saves arbitrary bytes through the native save dialog. Returns the chosen
+/// path, or null when cancelled. The suggested file name rides in a header
+/// because a raw-bytes invoke cannot carry named arguments.
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn export_save_file<R: Runtime>(
+    app: AppHandle<R>,
+    request: Request<'_>,
+) -> Result<Option<String>, String> {
+    let raw = request
+        .headers()
+        .get("name")
+        .and_then(|value| value.to_str().ok())
+        .ok_or("export_save_file needs a name header")?;
+    let name = percent_decode_str(raw)
+        .decode_utf8()
+        .map_err(|_| "export file name is not valid UTF-8")?
+        .into_owned();
+    let data = request_bytes(request.body())?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(destination) = app
+            .dialog()
+            .file()
+            .set_file_name(name)
+            .blocking_save_file()
+            .and_then(|file| file.into_path().ok())
+        else {
+            return Ok(None);
+        };
+
+        atomic_write(&destination, &data)?;
+
+        Ok(Some(destination.to_string_lossy().into_owned()))
+    })
+    .await
+    .map_err(|error| format!("save dialog failed: {error}"))?
+}
+
+#[cfg(not(desktop))]
+#[tauri::command]
+pub async fn export_save_file(_request: Request<'_>) -> Result<Option<String>, String> {
+    Err("saving files needs the desktop app".into())
 }
 
 #[tauri::command]

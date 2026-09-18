@@ -395,6 +395,7 @@ definePageMeta({ ssr: false });
                   icon="menu"
                   :size="24"
                   :label="$t('boot.openNav')"
+                  variant="ghost"
                   class="app__nav-toggle"
                   @click="navOpen = true"
                 />
@@ -565,16 +566,6 @@ definePageMeta({ ssr: false });
   display: inline-flex;
   padding: 0.35rem 0.55rem;
   margin-right: 0.25rem;
-}
-
-/* The toggle is a chrome control, not a form control: no outline ring and no
-   tap flash on touch screens. A focus background keeps keyboard users
-   oriented instead. */
-.app__main :deep(.app__nav-toggle),
-.app__main :deep(.app__nav-toggle--desktop) {
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
 }
 
 .app__main :deep(.app__nav-toggle:focus-visible),

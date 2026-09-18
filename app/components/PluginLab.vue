@@ -103,7 +103,7 @@ const editEntry = computed(() =>
 const editFiles = computed(() => {
   const entry = editEntry.value;
   if (!entry) return [];
-  const prefix = `/typbase-plugin/${entry.slug}/`;
+  const prefix = `/typbase/plugin/${entry.slug}/`;
 
   return entry.sources
     .map((source) =>
@@ -167,7 +167,7 @@ async function forkToLocal(pluginId: string): Promise<void> {
   const active = backend.value;
   if (!entry || !active) return;
 
-  const prefix = `/typbase-plugin/${entry.slug}/`;
+  const prefix = `/typbase/plugin/${entry.slug}/`;
   const encoder = new TextEncoder();
   for (const source of entry.sources) {
     const relative = source.path.startsWith(prefix)

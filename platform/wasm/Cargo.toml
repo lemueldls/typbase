@@ -7,7 +7,7 @@ description.workspace = true
 edition.workspace = true
 keywords.workspace = true
 license.workspace = true
-repository.workspace = true
+# repository.workspace = true
 version.workspace = true
 
 [lib]

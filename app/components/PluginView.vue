@@ -29,7 +29,7 @@ const icon = computed<MaterialSymbol>(() => {
     <div class="plugin-view__toolbar">
       <slot name="nav-toggle" />
       <MsIcon :name="icon" :size="18" />
-      <span class="plugin-view__title">{{ title }}</span>
+      <UiTruncatedText class="plugin-view__title" :text="title" />
       <div class="plugin-view__actions">
         <UiIconButton icon="close" :label="$t('plugins.close')" @click="emit('close')" />
       </div>
@@ -59,11 +59,8 @@ const icon = computed<MaterialSymbol>(() => {
 }
 
 .plugin-view__title {
-  font-weight: 600;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
 }
 
 .plugin-view__actions {

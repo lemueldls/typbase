@@ -1,6 +1,6 @@
 // Host-supplied helpers for plugin surfaces. Import them from any plugin:
 //
-//   #import "/typbase-ui.typ": panel, button, field, patch-holder
+//   #import "/typbase/ui.typ": panel, button, field, patch-holder
 //
 // Every interactive element is a plain HTML element carrying data-tb-*
 // attributes; the sandbox runtime turns clicks and field values into actions.
@@ -18,9 +18,12 @@
 
 #let button(label, action, args: (:), kind: "default", disabled: false) = {
   let base = (
+    (
       type: "button",
       class: "tb-button tb-button--" + kind,
-    ) + action-attrs(action, args: args)
+    )
+      + action-attrs(action, args: args)
+  )
   let attrs = if disabled { base + ("disabled": "disabled") } else { base }
 
   html.elem("button", attrs: attrs, label)
@@ -79,8 +82,8 @@
   [
     #html.elem(
       "input",
-      attrs: (type: "checkbox", "data-tb-field": name, "data-tb-commit": "change") +
-        (if checked { ("checked": "checked") } else { (:) }),
+      attrs: (type: "checkbox", "data-tb-field": name, "data-tb-commit": "change")
+        + (if checked { ("checked": "checked") } else { (:) }),
     )
     #html.elem("span", title)
   ],

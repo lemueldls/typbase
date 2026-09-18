@@ -2,7 +2,7 @@ import { ref } from "vue";
 
 /**
  * Host-side lookup for plugin Typst modules. Notes import plugin sources
- * through the normal Typst request channel (`#import "/typbase-plugin/..."`),
+ * through the normal Typst request channel (`#import "/typbase/plugin/..."`),
  * so the resolved catalog is kept here where `typstRequests` can serve it.
  * The plugins composable repopulates it on every catalog refresh.
  */

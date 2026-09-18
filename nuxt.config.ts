@@ -41,7 +41,8 @@ export default defineNuxtConfig({
     },
     optimizeDeps: {
       exclude: ["loro-crdt", "sqlite-wasm-vec", "harper.js", "harper.js/binaryInlined"],
-      include: ["@typbase/wasm"],
+      // include: ["@typbase/wasm"],
+      // force: true,
     },
     server: {
       // middlewareMode: false,

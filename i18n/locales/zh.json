@@ -267,6 +267,36 @@
     "noMatches": "没有匹配的资源。",
     "hint": "点击资源即可插入到光标位置。"
   },
+  "exportPage": {
+    "title": "导出页面",
+    "description": "选择要保存的内容。多个文件会打包成 .zip。",
+    "export": "导出",
+    "working": "处理中…",
+    "html": "HTML 文档",
+    "pdf": "PDF 文档",
+    "svg": "SVG 页面",
+    "svgMerged": "将 SVG 页面合并为一个文件",
+    "project": "Typst 项目（源文件、库、数据）",
+    "fonts": "包含字体",
+    "dialogHint": "Typst 项目可在应用外编译：typst compile --root . --font-path typbase/fonts。",
+    "theme": "主题",
+    "themeLight": "浅色（易读）",
+    "themeWorkspace": "跟随工作区",
+    "pageSize": "页面尺寸"
+  },
+  "exportWorkspace": {
+    "title": "导出工作区",
+    "description": "选择页面和格式，全部打包为一个 .zip。",
+    "search": "搜索页面",
+    "daily": "仅日记",
+    "all": "全选",
+    "none": "全不选",
+    "selectedCount": "已选 {count} 页",
+    "separate": "每页单独导出",
+    "combined": "将所选页面合并为一个文档",
+    "empty": "没有匹配的页面。",
+    "hint": "页数较多时 PDF 和 SVG 会较慢。仅选日记并合并即可生成按时间排序的合集。"
+  },
   "storage": {
     "setupTitle": "选择存储位置",
     "setupIntroNative": "选择 Typbase 保存工作区的位置。之后可在设置中更改。",

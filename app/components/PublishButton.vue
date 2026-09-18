@@ -59,48 +59,46 @@ async function onUnpublish() {
 </script>
 
 <template>
-  <div class="publish">
-    <template v-if="atprotoStatus.signedIn">
-      <UiTooltip v-if="meta?.publishedAt" :text="meta.publishUri ?? ''">
-        <span class="publish__status" role="status">
-          <MsIcon name="public" :size="14" />
-          {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
-        </span>
-      </UiTooltip>
+  <div class="publish" v-if="atprotoStatus.signedIn">
+    <UiTooltip v-if="meta?.publishedAt" :text="meta.publishUri ?? ''">
+      <span class="publish__status" role="status">
+        <MsIcon name="public" :size="14" />
+        {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
+      </span>
+    </UiTooltip>
 
-      <PopoverRoot v-model:open="menuOpen">
-        <PopoverTrigger as-child>
-          <button type="button" class="button button--small" :disabled="busy">
-            {{
-              busy
-                ? t("pageView.publishWorking")
-                : meta?.publishedAt
-                  ? t("pageView.republish")
-                  : t("pageView.publish")
-            }}
+    <PopoverRoot v-model:open="menuOpen">
+      <PopoverTrigger as-child>
+        <button type="button" class="button button--small" :disabled="busy">
+          {{
+            busy
+              ? t("pageView.publishWorking")
+              : meta?.publishedAt
+                ? t("pageView.republish")
+                : t("pageView.publish")
+          }}
+        </button>
+      </PopoverTrigger>
+      <PopoverPortal>
+        <PopoverContent class="menu publish__menu" :side-offset="6" align="end">
+          <button type="button" class="menu__item" @click="onPublish">
+            {{ meta?.publishedAt ? t("pageView.republish") : t("pageView.publish") }}
+            · {{ t("pageView.publishToAtproto") }}
           </button>
-        </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverContent class="menu publish__menu" :side-offset="6" align="end">
-            <button type="button" class="menu__item" @click="onPublish">
-              {{ meta?.publishedAt ? t("pageView.republish") : t("pageView.publish") }}
-              · {{ t("pageView.publishToAtproto") }}
-            </button>
-            <button
-              v-if="meta?.publishedAt"
-              type="button"
-              class="menu__item menu__danger"
-              @click="onUnpublish"
-            >
-              {{ t("pageView.unpublish") }}
-            </button>
-            <p class="publish__hint">{{ t("pageView.publishHint") }}</p>
-          </PopoverContent>
-        </PopoverPortal>
-      </PopoverRoot>
+          <button
+            v-if="meta?.publishedAt"
+            type="button"
+            class="menu__item menu__danger"
+            @click="onUnpublish"
+          >
+            {{ t("pageView.unpublish") }}
+          </button>
+          <p class="publish__hint">{{ t("pageView.publishHint") }}</p>
+        </PopoverContent>
+      </PopoverPortal>
+    </PopoverRoot>
 
-      <p v-if="error" class="publish__error" role="alert">{{ error }}</p>
-    </template>
+    <p v-if="error" class="publish__error" role="alert">{{ error }}</p>
   </div>
 </template>
 

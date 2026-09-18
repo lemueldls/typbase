@@ -4,14 +4,6 @@ import type { PluginManifest } from "@typbase/typing";
 import uiLibrarySource from "../../../public/plugins/ui.typ?raw";
 import { parseManifest, pluginSlug } from "./manifest";
 
-/**
- * Plugin discovery. Bundled examples are inlined by Vite from
- * `public/plugins/`; local plugins are read from the workspace storage tree
- * under `plugins/<name>/`, which is a real folder on desktop roots and the
- * OPFS tree in the browser. Installing never copies anything: the install
- * record in the workspace doc only points at a manifest id.
- */
-
 export interface CatalogPlugin {
   manifest: PluginManifest;
   slug: string;
@@ -19,11 +11,11 @@ export interface CatalogPlugin {
   source: "bundled" | "local";
   /** Storage folder for local plugins, e.g. `plugins/calendar`. */
   storageDir?: string;
-  /** Virtual Typst paths already rooted at `/typbase-plugin/<slug>/`. */
+  /** Virtual Typst paths already rooted at `/typbase/plugin/<slug>/`. */
   sources: { path: string; text: string }[];
 }
 
-export const UI_LIBRARY_PATH = "/typbase-ui.typ";
+export const UI_LIBRARY_PATH = "/typbase/ui.typ";
 export { uiLibrarySource };
 
 const manifestModules = import.meta.glob("../../../public/plugins/*/plugin.json", {
@@ -51,7 +43,7 @@ export function loadBundledCatalog(): CatalogPlugin[] {
       for (const [sourcePath, text] of Object.entries(sourceModules)) {
         if (!sourcePath.startsWith(`${root}/`)) continue;
         const relative = sourcePath.slice(root.length + 1);
-        sources.push({ path: `/typbase-plugin/${pluginSlug(manifest.id)}/${relative}`, text });
+        sources.push({ path: `/typbase/plugin/${pluginSlug(manifest.id)}/${relative}`, text });
       }
 
       catalog.push({ manifest, slug: pluginSlug(manifest.id), source: "bundled", sources });
@@ -92,8 +84,10 @@ async function readTypFiles(
     }
 
     if (!name.endsWith(".typ")) continue;
+
     const bytes = await backend.read(path);
     if (!bytes) continue;
+
     files.push({ path: `${prefix}/${name}`, text: new TextDecoder().decode(bytes) });
   }
 
@@ -121,7 +115,7 @@ export async function loadLocalCatalog(backend?: StorageBackend): Promise<Catalo
         JSON.parse(new TextDecoder().decode(manifestBytes)) as unknown,
       );
       const slug = pluginSlug(manifest.id);
-      const sources = await readTypFiles(backend, `plugins/${dir}`, `/typbase-plugin/${slug}`);
+      const sources = await readTypFiles(backend, `plugins/${dir}`, `/typbase/plugin/${slug}`);
       catalog.push({ manifest, slug, source: "local", storageDir: `plugins/${dir}`, sources });
     } catch (error) {
       console.error(`[plugins] invalid local manifest at plugins/${dir}:`, error);

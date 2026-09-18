@@ -267,6 +267,36 @@
     "noMatches": "No assets match that search.",
     "hint": "Click an asset to insert it at the cursor."
   },
+  "exportPage": {
+    "title": "Export page",
+    "description": "Choose what to save. More than one artifact is written as a .zip bundle.",
+    "export": "Export",
+    "working": "Working…",
+    "html": "HTML document",
+    "pdf": "PDF document",
+    "svg": "SVG pages",
+    "svgMerged": "Merge SVG pages into one file",
+    "project": "Typst project (source, library, data)",
+    "fonts": "Include fonts",
+    "dialogHint": "The Typst project compiles outside the app with typst compile --root . --font-path typbase/fonts.",
+    "theme": "Theme",
+    "themeLight": "Light (readable)",
+    "themeWorkspace": "Match workspace",
+    "pageSize": "Page size"
+  },
+  "exportWorkspace": {
+    "title": "Export workspace",
+    "description": "Pick pages and formats. Everything is written as one .zip bundle.",
+    "search": "Search pages",
+    "daily": "Daily notes only",
+    "all": "All",
+    "none": "None",
+    "selectedCount": "{count} selected",
+    "separate": "Write each page separately",
+    "combined": "Combine selected pages into one document",
+    "empty": "No pages match.",
+    "hint": "PDF and SVG for many pages can take a while. Selecting only daily notes and combining creates a chronological archive."
+  },
   "storage": {
     "setupTitle": "Choose storage location",
     "setupIntroNative": "Pick where Typbase keeps your workspaces. You can change this later in settings.",

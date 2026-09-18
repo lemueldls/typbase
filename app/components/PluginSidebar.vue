@@ -45,10 +45,9 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
       <span>{{ $t("plugins.title") }}</span>
       <UiIconButton
         icon="add"
-        :size="18"
+        :size="20"
         :label="$t('plugins.manage')"
         variant="ghost"
-        class="button--tiny"
         @click="managerOpen = true"
       />
     </div>
@@ -63,7 +62,7 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
       <li v-for="instance in mainInstances" :key="instance.id">
         <button type="button" class="plugin-sidebar__row" @click="emit('openPlugin', instance.id)">
           <MsIcon :name="iconOf(instance)" :size="16" />
-          <span class="plugin-sidebar__label">{{ instance.title }}</span>
+          <UiTruncatedText class="plugin-sidebar__label" :text="instance.title" />
         </button>
       </li>
     </ul>
@@ -135,9 +134,6 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
 
 .plugin-sidebar__label {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .plugin-sidebar__dialog {

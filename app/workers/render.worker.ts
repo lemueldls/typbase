@@ -1,4 +1,6 @@
-import init, { FileId, TypstState, type TypstRequest } from "@typbase/wasm";
+import type { TypstRequest } from "@typbase/wasm";
+
+import init, { TypstState } from "@typbase/wasm";
 import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
 import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
 import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";
@@ -9,19 +11,24 @@ import newcmMath from "~~/public/fonts/math/NewCMMath-Regular.otf?url";
 import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWorker";
 
 /**
- * Worker entry: owns one TypstState for publish renders. The page source and
- * prelude arrive with each request; `#typbase.query` and `#typbase.embed`
- * resolve through the main thread, which posts insert messages that land in
- * THIS instance (file ids are created from the request paths, so the world's
- * roots stay consistent). Compiles loop until no requests remain.
+ * Worker entry: owns one TypstState for publish and export renders. The page
+ * source and prelude arrive with each request; `#typbase.query` and
+ * `#typbase.embed` resolve through the main thread, which posts insert
+ * messages that land in THIS instance (file ids are created from the request
+ * paths, so the world's roots stay consistent). Compiles loop until no
+ * requests remain; a pass that makes no progress stops instead of recompiling.
  */
 
+/** The wasm asset URL arrives in a configure message; the main thread already
+ *  loaded it, and worker-side asset resolution is not portable. */
+let wasmModuleUrl: string | undefined;
 let state: TypstState | undefined;
 
 async function ensureState(): Promise<TypstState> {
   if (state) return state;
+  if (!wasmModuleUrl) throw new Error("Render worker was not configured with a wasm URL");
 
-  await init();
+  await init({ module_or_path: wasmModuleUrl });
   const typstState = new TypstState();
   for (const url of [
     mapleMono,
@@ -40,19 +47,30 @@ async function ensureState(): Promise<TypstState> {
 }
 
 let currentId = 0;
-let releaseAnswer: (() => void) | undefined;
+let releaseAnswer: ((inserted: number) => void) | undefined;
+/** Request paths already inserted for the current render. A pass that asks
+ *  only for these has made no progress and must not loop. */
+let insertedPaths = new Set<string>();
 
 self.addEventListener(
   "message",
   async (event: MessageEvent<RenderWorkerRequest | RenderWorkerResponse>) => {
     const message = event.data;
 
+    if (message.type === "configure") {
+      wasmModuleUrl = message.wasmUrl;
+
+      return;
+    }
+
     if (message.type === "insert" && state) {
-      if (message.payload?.type === "source") {
-        state.insertSource(state.createFileId(message.payload.path), message.payload.text);
-      } else if (message.payload?.type === "file") {
-        state.insertFile(state.createFileId(message.payload.path), message.payload.bytes);
+      const payload = message.payload;
+      if (payload?.type === "source") {
+        state.insertSource(state.createFileId(payload.path), payload.text);
+      } else if (payload?.type === "file") {
+        state.insertFile(state.createFileId(payload.path), payload.bytes);
       }
+      if (payload) insertedPaths.add(payload.path);
 
       return;
     }
@@ -60,7 +78,7 @@ self.addEventListener(
     if (message.type === "answer") {
       const release = releaseAnswer;
       releaseAnswer = undefined;
-      release?.();
+      release?.(message.inserted ?? 0);
 
       return;
     }
@@ -68,23 +86,41 @@ self.addEventListener(
     if (message.type !== "render") return;
 
     currentId = message.id;
-    const { pagePath, source, prelude, wants, spaceId } = message;
+    insertedPaths = new Set();
+    const { pagePath, source, prelude, wants, merged, spaceId } = message;
 
     try {
       const typstState = await ensureState();
-      // renderHtml/renderPdf go through the raw/synth pipeline, which needs a
-      // registered SourceContext: a plain file id panics in the prelude.
+      // renderHtml/renderPdf/renderSvg go through the raw/synth pipeline,
+      // which needs a registered SourceContext: a plain file id panics in the
+      // prelude.
       const file = typstState.createSourceId(pagePath, spaceId);
       typstState.insertSource(file, source);
 
+      if (wants === "svg") {
+        await runPasses(
+          () => typstState.renderSvg(file, source, prelude, merged ?? false),
+          (rendered) =>
+            post({
+              id: currentId,
+              type: "result",
+              ok: true,
+              svg: rendered.pages,
+              diagnostics: rendered.diagnostics,
+            }),
+        );
+
+        return;
+      }
+
       if (wants === "pdf") {
         if (!typstState.pdfAvailable()) {
-          postMessage({
+          post({
             id: currentId,
             type: "result",
             ok: false,
             error: "This build has no PDF support (rebuild with the pdf feature).",
-          } satisfies RenderWorkerResponse);
+          });
 
           return;
         }
@@ -94,7 +130,7 @@ self.addEventListener(
         // is safe. RenderPdfResult mirrors the Rust struct.
         const pdfState = typstState as unknown as {
           renderPdf(
-            id: FileId,
+            id: typeof file,
             text: string,
             prelude: string,
           ): {
@@ -103,59 +139,99 @@ self.addEventListener(
             requests: TypstRequest[];
           };
         };
-        const rendered = pdfState.renderPdf(file, source, prelude);
-        if (rendered.requests.length) await requestLoop(rendered.requests);
-        postMessage({
-          id: currentId,
-          type: "result",
-          ok: true,
-          pdf: rendered.bytes ? new Uint8Array(rendered.bytes) : undefined,
-          diagnostics: rendered.diagnostics,
-        } satisfies RenderWorkerResponse);
+
+        await runPasses(
+          () => pdfState.renderPdf(file, source, prelude),
+          (rendered) =>
+            post({
+              id: currentId,
+              type: "result",
+              ok: true,
+              pdf: rendered.bytes ? new Uint8Array(rendered.bytes) : undefined,
+              diagnostics: rendered.diagnostics,
+            }),
+        );
 
         return;
       }
 
-      for (let pass = 0; pass < 8; pass++) {
-        const rendered = typstState.renderHtml(file, source, prelude);
-        if (rendered.requests.length) {
-          await requestLoop(rendered.requests);
-          continue;
-        }
-        postMessage({
-          id: currentId,
-          type: "result",
-          ok: true,
-          html: rendered.document ?? undefined,
-          diagnostics: rendered.diagnostics,
-        } satisfies RenderWorkerResponse);
-
-        return;
-      }
-      postMessage({
-        id: currentId,
-        type: "result",
-        ok: false,
-        error: "Render did not converge after 8 request passes.",
-      } satisfies RenderWorkerResponse);
+      await runPasses(
+        () => typstState.renderHtml(file, source, prelude),
+        (rendered) =>
+          post({
+            id: currentId,
+            type: "result",
+            ok: true,
+            html: rendered.document ?? undefined,
+            diagnostics: rendered.diagnostics,
+          }),
+      );
     } catch (error) {
-      postMessage({
+      post({
         id: currentId,
         type: "result",
         ok: false,
         error: error instanceof Error ? error.message : String(error),
-      } satisfies RenderWorkerResponse);
+      });
     }
   },
 );
 
-async function requestLoop(requests: TypstRequest[]): Promise<void> {
-  postMessage({
+interface RenderPass {
+  requests: TypstRequest[];
+}
+
+/** Renders until requests stop coming, then hands the final pass to `settle`.
+ *  A pass that inserts nothing stops the loop with a readable error. */
+async function runPasses<T extends RenderPass>(
+  render: () => T,
+  settle: (rendered: T) => void,
+): Promise<void> {
+  for (let pass = 0; pass < 8; pass++) {
+    const rendered = render();
+    if (!rendered.requests.length) {
+      settle(rendered);
+
+      return;
+    }
+
+    const inserted = await requestLoop(rendered.requests);
+    if (inserted === 0) {
+      const missing = rendered.requests
+        .map((request) => (typeof request.value === "string" ? request.value : "package"))
+        .join(", ");
+      post({
+        id: currentId,
+        type: "result",
+        ok: false,
+        error: `Render needs files that could not be resolved: ${missing}`,
+      });
+
+      return;
+    }
+  }
+
+  post({
     id: currentId,
-    type: "request",
-    requests,
-  } satisfies RenderWorkerResponse);
-  await new Promise<void>((resolve) => {
+    type: "result",
+    ok: false,
+    error: "Render did not converge after 8 request passes.",
+  });
+}
+
+async function requestLoop(requests: TypstRequest[]): Promise<number> {
+  const fresh = requests.filter(
+    (request) => typeof request.value === "string" && !insertedPaths.has(request.value),
+  );
+  if (!fresh.length) return 0;
+
+  postMessage({ id: currentId, type: "request", requests: fresh } satisfies RenderWorkerResponse);
+
+  return new Promise<number>((resolve) => {
     releaseAnswer = resolve;
   });
+}
+
+function post(response: RenderWorkerResponse): void {
+  (self as unknown as Worker).postMessage(response);
 }

@@ -3,7 +3,7 @@
  *
  * These describe the Loro doc data model as JS data. The app, the storage
  * layer, and (later) the server and public records all speak this shape.
- * The `typbase-query/*.json` files injected into the Typst world serialize
+ * The `typbase/query/*.json` files injected into the Typst world serialize
  * these same types, so a change here is a breaking change for `.typ` docs
  * that consume `#typbase.query`.
  */
@@ -206,24 +206,24 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
 };
 
 /*
- * Shapes served at `typbase-query/<kind>.json`. These are what Typst code
+ * Shapes served at `typbase/query/<kind>.json`. These are what Typst code
  * receives from `#typbase.query`, so keep field names stable.
  */
 
-/** `typbase-query/config.json` */
+/** `typbase/query/config.json` */
 export interface QueryConfig {
   name: string;
   homePageId: string | null;
   font: string;
 }
 
-/** `typbase-query/pages.json` (optionally filtered by category id). */
+/** `typbase/query/pages.json` (optionally filtered by category id). */
 export type QueryPages = PageMeta[];
 
-/** `typbase-query/categories.json` */
+/** `typbase/query/categories.json` */
 export type QueryCategories = Category[];
 
-/** `typbase-query/daily.json` (optionally filtered by `YYYY-MM`). */
+/** `typbase/query/daily.json` (optionally filtered by `YYYY-MM`). */
 export type QueryDaily = PageMeta[];
 
 export { NATIVE_OAUTH_REDIRECT_URI, OAUTH_SCOPES } from "./atproto";
@@ -249,11 +249,11 @@ export interface ParsedQuery {
 }
 
 /**
- * Parse a `typbase-query/...` request path into a query description. Filters
- * are `<name>/<value>` pairs, e.g. `typbase-query/pages/by-category/work.json`.
+ * Parse a `typbase/query/...` request path into a query description. Filters
+ * are `<name>/<value>` pairs, e.g. `typbase/query/pages/by-category/work.json`.
  */
 export function parseQueryPath(path: string): ParsedQuery | null {
-  const match = /^typbase-query\/([a-z-]+)(?:\/([\w-]+)(?:\/([\w-]+))?)?\.json$/.exec(path);
+  const match = /^typbase\/query\/([a-z-]+)(?:\/([\w-]+)(?:\/([\w-]+))?)?\.json$/.exec(path);
   if (!match) return null;
 
   const kind = match[1] as QueryKind;

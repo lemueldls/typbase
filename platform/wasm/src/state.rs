@@ -24,6 +24,7 @@ use typst_ide::Tooltip;
 use typst_layout::PagedDocument;
 // use typst_html::html;
 // use typst_pdf::{PdfOptions, pdf};
+use typst_svg::SvgOptions;
 use typst_syntax::{LinkedNode, RootedPath, Side, Source, Tag, VirtualRoot};
 use wasm_bindgen::prelude::*;
 
@@ -31,8 +32,8 @@ use wasm_bindgen::prelude::*;
 use crate::bindings::RenderPdfResult;
 use crate::{
     bindings::{
-        CheckResult, CompileHTMLResult, CompilePagedResult, TypstCompletion, TypstDiagnostic,
-        TypstFileId, TypstHighlight, TypstJump,
+        CheckResult, CompileHTMLResult, CompilePagedResult, RenderSvgResult, TypstCompletion,
+        TypstDiagnostic, TypstFileId, TypstHighlight, TypstJump,
     },
     flatten::{FlattenedBlock, SectionSpan},
     renderer::{
@@ -74,7 +75,7 @@ impl TypstState {
 
         let id = FileId::new(RootedPath::new(
             VirtualRoot::Project,
-            VirtualPath::new("typbase.typ").expect("Invalid virtual path"),
+            VirtualPath::new("typbase/lib.typ").expect("Invalid virtual path"),
         ));
         this.world.insert_source(id, String::from(TYPBASE_LIB));
 
@@ -864,6 +865,69 @@ impl TypstState {
         .into_ts()?)
     }
 
+    /// SVG export of the paged document: one entry per page, or a single
+    /// merged document. Uses the PDF page geometry so the sheets match the
+    /// PDF export; the caller sets the page width through `resize`.
+    #[wasm_bindgen(js_name = "renderSvg")]
+    pub fn render_svg(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+        merged: bool,
+    ) -> Result<Ts<RenderSvgResult>, JsError> {
+        let SynthResult { synth, .. } =
+            sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
+
+        let context = self.source_context_map.get_mut(id).unwrap();
+        context
+            .synth_source_mut(&mut self.world)
+            .unwrap()
+            .replace(&synth);
+        context.unstable_synth = synth;
+
+        let compiled = compile::<PagedDocument>(&self.world);
+        let mut diagnostics =
+            TypstDiagnostic::from_diagnostics(compiled.warnings, context, &self.world).into_vec();
+
+        let pages = match compiled.output {
+            Ok(document) => {
+                let options = SvgOptions::default();
+                if merged {
+                    vec![typst_svg::svg_merged(&document, &options, Abs::pt(12.0))]
+                } else {
+                    document
+                        .pages()
+                        .iter()
+                        .map(|page| typst_svg::svg(page, &options))
+                        .collect()
+                }
+            }
+            Err(source_diagnostics) => {
+                diagnostics.extend(TypstDiagnostic::from_diagnostics(
+                    source_diagnostics,
+                    context,
+                    &self.world,
+                ));
+                Vec::new()
+            }
+        };
+
+        Ok(RenderSvgResult {
+            pages,
+            diagnostics,
+            requests: self.process_requests(),
+        }
+        .into_ts()?)
+    }
+
+    /// The stdlib source as shipped, for writing a compilable project to disk.
+    #[wasm_bindgen(js_name = "typbaseLib")]
+    #[must_use]
+    pub fn typbase_lib(&self) -> String {
+        TYPBASE_LIB.to_string()
+    }
+
     /// False when the shipped wasm build omits the pdf feature (the default).
     #[wasm_bindgen(js_name = "pdfAvailable")]
     #[must_use]
@@ -999,24 +1063,27 @@ impl TypstState {
 
 // The stdlib module, inserted into the world once at TypstState::new and
 // imported by the generated prelude as `typbase`. `typbase.query` loads JSON
-// the JS side synthesizes on demand (file request `typbase-query/<kind>.json`);
+// the JS side synthesizes on demand (file request `/typbase/query/<kind>.json`);
 // `typbase.embed` includes another page's source (source request
-// `typbase-src/<id>.typ`). Filters ride in the path because the request
+// `/typbase/src/<id>.typ`). Filters ride in the path because the request
 // channel only carries paths, so keep filter values slug-safe.
+//
+// Paths are root-absolute so the same source compiles both in the wasm world
+// and in a plain Typst project rooted at the workspace (see `sources/typbase`).
 //
 // It is a module rather than a dict of closures: Typst cannot call dict
 // values with dot syntax (`typbase.query(...)`), but module functions can.
 const TYPBASE_LIB: &str = r#"
 #let query(kind, filter: none) = {
   let target = if filter == none {
-    "typbase-query/" + kind + ".json"
+    "/typbase/query/" + kind + ".json"
   } else {
-    "typbase-query/" + kind + "/" + str(filter) + ".json"
+    "/typbase/query/" + kind + "/" + str(filter) + ".json"
   }
   json(target)
 }
 
-#let embed(id) = include("/typbase-src/" + str(id) + ".typ")
+#let embed(id) = include("/typbase/src/" + str(id) + ".typ")
 
 // A navigable link to another page. Renders the page title (or the given
 // body) as a Typst link; the app intercepts `typbase://page/<id>` clicks in
@@ -1024,7 +1091,7 @@ const TYPBASE_LIB: &str = r#"
 // compiled at link time, and a missing page renders a quiet placeholder
 // instead of failing the compile.
 #let page-link(page-id, body: none) = {
-  let meta = json("typbase-query/pages/by-id/" + str(page-id) + ".json")
+  let meta = json("/typbase/query/pages/by-id/" + str(page-id) + ".json")
   if meta == none {
     if body == none [none] else [#body]
   } else {
@@ -1039,10 +1106,10 @@ const TYPBASE_LIB: &str = r#"
 "#;
 
 // The import and the request paths are root-absolute: pages compile from
-// `pages/<id>.typ`, so a relative "typbase.typ" would resolve next to the
-// page instead of at the workspace root.
+// `pages/<id>.typ`, so a relative import would resolve next to the page
+// instead of at the workspace root.
 const TYPBASE_PRELUDE: &str = r#"
-    #import "/typbase.typ" as typbase
+    #import "/typbase/lib.typ" as typbase
 "#;
 
 #[comemo::track]

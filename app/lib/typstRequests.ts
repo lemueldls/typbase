@@ -5,6 +5,7 @@ import type { TypstRequest } from "@typbase/wasm";
 import { parseQueryPath } from "@typbase/typing";
 
 import { getPluginSource } from "~/lib/plugins/registry";
+import { mirrorRequestPayload } from "~/lib/projectMirror";
 
 interface TypstRequestHandler {
   (requests: TypstRequest[], spaceId: string): Promise<boolean> | boolean;
@@ -17,18 +18,18 @@ export interface RequestScope {
   allowPages?: boolean;
 }
 
-// Included pages are raw sources: the `#import "/typbase.typ" as typbase`
+// Included pages are raw sources: the `#import "/typbase/lib.typ" as typbase`
 // lives in the compiling doc's prelude, not in the page text. Without this
 // an embedded page that calls `typbase.query(...)` fails with
 // "unknown variable: typbase".
-const EMBED_PRELUDE = '#import "/typbase.typ" as typbase\n';
+const EMBED_PRELUDE = '#import "/typbase/lib.typ" as typbase\n';
 
 /**
  * Answers the Typst engine's requests with workspace data.
  *
- * - `typbase-query/<kind>.json` file requests are synthesized JSON from the
+ * - `typbase/query/<kind>.json` file requests are synthesized JSON from the
  *   workspace (the `#typbase.query` stdlib loads them).
- * - `typbase-src/<id>.typ` source requests are other pages' content
+ * - `typbase/src/<id>.typ` source requests are other pages' content
  *   (the `#typbase.embed` stdlib includes them).
  *
  * The inserted query files go stale when workspace data changes; callers
@@ -63,14 +64,14 @@ export async function resolveRequestPayloads(
       continue;
     }
 
-    // Request paths are root-absolute ("/typbase-src/<id>.typ"), so strip
+    // Request paths are root-absolute ("/typbase/src/<id>.typ"), so strip
     // the leading slash before matching.
     const path = request.value.replace(/^\//, "");
 
     if (request.type === "source") {
-      if (path.startsWith("typbase-src/")) {
+      if (path.startsWith("typbase/src/")) {
         if (scope && scope.allowPages === false) continue;
-        const id = path.slice("typbase-src/".length, -".typ".length);
+        const id = path.slice("typbase/src/".length, -".typ".length);
         // Self-embeds would recurse forever; a comment keeps the include quiet.
         const text =
           id === currentPage
@@ -85,23 +86,23 @@ export async function resolveRequestPayloads(
         continue;
       }
 
-      // Plugin modules, so notes can `#import "/typbase-plugin/..."`.
-      if (path.startsWith("typbase-plugin/") || path === "typbase-ui.typ") {
+      // Plugin modules, so notes can `#import "/typbase/plugin/..."`.
+      if (path.startsWith("typbase/plugin/") || path === "typbase/ui.typ") {
         const text = getPluginSource(`/${path}`);
         if (text !== undefined) payloads.push({ type: "source", path, text });
         continue;
       }
     } else if (request.type === "file") {
-      // Local media: `#image("/typbase-blob/<hash>.<ext>")`.
-      if (path.startsWith("typbase-blob/")) {
-        const name = path.slice("typbase-blob/".length);
+      // Local media: `#image("/typbase/blob/<hash>.<ext>")`.
+      if (path.startsWith("typbase/blob/")) {
+        const name = path.slice("typbase/blob/".length);
         const hash = name.replace(/\.[^.]*$/, "");
         const bytes = await store.getBlob(hash);
         if (bytes) payloads.push({ type: "file", path, bytes });
         continue;
       }
 
-      if (path.startsWith("typbase-query/")) {
+      if (path.startsWith("typbase/query/")) {
         const parsed = parseQueryPath(path);
         if (!parsed) continue;
         if (scope && scope.allowPages === false && parsed.kind !== "plugin-data") continue;
@@ -131,6 +132,7 @@ export function createTypstRequestService(
 ): TypstRequestService {
   const insertedFiles = new Set<string>();
   const insertedSources = new Set<string>();
+  const mirroredBlobs = new Set<string>();
   let currentPage: string | null = null;
 
   async function handle(requests: TypstRequest[]): Promise<boolean> {
@@ -141,10 +143,19 @@ export function createTypstRequestService(
       if (payload.type === "source") {
         typstState.insertSource(typstState.createFileId(payload.path), payload.text);
         insertedSources.add(payload.path);
+        mirrorRequestPayload(store, payload.path, new TextEncoder().encode(payload.text));
         changed = true;
       } else {
         typstState.insertFile(typstState.createFileId(payload.path), payload.bytes);
         insertedFiles.add(payload.path);
+        // Blobs are content-addressed: mirror each one once per session
+        // instead of rewriting large files on every recompile.
+        if (!payload.path.startsWith("typbase/blob/")) {
+          mirrorRequestPayload(store, payload.path, payload.bytes);
+        } else if (!mirroredBlobs.has(payload.path)) {
+          mirroredBlobs.add(payload.path);
+          mirrorRequestPayload(store, payload.path, payload.bytes);
+        }
         changed = true;
       }
     }

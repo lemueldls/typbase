@@ -3,8 +3,8 @@
 // generators emit), and only the review log lives in the plugin doc. Reviews
 // are append-only, so two devices grading the same card merge cleanly.
 
-#import "/typbase.typ" as typbase
-#import "/typbase-ui.typ": *
+#import "/typbase/lib.typ" as typbase
+#import "/typbase/ui.typ": *
 
 // -------------------------------------------------------------- scheduling
 
@@ -180,10 +180,13 @@
     #if cards.len() > 0 [
       #panel(title: "Cards (" + str(cards.len()) + ")", body: [
         #for entry in cards.slice(0, calc.min(20, cards.len())) [
-          #row(body: [
-            #muted(body: entry.front)
-            #button("↗", "app.open-page", args: (id: entry.pageId), kind: "ghost")
-          ], gap: "0.35rem")
+          #row(
+            body: [
+              #muted(body: entry.front)
+              #button("↗", "app.open-page", args: (id: entry.pageId), kind: "ghost")
+            ],
+            gap: "0.35rem",
+          )
         ]
         #if cards.len() > 20 [#muted(body: "+" + str(cards.len() - 20) + " more")]
       ])

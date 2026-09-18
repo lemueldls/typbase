@@ -4,10 +4,6 @@
   "description": "Local-first knowledge base built around the Typst language.",
   "version": "0.1.0",
   "license": "AGPL-3.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/lemueldls/typbase"
-  },
   "files": [
     "wasm_bg.wasm",
     "wasm.js",

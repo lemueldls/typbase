@@ -2,7 +2,7 @@
 // the main surface is a bigger board with the same records. Positions are
 // viewport pixels; the runtime moves the DOM live and sends one patch on drop.
 
-#import "/typbase-ui.typ": *
+#import "/typbase/ui.typ": *
 
 #let palette = ("#fff3bf", "#d3f9d8", "#d0ebff", "#ffd6e0", "#e5dbff")
 
@@ -35,20 +35,24 @@
     let position = spawn-position(view)
 
     patch-both(
-      (op-append("notes", (
-        id: action.id,
-        text: text,
-        x: position.x,
-        y: position.y,
-        color: palette.at(calc.rem(spawn, palette.len())),
-      )),),
+      (
+        op-append("notes", (
+          id: action.id,
+          text: text,
+          x: position.x,
+          y: position.y,
+          color: palette.at(calc.rem(spawn, palette.len())),
+        )),
+      ),
       (spawn: spawn + 1),
     )
   } else if name == "note.move" {
-    patch-state((op-merge("notes", action.args.id, (
-      x: action.args.x,
-      y: action.args.y,
-    )),))
+    patch-state((
+      op-merge("notes", action.args.id, (
+        x: action.args.x,
+        y: action.args.y,
+      )),
+    ))
   } else if name == "note.update" {
     patch-state((op-merge("notes", action.args.id, (text: action.fields.at("text", default: ""))),))
   } else if name == "note.remove" {
@@ -107,15 +111,18 @@
     #patch-holder(patch)
     #overlay-board(body: [
       #floating(x: 16, y: 16, right: true, bottom: true, body: [
-        #row(body: [
-          #button("＋", "note.create", kind: "primary")
-          #if hidden [
-            #button("Show", "note.show")
-          ] else [
-            #button("Hide", "note.hide")
-          ]
-          #button("Board", "app.open-plugin", args: (pluginId: "local:sticky-notes"), kind: "ghost")
-        ], gap: "0.25rem")
+        #row(
+          body: [
+            #button("＋", "note.create", kind: "primary")
+            #if hidden [
+              #button("Show", "note.show")
+            ] else [
+              #button("Hide", "note.hide")
+            ]
+            #button("Board", "app.open-plugin", args: (pluginId: "local:sticky-notes"), kind: "ghost")
+          ],
+          gap: "0.25rem",
+        )
       ])
       #if not hidden [
         #for note in notes(state) [
@@ -134,10 +141,13 @@
     #patch-holder(patch)
     #panel(title: "Sticky Notes", body: [
       #form(body: [
-        #row(body: [
-          #field("New note", "text", placeholder: "Write something")
-          #button("Add", "note.create", kind: "primary")
-        ], gap: "0.4rem")
+        #row(
+          body: [
+            #field("New note", "text", placeholder: "Write something")
+            #button("Add", "note.create", kind: "primary")
+          ],
+          gap: "0.4rem",
+        )
       ])
 
       #board(height: 440, body: [

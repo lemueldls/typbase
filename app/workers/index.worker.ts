@@ -90,7 +90,7 @@ async function ensureDb(dbName: string): Promise<void> {
   const hasOpfs = "OpfsDb" in sqlite3.oo1;
   mode = hasOpfs ? "opfs" : "memory";
   const opened = hasOpfs
-    ? new sqlite3.oo1.OpfsDb(`/typbase-${dbName}.sqlite3`)
+    ? new sqlite3.oo1.OpfsDb(`/typbase/${dbName}.sqlite3`)
     : new sqlite3.oo1.DB(`:memory:`);
   db = opened;
 

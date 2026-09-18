@@ -10,6 +10,7 @@ import { blobReference, sniffMime } from "@typbase/storage";
 import { fontFamiliesInSource } from "~/lib/fonts";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
+import { mirrorPageProject } from "~/lib/projectMirror";
 import { revealRequests } from "~/lib/reveal";
 import { recreateTypstState } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
@@ -241,6 +242,12 @@ async function setupPage() {
 
   fileId.value = typstState.value.createSourceId(page.path, workspaceId.value);
   typstState.value.insertSource(fileId.value, text.value);
+
+  // Mirror a compilable entry for external tools (typst CLI, Tinymist):
+  // `typst compile --root <sources> typbase/entries/<path>`.
+  void mirrorPageProject(store, pageId, typstState.value).catch((cause) => {
+    console.warn("[page] project mirror failed:", cause);
+  });
 
   unsubscribeSave?.();
   unsubscribeSave = watch(text, (value) => {
@@ -536,8 +543,10 @@ function onModeKeydown(event: KeyboardEvent) {
   <div class="page-view">
     <div class="page-view__toolbar">
       <div class="page-view__toolbar-main">
-        <slot name="nav-toggle" />
-        <span class="page-view__title">{{ meta?.title ?? pageId }}</span>
+        <div class="page-view__toolbar-main-left">
+          <slot name="nav-toggle" />
+          <UiTruncatedText class="page-view__title" :text="meta?.title ?? pageId" />
+        </div>
 
         <div
           class="page-view__modes"
@@ -562,6 +571,15 @@ function onModeKeydown(event: KeyboardEvent) {
             <span class="page-view__mode-label">{{ $t(mode.key) }}</span>
           </button>
         </div>
+
+        <UiIconButton
+          v-if="modelValue !== 'read' && !formatOpen"
+          icon="text_format"
+          :label="$t('formatting.title')"
+          :pressed="false"
+          class="page-view__format-toggle"
+          @click="formatOpen = true"
+        />
 
         <span class="page-view__modes-menu">
           <UiMenu align="end">
@@ -596,25 +614,15 @@ function onModeKeydown(event: KeyboardEvent) {
           </UiMenu>
         </span>
 
-        <UiIconButton
-          v-if="modelValue !== 'read' && !formatOpen"
-          icon="text_format"
-          :label="$t('formatting.title')"
-          :pressed="false"
-          class="page-view__format-toggle"
-          @click="formatOpen = true"
-        />
         <AssetPicker v-if="modelValue !== 'read' && store" :store="store" @select="insertAsset">
           <UiIconButton
-            icon="image"
+            icon="add_photo_alternate"
             :label="$t('assets.title')"
             :disabled="!ready"
             class="page-view__asset-toggle"
           />
         </AssetPicker>
-      </div>
 
-      <div class="page-view__toolbar-actions">
         <AIMenu
           v-if="store && aiEnabled"
           :page-id="pageId"
@@ -623,6 +631,17 @@ function onModeKeydown(event: KeyboardEvent) {
           :insert-below-selection="insertBelowSelection"
           @open-page="emit('openPage', $event)"
         />
+
+        <ExportDialog
+          v-if="store"
+          :page-id="pageId"
+          :store="store"
+          :typst-state="typstState"
+          :before-export="flushText"
+        >
+          <UiIconButton icon="download" :label="$t('exportPage.title')" :disabled="!ready" />
+        </ExportDialog>
+
         <PublishButton v-if="store" :page-id="pageId" :store="store" />
       </div>
     </div>
@@ -707,8 +726,7 @@ function onModeKeydown(event: KeyboardEvent) {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
-  min-height: 3.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.5rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -721,26 +739,18 @@ function onModeKeydown(event: KeyboardEvent) {
   flex: 1 1 auto;
 }
 
-/* Modes ride the right edge of the main row at every breakpoint: space
-   between pushes them there while the title takes the flexible middle. */
-.page-view__toolbar-main .page-view__title {
-  flex: 1;
+.page-view__toolbar-main-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .page-view__title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
-}
-
-.page-view__toolbar-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  max-width: 100%;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .page-view__modes-menu {
@@ -777,7 +787,7 @@ function onModeKeydown(event: KeyboardEvent) {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   overflow-x: auto;
@@ -793,45 +803,11 @@ function onModeKeydown(event: KeyboardEvent) {
   flex: none;
 }
 
-/* Narrow panes: the toolbar stacks. Title + modes on top, then the AI/publish
-   actions as one horizontally scrollable row so nothing gets buried. Keyed to
-   the pane rather than the viewport, so a desktop with an expanded sidebar
-   collapses the same way a phone does. */
 @container page-view (max-width: 48rem) {
-  .page-view__toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.4rem;
-    padding: 0.4rem 0.5rem;
-    min-height: 0;
-  }
-
   .page-view__toolbar-main {
     width: 100%;
-    gap: 0.4rem;
   }
 
-  .page-view__toolbar-actions {
-    width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .page-view__toolbar-actions > * {
-    flex: none;
-  }
-
-  .page-view__toolbar-actions::-webkit-scrollbar {
-    display: none;
-  }
-
-  .page-view__format {
-    padding: 0.2rem 0.5rem;
-  }
-
-  /* One mode button instead of the tab strip. Scoped under the main row so it
-     beats the base `.page-view__modes` rule declared later in this file. */
   .page-view__toolbar-main .page-view__modes {
     display: none;
   }
@@ -852,19 +828,17 @@ function onModeKeydown(event: KeyboardEvent) {
   border-radius: 0.5rem;
 }
 
-/* Fixed height and unit line-height keep the icon and the active label on the
-   same vertical center. Content stays left-anchored, so the icon does not
-   slide sideways when a mode picks up its label. */
 .page-view__mode {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
   gap: 0.3rem;
   min-width: 2.1rem;
-  height: 1.9rem;
+  height: 1.8rem;
   padding: 0 0.5rem;
   font-size: 0.85rem;
   line-height: 1;
+  font-family: inherit;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;

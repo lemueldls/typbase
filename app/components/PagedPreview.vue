@@ -88,8 +88,6 @@ const renderNow = async () => {
 
 const scheduleRender = useDebounceFn(renderNow, 160);
 
-let resizeObserver: ResizeObserver | undefined;
-
 watch(
   () => props.typstState,
   () => scheduleRender(),
@@ -125,25 +123,18 @@ function frameStyle(frame: SvgRangedFrame): Record<string, string> {
   return { "--frame-w": `${width}px`, "--frame-h": `${height}px` };
 }
 
-onMounted(() => {
-  resizeObserver = new ResizeObserver(() => {
-    const width = measureWidth();
-    if (width <= 0) return;
+useResizeObserver(scroller, () => {
+  const width = measureWidth();
+  if (width <= 0) return;
 
-    // resize() reports whether the width actually changed. Height-only
-    // observer ticks must not schedule another compile, or the pane keeps
-    // reflowing after it has settled.
-    if (props.typstState.resize(props.fileId, width)) scheduleRender();
-  });
-  if (scroller.value) resizeObserver.observe(scroller.value);
-  scroller.value?.addEventListener("click", onPreviewClick);
-
-  scheduleRender();
+  // resize() reports whether the width actually changed. Height-only
+  // observer ticks must not schedule another compile, or the pane keeps
+  // reflowing after it has settled.
+  if (props.typstState.resize(props.fileId, width)) scheduleRender();
 });
 
-onBeforeUnmount(() => {
-  scroller.value?.removeEventListener("click", onPreviewClick);
-  resizeObserver?.disconnect();
+onMounted(() => {
+  scheduleRender();
 });
 
 watch(
@@ -186,7 +177,7 @@ defineExpose({ scroller, getFrameLayout });
 </script>
 
 <template>
-  <div ref="scroller" class="paged-preview">
+  <div ref="scroller" class="paged-preview" @click="onPreviewClick">
     <div v-if="rendering" class="paged-preview__status">rendering...</div>
     <div class="paged-preview__inner">
       <div

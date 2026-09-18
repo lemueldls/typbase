@@ -269,6 +269,29 @@ export interface ResolvedTheme {
 }
 
 /**
+ * Light palette for documents meant to be read on white or printed: uses the
+ * active theme's light variant when it has one, else the default theme's light
+ * variant. Custom overrides still apply, so a custom palette keeps its colors
+ * rather than silently reverting to the named theme.
+ */
+export function resolveLightTheme(settings: {
+  theme: ThemeMode;
+  themeName?: string;
+  themeCustom?: ThemePaletteTokens | null;
+}): ResolvedTheme {
+  const def = themeById(settings.themeName ?? "default") ?? null;
+  const fallback = THEMES[0]!;
+  const base = def?.variants.light ?? fallback.variants.light ?? fallback.variants.dark;
+  const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
+
+  return {
+    palette: { ...base, ...custom },
+    mode: "light",
+    definition: def,
+  };
+}
+
+/**
  * Resolves a theme + mode into concrete tokens.
  * - "custom" merges settings.themeCustom over the default palette; named
  *   themes ignore a leftover custom palette so switching back and forth does

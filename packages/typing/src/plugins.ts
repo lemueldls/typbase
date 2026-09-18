@@ -120,7 +120,7 @@ export interface PluginAction {
   fields?: Record<string, unknown>;
 }
 
-/** The JSON document injected at `/typbase-plugin/ctx.json`. */
+/** The JSON document injected at `/typbase/plugin/ctx.json`. */
 export interface PluginContext {
   plugin: { id: string; name: string; version: string };
   instance: { id: string; title: string; surface: PluginSurfaceKind };

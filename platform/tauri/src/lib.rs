@@ -22,6 +22,7 @@ pub fn run() {
             storage::storage_delete,
             storage::storage_list,
             storage::storage_stat,
+            storage::export_save_file,
             fonts::system_font_index,
             fonts::system_font_file,
         ]);

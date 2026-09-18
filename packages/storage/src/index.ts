@@ -22,6 +22,7 @@ export {
   isTauri,
   pickTauriDirectory,
   resolveStoragePath,
+  saveExportFile,
   tauriStorageState,
 } from "./tauri";
 export type {

@@ -3,8 +3,8 @@
 // like `- 10:00 Dentist` become events. Daily notes are read through the
 // normal `#typbase.query` channel and written through `app.page-append`.
 
-#import "/typbase.typ" as typbase
-#import "/typbase-ui.typ": *
+#import "/typbase/lib.typ" as typbase
+#import "/typbase/ui.typ": *
 
 // ------------------------------------------------------------- date helpers
 
@@ -125,12 +125,14 @@
       none
     } else {
       patch-both(
-        (op-append("events", (
-          id: action.id,
-          title: title,
-          date: date,
-          time: action.fields.at("time", default: ""),
-        )),),
+        (
+          op-append("events", (
+            id: action.id,
+            title: title,
+            date: date,
+            time: action.fields.at("time", default: ""),
+          )),
+        ),
         (selected: date),
       )
     }
@@ -153,26 +155,29 @@
   for day in range(1, total + 1) { cells.push(day) }
   while calc.rem(cells.len(), 7) != 0 { cells.push(none) }
 
-  grid(7, body: [
-    #for cell in cells [
-      #if cell == none [
-        #calendar-cell(body: [])
-      ] else [
-        #let iso = iso-date(year, month, cell)
-        #let day-events = events-on(state, month-key, iso)
-        #let tone = if iso == today-iso { "today" } else { "default" }
-        #calendar-cell(action: "calendar.select", args: (date: iso), tone: tone, body: [
-          #html.elem("span", attrs: (class: "tb-day__number"), str(cell))
-          #for event in day-events.slice(0, calc.min(2, day-events.len())) [
-            #html.elem("span", attrs: (class: "tb-event"), event.title)
-          ]
-          #if day-events.len() > 2 [
-            #muted(body: "+" + str(day-events.len() - 2))
-          ]
-        ])
+  grid(
+    7,
+    body: [
+      #for cell in cells [
+        #if cell == none [
+          #calendar-cell(body: [])
+        ] else [
+          #let iso = iso-date(year, month, cell)
+          #let day-events = events-on(state, month-key, iso)
+          #let tone = if iso == today-iso { "today" } else { "default" }
+          #calendar-cell(action: "calendar.select", args: (date: iso), tone: tone, body: [
+            #html.elem("span", attrs: (class: "tb-day__number"), str(cell))
+            #for event in day-events.slice(0, calc.min(2, day-events.len())) [
+              #html.elem("span", attrs: (class: "tb-event"), event.title)
+            ]
+            #if day-events.len() > 2 [
+              #muted(body: "+" + str(day-events.len() - 2))
+            ]
+          ])
+        ]
       ]
-    ]
-  ])
+    ],
+  )
 }
 
 #let day-panel(state, month, selected) = {
@@ -186,17 +191,20 @@
     ] else [
       #for event in day-events [
         #card(body: [
-          #row(body: [
-            #if event.at("time", default: "") != "" [
-              #muted(body: event.at("time", default: ""))
-            ]
-            #event.title
-            #if event.at("source", default: "") == "note" [
-              #badge(body: "note")
-            ] else [
-              #button("×", "event.remove", args: (id: event.id), kind: "ghost")
-            ]
-          ], gap: "0.35rem")
+          #row(
+            body: [
+              #if event.at("time", default: "") != "" [
+                #muted(body: event.at("time", default: ""))
+              ]
+              #event.title
+              #if event.at("source", default: "") == "note" [
+                #badge(body: "note")
+              ] else [
+                #button("×", "event.remove", args: (id: event.id), kind: "ghost")
+              ]
+            ],
+            gap: "0.35rem",
+          )
         ])
       ]
     ]
@@ -206,10 +214,13 @@
     ]
 
     #form(body: [
-      #row(body: [
-        #field("Date", "date", value: selected, kind: "date")
-        #field("Note line", "text", placeholder: "10:00 Dentist")
-      ], gap: "0.4rem")
+      #row(
+        body: [
+          #field("Date", "date", value: selected, kind: "date")
+          #field("Note line", "text", placeholder: "10:00 Dentist")
+        ],
+        gap: "0.4rem",
+      )
       #row(body: [
         #button("Add event", "event.create", args: (date: selected), kind: "primary")
         #button("Write to daily note", "app.page-append", args: (date: selected), kind: "ghost")
@@ -232,12 +243,15 @@
         #muted(body: "No events today.")
       ] else [
         #for event in today-events [
-          #row(body: [
-            #if event.at("time", default: "") != "" [
-              #muted(body: event.at("time", default: ""))
-            ]
-            #event.title
-          ], gap: "0.35rem")
+          #row(
+            body: [
+              #if event.at("time", default: "") != "" [
+                #muted(body: event.at("time", default: ""))
+              ]
+              #event.title
+            ],
+            gap: "0.35rem",
+          )
         ]
       ]
       #button("Open calendar", "app.open-plugin", args: (pluginId: "local:calendar"), kind: "ghost")
@@ -257,11 +271,14 @@
   [
     #patch-holder(patch)
     #panel(title: month-label(month), body: [
-      #row(body: [
-        #button("‹", "calendar.prev", args: (month: month), kind: "ghost")
-        #button("Today", "calendar.select", args: (date: ctx.today), kind: "ghost")
-        #button("›", "calendar.next", args: (month: month), kind: "ghost")
-      ], gap: "0.25rem")
+      #row(
+        body: [
+          #button("‹", "calendar.prev", args: (month: month), kind: "ghost")
+          #button("Today", "calendar.select", args: (date: ctx.today), kind: "ghost")
+          #button("›", "calendar.next", args: (month: month), kind: "ghost")
+        ],
+        gap: "0.25rem",
+      )
       #month-grid(year, month-number, state, month, ctx.today)
     ])
 
