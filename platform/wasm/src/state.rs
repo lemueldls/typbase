@@ -41,7 +41,9 @@ use crate::{
         paged::svg::render_svgs_by_items,
         recovery::remove_errornous_block,
     },
-    source::{RenderTarget, SourceContext, SpaceContext, SynthResult, sync_source_state},
+    source::{
+        RenderTarget, Side as MapSide, SourceContext, SpaceContext, SynthResult, sync_source_state,
+    },
     theme::ThemeColors,
     world::TypstWorld,
 };
@@ -260,8 +262,8 @@ impl TypstState {
     }
 
     /// Index mapping self-test for the debug lab. Builds the synth exactly
-    /// like a compile would, then verifies mapper invariants: anchors in
-    /// bounds, raw->synth monotonic, synth->raw always inside the raw source.
+    /// like a compile would, then verifies map invariants: segments tile both
+    /// spaces, both directions stay in bounds, and neither regresses.
     #[wasm_bindgen(js_name = "checkIndex")]
     pub fn check_index(
         &mut self,
@@ -288,144 +290,98 @@ impl TypstState {
         let SynthResult { .. } = sync_source_state(id, text, prelude, RenderTarget::Svg, self);
 
         let context = self.source_context_map.get_mut(id).unwrap();
-        let mapper = &context.index_mapper;
         let raw_len = text.len();
         let synth_len = context
             .synth_source(&self.world)
+            .map(|source| source.text().len())
+            .unwrap_or_default();
+        let render_len = context
+            .render_source(&self.world)
             .map(|source| source.text().len())
             .unwrap_or_default();
 
         let mut checked = 0_u32;
         let mut mismatches: Vec<String> = Vec::new();
 
-        let anchors = mapper.anchors();
+        mismatches.extend(context.index_map.validate());
+        mismatches.extend(context.render_map.validate());
+        mismatches.extend(context.render_fixups.map().validate());
 
-        // Anchors must sit inside their own coordinate spaces, and both axes
-        // must be non-decreasing in insertion order (equal is fine: block
-        // boundaries and wrapper marks share positions). A regression means a
-        // push was attached in the wrong order, and the tags say which one.
-        let mut last_raw = 0;
-        let mut last_synth = 0;
-        for (index, anchor) in anchors.iter().enumerate() {
-            if anchor.raw > raw_len {
-                mismatches.push(format!(
-                    "anchor {index} ({}): raw {} beyond raw_len {raw_len}",
-                    anchor.kind.label(),
-                    anchor.raw
-                ));
-            }
-            if anchor.synth > synth_len {
-                mismatches.push(format!(
-                    "anchor {index} ({}): synth {} beyond synth_len {synth_len}",
-                    anchor.kind.label(),
-                    anchor.synth
-                ));
-            }
-            if index > 0 {
-                if anchor.raw < last_raw {
-                    mismatches.push(format!(
-                        "anchor {index} ({}): raw regressed to {} after {} ({})",
-                        anchor.kind.label(),
-                        anchor.raw,
-                        last_raw,
-                        anchors[index - 1].kind.label(),
-                    ));
-                }
-                if anchor.synth < last_synth {
-                    mismatches.push(format!(
-                        "anchor {index} ({}): synth regressed to {} after {} ({})",
-                        anchor.kind.label(),
-                        anchor.synth,
-                        last_synth,
-                        anchors[index - 1].kind.label(),
-                    ));
-                }
-            }
-            last_raw = anchor.raw;
-            last_synth = anchor.synth;
-        }
+        // raw -> synth must stay in bounds and never regress.
+        let step = (raw_len / 2000).max(1);
+        let mut last_before = 0;
+        let mut last_after = 0;
 
-        let anchor_report = anchors
-            .iter()
-            .map(|anchor| CheckedAnchor {
-                raw: anchor.raw as u32,
-                synth: anchor.synth as u32,
-                kind: anchor.kind.label().to_string(),
-            })
-            .collect();
-
-        let step = (raw_len / 400).max(1);
-
-        // raw -> synth must be monotonic over the whole raw range. Wrapper
-        // anchors tie raw positions with different synth offsets, so a
-        // one-byte dip at block boundaries is expected.
-        let mut last_left = 0;
-        let mut last_right = 0;
         for raw in (0..=raw_len).step_by(step) {
-            let left = context.map_raw_to_synth_from_left(raw);
-            let right = context.map_raw_to_synth_from_right(raw);
+            let before = context.map_raw_to_synth(raw, MapSide::Before);
+            let after = context.map_raw_to_synth(raw, MapSide::After);
 
-            if left > synth_len {
-                mismatches.push(format!("raw->synth left overflow at {raw}: {left}"));
-            }
-            if right > synth_len {
-                mismatches.push(format!("raw->synth right overflow at {raw}: {right}"));
+            if before > synth_len || after > synth_len {
+                mismatches.push(format!(
+                    "raw->synth overflow at {raw}: before {before}, after {after}, synth_len {synth_len}"
+                ));
             }
             if raw > 0 {
-                if left + 1 < last_left {
+                if before < last_before {
                     mismatches.push(format!(
-                        "raw->synth left regressed at {raw}: {left} < {last_left}"
+                        "raw->synth before regressed at {raw}: {before} < {last_before}"
                     ));
                 }
-                if right + 1 < last_right {
+                if after < last_after {
                     mismatches.push(format!(
-                        "raw->synth right regressed at {raw}: {right} < {last_right}"
+                        "raw->synth after regressed at {raw}: {after} < {last_after}"
                     ));
                 }
             }
-            last_left = left;
-            last_right = right;
+
+            last_before = before;
+            last_after = after;
             checked += 1;
         }
 
-        // synth -> raw must never leave the raw source (including prelude
-        // positions, which map to raw 0).
-        let synth_step = (synth_len / 400).max(1);
-        for synth_byte in (0..synth_len).step_by(synth_step) {
-            let left = context.map_synth_to_raw_from_left(synth_byte);
-            let right = context.map_synth_to_raw_from_right(synth_byte);
-
-            if left > raw_len {
-                mismatches.push(format!("synth->raw left overflow at {synth_byte}: {left}"));
-            }
-            if right > raw_len {
-                mismatches.push(format!(
-                    "synth->raw right overflow at {synth_byte}: {right}"
-                ));
+        // synth -> raw must never leave the raw source (prelude positions
+        // clamp to raw 0).
+        let synth_step = (synth_len / 2000).max(1);
+        for synth in (0..=synth_len).step_by(synth_step) {
+            let raw = context.map_synth_to_raw(synth);
+            if raw > raw_len {
+                mismatches.push(format!("synth->raw overflow at {synth}: {raw}"));
             }
             checked += 1;
         }
 
-        // Anchors must round-trip in at least one direction.
-        for anchor in mapper.anchors() {
-            let left = context.map_synth_to_raw_from_left(anchor.synth);
-            let right = context.map_synth_to_raw_from_right(anchor.synth);
-
-            if left != anchor.raw && right != anchor.raw {
-                mismatches.push(format!(
-                    "anchor ({} at raw {}, synth {}) round-trip failed: left {left}, right {right}",
-                    anchor.kind.label(),
-                    anchor.raw,
-                    anchor.synth,
-                ));
+        // render -> raw must never leave the raw source either.
+        let render_step = (render_len / 2000).max(1);
+        for render in (0..=render_len).step_by(render_step) {
+            let raw = context.map_render_to_raw(render);
+            if raw > raw_len {
+                mismatches.push(format!("render->raw overflow at {render}: {raw}"));
             }
+            checked += 1;
         }
+
+        let segments = context
+            .index_map
+            .segments()
+            .iter()
+            .map(|segment| {
+                #[allow(clippy::cast_possible_truncation)]
+                CheckedSegment {
+                    kind: segment.kind().label().to_string(),
+                    generated: segment.generated(),
+                    from: segment.from_start() as u32,
+                    from_end: segment.from_end() as u32,
+                    to: segment.to_start() as u32,
+                    to_end: segment.to_end() as u32,
+                }
+            })
+            .collect();
 
         IndexCheckReport {
             ok: mismatches.is_empty(),
             checked,
             mismatches,
-            anchors: anchor_report,
+            segments,
         }
     }
 
@@ -515,7 +471,7 @@ impl TypstState {
             let raw_source = context.raw_source(&self.world)?;
             let raw_lines = raw_source.lines();
             let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let synth_cursor = context.map_raw_to_synth_from_left(raw_cursor);
+            let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::After);
 
             let (synth_offset, completions) = typst_ide::autocomplete(
                 &self.world,
@@ -525,7 +481,7 @@ impl TypstState {
                 explicit,
             )?;
 
-            let raw_offset = context.map_synth_to_raw_from_left(synth_offset);
+            let raw_offset = context.map_synth_to_raw(synth_offset);
             let raw_offset_utf16 = raw_lines.byte_to_utf16(raw_offset)?;
 
             Some(Autocomplete {
@@ -843,7 +799,7 @@ impl TypstState {
             let raw_source = context.raw_source(&self.world)?;
             let raw_lines = raw_source.lines();
             let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let synth_cursor = context.map_raw_to_synth_from_right(raw_cursor);
+            let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::After);
 
             let side = if side == -1 {
                 Side::Before
@@ -1270,7 +1226,7 @@ impl TypstState {
     }
 }
 
-/// Result of `TypstState::check_index`: a self-test of the raw/synth mapping.
+/// Result of `TypstState::check_index`: a self-test of the source maps.
 #[derive(Tsify, Serialize, Deserialize)]
 pub struct IndexCheckReport {
     /// True when every checked invariant held.
@@ -1279,16 +1235,19 @@ pub struct IndexCheckReport {
     pub checked: u32,
     /// Human-readable descriptions of failed invariants.
     pub mismatches: Vec<String>,
-    /// Every anchor, tagged with its kind, for the debug lab.
-    pub anchors: Vec<CheckedAnchor>,
+    /// Every segment of the raw to pristine-synth map, for the debug lab.
+    pub segments: Vec<CheckedSegment>,
 }
 
-/// One anchor in the check report, labelled for humans.
+/// One segment in the check report, labelled for humans.
 #[derive(Tsify, Serialize, Deserialize)]
-pub struct CheckedAnchor {
-    pub raw: u32,
-    pub synth: u32,
+pub struct CheckedSegment {
     pub kind: String,
+    pub generated: bool,
+    pub from: u32,
+    pub from_end: u32,
+    pub to: u32,
+    pub to_end: u32,
 }
 
 #[derive(Tsify, Serialize, Deserialize)]

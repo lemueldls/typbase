@@ -138,16 +138,16 @@ pub fn map_raw_span(
 
     let raw_range = if let Some((file_id, synth_range)) = synth_range {
         // Render-source positions go back through the repaired text;
-        // pristine-synth positions use the index mapper directly.
+        // pristine-synth positions use the index map directly.
         let (raw_start, raw_end) = if file_id == context.render_id {
             (
-                context.map_render_to_raw_from_right(synth_range.start),
-                context.map_render_to_raw_from_left(synth_range.end),
+                context.map_render_to_raw(synth_range.start),
+                context.map_render_to_raw(synth_range.end),
             )
         } else {
             (
-                context.map_synth_to_raw_from_right(synth_range.start),
-                context.map_synth_to_raw_from_left(synth_range.end),
+                context.map_synth_to_raw(synth_range.start),
+                context.map_synth_to_raw(synth_range.end),
             )
         };
 
@@ -216,9 +216,9 @@ impl TypstJump {
                 // the render source (recovery marked it up) or from the
                 // pristine synth (no recovery ran).
                 let raw_position = if id == context.render_id {
-                    context.map_render_to_raw_from_right(synth_position)
+                    context.map_render_to_raw(synth_position)
                 } else if id == context.synth_id {
-                    context.map_synth_to_raw_from_right(synth_position)
+                    context.map_synth_to_raw(synth_position)
                 } else {
                     return None;
                 };

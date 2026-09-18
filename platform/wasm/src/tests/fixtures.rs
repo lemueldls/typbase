@@ -230,3 +230,45 @@ pub const BROKEN_MATH: &[Fixture] = &[
         source: MATH_MIXED_ERRORS,
     },
 ];
+
+/// Sources that stress the offset maps: dropped leading whitespace, multibyte
+/// text, CRLF, missing trailing newlines, empty documents, and multiple errors
+/// in one equation. These are not part of the snapshot suites.
+pub const ADVERSARIAL: &[Fixture] = &[
+    Fixture {
+        name: "leading_blank",
+        source: "\n\nHello after blank lines.\n",
+    },
+    Fixture {
+        name: "leading_comment",
+        source: "// a comment\n\nHello after the comment.\n",
+    },
+    Fixture {
+        name: "unicode",
+        source: "Héllo wörld 😀 and $x^2$ here.\n\nSecond paragraph with a label <tab>.\n",
+    },
+    Fixture {
+        name: "crlf",
+        source: "First line.\r\n\r\nSecond paragraph.\r\n",
+    },
+    Fixture {
+        name: "no_trailing_newline",
+        source: "No trailing newline",
+    },
+    Fixture {
+        name: "structural_only",
+        source: "#let x = 1\n#set text(size: 12pt)\n",
+    },
+    Fixture {
+        name: "two_errors_one_equation",
+        source: "Before.\n\n$ notdefined + alsoundefined $\n\nAfter.\n",
+    },
+    Fixture {
+        name: "empty",
+        source: "",
+    },
+    Fixture {
+        name: "whitespace_only",
+        source: "\n\n   \n",
+    },
+];

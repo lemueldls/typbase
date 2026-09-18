@@ -14,17 +14,17 @@
 //!      run of content-producing top-level nodes
 //!
 //!   The synth is never mutated after it is built. IDE features read it and
-//!   its [`IndexMapper`](index::IndexMapper), so error recovery must not
-//!   poison it.
+//!   its [`SourceMap`](map::SourceMap), so error recovery must not poison it.
 //!
 //! - **Render** (`render_id`): A disposable copy of the synth the renderer
 //!   compiles. It is built from the *repaired* raw text (missing `$` and math
 //!   string quotes closed, see [`delimiters`]) and is the only file error
 //!   recovery rewrites.
 //!
-//! The [`IndexMapper`](index::IndexMapper) tracks where synth bytes correspond
-//! to raw source bytes, so compiler output can be translated back to
-//! coordinates the editor understands.
+//! The [`SourceMap`](map::SourceMap) describes each text as a sequence of
+//! copied and generated segments, so compiler output can be translated back to
+//! coordinates the editor understands. Every lookup is total and monotone;
+//! callers pick a [`Side`](map::Side) at generated spans.
 //!
 //! ## Invariant
 //!
@@ -35,10 +35,10 @@
 
 mod context;
 mod delimiters;
-mod index;
+mod map;
 mod synth;
 
 pub use context::{SourceContext, SpaceContext};
 pub use delimiters::{DelimiterFix, RawFixups, delimiter_diagnostics, find_fixes};
-pub use index::{Anchor, AnchorKind, IndexMapper};
+pub use map::{Segment, SegmentKind, Side, SourceBuilder, SourceMap};
 pub use synth::{RenderTarget, SynthBlock, SynthResult, sync_source_context, sync_source_state};

@@ -10,6 +10,7 @@ import {
   typingSimulation,
   validateReport,
   type CaseResult,
+  type CheckedSegment,
   type CompileReport,
 } from "~/lib/typstLab";
 
@@ -64,7 +65,7 @@ const indexCheck = ref<{
   ok: boolean;
   checked: number;
   mismatches: string[];
-  anchors: { raw: number; synth: number; kind: string }[];
+  segments: CheckedSegment[];
 }>();
 const indexCheckRunning = ref(false);
 
@@ -79,7 +80,7 @@ async function runIndexMappingCheck() {
       ok: false,
       checked: 0,
       mismatches: [reason instanceof Error ? reason.message : String(reason)],
-      anchors: [],
+      segments: [],
     };
   } finally {
     indexCheckRunning.value = false;
@@ -309,28 +310,28 @@ definePageMeta({ ssr: false });
           <code>{{ mismatch }}</code>
         </li>
       </ul>
-      <details v-if="indexCheck.anchors.length" class="lab__anchors">
-        <summary>{{ indexCheck.anchors.length }} anchors (tagged)</summary>
+      <details v-if="indexCheck.segments.length" class="lab__segments">
+        <summary>{{ indexCheck.segments.length }} segments</summary>
         <table class="lab__table">
           <thead>
             <tr>
               <th>#</th>
-              <th>raw</th>
-              <th>synth</th>
               <th>kind</th>
+              <th>from</th>
+              <th>to</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(anchor, index) in indexCheck.anchors" :key="index">
+            <tr v-for="(segment, index) in indexCheck.segments" :key="index">
               <td>{{ index }}</td>
               <td>
-                <code>{{ anchor.raw }}</code>
+                <code>{{ segment.generated ? `${segment.kind} (generated)` : segment.kind }}</code>
               </td>
               <td>
-                <code>{{ anchor.synth }}</code>
+                <code>{{ segment.from }}..{{ segment.from_end }}</code>
               </td>
               <td>
-                <code>{{ anchor.kind }}</code>
+                <code>{{ segment.to }}..{{ segment.to_end }}</code>
               </td>
             </tr>
           </tbody>

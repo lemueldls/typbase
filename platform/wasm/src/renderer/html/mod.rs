@@ -8,7 +8,7 @@ use typst_html::{HtmlDocument, HtmlOptions};
 
 use crate::{
     bindings::{TypstDiagnostic, TypstFileId, map_synth_span},
-    source::{RenderTarget, SynthResult, sync_source_state},
+    source::{RenderTarget, SegmentKind, Side, SynthResult, sync_source_state},
     state::{TypstRequest, TypstState},
 };
 
@@ -80,10 +80,12 @@ pub fn render(
                 let Some(index) = blocks.iter().position(|block| {
                     let repaired_range = &block.range;
 
+                    // Outer range: include the generated wrapper so error
+                    // spans that land on it still select the block.
                     let synth_range_start =
-                        context.map_repaired_to_render_from_right(repaired_range.start);
+                        context.map_repaired_to_render(repaired_range.start, Side::Before);
                     let synth_range_end =
-                        context.map_repaired_to_render_from_right(repaired_range.end);
+                        context.map_repaired_to_render(repaired_range.end, Side::After);
 
                     error_ranges.iter().any(|error_range| {
                         (synth_range_start <= error_range.start
@@ -99,7 +101,7 @@ pub fn render(
                 let inline = blocks[index].inline;
                 blocks.remove(index);
 
-                let mut end_byte = context.map_repaired_to_render_from_right(repaired_range.end);
+                let mut end_byte = context.map_repaired_to_render(repaired_range.end, Side::After);
                 if inline {
                     end_byte += 12;
                 }
@@ -112,15 +114,21 @@ pub fn render(
 
                 crate::error!("[ERRORS]: {diagnostics:?}");
 
-                let start_byte = context.map_repaired_to_render_from_right(repaired_range.start);
+                let start_byte = context.map_repaired_to_render(repaired_range.start, Side::Before);
 
-                // Earlier passes shrink the synth while the mapper still
+                // Earlier passes shrink the synth while the map still
                 // describes the original text; clamp before blanking.
                 let source = context.render_source_mut(&mut state.world).unwrap();
                 let len = source.text().len();
                 let start_byte = start_byte.min(len);
                 let end_byte = end_byte.min(len).max(start_byte);
-                source.edit(start_byte..end_byte, &(" ".repeat(end_byte - start_byte)));
+                let whitespace = " ".repeat(end_byte - start_byte);
+                source.edit(start_byte..end_byte, &whitespace);
+                context.render_map.replace(
+                    start_byte..end_byte,
+                    &whitespace,
+                    SegmentKind::ErrorMark,
+                );
 
                 Vec::new()
             }

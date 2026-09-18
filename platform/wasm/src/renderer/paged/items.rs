@@ -8,11 +8,11 @@ use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
     renderer::{
         paged::{BoundFrameItem, FrameItemsChunk, PagedRender},
-        recovery::{map_error_mark_index, remove_errornous_block, try_mark_errornous},
+        recovery::{remove_errornous_block, try_mark_errornous},
     },
     source::{
-        RenderTarget, SourceContext, SynthBlock, SynthResult, delimiter_diagnostics,
-        sync_source_context,
+        RenderTarget, SegmentKind, Side, SourceContext, SynthBlock, SynthResult,
+        delimiter_diagnostics, sync_source_context,
     },
     state::TypstState,
     world::TypstWorld,
@@ -122,8 +122,8 @@ pub fn chunk_by_items_with_blocks(
                     // editor range must be raw: an inserted closer maps back
                     // to the offset it was inserted at.
                     let repaired_range = &block.range;
-                    let raw_range = context.map_repaired_to_raw_from_left(repaired_range.start)
-                        ..context.map_repaired_to_raw_from_right(repaired_range.end);
+                    let raw_range = context.map_repaired_to_raw(repaired_range.start)
+                        ..context.map_repaired_to_raw(repaired_range.end);
 
                     let raw_lines = raw_source.lines();
                     // Fall back to the raw byte value when the boundary is
@@ -137,7 +137,7 @@ pub fn chunk_by_items_with_blocks(
                     let raw_range_utf16 = start_utf16..end_utf16;
 
                     let synth_range_end =
-                        context.map_repaired_to_render_from_right(repaired_range.end);
+                        context.map_repaired_to_render(repaired_range.end, Side::After);
 
                     let mut chunk_items = VecDeque::<BoundFrameItem>::new();
                     let mut deferred_items = Vec::<BoundFrameItem>::new();
@@ -281,24 +281,23 @@ pub fn chunk_by_items_with_blocks(
                     try_mark_errornous(&source_diagnostics, eq_ranges, context, world);
 
                 if !marked_errors.marks.is_empty() {
-                    map_error_mark_index(&marked_errors, context);
-
                     let marked_render =
                         chunk_by_items_with_blocks(blocks, eq_ranges, divergence, context, world);
 
-                    let render_source = context.render_source_mut(world).unwrap();
-
                     for mark in &marked_errors.marks {
-                        let start_byte = mark.synth_range.start;
-                        let end_byte = mark.synth_range.end;
-
                         // Replace the marked span with an equal-length
                         // placeholder. Positions stay put, so the document
                         // this produces can back hover/jump while the marked
                         // chunks above keep the red markers.
-                        let byte_length = end_byte - start_byte;
+                        let byte_length = mark.synth_range.len();
                         let placeholder = format!("{:>byte_length$}", "\"\"");
-                        render_source.edit(start_byte..end_byte, &placeholder);
+                        let source = context.render_source_mut(world).unwrap();
+                        source.edit(mark.synth_range.clone(), &placeholder);
+                        context.render_map.replace(
+                            mark.synth_range.clone(),
+                            &placeholder,
+                            SegmentKind::ErrorMark,
+                        );
                     }
 
                     let stable_render =
@@ -408,8 +407,8 @@ pub fn chunk_by_items_with_blocks(
                 })
                 .unwrap_or(0..0);
 
-            let raw_start = context.map_render_to_raw_from_left(synth_range.start);
-            let raw_end = context.map_render_to_raw_from_right(synth_range.end);
+            let raw_start = context.map_render_to_raw(synth_range.start);
+            let raw_end = context.map_render_to_raw(synth_range.end);
 
             // crate::log!("raw_range: {:?}", raw_start..raw_end);
 

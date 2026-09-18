@@ -5,7 +5,7 @@ use typst_layout::PagedDocument;
 use typst_syntax::{FileId, RootedPath, Source};
 
 use crate::{
-    source::{IndexMapper, RawFixups},
+    source::{RawFixups, Side, SourceMap},
     theme::ThemeColors,
     world::TypstWorld,
 };
@@ -59,11 +59,11 @@ impl Default for SpaceContext {
 ///   tracked by [`RawFixups`]. Only needed for documents the parser would
 ///   otherwise swallow.
 /// - **synth**: the pristine synthesized source, `synth_id`. Built from the
-///   raw text on every sync. Never mutated after that; [`Self::index_mapper`]
+///   raw text on every sync. Never mutated after that; [`Self::index_map`]
 ///   describes it and diagnostics-only compiles read it.
 /// - **render**: the disposable source the renderer compiles, `render_id`.
 ///   Built from the repaired text; error recovery marks and blanks ranges of
-///   it and updates [`Self::render_mapper`] instead of touching the pristine
+///   it and updates [`Self::render_map`] instead of touching the pristine
 ///   pair. IDE queries parse it too, because tracing an expression compiles
 ///   [`TypstWorld::main`], and the pristine synth of a page with errors does
 ///   not compile.
@@ -102,14 +102,14 @@ pub struct SourceContext {
     /// [`SpaceContext`] for theme and font settings.
     pub space_id: String,
 
-    /// Tracks the byte-offset correspondence between the raw source
-    /// and the pristine synth. Rebuilt on each call to `sync_source_context`.
-    pub index_mapper: IndexMapper,
+    /// Tracks the byte-offset correspondence between the raw source and the
+    /// pristine synth. Rebuilt on each call to `sync_source_context`.
+    pub index_map: SourceMap,
 
     /// Byte-offset correspondence between the repaired source and the render
-    /// source. Cloned from [`Self::index_mapper`] when no repair was needed;
-    /// error recovery adds anchors for the ranges it rewrites.
-    pub render_mapper: IndexMapper,
+    /// source. Cloned from [`Self::index_map`] when no repair was needed;
+    /// error recovery splices its edits into this map.
+    pub render_map: SourceMap,
 
     /// Delimiter insertions applied between raw and repaired text. Empty for
     /// the vast majority of notes.
@@ -157,8 +157,8 @@ impl SourceContext {
             render_id,
             ide_id,
             space_id,
-            index_mapper: IndexMapper::default(),
-            render_mapper: IndexMapper::default(),
+            index_map: SourceMap::default(),
+            render_map: SourceMap::default(),
             render_fixups: RawFixups::default(),
             marked_raw_ranges: Vec::new(),
             paged_document: None,
@@ -202,7 +202,7 @@ impl SourceContext {
     /// resolves field access by tracing values, and tracing compiles
     /// `world.main`, so IDE queries need a compilable main. Marked ranges are
     /// replaced with equal-length valid expressions there, which keeps byte
-    /// positions (and therefore all `IndexMapper` offsets) unchanged. IDE
+    /// positions (and therefore every source-map offset) unchanged. IDE
     /// queries inside a marked range parse the pristine file instead, so the
     /// token under the cursor is still the user's.
     pub fn rebuild_ide_source(&self, world: &mut TypstWorld) {
@@ -265,8 +265,8 @@ impl SourceContext {
             .marked_raw_ranges
             .iter()
             .map(|raw| {
-                self.index_mapper.map_raw_to_synth_from_left(raw.start)
-                    ..self.index_mapper.map_raw_to_synth_from_right(raw.end)
+                self.index_map.forward(raw.start, Side::After)
+                    ..self.index_map.forward(raw.end, Side::Before)
             })
             .collect::<Vec<_>>();
 
@@ -294,85 +294,60 @@ impl SourceContext {
         id == self.synth_id || id == self.render_id
     }
 
+    /// Raw offset to pristine-synth offset.
+    ///
+    /// Use [`Side::After`] for cursors and span starts, [`Side::Before`] for
+    /// span ends. Positions in dropped source regions clamp to the nearest
+    /// segment boundary.
     #[must_use]
-    pub fn map_synth_to_raw_from_right(&self, synth_idx: usize) -> usize {
-        self.index_mapper.map_synth_to_raw_from_right(synth_idx)
+    pub fn map_raw_to_synth(&self, raw: usize, side: Side) -> usize {
+        self.index_map.forward(raw, side)
     }
 
+    /// Pristine-synth offset to raw offset.
     #[must_use]
-    pub fn map_raw_to_synth_from_right(&self, raw_idx: usize) -> usize {
-        self.index_mapper.map_raw_to_synth_from_right(raw_idx)
+    pub fn map_synth_to_raw(&self, synth: usize) -> usize {
+        self.index_map.backward(synth)
     }
 
+    /// Raw offset to repaired offset.
     #[must_use]
-    pub fn map_synth_to_raw_from_left(&self, synth_idx: usize) -> usize {
-        self.index_mapper.map_synth_to_raw_from_left(synth_idx)
+    pub fn map_raw_to_repaired(&self, raw: usize, side: Side) -> usize {
+        self.render_fixups.map().forward(raw, side)
     }
 
+    /// Repaired offset to raw offset.
     #[must_use]
-    pub fn map_raw_to_synth_from_left(&self, raw_idx: usize) -> usize {
-        self.index_mapper.map_raw_to_synth_from_left(raw_idx)
-    }
-
-    /// Render offset to raw offset, through the repaired text. Use this for
-    /// anything the editor consumes: diagnostics, chunk ranges, jumps.
-    #[must_use]
-    pub fn map_render_to_raw_from_right(&self, render_idx: usize) -> usize {
-        let repaired = self.render_mapper.map_synth_to_raw_from_right(render_idx);
-        self.render_fixups.to_raw_from_right(repaired)
-    }
-
-    #[must_use]
-    pub fn map_render_to_raw_from_left(&self, render_idx: usize) -> usize {
-        let repaired = self.render_mapper.map_synth_to_raw_from_left(render_idx);
-        self.render_fixups.to_raw_from_left(repaired)
-    }
-
-    /// Raw offset to render offset, through the repaired text.
-    #[must_use]
-    pub fn map_raw_to_render_from_right(&self, raw_idx: usize) -> usize {
-        let repaired = self.render_fixups.to_repaired_from_right(raw_idx);
-        self.render_mapper.map_raw_to_synth_from_right(repaired)
-    }
-
-    #[must_use]
-    pub fn map_raw_to_render_from_left(&self, raw_idx: usize) -> usize {
-        let repaired = self.render_fixups.to_repaired_from_left(raw_idx);
-        self.render_mapper.map_raw_to_synth_from_left(repaired)
+    pub fn map_repaired_to_raw(&self, repaired: usize) -> usize {
+        self.render_fixups.map().backward(repaired)
     }
 
     /// Repaired offset to render offset. Recovery internals work in these two
     /// spaces directly; blocks and equation ranges come from the repaired
     /// parse.
     #[must_use]
-    pub fn map_repaired_to_render_from_left(&self, repaired_idx: usize) -> usize {
-        self.render_mapper.map_raw_to_synth_from_left(repaired_idx)
-    }
-
-    #[must_use]
-    pub fn map_repaired_to_render_from_right(&self, repaired_idx: usize) -> usize {
-        self.render_mapper.map_raw_to_synth_from_right(repaired_idx)
+    pub fn map_repaired_to_render(&self, repaired: usize, side: Side) -> usize {
+        self.render_map.forward(repaired, side)
     }
 
     /// Render offset to repaired offset.
     #[must_use]
-    pub fn map_render_to_repaired_from_left(&self, render_idx: usize) -> usize {
-        self.render_mapper.map_synth_to_raw_from_left(render_idx)
+    pub fn map_render_to_repaired(&self, render: usize) -> usize {
+        self.render_map.backward(render)
     }
 
+    /// Raw offset to render offset, through the repaired text.
     #[must_use]
-    pub fn map_render_to_repaired_from_right(&self, render_idx: usize) -> usize {
-        self.render_mapper.map_synth_to_raw_from_right(render_idx)
+    pub fn map_raw_to_render(&self, raw: usize, side: Side) -> usize {
+        let repaired = self.render_fixups.map().forward(raw, side);
+        self.render_map.forward(repaired, side)
     }
 
-    /// Repaired offset to raw offset, through the delimiter fixups only.
+    /// Render offset to raw offset, through the repaired text. Use this for
+    /// anything the editor consumes: diagnostics, chunk ranges, jumps.
     #[must_use]
-    pub fn map_repaired_to_raw_from_left(&self, repaired_idx: usize) -> usize {
-        self.render_fixups.to_raw_from_left(repaired_idx)
-    }
-
-    #[must_use]
-    pub fn map_repaired_to_raw_from_right(&self, repaired_idx: usize) -> usize {
-        self.render_fixups.to_raw_from_right(repaired_idx)
+    pub fn map_render_to_raw(&self, render: usize) -> usize {
+        let repaired = self.render_map.backward(render);
+        self.render_fixups.map().backward(repaired)
     }
 }

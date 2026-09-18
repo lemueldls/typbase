@@ -21,7 +21,10 @@ use std::ops::Range;
 
 use typst_syntax::{LinkedNode, SyntaxKind};
 
-use crate::bindings::{TypstDiagnostic, TypstDiagnosticSeverity};
+use crate::{
+    bindings::{TypstDiagnostic, TypstDiagnosticSeverity},
+    source::{SegmentKind, SourceMap},
+};
 
 /// A delimiter inserted into the repaired source.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,24 +35,33 @@ pub struct DelimiterFix {
     pub insertion: &'static str,
 }
 
-/// Insertion points from raw to repaired text.
+/// Insertion points from raw to repaired text, plus the offset map they imply.
 #[derive(Debug, Default, Clone)]
 pub struct RawFixups {
     /// Sorted by raw offset; at equal offsets quotes come before dollars so
     /// `"$` stays in that order in the repaired text.
     fixes: Vec<DelimiterFix>,
+    /// Raw to repaired offsets, built from the fix list.
+    map: SourceMap,
 }
 
 impl RawFixups {
     #[must_use]
-    pub fn new(mut fixes: Vec<DelimiterFix>) -> Self {
+    pub fn new(mut fixes: Vec<DelimiterFix>, from_len: usize) -> Self {
         fixes.sort_by_key(|fix| (fix.raw_offset, insertion_rank(fix.insertion)));
         fixes.dedup();
-        Self { fixes }
+
+        let insertions = fixes
+            .iter()
+            .map(|fix| (fix.raw_offset, fix.insertion))
+            .collect::<Vec<_>>();
+        let map = SourceMap::from_insertions(from_len, &insertions, SegmentKind::Fixup);
+
+        Self { fixes, map }
     }
 
     /// Whether the raw text needed no repair at all. In that case every
-    /// repaired offset equals its raw offset and the mappers are identical.
+    /// repaired offset equals its raw offset and the maps are identical.
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.fixes.is_empty()
@@ -58,6 +70,12 @@ impl RawFixups {
     #[must_use]
     pub fn fixes(&self) -> &[DelimiterFix] {
         &self.fixes
+    }
+
+    /// Raw to repaired offsets.
+    #[must_use]
+    pub const fn map(&self) -> &SourceMap {
+        &self.map
     }
 
     /// The raw text with every fix applied.
@@ -80,60 +98,6 @@ impl RawFixups {
 
         out.push_str(&raw[cursor..]);
         out
-    }
-
-    /// Raw offset to repaired offset, positions before the insertion at the
-    /// boundary. Insertions at exactly `raw` are not counted.
-    #[must_use]
-    pub fn to_repaired_from_left(&self, raw: usize) -> usize {
-        raw + self
-            .fixes
-            .iter()
-            .filter(|fix| fix.raw_offset < raw)
-            .map(|fix| fix.insertion.len())
-            .sum::<usize>()
-    }
-
-    /// Raw offset to repaired offset, positions after the insertion at the
-    /// boundary. Insertions at exactly `raw` are counted.
-    #[must_use]
-    pub fn to_repaired_from_right(&self, raw: usize) -> usize {
-        raw + self
-            .fixes
-            .iter()
-            .filter(|fix| fix.raw_offset <= raw)
-            .map(|fix| fix.insertion.len())
-            .sum::<usize>()
-    }
-
-    /// Repaired offset to raw offset. Positions inside an inserted token map
-    /// to the raw offset the token was inserted at.
-    #[must_use]
-    pub fn to_raw_from_left(&self, repaired: usize) -> usize {
-        let mut cumulative = 0;
-
-        for fix in &self.fixes {
-            let start = fix.raw_offset + cumulative;
-            let end = start + fix.insertion.len();
-
-            if repaired < start {
-                return repaired - cumulative;
-            }
-            if repaired <= end {
-                return fix.raw_offset;
-            }
-
-            cumulative += fix.insertion.len();
-        }
-
-        repaired - cumulative
-    }
-
-    /// Repaired offset to raw offset, same boundary rule as
-    /// [`Self::to_raw_from_left`].
-    #[must_use]
-    pub fn to_raw_from_right(&self, repaired: usize) -> usize {
-        self.to_raw_from_left(repaired)
     }
 
     fn total_len(&self) -> usize {
@@ -159,7 +123,7 @@ pub fn find_fixes(text: &str) -> Vec<DelimiterFix> {
 
     walk(&LinkedNode::new(&root), text, &mut fixes);
 
-    RawFixups::new(fixes).fixes().to_vec()
+    RawFixups::new(fixes, text.len()).fixes().to_vec()
 }
 
 /// Diagnostics for the repairs that were applied, in raw coordinates.
@@ -349,6 +313,7 @@ fn blank_line_start(text: &str, range: Range<usize>) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source::Side;
 
     #[test]
     fn unclosed_dollar_closes_at_blank_line() {
@@ -362,7 +327,7 @@ mod tests {
             }]
         );
 
-        let fixed = RawFixups::new(find_fixes(text)).repaired(text);
+        let fixed = RawFixups::new(find_fixes(text), text.len()).repaired(text);
         assert_eq!(fixed, "Before.\n\n$ x + y$\n\nAfter paragraph.\n");
     }
 
@@ -378,7 +343,7 @@ mod tests {
             }]
         );
 
-        let fixed = RawFixups::new(find_fixes(text)).repaired(text);
+        let fixed = RawFixups::new(find_fixes(text), text.len()).repaired(text);
         assert_eq!(fixed, "Before.\n\n$ \"abc > 3 \"$\n\nAfter paragraph.\n");
     }
 
@@ -400,7 +365,7 @@ mod tests {
             ]
         );
 
-        let fixed = RawFixups::new(find_fixes(text)).repaired(text);
+        let fixed = RawFixups::new(find_fixes(text), text.len()).repaired(text);
         assert_eq!(fixed, "$ \"abc\"$");
     }
 
@@ -422,7 +387,7 @@ mod tests {
             }]
         );
 
-        let fixed = RawFixups::new(find_fixes(text)).repaired(text);
+        let fixed = RawFixups::new(find_fixes(text), text.len()).repaired(text);
         assert_eq!(fixed, "Before.\n\n$ abs((x_#none)) $\n\nAfter.\n");
     }
 
@@ -448,13 +413,15 @@ mod tests {
     #[test]
     fn fixups_round_trip() {
         let text = "Before.\n\n$ x + y\n\nAfter paragraph.\n";
-        let fixups = RawFixups::new(find_fixes(text));
+        let fixups = RawFixups::new(find_fixes(text), text.len());
+        let map = fixups.map();
 
         assert!(!fixups.is_empty());
-        assert_eq!(fixups.to_repaired_from_left(16), 16);
-        assert_eq!(fixups.to_repaired_from_right(16), 17);
-        assert_eq!(fixups.to_raw_from_left(16), 16);
-        assert_eq!(fixups.to_raw_from_left(17), 16);
-        assert_eq!(fixups.to_raw_from_left(25), 24);
+        assert_eq!(map.forward(16, Side::Before), 16);
+        assert_eq!(map.forward(16, Side::After), 17);
+        assert_eq!(map.backward(16), 16);
+        assert_eq!(map.backward(17), 16);
+        assert_eq!(map.backward(25), 24);
+        assert!(map.validate().is_empty());
     }
 }

@@ -73,18 +73,21 @@ export interface CapturedLog {
   line: string;
 }
 
-export interface CheckedAnchor {
-  raw: number;
-  synth: number;
+export interface CheckedSegment {
   kind: string;
+  generated: boolean;
+  from: number;
+  from_end: number;
+  to: number;
+  to_end: number;
 }
 
-/** Runs the wasm index-mapper self-check over a synthesized source. */
+/** Runs the wasm source-map self-check over a synthesized source. */
 export async function runIndexCheck(
   typstState: TypstState,
   spaceId: string,
   source: string,
-): Promise<{ ok: boolean; checked: number; mismatches: string[]; anchors: CheckedAnchor[] }> {
+): Promise<{ ok: boolean; checked: number; mismatches: string[]; segments: CheckedSegment[] }> {
   const id = typstState.createSourceId("debug-lab", spaceId);
   typstState.insertSource(id, source);
   const report = typstState.checkIndex(id, source, "");

@@ -12,8 +12,8 @@
 //! overlaps the diagnostic span and overwrites it with whitespace.
 //!
 //! Crucially, the replacement is exactly the same byte length as the block it
-//! replaces. This keeps every other anchor in the `IndexMapper` valid without
-//! needing to recompute them.
+//! replaces. The [`SourceMap`](crate::source::SourceMap) records the region as
+//! generated, so offsets do not move and later blocks stay mappable.
 //!
 //! ## Math marking
 //!
@@ -23,9 +23,10 @@
 //! it wraps it in a red-text marker so the rest of the equation keeps
 //! rendering normally.
 //!
-//! Because this wrapper changes the synth's byte length, `try_mark_errornous`
-//! returns a [`MarkedResult`] that includes the length delta, and the caller
-//! is responsible for folding that delta back into the `IndexMapper`.
+//! Marks are applied right to left, so each edit leaves the ranges of the
+//! expressions still to be marked valid. The map records each wrapper through
+//! [`SourceMap::insert`](crate::source::SourceMap::insert); there is no manual
+//! anchor bookkeeping.
 //!
 //! ## Recovery loop
 //!
@@ -42,7 +43,7 @@ use typst::diag::{Severity, SourceDiagnostic};
 
 use crate::{
     bindings::map_synth_span,
-    source::{AnchorKind, SourceContext, SynthBlock},
+    source::{SegmentKind, Side, SourceContext, SynthBlock},
     world::TypstWorld,
 };
 
@@ -71,45 +72,47 @@ pub fn remove_errornous_block(
         })
         .collect::<FxHashSet<_>>();
 
-    let (indicies, synth_ranges): (Vec<usize>, Vec<Range<usize>>) = blocks
+    let (indicies, render_ranges): (Vec<usize>, Vec<Range<usize>>) = blocks
         .iter()
         .enumerate()
         .filter_map(|(idx, block)| {
             let repaired_range = &block.range;
 
-            let synth_range_start = context.map_repaired_to_render_from_left(repaired_range.start);
-            let synth_range_end = context.map_repaired_to_render_from_right(repaired_range.end);
-            let synth_range = synth_range_start..synth_range_end;
+            // Outer range: include the generated wrapper and separator so the
+            // whole block disappears, not just its content.
+            let render_start = context.map_repaired_to_render(repaired_range.start, Side::Before);
+            let render_end = context.map_repaired_to_render(repaired_range.end, Side::After);
+            let render_range = render_start..render_end;
 
             let in_block = error_ranges.iter().any(|error_range| {
-                (synth_range_start <= error_range.start && synth_range_end >= error_range.start)
-                    || (synth_range_start <= error_range.end && synth_range_end >= error_range.end)
+                (render_start <= error_range.start && render_end >= error_range.start)
+                    || (render_start <= error_range.end && render_end >= error_range.end)
             });
 
-            in_block.then_some((idx, synth_range))
+            in_block.then_some((idx, render_range))
         })
         .unzip();
 
-    for synth_range in synth_ranges {
-        // fill block with whitespace to stablize ranges
+    for render_range in render_ranges {
+        // Fill the block with whitespace to stabilize ranges.
+        let length = render_range.len();
+        let whitespace = " ".repeat(length.saturating_sub(1)) + "\n";
         let source = context.render_source_mut(world).unwrap();
-        let len = source.text().len();
-        let start_byte = synth_range.start.min(len);
-        let end_byte = synth_range.end.min(len).max(start_byte);
-        let byte_length = end_byte - start_byte;
-        let whitespace = " ".repeat(byte_length.saturating_sub(1)) + "\n";
-        source.edit(start_byte..end_byte, &whitespace);
+        source.edit(render_range.clone(), &whitespace);
+        context
+            .render_map
+            .replace(render_range, &whitespace, SegmentKind::ErrorMark);
     }
 
     indicies
 }
 
-/// Tries to mark the specific expressions containing errors and wraps it in a
-/// red text expression for visual feedback in the rendered output.
+/// Tries to mark the specific expressions containing errors and wraps them in
+/// a red text expression for visual feedback in the rendered output.
 ///
 /// If marking is unsuccessful (e.g., due to complex expressions or multiple
 /// errors), it falls back to removing the entire block containing the error, as
-/// implemented in `remove_errornous_block`.
+/// implemented in [`remove_errornous_block`].
 #[typst_macros::time]
 pub fn try_mark_errornous(
     source_diagnostics: &EcoVec<SourceDiagnostic>,
@@ -135,14 +138,12 @@ pub fn try_mark_errornous(
     let eq_ranges = eq_ranges
         .iter()
         .map(|eq_range| {
-            let synth_start = context.map_repaired_to_render_from_left(eq_range.start);
-            let synth_end = context.map_repaired_to_render_from_right(eq_range.end);
-
-            synth_start..synth_end
+            context.map_repaired_to_render(eq_range.start, Side::After)
+                ..context.map_repaired_to_render(eq_range.end, Side::Before)
         })
         .collect::<Vec<_>>();
 
-    let error_ranges = source_diagnostics
+    let mut error_ranges = source_diagnostics
         .iter()
         .filter_map(|diagnostic| {
             map_synth_span(
@@ -162,42 +163,78 @@ pub fn try_mark_errornous(
         })
         .collect::<Vec<_>>();
 
-    let marks = error_ranges
+    // Merge overlapping diagnostics so nested errors get one wrapper.
+    error_ranges.sort_by_key(|range| (range.start, range.end));
+
+    let mut merged: Vec<Range<usize>> = Vec::new();
+    for range in error_ranges {
+        if let Some(last) = merged.last_mut()
+            && range.start <= last.end
+        {
+            last.end = last.end.max(range.end);
+        } else {
+            merged.push(range);
+        }
+    }
+
+    // Apply marks right to left: an edit never moves the ranges of the
+    // expressions still to be processed.
+    let mut pending: Vec<PendingMark> = Vec::new();
+    let mut boundary = usize::MAX;
+
+    for range in merged.into_iter().rev() {
+        let source = context.render_source_mut(world).unwrap();
+        let mut synth_range = expand_math_call(source.text(), range);
+        synth_range.end = synth_range.end.min(boundary);
+
+        if synth_range.is_empty() {
+            continue;
+        }
+
+        let original_text = source.text()[synth_range.clone()].to_string();
+        let raw_range = context.render_map.backward(synth_range.start)
+            ..context.render_map.backward(synth_range.end);
+        context.marked_raw_ranges.push(raw_range.clone());
+
+        let source = context.render_source_mut(world).unwrap();
+        source.edit(synth_range.start..synth_range.start, pre_text);
+        source.edit(
+            synth_range.end + pre_text_len..synth_range.end + pre_text_len,
+            post_text,
+        );
+
+        context
+            .render_map
+            .insert(synth_range.start, pre_text, SegmentKind::ErrorMark);
+        context.render_map.insert(
+            synth_range.end + pre_text_len,
+            post_text,
+            SegmentKind::ErrorMark,
+        );
+
+        boundary = synth_range.start;
+        pending.push(PendingMark {
+            original: synth_range,
+            text: original_text,
+            raw_range,
+        });
+    }
+
+    // Translate the pre-edit ranges to final coordinates. `pending` is in
+    // reverse order; sorting ascending makes every earlier mark entirely to
+    // the left, so each contributes one wrapper length of shift.
+    pending.sort_by_key(|mark| mark.original.start);
+
+    let marks = pending
         .into_iter()
-        .map(|synth_range| {
-            let synth_range = {
-                let source = context.render_source_mut(world).unwrap();
-                expand_math_call(source.text(), synth_range)
-            };
-
-            // Capture the raw boundaries before the edit and the mapper bump:
-            // afterwards the marked span includes the wrapper, and the block's
-            // sparse anchors cannot map it back correctly.
-            let raw_range = context
-                .render_mapper
-                .map_synth_to_raw_from_right(synth_range.start)
-                ..context
-                    .render_mapper
-                    .map_synth_to_raw_from_left(synth_range.end);
-
-            let source = context.render_source_mut(world).unwrap();
-            let original_text = source.text()[synth_range.clone()].to_string();
-            // crate::log!("[MARKING]:\n{}", original_text);
-
-            // Wrap the original text in a red text expression
-            let marked_text = format!("{pre_text}{original_text}{post_text}");
-            source.edit(synth_range.clone(), &marked_text);
-
-            context
-                .render_mapper
-                .bump_synth_from(synth_range.end, total_wrap_len);
-
-            // crate::log!("[NEW SOURCE]:\n{}", &source.text());
-
+        .enumerate()
+        .map(|(index, mark)| {
+            let shift = total_wrap_len * index;
             ErrorMark {
-                text: original_text,
-                synth_range: synth_range.start..(synth_range.end + total_wrap_len),
-                raw_range,
+                text: mark.text,
+                synth_range: mark.original.start + shift
+                    ..mark.original.end + total_wrap_len + shift,
+                raw_range: mark.raw_range,
             }
         })
         .collect();
@@ -208,6 +245,13 @@ pub fn try_mark_errornous(
         post_text_len,
         total_wrap_len,
     }
+}
+
+/// One mark between the pre-edit range and the final coordinates.
+struct PendingMark {
+    original: Range<usize>,
+    text: String,
+    raw_range: Range<usize>,
 }
 
 /// Expands a marked range over a math call's argument list.
@@ -244,45 +288,6 @@ fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {
     range
 }
 
-pub fn map_error_mark_index(marked_errors: &MarkedErrors, context: &mut SourceContext) {
-    for mark in &marked_errors.marks {
-        let raw_start = mark.raw_range.start;
-        let raw_end = mark.raw_range.end;
-
-        context.render_mapper.push_raw_to_synth_kind(
-            raw_start,
-            mark.synth_range.start + marked_errors.pre_text_len,
-            AnchorKind::ErrorMark,
-        );
-        context.render_mapper.push_raw_to_synth_kind(
-            raw_start,
-            mark.synth_range.start,
-            AnchorKind::ErrorMark,
-        );
-
-        // `mark.synth_range.end` is already the end of the marked span, wrapper
-        // included: that is where content after the expression starts. The
-        // position just before the trailing wrapper (`end - post`) is the end
-        // of the original text. Pushing the outside position first leaves the
-        // inside position first in anchor order, which is what the two lookup
-        // directions expect.
-        context.render_mapper.push_raw_to_synth_kind(
-            raw_end,
-            mark.synth_range.end,
-            AnchorKind::ErrorWrap,
-        );
-        context.render_mapper.push_raw_to_synth_kind(
-            raw_end,
-            mark.synth_range.end - marked_errors.post_text_len,
-            AnchorKind::ErrorWrap,
-        );
-
-        context.marked_raw_ranges.push(mark.raw_range.clone());
-
-        // crate::log!("after: {:?}", &context.render_mapper);
-    }
-}
-
 #[derive(Debug)]
 pub struct MarkedErrors {
     pub marks: Vec<ErrorMark>,
@@ -294,6 +299,7 @@ pub struct MarkedErrors {
 #[derive(Debug)]
 pub struct ErrorMark {
     pub text: String,
+    /// The marked span in final render coordinates, wrapper included.
     pub synth_range: Range<usize>,
     /// Raw range of the marked expression, captured before the wrapper was
     /// inserted.

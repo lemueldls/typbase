@@ -102,7 +102,7 @@ fn recovery_keeps_pristine_synth_and_mapper() {
             .unwrap()
             .text()
             .to_string();
-        let before_anchors = context.index_mapper.anchors().to_vec();
+        let before_anchors = context.index_map.segments().to_vec();
 
         let context = state.source_context_map.get_mut(&id).unwrap();
         state.world.main_id = Some(context.render_id);
@@ -133,7 +133,7 @@ fn recovery_keeps_pristine_synth_and_mapper() {
         );
         assert_eq!(
             before_anchors,
-            context.index_mapper.anchors().to_vec(),
+            context.index_map.segments().to_vec(),
             "{}: recovery mutated the pristine mapper",
             fixture.name,
         );
