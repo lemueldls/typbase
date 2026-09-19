@@ -5,11 +5,13 @@ import {
   RelayClient,
   SessionManager,
   TypbaseSync,
+  WORKSPACE_SPACE_TYPE,
   createAirspaceTransport,
   createWorkspaceClient,
   workspaceSpaceUri,
   type WorkspaceClient,
 } from "@typbase/spaces";
+import { NATIVE_OAUTH_METADATA_PATH } from "@typbase/typing";
 
 import { createNativeAuth } from "~/lib/nativeAuth";
 import { createSyncHost } from "~/lib/syncHost";
@@ -62,13 +64,13 @@ export class AtprotoService {
   private constructor(
     private readonly store: WorkspaceStore,
     private readonly local: LocalState,
-    private readonly opts: { appUrl: string },
+    private readonly opts: { appUrl: string; oauthOrigin: string; handleResolver?: string },
   ) {}
 
   static async init(
     store: WorkspaceStore,
     local: LocalState,
-    opts: { appUrl: string },
+    opts: { appUrl: string; oauthOrigin: string; handleResolver?: string },
   ): Promise<AtprotoService> {
     const service = new AtprotoService(store, local, opts);
     await service.restore();
@@ -78,9 +80,11 @@ export class AtprotoService {
 
   private async restore(): Promise<void> {
     const origin = this.opts.appUrl.replace(/\/$/, "");
-    // Native shells sign in through the system browser and a deep link; the
-    // web (and Tauri dev, which serves over http loopback) uses the page flow.
+    // Native shells always sign in through the system browser and a deep
+    // link, dev included, so their client id is the deployed origin's
+    // metadata document rather than the page origin.
     const nativeAuth = createNativeAuth();
+    const oauthOrigin = this.opts.oauthOrigin.replace(/\/$/, "");
     this.sessions = new SessionManager(
       origin,
       (session) => {
@@ -90,7 +94,12 @@ export class AtprotoService {
         }
         this.emit();
       },
-      nativeAuth ? { clientId: `${origin}/client-metadata/native`, nativeAuth } : {},
+      {
+        ...(nativeAuth
+          ? { clientId: `${oauthOrigin}${NATIVE_OAUTH_METADATA_PATH}`, nativeAuth }
+          : {}),
+        ...(this.opts.handleResolver ? { handleResolver: this.opts.handleResolver } : {}),
+      },
     );
 
     // The OAuth client init touches IndexedDB and fetches the client
@@ -210,9 +219,12 @@ export class AtprotoService {
     const syncHost = createSyncHost(this.store, (level, message) =>
       console[level](`[sync] ${message}`),
     );
+    // Sync state is per space: rkeys and cursors mean nothing in another
+    // space, so the key carries the space type.
     const syncStore = {
-      get: (key: string) => this.local.get(`sync:${key}`),
-      set: (key: string, value: unknown) => this.local.set(`sync:${key}`, value),
+      get: (key: string) => this.local.get(`sync:${WORKSPACE_SPACE_TYPE}:${key}`),
+      set: (key: string, value: unknown) =>
+        this.local.set(`sync:${WORKSPACE_SPACE_TYPE}:${key}`, value),
     };
 
     this.sync = new TypbaseSync(syncHost, syncStore, createAirspaceTransport(airspace.workspace), {
@@ -227,9 +239,10 @@ export class AtprotoService {
 
     await this.sync.start();
 
-    // Once per account and workspace: push a snapshot of every doc so a fresh
-    // device has a starting point, then send only deltas.
-    const bootstrapFlag = `synced:${memberDid}:${this.store.workspaceId}`;
+    // Once per account and space: push a snapshot of every doc so a fresh
+    // device has a starting point, then send only deltas. The flag carries
+    // the space type, so another space starts its own bootstrap.
+    const bootstrapFlag = `synced:${memberDid}:${this.store.workspaceId}:${WORKSPACE_SPACE_TYPE}`;
     if (!(await this.local.get<boolean>(bootstrapFlag))) {
       try {
         await this.sync.bootstrapSnapshots();

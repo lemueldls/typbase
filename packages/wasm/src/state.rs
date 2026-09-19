@@ -869,7 +869,7 @@ impl TypstState {
 
     /// PDF publishing, compiled only when the `pdf` cargo feature is on.
     /// Returns the PDF bytes plus diagnostics; the caller uploads the bytes
-    /// as a blob on `app.typbase.post`.
+    /// as a blob on `at.typbase.post`.
     #[cfg(feature = "pdf")]
     #[wasm_bindgen(js_name = "renderPdf")]
     pub fn render_pdf(

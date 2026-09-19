@@ -2,7 +2,7 @@ import { bytesToBase64, base64ToBytes } from "./base64";
 
 /**
  * The sync loop. Loro is the merge engine, airspace is the transport: every
- * device exports local changes as `app.typbase.update` records in its own
+ * device exports local changes as `at.typbase.update` records in its own
  * repo inside the workspace space, and pulls what the other devices wrote.
  * Compaction writes a snapshot and deletes the updates it covers.
  *

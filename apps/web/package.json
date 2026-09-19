@@ -28,6 +28,7 @@
     "@typbase/wasm": "workspace:*",
     "@vueuse/nuxt": "14.4.0",
     "@vueuse/router": "^14.4.0",
+    "airspace": "^0.1.6",
     "h3": "2.0.1-rc.22",
     "harper.js": "^2.10.0",
     "lru-cache": "^11.2.5",

@@ -1,30 +1,36 @@
-import type { OAuthSession } from "@atproto/oauth-client-browser";
+import type { BrowserOAuthClient, OAuthSession } from "@atproto/oauth-client-browser";
+import type { BrowserOAuth } from "airspace/oauth/browser";
 
-import { createDidResolver } from "@atproto-labs/did-resolver";
-import { AtprotoDohHandleResolver } from "@atproto-labs/handle-resolver";
-import { AtprotoIdentityResolver } from "@atproto-labs/identity-resolver";
-import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
-import { OAUTH_SCOPES } from "@typbase/typing";
+import {
+  OAUTH_CLIENT_NAME,
+  OAUTH_METADATA_PATH,
+  OAUTH_REDIRECT_PATH,
+  OAUTH_SCOPES,
+} from "@typbase/typing";
+import { createBrowserOAuth } from "airspace/oauth/browser";
 
 /**
- * Browser OAuth: PAR + PKCE + DPoP, handled by @atproto/oauth-client-browser.
- * The client persists its own state (DPoP keys, sessions, caches) in
- * IndexedDB, which is the browser-native store the alpha library is built
- * for. The session it hands back is passed straight to `createAirspace`.
+ * OAuth for the browser and the native shells.
+ *
+ * Web: `airspace/oauth/browser` runs PAR + PKCE + DPoP in the page, keeps
+ * tokens and DPoP keys in IndexedDB, and builds its client metadata locally
+ * from the shared constants. The app serves the matching document at
+ * `OAUTH_METADATA_PATH`, so the PDS fetches exactly what the client declared.
+ *
+ * Native (Tauri): the shell has no HTTPS origin to receive a page redirect,
+ * so sign-in always runs in the system browser and the response comes back
+ * through the private-use deep link. The client id is the deployed origin's
+ * metadata document, which is why desktop dev needs `NUXT_PUBLIC_APP_URL` set
+ * even though the webview loads the dev server. airspace's browser entrypoint
+ * always emits a web client with a redirect under the app origin, so the
+ * native flow drives `@atproto/oauth-client-browser` directly.
  *
  * A local dev origin gets an RFC 8252 loopback client id (`http://localhost`
- * plus redirect and scope params) because the atproto client metadata document
- * has to live at an HTTPS URL. Loopback redirects must use an IP literal, so
- * signing in has to happen at 127.0.0.1; `localhost` is a different origin
- * with its own IndexedDB and OPFS.
- *
- * Native shells (Tauri) pass `clientId` plus a `NativeAuth`: the flow runs in
- * the system browser and the response comes back through a deep link instead
- * of a page redirect. The metadata document for that client is served at
- * `/client-metadata/native`.
+ * plus redirect and scope params) because the metadata document has to live
+ * at an HTTPS URL. Loopback redirects must use an IP literal, so web sign-in
+ * has to happen at 127.0.0.1; `localhost` is a different origin with its own
+ * IndexedDB and OPFS.
  */
-
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export interface SessionIdentity {
   did: string;
@@ -54,30 +60,15 @@ export interface SessionManagerOptions {
   allowHttp?: boolean;
   /** Dev-only: local PLC directory (self-hosted PDS development). */
   plcDirectoryUrl?: string;
-  /** DNS-over-HTTPS endpoint for handle resolution. Defaults to Cloudflare. */
-  dohEndpoint?: string;
-  /** Override the client id, e.g. a native metadata document. */
-  clientId?: string;
+  /** atproto service that resolves handles (a PDS). Defaults to bsky.social. */
+  handleResolver?: string;
   /** Native shell callback handling. Omit on the web. */
   nativeAuth?: NativeAuth;
-}
-
-/** The `client_id` for an app origin: a metadata URL, or a loopback client id. */
-export function oauthClientId(appUrl: string): string {
-  const origin = appUrl.replace(/\/$/, "");
-  const url = new URL(origin);
-  if (!LOOPBACK_HOSTS.has(url.hostname)) {
-    return `${origin}/client-metadata`;
-  }
-
-  const redirect = new URL(`${origin}/`);
-  if (redirect.hostname === "localhost") redirect.hostname = "127.0.0.1";
-
-  const clientId = new URL("http://localhost");
-  clientId.searchParams.set("redirect_uri", redirect.toString());
-  clientId.searchParams.set("scope", OAUTH_SCOPES.join(" "));
-
-  return clientId.toString();
+  /**
+   * Native client metadata document URL. Required with `nativeAuth`: the
+   * document lives on the deployed origin, which the dev webview is not.
+   */
+  clientId?: string;
 }
 
 /** 127.0.0.1 form of a loopback app URL, for the sign-in guard message. */
@@ -89,8 +80,10 @@ export function loopbackAppUrl(appUrl: string): string {
 }
 
 export class SessionManager {
-  private client: BrowserOAuthClient | undefined;
+  private oauth: BrowserOAuth | undefined;
+  private nativeClient: BrowserOAuthClient | undefined;
   private restoring = false;
+  private currentDid: string | null = null;
 
   constructor(
     private readonly appUrl: string,
@@ -98,12 +91,13 @@ export class SessionManager {
     private readonly options: SessionManagerOptions = {},
   ) {}
 
-  private clientId(): string {
-    return this.options.clientId ?? oauthClientId(this.appUrl);
-  }
-
+  /** True when the page origin is a loopback HTTP origin (dev). */
   private isLoopback(): boolean {
-    return this.clientId().startsWith("http:");
+    try {
+      return new URL(this.appUrl).protocol === "http:";
+    } catch {
+      return false;
+    }
   }
 
   /** A localhost page cannot finish a loopback sign-in (the redirect lands on 127.0.0.1). */
@@ -115,36 +109,53 @@ export class SessionManager {
     }
   }
 
-  private async ensureClient(): Promise<BrowserOAuthClient> {
-    if (!this.client) {
-      // The browser has no DNS; handles resolve through the well-known file and
-      // DNS-over-HTTPS, and DIDs through the PLC directory (the local one during
-      // self-hosted PDS development).
-      const identityResolver = new AtprotoIdentityResolver(
-        createDidResolver({
-          ...(this.options.plcDirectoryUrl
-            ? { plcDirectoryUrl: this.options.plcDirectoryUrl }
-            : {}),
-        }),
-        new AtprotoDohHandleResolver({
-          dohEndpoint: this.options.dohEndpoint ?? "https://cloudflare-dns.com/dns-query",
-        }),
-      );
+  private allowHttp(): boolean {
+    return this.options.allowHttp ?? this.isLoopback();
+  }
 
-      this.client = await BrowserOAuthClient.load({
-        clientId: this.clientId(),
-        // The callback lands on the app root with the response in the fragment,
-        // where BrowserOAuthClient.findRedirectUrl() matches the registered
-        // redirect URI and init() processes it. No server-side bounce.
+  /** Web OAuth through airspace's browser entrypoint. */
+  private async webOAuth(): Promise<BrowserOAuth> {
+    if (!this.oauth) {
+      this.oauth = await createBrowserOAuth({
+        baseUrl: this.appUrl,
+        redirectPath: OAUTH_REDIRECT_PATH,
+        name: OAUTH_CLIENT_NAME,
+        scopes: OAUTH_SCOPES,
+        metadataPath: OAUTH_METADATA_PATH,
         responseMode: "fragment",
-        allowHttp: this.options.allowHttp ?? this.isLoopback(),
-        identityResolver,
-        // The client metadata document is served by the app's Nitro server;
-        // the PDS fetches it once at authorization time.
+        allowHttp: this.allowHttp(),
+        ...(this.options.handleResolver ? { handleResolver: this.options.handleResolver } : {}),
+        ...(this.options.plcDirectoryUrl ? { plcDirectoryUrl: this.options.plcDirectoryUrl } : {}),
       });
     }
 
-    return this.client;
+    return this.oauth;
+  }
+
+  /** Native shells use a private-use redirect, which airspace cannot express. */
+  private async nativeOAuth(): Promise<BrowserOAuthClient> {
+    if (!this.nativeClient) {
+      const clientId = this.options.clientId;
+      if (!clientId) {
+        throw new Error("Native sign-in needs a client metadata document URL.");
+      }
+      if (!clientId.startsWith("https:")) {
+        throw new Error(
+          `Native sign-in needs an https client metadata document, got ${clientId}. Set the deployed app URL.`,
+        );
+      }
+
+      const { BrowserOAuthClient } = await import("@atproto/oauth-client-browser");
+      this.nativeClient = await BrowserOAuthClient.load({
+        clientId,
+        responseMode: "fragment",
+        allowHttp: this.allowHttp(),
+        ...(this.options.handleResolver ? { handleResolver: this.options.handleResolver } : {}),
+        ...(this.options.plcDirectoryUrl ? { plcDirectoryUrl: this.options.plcDirectoryUrl } : {}),
+      });
+    }
+
+    return this.nativeClient;
   }
 
   /**
@@ -165,9 +176,14 @@ export class SessionManager {
 
     this.restoring = true;
     try {
-      const client = await this.ensureClient();
-      const result = await client.init();
-      const session = result?.session ?? null;
+      let session: OAuthSession | null = null;
+      if (native) {
+        const client = await this.nativeOAuth();
+        session = (await client.init())?.session ?? null;
+      } else {
+        const oauth = await this.webOAuth();
+        session = (await oauth.init())?.session ?? null;
+      }
       this.notify(session);
 
       return session;
@@ -176,7 +192,11 @@ export class SessionManager {
     }
   }
 
-  /** Full-page redirect flow on the web; system browser + deep link on native. */
+  /**
+   * Full-page redirect flow on the web; system browser + deep link on native.
+   * The web promise only settles if the user navigates back; the callback is
+   * completed by `restore()` on the next load.
+   */
   async login(identifier: string): Promise<OAuthSession> {
     const native = this.options.nativeAuth;
     if (!native && this.needsLoopbackIp()) {
@@ -185,10 +205,9 @@ export class SessionManager {
       );
     }
 
-    const client = await this.ensureClient();
-    const scope = OAUTH_SCOPES.join(" ");
-
     if (native) {
+      const client = await this.nativeOAuth();
+      const scope = OAUTH_SCOPES.join(" ");
       // Register the listener before opening the browser so a fast redirect is
       // not missed.
       const authorization = await client.authorize(identifier, {
@@ -201,22 +220,27 @@ export class SessionManager {
       return await this.completeNativeCallback(await response);
     }
 
-    const session = await client.signIn(identifier, { scope });
-    this.notify(session);
+    const oauth = await this.webOAuth();
 
-    return session;
+    return await oauth.signIn(identifier);
   }
 
   async signOut(): Promise<void> {
-    const client = await this.ensureClient();
-    const session = await client.initRestore();
-    if (session) await client.revoke(session.session.sub);
+    const native = this.options.nativeAuth;
+    if (native) {
+      const client = await this.nativeOAuth();
+      const session = await client.initRestore();
+      if (session) await client.revoke(session.session.sub);
+    } else if (this.currentDid) {
+      const oauth = await this.webOAuth();
+      await oauth.revoke(this.currentDid);
+    }
     this.notify(null);
   }
 
   private async completeNativeCallback(params: URLSearchParams): Promise<OAuthSession> {
     const native = this.options.nativeAuth!;
-    const client = await this.ensureClient();
+    const client = await this.nativeOAuth();
     const { session } = await client.initCallback(params, native.redirectUri);
     this.notify(session);
 
@@ -224,6 +248,7 @@ export class SessionManager {
   }
 
   private notify(session: OAuthSession | null): void {
+    this.currentDid = session?.did ?? null;
     // pdsUrl is resolved lazily via DID documents: the OAuth client has no
     // authoritative service endpoint on the session's metadata.
     this.onSession(session ? { did: session.did, handle: null, pdsUrl: "" } : null);

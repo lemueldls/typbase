@@ -240,7 +240,14 @@ export type QueryCategories = Category[];
 /** `typbase/query/daily.json` (optionally filtered by `YYYY-MM`). */
 export type QueryDaily = PageMeta[];
 
-export { NATIVE_OAUTH_REDIRECT_URI, OAUTH_SCOPES } from "./atproto";
+export {
+  NATIVE_OAUTH_METADATA_PATH,
+  NATIVE_OAUTH_REDIRECT_URI,
+  OAUTH_CLIENT_NAME,
+  OAUTH_METADATA_PATH,
+  OAUTH_REDIRECT_PATH,
+  OAUTH_SCOPES,
+} from "./atproto";
 export * from "./plugins";
 
 /** Kinds `#typbase.query` supports. */

@@ -20,7 +20,7 @@ export interface PublishResult {
 
 /**
  * Renders a page and publishes it. The rendered artifacts become blobs on the
- * signed-in PDS; the `app.typbase.post` record is first written as a draft in
+ * signed-in PDS; the `at.typbase.post` record is first written as a draft in
  * the workspace space and then copied to the public repo by airspace's
  * `publish()`, so a failed publish leaves the draft behind instead of a
  * half-written public record.

@@ -431,7 +431,16 @@ function useWorkspaceState() {
       initAiKeys(keys, (next) => void local.set("aiKeys", next));
 
       const service = await withTimeout(
-        Atproto.init(store, local, { appUrl: appUrl(String(runtimeConfig.public.appUrl ?? "")) }),
+        Atproto.init(store, local, {
+          appUrl: appUrl(String(runtimeConfig.public.appUrl ?? "")),
+          // Desktop shells sign in against the deployed metadata document even
+          // when the webview loads the dev server, so the configured origin is
+          // kept separate from the page origin.
+          oauthOrigin: String(runtimeConfig.public.appUrl ?? ""),
+          ...(runtimeConfig.public.pdsUrl
+            ? { handleResolver: String(runtimeConfig.public.pdsUrl) }
+            : {}),
+        }),
         12_000,
         "Atproto initialization",
       );

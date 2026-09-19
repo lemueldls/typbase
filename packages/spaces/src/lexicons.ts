@@ -7,10 +7,10 @@ import { defineLexicons, field, space } from "airspace/lexicon";
  * megabyte). `post` is a note: the space record is the draft, `publish()`
  * copies it to the public repo at the same key.
  *
- * The space NSID is `app.typbase.workspace`; the key is the local workspace
+ * The space NSID is `at.typbase.workspace`; the key is the local workspace
  * id, so every workspace gets its own space under the signed-in account.
  */
-export default defineLexicons("app.typbase", {
+export default defineLexicons("at.typbase", {
   update: {
     docId: field.text({ max: 200 }),
     update: field.text({ max: 100_000 }),

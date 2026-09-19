@@ -8,7 +8,7 @@ import type { SyncTransport } from "./sync";
 import { collections, workspaceSpace } from "./collections";
 
 /** The NSID of the workspace space type. */
-export const WORKSPACE_SPACE_TYPE = "app.typbase.workspace";
+export const WORKSPACE_SPACE_TYPE = "at.typbase.workspace";
 
 /** `com.atproto.repo.applyWrites`-style batch limit; keep deletes in chunks of this size. */
 const MAX_BATCH = 200;

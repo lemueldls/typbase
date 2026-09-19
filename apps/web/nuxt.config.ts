@@ -1,6 +1,5 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
-import { fileURLToPath } from "node:url";
 import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
@@ -35,11 +34,6 @@ export default defineNuxtConfig({
   },
   vite: {
     // experimental: { bundledDev: true },
-    resolve: {
-      alias: {
-        "node:dns/promises": fileURLToPath(new URL("./src/lib/node-dns-shim.ts", import.meta.url)),
-      },
-    },
     optimizeDeps: {
       exclude: ["loro-crdt", "sqlite-wasm-vec", "harper.js", "harper.js/binaryInlined"],
       // include: ["@typbase/wasm"],
@@ -60,7 +54,14 @@ export default defineNuxtConfig({
       // websocket: true,
     },
     prerender: {
-      routes: ["/"],
+      routes: [
+        "/",
+        // Static client metadata documents: the PDS fetches them by URL and
+        // they only depend on NUXT_PUBLIC_APP_URL, so a static deploy needs no
+        // worker for sign-in. See `server/routes/oauth-client-metadata*`.
+        "/oauth-client-metadata.json",
+        "/oauth-client-metadata/native.json",
+      ],
       crawlLinks: true,
     },
     routeRules: {

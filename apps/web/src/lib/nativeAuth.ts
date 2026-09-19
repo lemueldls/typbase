@@ -4,20 +4,24 @@ import { isTauri } from "@typbase/storage";
 import { NATIVE_OAUTH_REDIRECT_URI } from "@typbase/typing";
 
 /**
- * OAuth for native shells. The desktop and mobile builds cannot act as an
+ * OAuth for native shells. Desktop and mobile builds cannot act as an
  * `http://127.0.0.1` loopback client and have no HTTPS origin to receive a
- * redirect, so sign-in runs in the system browser and the response comes back
- * through the `at.typbase.app` deep link registered in `tauri.conf.json`. The
- * matching client metadata is served from `/client-metadata/native`.
+ * redirect, so sign-in always runs in the system browser and the response
+ * comes back through the `at.typbase.app` deep link registered in
+ * `tauri.conf.json`. The matching client metadata is served from the deployed
+ * origin at `NATIVE_OAUTH_METADATA_PATH`; Tauri dev loads the Nuxt dev server
+ * but still uses that document, so desktop dev needs `NUXT_PUBLIC_APP_URL` set
+ * to the deployed HTTPS origin.
  *
- * Tauri dev loads the app from the Nuxt dev server over http, so it takes the
- * normal loopback path and this returns null.
+ * The shell registers the scheme at startup on Linux and Windows debug builds
+ * (`register_all` in `apps/native/src/lib.rs`); macOS only registers bundled
+ * apps, so use `pnpm tauri build --debug` there.
  */
 
 const CALLBACK_TIMEOUT_MS = 5 * 60_000;
 
 export function createNativeAuth(): NativeAuth | null {
-  if (!isTauri() || isDevWebOrigin()) return null;
+  if (!isTauri()) return null;
 
   return {
     redirectUri: NATIVE_OAUTH_REDIRECT_URI,
@@ -62,16 +66,6 @@ export function createNativeAuth(): NativeAuth | null {
       return paramsOf(urls ?? []);
     },
   };
-}
-
-/** The dev server origin is a normal loopback web origin, even inside Tauri. */
-function isDevWebOrigin(): boolean {
-  const { protocol, hostname } = window.location;
-
-  return (
-    protocol === "http:" &&
-    (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]")
-  );
 }
 
 /** OAuth response params from any of the delivered URLs, query or fragment. */
