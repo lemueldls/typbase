@@ -37,7 +37,7 @@ jobs:
         run: pnpm fmt:check
 
       - name: 🦀 Build @typbase/wasm
-        run: pnpm wasm:build
+        run: pnpm moon run wasm:build
 
       - name: 🧹 Lint
         run: pnpm lint

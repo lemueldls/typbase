@@ -15,9 +15,7 @@
     "packages:dev": "moon run typing:build-dev storage:build-dev spaces:build-dev codemirror:build-dev",
     "preview": "moon run web:preview",
     "symbols": "node scripts/symbols/transform.mjs",
-    "typecheck": "pnpm --filter @typbase/web typecheck && pnpm --filter @typbase/typing --filter @typbase/storage --filter @typbase/spaces --filter @typbase/codemirror typecheck",
-    "wasm:build": "moon run wasm:build-dev",
-    "wasm:build:release": "moon run wasm:build"
+    "typecheck": "pnpm --filter @typbase/web typecheck && pnpm --filter @typbase/typing --filter @typbase/storage --filter @typbase/spaces --filter @typbase/codemirror typecheck"
   },
   "dependencies": {
     "@tauri-apps/api": "^3.0.0-alpha.0",
