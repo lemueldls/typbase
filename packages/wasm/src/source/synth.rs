@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use typst_syntax::{LinkedNode, SyntaxKind};
+use typst_syntax::{LinkedNode, Source, SyntaxKind};
 
 use crate::{
     bindings::TypstFileId,
@@ -13,10 +13,6 @@ use crate::{
 
 /// The result of a synth-building pass.
 pub struct SynthResult {
-    /// The render source text: the repaired raw source with the prelude and
-    /// block wrappers applied. This is what the renderer compiles.
-    pub synth: String,
-
     /// The top-level blocks discovered in the (repaired) raw source, in source
     /// order. Each block's `range` is in repaired-source bytes.
     pub blocks: Vec<SynthBlock>,
@@ -108,9 +104,15 @@ pub fn sync_source_context(
         None => (render.synth.clone(), render.map.clone()),
     };
 
-    world.insert_source(context.ide_id, pristine_synth.clone());
-    world.insert_source(context.synth_id, pristine_synth);
-    world.insert_source(context.render_id, render.synth.clone());
+    // Clone the prepared `Source` instead of the text: the text is refcounted
+    // inside it, so the IDE and synth ids share one allocation.
+    let synth_source = Source::new(context.synth_id, pristine_synth);
+    world.insert_source_object(context.ide_id, synth_source.clone());
+    world.insert_source_object(context.synth_id, synth_source);
+    world.insert_source_object(
+        context.render_id,
+        Source::new(context.render_id, render.synth),
+    );
 
     context.index_map = index_map;
     context.render_map = render.map;
@@ -120,7 +122,6 @@ pub fn sync_source_context(
     world.main_id = Some(context.synth_id);
 
     SynthResult {
-        synth: render.synth,
         blocks: render.blocks,
         equation_ranges: render.equation_ranges,
         delimiter_fixes: context.render_fixups.fixes().to_vec(),

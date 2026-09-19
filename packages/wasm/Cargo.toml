@@ -16,7 +16,6 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["pdf"]
 pdf = ["dep:typst-pdf"]
-wasm-simd = []
 
 [dependencies]
 comemo = { version = "0.5.0" }
@@ -51,6 +50,10 @@ criterion = { version = "0.8.1", features = ["html_reports"] }
 insta = { version = "1.46.3", features = ["json"] }
 walkdir = { version = "2.5.0" }
 wasm-bindgen-test = { version = "0.3" }
+
+[[bench]]
+name = "engine"
+harness = false
 
 [lints]
 workspace = true

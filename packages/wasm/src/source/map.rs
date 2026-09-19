@@ -250,12 +250,44 @@ impl SourceMap {
             to_cursor += from_len - from_cursor;
         }
 
-        Self {
+        let mut map = Self {
             prefix: 0,
             segments,
             from_len,
             to_len: to_cursor,
+        };
+        map.compact();
+
+        map
+    }
+
+    /// Merges adjacent copy segments that continue the same source and target
+    /// ranges. Generated segments break the runs, so this only shrinks maps
+    /// built from consecutive copies. Lookups are unaffected: a merged copy
+    /// has the same offsets as the two it replaces.
+    pub fn compact(&mut self) {
+        let mut out: Vec<Segment> = Vec::with_capacity(self.segments.len());
+
+        for segment in std::mem::take(&mut self.segments) {
+            if let Some(Segment::Copy { kind, from, to }) = out.last_mut()
+                && let Segment::Copy {
+                    kind: next_kind,
+                    from: next_from,
+                    to: next_to,
+                } = &segment
+                && *kind == *next_kind
+                && from.end == next_from.start
+                && to.end == next_to.start
+            {
+                from.end = next_from.end;
+                to.end = next_to.end;
+                continue;
+            }
+
+            out.push(segment);
         }
+
+        self.segments = out;
     }
 
     #[must_use]
@@ -537,11 +569,18 @@ impl SourceMap {
             None
         };
 
+        let removed = (end - start) as isize;
+
         let shift_from = if let Some(merge_index) = merge_index {
             if let Some(Segment::Generated { to, .. }) = rebuilt.get_mut(merge_index) {
                 to.end += text.len();
             }
             merge_index + 1
+        } else if text.is_empty() {
+            // An empty replacement inserts nothing. Creating a zero-length
+            // generated segment here used to leave a marker that a later edit
+            // could shift inside a merged span, breaking the tiling.
+            index
         } else {
             rebuilt.insert(
                 index,
@@ -554,7 +593,7 @@ impl SourceMap {
             index + 1
         };
 
-        let delta = text.len() as isize - (end - start) as isize;
+        let delta = text.len() as isize - removed;
         for segment in &mut rebuilt[shift_from..] {
             segment.shift_to(delta);
         }
@@ -757,12 +796,13 @@ impl<'a> SourceBuilder<'a> {
     /// The finished text and map. The map is validated in debug builds.
     #[must_use]
     pub fn finish(self) -> (String, SourceMap) {
-        let map = SourceMap {
+        let mut map = SourceMap {
             prefix: self.prefix,
             segments: self.segments,
             from_len: self.raw.len(),
             to_len: self.text.len(),
         };
+        map.compact();
 
         #[cfg(debug_assertions)]
         {
@@ -940,5 +980,56 @@ mod tests {
         assert_eq!(map.backward(0), 0);
         assert_eq!(map.backward(usize::MAX), 0);
         assert!(map.validate().is_empty());
+    }
+
+    #[test]
+    fn compact_merges_adjacent_copies() {
+        let mut builder = SourceBuilder::new("abcdef");
+        builder.copy(0..3);
+        builder.copy(3..6);
+
+        let (text, map) = builder.finish();
+
+        assert_eq!(text, "abcdef");
+        assert_eq!(map.segments().len(), 1);
+        assert_eq!(map.forward(3, Side::After), 3);
+        assert_eq!(map.backward(5), 5);
+    }
+
+    #[test]
+    fn compact_keeps_generated_spans() {
+        let mut builder = SourceBuilder::new("ab");
+        builder.copy(0..1);
+        builder.generated(1, "X", SegmentKind::Wrapper);
+        builder.copy(1..2);
+
+        let (_, map) = builder.finish();
+
+        assert_eq!(map.segments().len(), 3);
+        assert_eq!(map.forward(1, Side::Before), 1);
+        assert_eq!(map.forward(1, Side::After), 2);
+    }
+
+    #[test]
+    fn empty_replace_leaves_no_marker() {
+        // Regression: an empty replacement used to insert a zero-length
+        // generated segment. A following insert at the same offset then
+        // merged into the preceding span and shifted the marker inside it,
+        // breaking the tiling.
+        let mut map = SourceMap::identity(6);
+        map.replace(2..4, "", SegmentKind::Unknown);
+
+        assert_eq!(map.to_len(), 4);
+        assert!(map.validate().is_empty());
+
+        map.insert(2, "x", SegmentKind::Unknown);
+
+        assert_eq!(map.to_len(), 5);
+        assert!(map.validate().is_empty(), "{:?}", map.validate());
+        assert_eq!(map.forward(4, Side::Before), 2);
+        assert_eq!(map.forward(4, Side::After), 3);
+        assert_eq!(map.backward(2), 4);
+        assert_eq!(map.backward(3), 4);
+        assert_eq!(map.backward(4), 5);
     }
 }

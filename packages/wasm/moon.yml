@@ -4,7 +4,7 @@ layer: "library"
 
 tasks:
   build-dev:
-    script: "wasm-pack build --dev --target web --scope typbase . --features wasm-simd"
+    script: "wasm-pack build --dev --target web --scope typbase ."
     inputs:
       - "Cargo.toml"
       - "pkg/package.json"
@@ -17,7 +17,7 @@ tasks:
       - "pkg/**/*"
 
   build:
-    script: "wasm-pack build --release --target web --scope typbase . --features wasm-simd"
+    script: "wasm-pack build --release --target web --scope typbase ."
     inputs:
       - "Cargo.toml"
       - "pkg/package.json"
@@ -30,10 +30,22 @@ tasks:
       - "pkg/**/*"
 
   test:
-    script: "cargo test -p wasm --lib"
+    script: "if cargo nextest --version >/dev/null 2>&1; then cargo nextest run -p wasm --lib; else cargo test -p wasm --lib; fi"
     inputs:
       - "Cargo.toml"
       - "src/**/*"
+      - "/Cargo.toml"
+      - "/Cargo.lock"
+      - "/apps/web/public/fonts/**/*"
+
+  bench:
+    script: "if cargo criterion --version >/dev/null 2>&1; then cargo criterion --bench engine; else cargo bench --bench engine; fi"
+    options:
+      runInCI: false
+    inputs:
+      - "Cargo.toml"
+      - "src/**/*"
+      - "benches/**/*"
       - "/Cargo.toml"
       - "/Cargo.lock"
       - "/apps/web/public/fonts/**/*"

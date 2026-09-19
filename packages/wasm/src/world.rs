@@ -60,6 +60,20 @@ impl TypstWorld {
         self.files.insert(id, FileSlot::Source(source));
     }
 
+    /// Inserts a prepared [`Source`]. Cloning a `Source` is cheap because its
+    /// text is refcounted, so callers that need the same text under several
+    /// ids should clone the source instead of the string.
+    pub fn insert_source_object(&mut self, id: FileId, source: Source) {
+        self.files.insert(id, FileSlot::Source(source));
+    }
+
+    /// Installed font faces. Tests and the debug lab use this to watch for
+    /// duplicate installs.
+    #[must_use]
+    pub fn font_count(&self) -> usize {
+        self.font_loader.fonts.len()
+    }
+
     pub fn remove_source(&mut self, id: &FileId) {
         self.files.remove(id);
     }

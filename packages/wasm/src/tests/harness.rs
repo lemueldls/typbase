@@ -58,3 +58,17 @@ pub fn compile(state: &mut TypstState, id: &TypstFileId, text: &str) -> PagedRen
 
     chunk_by_items(id, text, "", RenderTarget::Svg, state)
 }
+
+/// The render source text (the synth the renderer compiles). Tests read it
+/// after a sync instead of receiving a copy from the result.
+#[must_use]
+pub fn render_text(state: &TypstState, id: &TypstFileId) -> String {
+    state
+        .source_context_map
+        .get(id)
+        .unwrap()
+        .render_source(&state.world)
+        .unwrap()
+        .text()
+        .to_string()
+}

@@ -16,7 +16,9 @@ mod harness;
 
 mod characterize;
 mod ide;
+mod map_props;
 mod mapper;
+mod memory;
 mod packages;
 mod partition;
 mod recovery;

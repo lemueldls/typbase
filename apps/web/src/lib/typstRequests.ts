@@ -182,13 +182,17 @@ export function createTypstRequestService(
 
   function purge(): void {
     // Embedded page sources and query JSON both go stale when workspace data
-    // changes; dropping them forces a re-request on the next compile.
+    // changes; dropping them forces a re-request on the next compile. Blobs
+    // are content-addressed and immutable, so they stay in the world: media
+    // does not need to be re-read and re-copied on every change.
     for (const path of insertedSources) {
       typstState.removeFile(typstState.createFileId(path));
     }
     insertedSources.clear();
 
     for (const path of insertedFiles) {
+      if (path.startsWith("typbase/blob/")) continue;
+
       typstState.removeFile(typstState.createFileId(path));
     }
     insertedFiles.clear();

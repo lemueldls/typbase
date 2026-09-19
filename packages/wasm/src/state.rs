@@ -275,6 +275,14 @@ impl TypstState {
         Ok(())
     }
 
+    /// Clears Typst's global memoization caches. They make repeated compiles
+    /// cheap but grow for the lifetime of the instance, so call this when
+    /// memory matters more than speed, such as on a workspace switch.
+    #[wasm_bindgen(js_name = "evictCaches")]
+    pub fn evict_caches(&mut self) {
+        comemo::evict(0);
+    }
+
     #[wasm_bindgen(js_name = "installFont")]
     pub fn install_font(&mut self, bytes: Vec<u8>) {
         self.world.install_font(bytes);
@@ -298,6 +306,15 @@ impl TypstState {
 }
 
 impl TypstState {
+    /// The raw-to-synth map for a note. Read-only; the debug lab and the
+    /// benches use it to inspect segment counts.
+    #[must_use]
+    pub fn source_map(&self, id: &TypstFileId) -> Option<&crate::source::SourceMap> {
+        self.source_context_map
+            .get(id)
+            .map(|context| &context.index_map)
+    }
+
     /// Plain-Rust core of [`Self::check_index`]. Host tests call this
     /// directly; the wasm boundary only serializes the report.
     #[must_use]

@@ -532,6 +532,9 @@ function useWorkspaceState() {
         detail: `${store.listPages().length} page(s)`,
       });
 
+      // The engine's memo caches belong to the previous workspace's docs.
+      evictTypstCaches();
+
       store.onStructureChange(() => {
         dataRevision.value += 1;
         void syncRegistryName(store);

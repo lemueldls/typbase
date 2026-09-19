@@ -68,6 +68,15 @@ export function replaceTypstState(state: TypstState): void {
   statePromise = Promise.resolve(state);
 }
 
+/**
+ * Clears Typst's memoization caches when an engine instance is already
+ * loaded. The caches speed up repeated compiles but grow for the session;
+ * workspace switches call this because the next compiles are cold anyway.
+ */
+export function evictTypstCaches(): void {
+  void statePromise?.then((state) => state.evictCaches()).catch(() => undefined);
+}
+
 interface LocalFontData {
   family: string;
   fullName: string;

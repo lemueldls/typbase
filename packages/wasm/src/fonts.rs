@@ -24,6 +24,17 @@ impl FontLoader {
         T: AsRef<[u8]> + Send + Sync + 'static,
     {
         for font in Font::iter(Bytes::new(bytes)) {
+            // Installing the same font twice (a repeated settings sync, a
+            // worker restart) used to duplicate it in the book and the font
+            // list. Keep the first copy.
+            if self
+                .fonts
+                .iter()
+                .any(|existing| existing.info() == font.info())
+            {
+                continue;
+            }
+
             self.book.push(font.info().clone());
             self.fonts.push(font);
         }

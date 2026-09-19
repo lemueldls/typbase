@@ -12,17 +12,16 @@ fn plain_source_wraps_paragraphs() {
     let id = harness::page(&mut state, &fixture.name);
 
     let result = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
+    let synth = harness::render_text(&state, &id);
 
     assert!(!result.blocks.is_empty(), "no blocks discovered");
     assert!(
-        result.synth.contains("Hello, *world*."),
-        "raw text missing from synth:\n{}",
-        result.synth,
+        synth.contains("Hello, *world*."),
+        "raw text missing from synth:\n{synth}",
     );
     assert!(
-        result.synth.contains("#block(stroke:0pt,width:100%)["),
-        "paragraph was not wrapped:\n{}",
-        result.synth,
+        synth.contains("#block(stroke:0pt,width:100%)["),
+        "paragraph was not wrapped:\n{synth}",
     );
     assert_eq!(result.equation_ranges.len(), 0);
 }
@@ -52,24 +51,20 @@ fn structural_nodes_pass_through_unwrapped() {
     let mut state = harness::state();
     let id = harness::page(&mut state, &fixture.name);
 
-    let result = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
+    let _ = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
+    let synth = harness::render_text(&state, &id);
 
     assert!(
-        result.synth.contains("#set par(justify: true)"),
-        "set rule was rewritten:\n{}",
-        result.synth,
+        synth.contains("#set par(justify: true)"),
+        "set rule was rewritten:\n{synth}",
     );
     assert!(
-        result.synth.contains("#let x = 1"),
-        "let binding was rewritten:\n{}",
-        result.synth,
+        synth.contains("#let x = 1"),
+        "let binding was rewritten:\n{synth}",
     );
     assert!(
-        !result
-            .synth
-            .contains("#block(stroke:0pt,width:100%)[#let x"),
-        "let binding was wrapped as a block:\n{}",
-        result.synth,
+        !synth.contains("#block(stroke:0pt,width:100%)[#let x"),
+        "let binding was wrapped as a block:\n{synth}",
     );
 }
 
@@ -81,10 +76,11 @@ fn synth_is_deterministic() {
         let mut state = harness::state();
         let id = harness::page(&mut state, &fixture.name);
 
-        let first =
-            sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state).synth;
-        let second =
-            sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state).synth;
+        let _ = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
+        let first = harness::render_text(&state, &id);
+
+        let _ = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
+        let second = harness::render_text(&state, &id);
 
         assert_eq!(
             first, second,
@@ -102,50 +98,48 @@ fn blank_lines_become_vertical_space() {
     let mut state = harness::state();
     let id = harness::page(&mut state, "synth_blank_lines");
 
-    let result = sync_source_state(
+    let _ = sync_source_state(
         &id,
         "First.\n\nSecond.\n\n\n\nThird.\n",
         "",
         RenderTarget::Svg,
         &mut state,
     );
+    let result = harness::render_text(&state, &id);
 
     assert!(
-        result.synth.contains("#v(1.4em)"),
-        "blank line missing from synth:\n{}",
-        result.synth,
+        result.contains("#v(1.4em)"),
+        "blank line missing from synth:\n{result}",
     );
     assert!(
-        !result.synth.contains("#v(2.8em)"),
-        "run of blank lines did not collapse:\n{}",
-        result.synth,
+        !result.contains("#v(2.8em)"),
+        "run of blank lines did not collapse:\n{result}",
     );
     assert_eq!(
-        result.synth.matches("#v(1.4em)").count(),
+        result.matches("#v(1.4em)").count(),
         2,
-        "expected one gap per block boundary:\n{}",
-        result.synth,
+        "expected one gap per block boundary:\n{result}",
     );
 
-    let single = sync_source_state(
+    let _ = sync_source_state(
         &id,
         "Line one\nline two\n",
         "",
         RenderTarget::Svg,
         &mut state,
     );
+    let single = harness::render_text(&state, &id);
 
     assert!(
-        !single.synth.contains("#v("),
-        "single line break became vertical space:\n{}",
-        single.synth,
+        !single.contains("#v("),
+        "single line break became vertical space:\n{single}",
     );
 
-    let leading = sync_source_state(&id, "\n\n\nFirst.\n", "", RenderTarget::Svg, &mut state);
+    let _ = sync_source_state(&id, "\n\n\nFirst.\n", "", RenderTarget::Svg, &mut state);
+    let leading = harness::render_text(&state, &id);
 
     assert!(
-        !leading.synth.contains("#v("),
-        "leading blank lines added space before the first block:\n{}",
-        leading.synth,
+        !leading.contains("#v("),
+        "leading blank lines added space before the first block:\n{leading}",
     );
 }
