@@ -5,7 +5,7 @@ use typst_layout::PagedDocument;
 use typst_syntax::{FileId, RootedPath, Source};
 
 use crate::{
-    source::{RawFixups, Side, SourceMap},
+    source::{RawFixups, Side, SourceMap, SynthBlock},
     theme::ThemeColors,
     world::TypstWorld,
 };
@@ -47,6 +47,25 @@ impl Default for SpaceContext {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// The inputs and pristine outputs of the last successful synth build. A
+/// compile that repeats the same raw text and prelude restores the render
+/// source and map from here instead of parsing and building again.
+#[derive(Debug)]
+pub(crate) struct SyncedInput {
+    /// Full prelude: space settings plus the caller's prelude.
+    pub(crate) prelude: String,
+    /// Top-level blocks, in repaired-source bytes.
+    pub(crate) blocks: Vec<SynthBlock>,
+    /// Equation ranges, in repaired-source bytes.
+    pub(crate) equation_ranges: Vec<Range<usize>>,
+    /// Pristine render map, before recovery splices edits into it.
+    pub(crate) render_map: SourceMap,
+    /// Pristine synth source, re-inserted into the IDE id on restore.
+    pub(crate) synth_source: Source,
+    /// Pristine render source, re-inserted on restore.
+    pub(crate) render_source: Source,
 }
 
 /// Per-note rendering context.
@@ -133,6 +152,10 @@ pub struct SourceContext {
     /// Maximum render height in points, if the note is in a fixed-height
     /// context (e.g. a locked sticky note). `None` for scrolling notes.
     pub height: Option<f64>,
+
+    /// Inputs and pristine outputs of the last successful sync, used to skip
+    /// the synth build when nothing changed.
+    pub(crate) last_sync: Option<SyncedInput>,
 }
 
 impl SourceContext {
@@ -165,6 +188,7 @@ impl SourceContext {
             html_document: None,
             width: String::from("auto"),
             height: None,
+            last_sync: None,
         }
     }
 

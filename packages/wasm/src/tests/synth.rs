@@ -90,6 +90,88 @@ fn synth_is_deterministic() {
     }
 }
 
+/// A compile that repeats the same raw text and prelude skips the synth build
+/// and restores the pristine render source, so recovery starts clean.
+#[test]
+fn unchanged_input_restores_the_pristine_render_source() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "early_out");
+    let text = "$ notdefined + 1 $\n";
+
+    let _ = sync_source_state(&id, text, "", RenderTarget::Svg, &mut state);
+    let pristine = harness::render_text(&state, &id);
+
+    let render = harness::compile(&mut state, &id, text);
+    assert!(render.document.is_some());
+    assert!(
+        !state
+            .source_context_map
+            .get(&id)
+            .unwrap()
+            .marked_raw_ranges
+            .is_empty(),
+        "fixture did not mark anything",
+    );
+    assert_ne!(
+        harness::render_text(&state, &id),
+        pristine,
+        "recovery did not rewrite the render source",
+    );
+
+    // A sync with the same raw text and prelude restores the pristine render
+    // source, so the next compile starts from a clean slate.
+    let _ = sync_source_state(&id, text, "", RenderTarget::Svg, &mut state);
+
+    assert_eq!(
+        harness::render_text(&state, &id),
+        pristine,
+        "the early-out did not restore the pristine render source",
+    );
+    assert!(
+        state
+            .source_context_map
+            .get(&id)
+            .unwrap()
+            .marked_raw_ranges
+            .is_empty(),
+        "the early-out did not clear the marks",
+    );
+}
+
+/// The prelude carries the pane width, theme, fonts, and text size, so any of
+/// those changing must rebuild instead of hitting the early-out.
+#[test]
+fn prelude_changes_rebuild_the_synth() {
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "prelude_change");
+
+    let _ = sync_source_state(&id, "Hello.\n", "", RenderTarget::Svg, &mut state);
+    let before = harness::render_text(&state, &id);
+
+    let _ = sync_source_state(
+        &id,
+        "Hello.\n",
+        "#set text(size: 8pt)\n",
+        RenderTarget::Svg,
+        &mut state,
+    );
+    let after = harness::render_text(&state, &id);
+    assert_ne!(before, after, "a caller prelude change was cached");
+
+    state.resize(&id, Some(400.0), None);
+    let _ = sync_source_state(&id, "Hello.\n", "", RenderTarget::Svg, &mut state);
+    assert_ne!(
+        harness::render_text(&state, &id),
+        after,
+        "a pane width change was cached",
+    );
+}
+
 /// Blank source lines become explicit vertical space, so the PDF and read
 /// view keep the paragraph gaps the editor shows. A single line break is not
 /// a blank line and adds nothing, and runs of blank lines collapse into one.

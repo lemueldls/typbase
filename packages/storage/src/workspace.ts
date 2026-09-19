@@ -16,7 +16,7 @@ import type { LoroDoc, LoroList, LoroMap, VersionVector } from "loro-crdt";
 import { createId } from "@paralleldrive/cuid2";
 import { DEFAULT_SETTINGS } from "@typbase/typing";
 
-import type { StorageBackend } from "./backend";
+import type { StorageBackend, StorageEntryStat } from "./backend";
 
 import { blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
 import { type LoroModule, loadLoro } from "./loro";
@@ -67,6 +67,26 @@ export interface SourceSyncResult {
   conflicts: string[];
   /** Source files written from the doc (new or re-exported). */
   exported: number;
+}
+
+/**
+ * One mirrored source: its page, content hash, and the file stat seen when the
+ * hash was recorded. A matching stat means the file cannot have changed, so
+ * the sync skips reading it. Records written before stat tracking have no size
+ * and force one re-read.
+ */
+interface SourceHashRecord {
+  pageId: string;
+  hash: string;
+  size?: number;
+  modifiedAt?: number;
+}
+
+/** A mirrored `.typ` file's path and stat, without its contents. */
+interface SourceFileInfo {
+  path: string;
+  size: number;
+  modifiedAt?: number;
 }
 
 /** FNV-1a, hex. Change detection only; not security relevant. */
@@ -148,7 +168,7 @@ export class WorkspaceStore {
   private pendingCommits = new Set<string>();
   private loro!: LoroModule;
   private sourceSync?: SourceSyncStore;
-  private sourceHashes: Record<string, { pageId: string; hash: string }> | undefined;
+  private sourceHashes: Record<string, SourceHashRecord> | undefined;
   private sourceSyncPromise: Promise<SourceSyncResult> | undefined;
 
   private constructor(
@@ -226,11 +246,9 @@ export class WorkspaceStore {
     await this.backend.write(`workspaces/${this.workspaceId}/sources/${path}`, bytes);
   }
 
-  private async loadSourceHashes(): Promise<Record<string, { pageId: string; hash: string }>> {
+  private async loadSourceHashes(): Promise<Record<string, SourceHashRecord>> {
     this.sourceHashes ??=
-      (await this.sourceSync?.get<Record<string, { pageId: string; hash: string }>>(
-        SOURCE_HASHES_KEY,
-      )) ?? {};
+      (await this.sourceSync?.get<Record<string, SourceHashRecord>>(SOURCE_HASHES_KEY)) ?? {};
 
     return this.sourceHashes;
   }
@@ -241,8 +259,11 @@ export class WorkspaceStore {
     await this.sourceSync.set(SOURCE_HASHES_KEY, this.sourceHashes);
   }
 
-  private async writeSourceFile(page: PageMeta, text: string): Promise<void> {
-    await this.backend.write(this.sourcePath(page), new TextEncoder().encode(text));
+  private async writeSourceFile(page: PageMeta, text: string): Promise<StorageEntryStat | null> {
+    const path = this.sourcePath(page);
+    await this.backend.write(path, new TextEncoder().encode(text));
+
+    return this.backend.stat(path).catch(() => null);
   }
 
   private async exportPageSource(pageId: string): Promise<void> {
@@ -250,16 +271,28 @@ export class WorkspaceStore {
     if (!page) return;
 
     const text = await this.loadPageText(pageId);
-    await this.writeSourceFile(page, text);
+    const stat = await this.writeSourceFile(page, text);
 
     const hashes = await this.loadSourceHashes();
-    hashes[page.path] = { pageId, hash: hashText(text) };
+    hashes[page.path] = {
+      pageId,
+      hash: hashText(text),
+      size: stat?.size,
+      modifiedAt: stat?.modifiedAt,
+    };
     await this.saveSourceHashes();
   }
 
-  /** Reads `sources/**.typ` recursively as `virtual path -> text`. */
-  private async listSourceFiles(relative = ""): Promise<Map<string, string>> {
-    const files = new Map<string, string>();
+  /** Reads one mirrored source file, or null when it vanished. */
+  private async readSourceFile(path: string): Promise<string | null> {
+    const bytes = await this.backend.read(path);
+
+    return bytes ? new TextDecoder().decode(bytes) : null;
+  }
+
+  /** Mirrored `.typ` files as `virtual path -> stat`, without reading. */
+  private async listSourceFiles(relative = ""): Promise<Map<string, SourceFileInfo>> {
+    const files = new Map<string, SourceFileInfo>();
     const dir = `workspaces/${this.workspaceId}/sources${relative ? `/${relative}` : ""}`;
     let entries: string[] = [];
     try {
@@ -279,10 +312,9 @@ export class WorkspaceStore {
       const virtual = relative ? `${relative}/${name}` : name;
 
       if (stat.kind === "directory") {
-        for (const [key, value] of await this.listSourceFiles(virtual)) files.set(key, value);
+        for (const [key, info] of await this.listSourceFiles(virtual)) files.set(key, info);
       } else if (name.endsWith(".typ")) {
-        const bytes = await this.backend.read(path);
-        if (bytes) files.set(virtual, new TextDecoder().decode(bytes));
+        files.set(virtual, { path, size: stat.size, modifiedAt: stat.modifiedAt });
       }
     }
 
@@ -318,10 +350,26 @@ export class WorkspaceStore {
     const pages = this.listPages();
     const pagesByPath = new Map(pages.map((page) => [page.path, page]));
 
-    for (const [virtualPath, text] of files) {
-      const fileHash = hashText(text);
+    for (const [virtualPath, file] of files) {
       const page = pagesByPath.get(virtualPath);
       const recorded = hashes[virtualPath];
+
+      // A matching stat means the file cannot have changed. Records written
+      // before stat tracking have no size, so they fall through to one read.
+      if (
+        page &&
+        recorded?.size !== undefined &&
+        recorded.modifiedAt !== undefined &&
+        recorded.size === file.size &&
+        recorded.modifiedAt === file.modifiedAt
+      ) {
+        continue;
+      }
+
+      const text = await this.readSourceFile(file.path);
+      if (text === null) continue;
+
+      const fileHash = hashText(text);
 
       if (!page) {
         const fallback =
@@ -334,12 +382,23 @@ export class WorkspaceStore {
           path: virtualPath,
           content: text,
         });
-        hashes[virtualPath] = { pageId: meta.id, hash: fileHash };
+        hashes[virtualPath] = {
+          pageId: meta.id,
+          hash: fileHash,
+          size: file.size,
+          modifiedAt: file.modifiedAt,
+        };
         result.created.push(meta.id);
         continue;
       }
 
-      if (recorded && recorded.hash === fileHash) continue; // disk unchanged
+      if (recorded && recorded.hash === fileHash) {
+        // Same content under a new stat (a touch, or a record from before
+        // stat tracking). Remember the stat so the next sync skips the read.
+        recorded.size = file.size;
+        recorded.modifiedAt = file.modifiedAt;
+        continue;
+      }
 
       const docText = await this.loadPageText(page.id);
       const docHash = hashText(docText);
@@ -352,11 +411,21 @@ export class WorkspaceStore {
           await this.setSections(page.id, []);
           result.imported.push(page.id);
         }
-        hashes[virtualPath] = { pageId: page.id, hash: fileHash };
+        hashes[virtualPath] = {
+          pageId: page.id,
+          hash: fileHash,
+          size: file.size,
+          modifiedAt: file.modifiedAt,
+        };
       } else {
         result.conflicts.push(virtualPath);
-        await this.writeSourceFile(page, docText);
-        hashes[virtualPath] = { pageId: page.id, hash: docHash };
+        const stat = await this.writeSourceFile(page, docText);
+        hashes[virtualPath] = {
+          pageId: page.id,
+          hash: docHash,
+          size: stat?.size,
+          modifiedAt: stat?.modifiedAt,
+        };
       }
     }
 
@@ -366,8 +435,13 @@ export class WorkspaceStore {
       if (known.has(page.path)) continue;
 
       const text = await this.loadPageText(page.id);
-      await this.writeSourceFile(page, text);
-      hashes[page.path] = { pageId: page.id, hash: hashText(text) };
+      const stat = await this.writeSourceFile(page, text);
+      hashes[page.path] = {
+        pageId: page.id,
+        hash: hashText(text),
+        size: stat?.size,
+        modifiedAt: stat?.modifiedAt,
+      };
       result.exported++;
     }
 

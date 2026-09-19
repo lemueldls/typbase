@@ -11,6 +11,8 @@ use crate::{
     world::TypstWorld,
 };
 
+use super::context::SyncedInput;
+
 /// The result of a synth-building pass.
 pub struct SynthResult {
     /// The top-level blocks discovered in the (repaired) raw source, in source
@@ -87,6 +89,29 @@ pub fn sync_source_context(
     context: &mut SourceContext,
     world: &mut TypstWorld,
 ) -> SynthResult {
+    // A compile with the same raw text and prelude rebuilds nothing. Restore
+    // the pristine render source and map that recovery may have rewritten,
+    // then hand back the cached structure. The prelude carries the pane width,
+    // theme, fonts, and text size, so every setting change is a miss.
+    if let Some(last) = &context.last_sync
+        && context
+            .raw_source(world)
+            .is_some_and(|source| source.text() == text)
+        && last.prelude == prelude
+    {
+        world.insert_source_object(context.ide_id, last.synth_source.clone());
+        world.insert_source_object(context.render_id, last.render_source.clone());
+        context.render_map = last.render_map.clone();
+        context.marked_raw_ranges.clear();
+        world.main_id = Some(context.synth_id);
+
+        return SynthResult {
+            blocks: last.blocks.clone(),
+            equation_ranges: last.equation_ranges.clone(),
+            delimiter_fixes: context.render_fixups.fixes().to_vec(),
+        };
+    }
+
     let fixups = RawFixups::new(delimiters::find_fixes(text), text.len());
     let repaired = fixups.repaired(text);
 
@@ -108,16 +133,24 @@ pub fn sync_source_context(
     // inside it, so the IDE and synth ids share one allocation.
     let synth_source = Source::new(context.synth_id, pristine_synth);
     world.insert_source_object(context.ide_id, synth_source.clone());
-    world.insert_source_object(context.synth_id, synth_source);
-    world.insert_source_object(
-        context.render_id,
-        Source::new(context.render_id, render.synth),
-    );
+    world.insert_source_object(context.synth_id, synth_source.clone());
+
+    let render_source = Source::new(context.render_id, render.synth);
+    world.insert_source_object(context.render_id, render_source.clone());
 
     context.index_map = index_map;
-    context.render_map = render.map;
+    context.render_map = render.map.clone();
     context.render_fixups = fixups;
     context.marked_raw_ranges.clear();
+
+    context.last_sync = Some(SyncedInput {
+        prelude,
+        blocks: render.blocks.clone(),
+        equation_ranges: render.equation_ranges.clone(),
+        render_map: render.map,
+        synth_source,
+        render_source,
+    });
 
     world.main_id = Some(context.synth_id);
 
