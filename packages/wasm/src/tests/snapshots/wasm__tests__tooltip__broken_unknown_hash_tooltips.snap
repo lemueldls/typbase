@@ -1,0 +1,13 @@
+---
+source: packages/wasm/src/tests/tooltip.rs
+expression: summarize(&render.tooltips)
+---
+[
+  {
+    "range": [
+      11,
+      22
+    ],
+    "items": 2
+  }
+]

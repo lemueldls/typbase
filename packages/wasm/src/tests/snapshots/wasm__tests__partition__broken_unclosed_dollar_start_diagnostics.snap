@@ -1,0 +1,15 @@
+---
+source: packages/wasm/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 7,
+      "end": 8
+    },
+    "severity": "warning",
+    "message": "unclosed math equation; inserted a closing `$`",
+    "hints": []
+  }
+]

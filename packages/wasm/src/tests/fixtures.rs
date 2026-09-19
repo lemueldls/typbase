@@ -1,274 +1,101 @@
-//! Raw-source fixtures for the engine suites.
+//! Source fixtures for the engine suites, loaded from `fixtures/`.
+//!
+//! Fixtures are plain `.typ` files so they can be opened in the editor or the
+//! debug lab without copying strings out of Rust. The directory a fixture sits
+//! in is its contract:
+//!
+//! - `clean/` must render with no diagnostics. The partition and tooltip
+//!   snapshots walk it.
+//! - `broken/` must render through recovery. An optional `.expect` sidecar
+//!   lists diagnostic substrings the fixture has to produce, one per line.
+//! - `adversarial/` only has to keep the source maps sound. It never renders,
+//!   so parser errors, odd line endings, and exotic Unicode are all fair game.
 //!
 //! Keep sources small: snapshots of frame geometry grow fast, and a fixture
 //! that fits in one paragraph is enough to exercise a partition decision.
 
+use std::path::{Path, PathBuf};
+
 /// One named raw source.
 pub struct Fixture {
-    pub name: &'static str,
-    pub source: &'static str,
+    pub name: String,
+    pub source: String,
+    /// Required diagnostic substrings, from `<name>.expect`.
+    pub expect: Vec<String>,
 }
 
-pub const PLAIN: &str =
-    "Hello, *world*.\n\nA second paragraph with `code` and a\nline break inside it.\n";
+fn fixtures_dir(group: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/tests/fixtures")
+        .join(group)
+}
 
-pub const STRUCTURE: &str = "\
-#set par(justify: true)
-= Title
+fn load(group: &str) -> Vec<Fixture> {
+    let dir = fixtures_dir(group);
+    let entries = std::fs::read_dir(&dir)
+        .unwrap_or_else(|error| panic!("cannot read {}: {error}", dir.display()));
 
-Body after the heading.
+    let mut fixtures = Vec::new();
 
-- one
-- two
-  - nested
+    for entry in entries {
+        let path = entry.expect("cannot read fixture entry").path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("typ") {
+            continue;
+        }
 
-+ step
-+ step
+        let name = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .expect("fixture name is not utf-8")
+            .to_string();
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
 
-| a | b |
-|---|---|
-| 1 | 2 |
+        let expect_path = path.with_extension("expect");
+        let expect = if expect_path.is_file() {
+            std::fs::read_to_string(&expect_path)
+                .unwrap_or_else(|error| panic!("cannot read {}: {error}", expect_path.display()))
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                .map(str::to_string)
+                .collect()
+        } else {
+            Vec::new()
+        };
 
-// a comment
-#let x = 1
-#set text(size: 12pt)
-Paragraph with #x and a #link(\"https://typbase.at\")[link].
-";
+        fixtures.push(Fixture {
+            name,
+            source,
+            expect,
+        });
+    }
 
-pub const MATH_OK: &str = "\
-Inline $x^2 + y^2 = z^2$ stays inline.
+    fixtures.sort_by(|left, right| left.name.cmp(&right.name));
+    fixtures
+}
 
-$ integral_0^1 x dif x = 1/2 $
-";
+/// The clean fixtures, in name order.
+pub fn clean() -> Vec<Fixture> {
+    load("clean")
+}
 
-pub const MATH_BROKEN_CALL: &str = "\
-Before the equation.
+/// The recovery fixtures, in name order.
+pub fn broken() -> Vec<Fixture> {
+    load("broken")
+}
 
-$ integral.triple dif x $
+/// The map-only fixtures, in name order.
+pub fn adversarial() -> Vec<Fixture> {
+    load("adversarial")
+}
 
-After the equation.
-";
-
-pub const MATH_BROKEN_IDENT: &str = "\
-Before.
-
-$ notdefined + 1 $
-
-After.
-";
-
-pub const MATH_BROKEN_CALL_UNDEFINED: &str = "\
-Before.
-
-$ notdefined(x) $
-
-After.
-";
-
-pub const MATH_UNCLOSED_DOLLAR: &str = "\
-Before.
-
-$ x + y
-
-After paragraph.
-";
-
-pub const MATH_UNCLOSED_QUOTE: &str = "\
-Before.
-
-$ \"abc > 3 $
-
-After paragraph.
-";
-
-pub const MATH_EMPTY_QUOTES: &str = "\
-Before.
-
-$ \"\"\" $
-
-After paragraph.
-";
-
-pub const MATH_EMPTY_SUB_CALL: &str = "\
-Before.
-
-$ abs((x_)) $
-
-After.
-";
-
-pub const MATH_EMPTY_SUP_CALL: &str = "\
-Before.
-
-$ abs((x^)) $
-
-After.
-";
-
-pub const MATH_EMPTY_SUB: &str = "\
-Before.
-
-$ abs(x_) $
-
-After.
-";
-
-pub const MATH_SUB_PAREN: &str = "\
-Before.
-
-$ f(x)_1 $
-
-After.
-";
-
-pub const MATH_SUP_PAREN: &str = "\
-Before.
-
-$ (a + b)^2 $
-
-After.
-";
-
-pub const MATH_ALIGN_PAREN: &str = "\
-Before.
-
-$ & (x + y) &= z $
-
-After.
-";
-
-pub const MATH_UNCLOSED_PAREN: &str = "\
-Before.
-
-$ f(x $
-
-After.
-";
-
-pub const MATH_MIXED_ERRORS: &str = "\
-Intro $ notdefined $ sentence.
-
-$ integral.triple dif x $
-
-$ x + y
-";
-
-/// Every non-error fixture, in order. Used for partition/tooltip snapshots
-/// without recovery.
-pub const CLEAN: &[Fixture] = &[
-    Fixture {
-        name: "plain",
-        source: PLAIN,
-    },
-    Fixture {
-        name: "structure",
-        source: STRUCTURE,
-    },
-    Fixture {
-        name: "math_ok",
-        source: MATH_OK,
-    },
-];
-
-/// Math fixtures that should render through recovery instead of failing the
-/// whole document.
-pub const BROKEN_MATH: &[Fixture] = &[
-    Fixture {
-        name: "math_broken_call",
-        source: MATH_BROKEN_CALL,
-    },
-    Fixture {
-        name: "math_broken_ident",
-        source: MATH_BROKEN_IDENT,
-    },
-    Fixture {
-        name: "math_broken_call_undefined",
-        source: MATH_BROKEN_CALL_UNDEFINED,
-    },
-    Fixture {
-        name: "math_unclosed_dollar",
-        source: MATH_UNCLOSED_DOLLAR,
-    },
-    Fixture {
-        name: "math_unclosed_quote",
-        source: MATH_UNCLOSED_QUOTE,
-    },
-    Fixture {
-        name: "math_empty_quotes",
-        source: MATH_EMPTY_QUOTES,
-    },
-    Fixture {
-        name: "math_empty_sub_call",
-        source: MATH_EMPTY_SUB_CALL,
-    },
-    Fixture {
-        name: "math_empty_sup_call",
-        source: MATH_EMPTY_SUP_CALL,
-    },
-    Fixture {
-        name: "math_empty_sub",
-        source: MATH_EMPTY_SUB,
-    },
-    Fixture {
-        name: "math_sub_paren",
-        source: MATH_SUB_PAREN,
-    },
-    Fixture {
-        name: "math_sup_paren",
-        source: MATH_SUP_PAREN,
-    },
-    Fixture {
-        name: "math_align_paren",
-        source: MATH_ALIGN_PAREN,
-    },
-    Fixture {
-        name: "math_unclosed_paren",
-        source: MATH_UNCLOSED_PAREN,
-    },
-    Fixture {
-        name: "math_mixed_errors",
-        source: MATH_MIXED_ERRORS,
-    },
-];
-
-/// Sources that stress the offset maps: dropped leading whitespace, multibyte
-/// text, CRLF, missing trailing newlines, empty documents, and multiple errors
-/// in one equation. These are not part of the snapshot suites.
-pub const ADVERSARIAL: &[Fixture] = &[
-    Fixture {
-        name: "leading_blank",
-        source: "\n\nHello after blank lines.\n",
-    },
-    Fixture {
-        name: "leading_comment",
-        source: "// a comment\n\nHello after the comment.\n",
-    },
-    Fixture {
-        name: "unicode",
-        source: "Héllo wörld 😀 and $x^2$ here.\n\nSecond paragraph with a label <tab>.\n",
-    },
-    Fixture {
-        name: "crlf",
-        source: "First line.\r\n\r\nSecond paragraph.\r\n",
-    },
-    Fixture {
-        name: "no_trailing_newline",
-        source: "No trailing newline",
-    },
-    Fixture {
-        name: "structural_only",
-        source: "#let x = 1\n#set text(size: 12pt)\n",
-    },
-    Fixture {
-        name: "two_errors_one_equation",
-        source: "Before.\n\n$ notdefined + alsoundefined $\n\nAfter.\n",
-    },
-    Fixture {
-        name: "empty",
-        source: "",
-    },
-    Fixture {
-        name: "whitespace_only",
-        source: "\n\n   \n",
-    },
-];
+/// One fixture by directory and name, for tests that need a specific source.
+pub fn get(group: &str, name: &str) -> Fixture {
+    let mut fixtures = load(group);
+    let index = fixtures
+        .iter()
+        .position(|fixture| fixture.name == name)
+        .unwrap_or_else(|| panic!("no fixture {group}/{name}.typ"));
+    fixtures.swap_remove(index)
+}

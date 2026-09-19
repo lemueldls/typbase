@@ -94,11 +94,11 @@ fn check_map(map: &SourceMap, from: &str, to: &str, name: &str) {
     }
 }
 
-fn all_fixtures() -> impl Iterator<Item = &'static fixtures::Fixture> {
-    fixtures::CLEAN
-        .iter()
-        .chain(fixtures::BROKEN_MATH)
-        .chain(fixtures::ADVERSARIAL)
+fn all_fixtures() -> impl Iterator<Item = fixtures::Fixture> {
+    fixtures::clean()
+        .into_iter()
+        .chain(fixtures::broken())
+        .chain(fixtures::adversarial())
 }
 
 /// Sync alone builds all three maps: raw to pristine synth, raw to repaired,
@@ -107,12 +107,12 @@ fn all_fixtures() -> impl Iterator<Item = &'static fixtures::Fixture> {
 fn maps_are_sound_for_all_fixtures() {
     for fixture in all_fixtures() {
         let mut state = crate::state::TypstState::new();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let _ = sync_source_state(&id, fixture.source, "", RenderTarget::Svg, &mut state);
+        let _ = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
 
         let context = state.source_context_map.get(&id).unwrap();
-        let repaired = context.render_fixups.repaired(fixture.source);
+        let repaired = context.render_fixups.repaired(&fixture.source);
         let synth = context
             .synth_source(&state.world)
             .unwrap()
@@ -124,14 +124,14 @@ fn maps_are_sound_for_all_fixtures() {
             .text()
             .to_string();
 
-        check_map(&context.index_map, fixture.source, &synth, fixture.name);
+        check_map(&context.index_map, &fixture.source, &synth, &fixture.name);
         check_map(
             context.render_fixups.map(),
-            fixture.source,
+            &fixture.source,
             &repaired,
-            fixture.name,
+            &fixture.name,
         );
-        check_map(&context.render_map, &repaired, &render, fixture.name);
+        check_map(&context.render_map, &repaired, &render, &fixture.name);
     }
 }
 
@@ -146,12 +146,12 @@ fn recovered_render_maps_stay_sound() {
 
     for fixture in all_fixtures() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let _ = harness::compile(&mut state, &id, fixture.source);
+        let _ = harness::compile(&mut state, &id, &fixture.source);
 
         let context = state.source_context_map.get(&id).unwrap();
-        let repaired = context.render_fixups.repaired(fixture.source);
+        let repaired = context.render_fixups.repaired(&fixture.source);
         let synth = context
             .synth_source(&state.world)
             .unwrap()
@@ -163,8 +163,8 @@ fn recovered_render_maps_stay_sound() {
             .text()
             .to_string();
 
-        check_map(&context.index_map, fixture.source, &synth, fixture.name);
-        check_map(&context.render_map, &repaired, &render, fixture.name);
+        check_map(&context.index_map, &fixture.source, &synth, &fixture.name);
+        check_map(&context.render_map, &repaired, &render, &fixture.name);
     }
 }
 
@@ -174,9 +174,9 @@ fn recovered_render_maps_stay_sound() {
 fn check_index_report_is_clean_for_all_fixtures() {
     for fixture in all_fixtures() {
         let mut state = crate::state::TypstState::new();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let report = state.check_index_report(&id, fixture.source, "");
+        let report = state.check_index_report(&id, &fixture.source, "");
         assert!(
             report.ok,
             "{}: mismatches {:#?}",
@@ -189,11 +189,11 @@ fn check_index_report_is_clean_for_all_fixtures() {
 /// first segment. Mapping offset 0 must clamp, not underflow.
 #[test]
 fn leading_blank_lines_clamp_instead_of_underflowing() {
-    let text = "\n\nHello after blank lines.\n";
+    let fixture = fixtures::get("adversarial", "leading_blank");
 
     let mut state = crate::state::TypstState::new();
-    let id = harness::page(&mut state, "leading_blank_clamp");
-    let _ = sync_source_state(&id, text, "", RenderTarget::Svg, &mut state);
+    let id = harness::page(&mut state, &fixture.name);
+    let _ = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
 
     let context = state.source_context_map.get(&id).unwrap();
     let prefix = context.index_map.prefix_len();
@@ -216,11 +216,11 @@ fn cursor_queries_at_offset_zero_do_not_panic() {
         return;
     }
 
-    let text = "\n\nHello world";
+    let fixture = fixtures::get("adversarial", "leading_blank");
 
     let mut state = harness::state();
-    let id = harness::page(&mut state, "cursor_at_zero");
-    let _ = harness::compile(&mut state, &id, text);
+    let id = harness::page(&mut state, &fixture.name);
+    let _ = harness::compile(&mut state, &id, &fixture.source);
 
     let _ = state.autocomplete_at(&id, 0, true);
     let _ = state.hover(&id, 0, 1);
@@ -235,11 +235,11 @@ fn two_errors_in_one_equation_keep_their_raw_ranges() {
         return;
     }
 
-    let text = "Before.\n\n$ notdefined + alsoundefined $\n\nAfter.\n";
+    let fixture = fixtures::get("adversarial", "two_errors_one_equation");
 
     let mut state = harness::state();
-    let id = harness::page(&mut state, "two_marks");
-    let render = harness::compile(&mut state, &id, text);
+    let id = harness::page(&mut state, &fixture.name);
+    let render = harness::compile(&mut state, &id, &fixture.source);
 
     assert!(render.document.is_some(), "{:#?}", render.diagnostics);
 
@@ -248,6 +248,6 @@ fn two_errors_in_one_equation_keep_their_raw_ranges() {
     ranges.sort_by_key(|range| range.start);
 
     assert_eq!(ranges.len(), 2, "expected two marked ranges: {ranges:?}");
-    assert_eq!(&text[ranges[0].clone()], "notdefined");
-    assert_eq!(&text[ranges[1].clone()], "alsoundefined");
+    assert_eq!(&fixture.source[ranges[0].clone()], "notdefined");
+    assert_eq!(&fixture.source[ranges[1].clone()], "alsoundefined");
 }

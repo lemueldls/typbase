@@ -1,0 +1,5 @@
+Before.
+
+$ f(x $
+
+After.

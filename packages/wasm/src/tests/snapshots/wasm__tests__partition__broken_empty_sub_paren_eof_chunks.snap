@@ -1,0 +1,17 @@
+---
+source: packages/wasm/src/tests/partition.rs
+expression: summarize(&render.chunks)
+---
+[
+  {
+    "range": [
+      0,
+      7
+    ],
+    "items": 9,
+    "width": 30.16,
+    "height": 16.86,
+    "x": 0.0,
+    "y": 0.0
+  }
+]

@@ -10,7 +10,9 @@ use crate::{
 
 /// A page with one undefined math ident (recovery marks it red) and two
 /// completion targets after it: a plain math ident and a property access.
-const RECOVERED_PAGE: &str = "$ notdefined + 1 $\n\n$ qu + integral.triple $\n\nAfter.";
+fn recovered_page() -> fixtures::Fixture {
+    fixtures::get("broken", "recovered_page")
+}
 
 fn utf16_offset(text: &str, byte_offset: usize) -> usize {
     text[..byte_offset].chars().map(char::len_utf16).sum()
@@ -86,9 +88,12 @@ fn autocomplete_survives_recovered_render() {
         return;
     }
 
+    let page = recovered_page();
+    let text = &page.source;
+
     let mut state = harness::state();
-    let id = harness::page(&mut state, "ide_autocomplete");
-    let render = harness::compile(&mut state, &id, RECOVERED_PAGE);
+    let id = harness::page(&mut state, &page.name);
+    let render = harness::compile(&mut state, &id, text);
 
     assert!(render.document.is_some());
     assert!(
@@ -100,33 +105,19 @@ fn autocomplete_survives_recovered_render() {
         render.diagnostics,
     );
 
-    let integral = RECOVERED_PAGE.find("integral").unwrap();
+    let integral = text.find("integral").unwrap();
     let field = integral + "integral.".len();
 
     assert_completion(
         &mut state,
         &id,
-        RECOVERED_PAGE,
+        text,
         "qu",
-        RECOVERED_PAGE.find("qu").unwrap(),
+        text.find("qu").unwrap(),
         "quad",
     );
-    assert_completion(
-        &mut state,
-        &id,
-        RECOVERED_PAGE,
-        "integral.",
-        field,
-        "triple",
-    );
-    assert_completion(
-        &mut state,
-        &id,
-        RECOVERED_PAGE,
-        "integral.tri",
-        field,
-        "triple",
-    );
+    assert_completion(&mut state, &id, text, "integral.", field, "triple");
+    assert_completion(&mut state, &id, text, "integral.tri", field, "triple");
 }
 
 #[test]
@@ -136,23 +127,29 @@ fn hover_survives_recovered_render() {
         return;
     }
 
+    let page = recovered_page();
+    let text = &page.source;
+
     let mut state = harness::state();
-    let id = harness::page(&mut state, "ide_hover");
-    let render = harness::compile(&mut state, &id, RECOVERED_PAGE);
+    let id = harness::page(&mut state, &page.name);
+    let render = harness::compile(&mut state, &id, text);
 
     assert!(render.document.is_some());
 
-    let cursor = RECOVERED_PAGE.find("integral").unwrap() + 2;
-    let tooltip = state.hover(&id, utf16_offset(RECOVERED_PAGE, cursor), 1);
+    let cursor = text.find("integral").unwrap() + 2;
+    let tooltip = state.hover(&id, utf16_offset(text, cursor), 1);
 
     assert!(tooltip.is_some(), "hover returned nothing after recovery");
 }
 
 #[test]
 fn jump_maps_both_sources_to_raw() {
+    let page = recovered_page();
+    let text = &page.source;
+
     let mut state = harness::state();
-    let id = harness::page(&mut state, "ide_jump");
-    let _ = harness::compile(&mut state, &id, RECOVERED_PAGE);
+    let id = harness::page(&mut state, &page.name);
+    let _ = harness::compile(&mut state, &id, text);
 
     let context = state.source_context_map.get(&id).unwrap();
 
@@ -167,13 +164,13 @@ fn jump_maps_both_sources_to_raw() {
         .text()
         .to_string();
 
-    let expected = utf16_offset(RECOVERED_PAGE, RECOVERED_PAGE.find("After").unwrap());
+    let expected = utf16_offset(text, text.find("After").unwrap());
 
-    for (file_id, text) in [
+    for (file_id, source_text) in [
         (context.render_id, render_text),
         (context.synth_id, synth_text),
     ] {
-        let position = text
+        let position = source_text
             .find("After")
             .expect("fixture text missing from source");
         let jump = TypstJump::from_mapped(
@@ -191,9 +188,11 @@ fn jump_maps_both_sources_to_raw() {
 
 #[test]
 fn jump_maps_repaired_positions_to_raw() {
+    let fixture = fixtures::get("broken", "unclosed_dollar");
+    let source = &fixture.source;
+
     let mut state = harness::state();
-    let id = harness::page(&mut state, "ide_jump_repaired");
-    let source = fixtures::MATH_UNCLOSED_DOLLAR;
+    let id = harness::page(&mut state, &fixture.name);
     let _ = harness::compile(&mut state, &id, source);
 
     let context = state.source_context_map.get(&id).unwrap();
@@ -216,6 +215,6 @@ fn jump_maps_repaired_positions_to_raw() {
 
     match jump {
         Some(TypstJump::File { position }) => assert_eq!(position, expected),
-        other => panic!("repaired jump did not map to a raw file position: {other:?}"),
+        other => panic!("jump did not map to a raw file position: {other:?}"),
     }
 }

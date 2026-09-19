@@ -31,15 +31,16 @@ fn math_fixture_has_equation_tooltips() {
         return;
     }
 
+    let fixture = fixtures::get("clean", "math_inline");
     let mut state = harness::state();
-    let id = harness::page(&mut state, "tooltip_math");
-    let render = harness::compile(&mut state, &id, fixtures::MATH_OK);
+    let id = harness::page(&mut state, &fixture.name);
+    let render = harness::compile(&mut state, &id, &fixture.source);
 
     assert!(render.document.is_some());
     assert!(
         !render.tooltips.is_empty(),
         "no equation tooltips for {}",
-        fixtures::MATH_OK,
+        fixture.source,
     );
 
     for tooltip in &render.tooltips {
@@ -47,6 +48,9 @@ fn math_fixture_has_equation_tooltips() {
     }
 }
 
+/// Tooltips exist per equation the renderer groups, so the snapshot covers
+/// fixtures with and without them. An empty list is the pin that a fixture
+/// grew no tooltips; a repaired equation can legitimately produce none.
 #[test]
 fn tooltip_snapshots() {
     if !harness::fonts_available() {
@@ -54,14 +58,23 @@ fn tooltip_snapshots() {
         return;
     }
 
-    for fixture in fixtures::CLEAN.iter().chain(fixtures::BROKEN_MATH) {
-        let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+    let fixtures = fixtures::clean()
+        .into_iter()
+        .map(|fixture| ("clean", fixture))
+        .chain(
+            fixtures::broken()
+                .into_iter()
+                .map(|fixture| ("broken", fixture)),
+        );
 
-        let render = harness::compile(&mut state, &id, fixture.source);
+    for (group, fixture) in fixtures {
+        let mut state = harness::state();
+        let id = harness::page(&mut state, &fixture.name);
+
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
         insta::assert_json_snapshot!(
-            format!("{}_tooltips", fixture.name),
+            format!("{group}_{}_tooltips", fixture.name),
             summarize(&render.tooltips),
         );
     }

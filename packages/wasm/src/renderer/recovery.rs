@@ -191,30 +191,48 @@ pub fn try_mark_errornous(
             continue;
         }
 
+        // `#undefined` in math is a code expression; the diagnostic span
+        // covers the name, not the `#`. Replacing the `#` with the wrapper
+        // turns the name into literal red text. Leaving the `#` outside would
+        // put it in front of the inserted code and fail the same way again.
+        let hash_len = usize::from(
+            synth_range.start > 0 && source.text().as_bytes()[synth_range.start - 1] == b'#',
+        );
+        let pre_offset = synth_range.start - hash_len;
+        let post_offset = synth_range.end + pre_text_len - hash_len;
+
         let original_text = source.text()[synth_range.clone()].to_string();
-        let raw_range = context.render_map.backward(synth_range.start)
-            ..context.render_map.backward(synth_range.end);
+        let raw_range =
+            context.render_map.backward(pre_offset)..context.render_map.backward(synth_range.end);
         context.marked_raw_ranges.push(raw_range.clone());
 
         let source = context.render_source_mut(world).unwrap();
-        source.edit(synth_range.start..synth_range.start, pre_text);
-        source.edit(
-            synth_range.end + pre_text_len..synth_range.end + pre_text_len,
-            post_text,
-        );
+        if hash_len == 0 {
+            source.edit(pre_offset..pre_offset, pre_text);
+        } else {
+            source.edit(pre_offset..pre_offset + hash_len, pre_text);
+        }
+        source.edit(post_offset..post_offset, post_text);
 
+        if hash_len == 0 {
+            context
+                .render_map
+                .insert(pre_offset, pre_text, SegmentKind::ErrorMark);
+        } else {
+            context.render_map.replace(
+                pre_offset..pre_offset + hash_len,
+                pre_text,
+                SegmentKind::ErrorMark,
+            );
+        }
         context
             .render_map
-            .insert(synth_range.start, pre_text, SegmentKind::ErrorMark);
-        context.render_map.insert(
-            synth_range.end + pre_text_len,
-            post_text,
-            SegmentKind::ErrorMark,
-        );
+            .insert(post_offset, post_text, SegmentKind::ErrorMark);
 
-        boundary = synth_range.start;
+        boundary = pre_offset;
         pending.push(PendingMark {
             original: synth_range,
+            hash_len,
             text: original_text,
             raw_range,
         });
@@ -222,18 +240,20 @@ pub fn try_mark_errornous(
 
     // Translate the pre-edit ranges to final coordinates. `pending` is in
     // reverse order; sorting ascending makes every earlier mark entirely to
-    // the left, so each contributes one wrapper length of shift.
+    // the left, so each contributes its own wrapper length of shift.
     pending.sort_by_key(|mark| mark.original.start);
 
+    let mut shift = 0;
     let marks = pending
         .into_iter()
-        .enumerate()
-        .map(|(index, mark)| {
-            let shift = total_wrap_len * index;
+        .map(|mark| {
+            let wrap_len = total_wrap_len - mark.hash_len;
+            let marked =
+                mark.original.start - mark.hash_len + shift..mark.original.end + shift + wrap_len;
+            shift += wrap_len;
             ErrorMark {
                 text: mark.text,
-                synth_range: mark.original.start + shift
-                    ..mark.original.end + total_wrap_len + shift,
+                synth_range: marked,
                 raw_range: mark.raw_range,
             }
         })
@@ -250,6 +270,8 @@ pub fn try_mark_errornous(
 /// One mark between the pre-edit range and the final coordinates.
 struct PendingMark {
     original: Range<usize>,
+    /// 1 when the mark replaced a `#` instead of inserting before the range.
+    hash_len: usize,
     text: String,
     raw_range: Range<usize>,
 }

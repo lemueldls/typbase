@@ -105,10 +105,15 @@ impl RawFixups {
     }
 }
 
-/// Quotes sort before dollars at equal offsets: inserting `"` first leaves
-/// `"$` in the repaired text, which closes the string and then the equation.
+/// Quotes sort before attachments and attachments before dollars at equal
+/// offsets: inserting `"` first leaves `"$`, and `#none` has to sit inside the
+/// equation before its closing `$`.
 fn insertion_rank(insertion: &str) -> u8 {
-    u8::from(insertion != "\"")
+    match insertion {
+        "\"" => 0,
+        "#none" => 1,
+        _ => 2,
+    }
 }
 
 /// Reads the raw text and returns the closers it is missing.
@@ -204,7 +209,8 @@ fn walk(node: &LinkedNode, text: &str, fixes: &mut Vec<DelimiterFix>) {
 /// the argument. In `abs((x_))` that token is the closing paren: the paren
 /// nesting breaks and the equation fails with "unclosed delimiter", which
 /// block removal then blanks entirely. `x_#none` attaches nothing and leaves
-/// the paren where it belongs.
+/// the paren where it belongs. At the end of the file the parser leaves an
+/// empty error node as the missing argument, so that counts as missing too.
 fn collect_bare_attachments(node: &LinkedNode, out: &mut Vec<DelimiterFix>) {
     if node.kind() == SyntaxKind::MathAttach {
         let mut operator_end = None;
@@ -227,6 +233,7 @@ fn collect_bare_attachments(node: &LinkedNode, out: &mut Vec<DelimiterFix>) {
                 true
             } else {
                 last_kind == Some(SyntaxKind::MathAlignPoint)
+                    || last_kind == Some(SyntaxKind::Error)
                     || (last_kind == Some(SyntaxKind::MathText)
                         && matches!(last_text.as_str(), ")" | "]" | "}" | "|"))
             };
@@ -257,7 +264,6 @@ fn collect_string_fixes(node: &LinkedNode, text: &str, out: &mut Vec<FoundString
         let leaf = node.get().leaf_text();
 
         if leaf.starts_with('"')
-            && leaf.len() > 1
             && let Some(offset) = string_close_offset(text, node.range())
         {
             let trimmed_end = text[..offset].trim_end().len();
@@ -408,6 +414,50 @@ mod tests {
     fn filled_attachments_are_left_alone() {
         assert_eq!(find_fixes("$ f(x)_1 $").len(), 0);
         assert_eq!(find_fixes("$ (a + b)^2 $").len(), 0);
+    }
+
+    #[test]
+    fn lone_quote_at_eof_gets_both() {
+        let text = "$ \"";
+
+        assert_eq!(
+            find_fixes(text),
+            vec![
+                DelimiterFix {
+                    raw_offset: 3,
+                    insertion: "\""
+                },
+                DelimiterFix {
+                    raw_offset: 3,
+                    insertion: "$"
+                },
+            ]
+        );
+
+        let fixed = RawFixups::new(find_fixes(text), text.len()).repaired(text);
+        assert_eq!(fixed, "$ \"\"$");
+    }
+
+    #[test]
+    fn bare_attachment_at_eof_gets_a_placeholder() {
+        let text = "$ x_";
+
+        assert_eq!(
+            find_fixes(text),
+            vec![
+                DelimiterFix {
+                    raw_offset: 4,
+                    insertion: "#none"
+                },
+                DelimiterFix {
+                    raw_offset: 4,
+                    insertion: "$"
+                },
+            ]
+        );
+
+        let fixed = RawFixups::new(find_fixes(text), text.len()).repaired(text);
+        assert_eq!(fixed, "$ x_#none$");
     }
 
     #[test]

@@ -8,17 +8,17 @@ use crate::{
 };
 
 #[test]
-fn broken_math_renders_through_recovery() {
+fn broken_fixtures_render_through_recovery() {
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
         return;
     }
 
-    for fixture in fixtures::BROKEN_MATH {
+    for fixture in fixtures::broken() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = harness::compile(&mut state, &id, fixture.source);
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
         assert!(
             render.document.is_some(),
@@ -26,63 +26,39 @@ fn broken_math_renders_through_recovery() {
             fixture.name,
             render.diagnostics,
         );
-        assert!(
-            !render.chunks.is_empty(),
-            "{}: no chunks after recovery",
-            fixture.name,
-        );
     }
 }
 
-/// Unclosed `$`, math strings, and empty sub/sup attachments are repaired,
-/// not swallowed: the fixup list reports a warning at the raw insertion point.
+/// Every `.expect` line must show up in the diagnostics. The sidecars keep the
+/// required warnings next to the source that produces them.
 #[test]
-fn unclosed_delimiters_report_warnings() {
+fn fixture_warnings_match_their_expectations() {
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
         return;
     }
 
-    for (name, source, needle) in [
-        (
-            "dollar",
-            fixtures::MATH_UNCLOSED_DOLLAR,
-            "unclosed math equation",
-        ),
-        (
-            "quote",
-            fixtures::MATH_UNCLOSED_QUOTE,
-            "unclosed math string",
-        ),
-        (
-            "empty_quotes",
-            fixtures::MATH_EMPTY_QUOTES,
-            "unclosed math string",
-        ),
-        (
-            "empty_sub",
-            fixtures::MATH_EMPTY_SUB_CALL,
-            "empty math attachment",
-        ),
-        (
-            "empty_sup",
-            fixtures::MATH_EMPTY_SUP_CALL,
-            "empty math attachment",
-        ),
-    ] {
+    for fixture in fixtures::broken() {
+        if fixture.expect.is_empty() {
+            continue;
+        }
+
         let mut state = harness::state();
-        let id = harness::page(&mut state, name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = harness::compile(&mut state, &id, source);
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
-        assert!(
-            render
-                .diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.message.contains(needle)),
-            "{name}: expected a `{needle}` warning, got {:#?}",
-            render.diagnostics,
-        );
+        for needle in &fixture.expect {
+            assert!(
+                render
+                    .diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.message.contains(needle)),
+                "{}: expected a `{needle}` warning, got {:#?}",
+                fixture.name,
+                render.diagnostics,
+            );
+        }
     }
 }
 
@@ -90,11 +66,11 @@ fn unclosed_delimiters_report_warnings() {
 /// its mapper. IDE features read both of those between renders.
 #[test]
 fn recovery_keeps_pristine_synth_and_mapper() {
-    for fixture in fixtures::BROKEN_MATH {
+    for fixture in fixtures::broken() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let synth = sync_source_state(&id, fixture.source, "", RenderTarget::Svg, &mut state);
+        let synth = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
 
         let context = state.source_context_map.get(&id).unwrap();
         let before_text = context
@@ -141,7 +117,22 @@ fn recovery_keeps_pristine_synth_and_mapper() {
 }
 
 /// Layout goldens for the recovered documents. These catch accidental drift
-/// in partitioning, placeholder sizing, or the repair insertion point.
+/// in partitioning, placeholder sizing, or the repair insertion point. The
+/// list is curated: full SVG snapshots are large, so a fixture opts in here
+/// instead of every recovery fixture paying for goldens.
+const SVG_GOLDENS: &[&str] = &[
+    "empty_quotes",
+    "empty_sub",
+    "empty_sub_call",
+    "empty_sub_eof",
+    "empty_sub_paren_eof",
+    "unclosed_dollar",
+    "unclosed_dollar_eof",
+    "unclosed_quote",
+    "unknown_call",
+    "unknown_ident",
+];
+
 #[test]
 fn recovery_svg_snapshots() {
     if !harness::fonts_available() {
@@ -149,27 +140,17 @@ fn recovery_svg_snapshots() {
         return;
     }
 
-    for (name, source) in [
-        ("math_broken_ident", fixtures::MATH_BROKEN_IDENT),
-        (
-            "math_broken_call_undefined",
-            fixtures::MATH_BROKEN_CALL_UNDEFINED,
-        ),
-        ("math_unclosed_dollar", fixtures::MATH_UNCLOSED_DOLLAR),
-        ("math_unclosed_quote", fixtures::MATH_UNCLOSED_QUOTE),
-        ("math_empty_quotes", fixtures::MATH_EMPTY_QUOTES),
-        ("math_empty_sub_call", fixtures::MATH_EMPTY_SUB_CALL),
-        ("math_sub_paren", fixtures::MATH_SUB_PAREN),
-    ] {
+    for name in SVG_GOLDENS {
+        let fixture = fixtures::get("broken", name);
         let mut state = harness::state();
-        let id = harness::page(&mut state, name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = render_svgs_by_items(&id, source, "", &mut state);
+        let render = render_svgs_by_items(&id, &fixture.source, "", &mut state);
 
         assert!(!render.frames.is_empty(), "{name}: no SVG frames");
 
         for (index, frame) in render.frames.iter().enumerate() {
-            insta::assert_snapshot!(format!("{name}_frame_{index}"), frame.render.svg);
+            insta::assert_snapshot!(format!("broken_{name}_frame_{index}"), frame.render.svg);
         }
     }
 }

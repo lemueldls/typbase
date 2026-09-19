@@ -1,0 +1,5 @@
+Before.
+
+$ #undefined $
+
+After.

@@ -1,0 +1,6 @@
+Before.
+
+$ notdefined
+  + alsoundefined $
+
+After.

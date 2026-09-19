@@ -23,8 +23,8 @@ fn dump_tree(node: &LinkedNode, depth: usize, out: &mut String) {
 
 #[test]
 fn dump_broken_math_trees() {
-    for fixture in fixtures::BROKEN_MATH {
-        let root = typst_syntax::parse(fixture.source);
+    for fixture in fixtures::broken() {
+        let root = typst_syntax::parse(&fixture.source);
         let linked = LinkedNode::new(&root);
         let mut out = String::new();
         dump_tree(&linked, 0, &mut out);
@@ -35,8 +35,8 @@ fn dump_broken_math_trees() {
 
 #[test]
 fn dump_equation_kinds() {
-    for fixture in fixtures::BROKEN_MATH {
-        let root = typst_syntax::parse(fixture.source);
+    for fixture in fixtures::broken() {
+        let root = typst_syntax::parse(&fixture.source);
         let mut equations = Vec::new();
 
         let mut stack = vec![LinkedNode::new(&root)];
@@ -64,10 +64,10 @@ fn characterize_render_status() {
         return;
     }
 
-    for fixture in fixtures::CLEAN.iter().chain(fixtures::BROKEN_MATH) {
+    for fixture in fixtures::clean().into_iter().chain(fixtures::broken()) {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
-        let render = harness::compile(&mut state, &id, fixture.source);
+        let id = harness::page(&mut state, &fixture.name);
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
         println!(
             "===== {} ===== document={} chunks={} tooltips={} diagnostics={:#?}",

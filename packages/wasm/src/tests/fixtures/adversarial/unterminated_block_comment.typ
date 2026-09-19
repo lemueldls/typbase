@@ -1,0 +1,3 @@
+Text.
+
+/* comment never closes

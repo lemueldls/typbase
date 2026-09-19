@@ -7,10 +7,11 @@ use crate::{
 
 #[test]
 fn plain_source_wraps_paragraphs() {
+    let fixture = fixtures::get("clean", "plain");
     let mut state = harness::state();
-    let id = harness::page(&mut state, "synth_plain");
+    let id = harness::page(&mut state, &fixture.name);
 
-    let result = sync_source_state(&id, fixtures::PLAIN, "", RenderTarget::Svg, &mut state);
+    let result = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
 
     assert!(!result.blocks.is_empty(), "no blocks discovered");
     assert!(
@@ -28,15 +29,16 @@ fn plain_source_wraps_paragraphs() {
 
 #[test]
 fn equations_are_recorded_with_dollar_bounds() {
+    let fixture = fixtures::get("clean", "math_inline");
     let mut state = harness::state();
-    let id = harness::page(&mut state, "synth_math");
+    let id = harness::page(&mut state, &fixture.name);
 
-    let result = sync_source_state(&id, fixtures::MATH_OK, "", RenderTarget::Svg, &mut state);
+    let result = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
 
     assert_eq!(result.equation_ranges.len(), 2);
 
     for range in &result.equation_ranges {
-        let text = &fixtures::MATH_OK[range.clone()];
+        let text = &fixture.source[range.clone()];
         assert!(
             text.starts_with('$') && text.ends_with('$'),
             "equation range does not cover delimiters: {text:?}",
@@ -46,10 +48,11 @@ fn equations_are_recorded_with_dollar_bounds() {
 
 #[test]
 fn structural_nodes_pass_through_unwrapped() {
+    let fixture = fixtures::get("clean", "structure");
     let mut state = harness::state();
-    let id = harness::page(&mut state, "synth_structure");
+    let id = harness::page(&mut state, &fixture.name);
 
-    let result = sync_source_state(&id, fixtures::STRUCTURE, "", RenderTarget::Svg, &mut state);
+    let result = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
 
     assert!(
         result.synth.contains("#set par(justify: true)"),
@@ -74,13 +77,14 @@ fn structural_nodes_pass_through_unwrapped() {
 /// the property recovery-free rendering relies on.
 #[test]
 fn synth_is_deterministic() {
-    for fixture in fixtures::CLEAN {
+    for fixture in fixtures::clean() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let first = sync_source_state(&id, fixture.source, "", RenderTarget::Svg, &mut state).synth;
+        let first =
+            sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state).synth;
         let second =
-            sync_source_state(&id, fixture.source, "", RenderTarget::Svg, &mut state).synth;
+            sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state).synth;
 
         assert_eq!(
             first, second,

@@ -1,0 +1,15 @@
+---
+source: packages/wasm/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 12,
+      "end": 21
+    },
+    "severity": "error",
+    "message": "unknown variable: undefined",
+    "hints": []
+  }
+]

@@ -1,0 +1,3 @@
+- first
+- second with $ notdefined $
+- third

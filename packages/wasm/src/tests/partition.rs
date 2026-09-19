@@ -45,11 +45,11 @@ fn clean_fixtures_render_without_diagnostics() {
         return;
     }
 
-    for fixture in fixtures::CLEAN {
+    for fixture in fixtures::clean() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = harness::compile(&mut state, &id, fixture.source);
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
         assert!(
             render.document.is_some(),
@@ -76,11 +76,11 @@ fn chunk_ranges_are_in_source() {
         return;
     }
 
-    for fixture in fixtures::CLEAN.iter().chain(fixtures::BROKEN_MATH) {
+    for fixture in fixtures::clean().into_iter().chain(fixtures::broken()) {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = harness::compile(&mut state, &id, fixture.source);
+        let render = harness::compile(&mut state, &id, &fixture.source);
         let raw_len_utf16 = fixture.source.chars().map(char::len_utf16).sum::<usize>();
 
         for chunk in render.chunks.iter().chain(render.tooltips.iter()) {
@@ -101,11 +101,11 @@ fn clean_partition_snapshots() {
         return;
     }
 
-    for fixture in fixtures::CLEAN {
+    for fixture in fixtures::clean() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = harness::compile(&mut state, &id, fixture.source);
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
         insta::assert_json_snapshot!(
             format!("clean_{}_chunks", fixture.name),
@@ -115,17 +115,17 @@ fn clean_partition_snapshots() {
 }
 
 #[test]
-fn recovery_partition_snapshots() {
+fn broken_partition_snapshots() {
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
         return;
     }
 
-    for fixture in fixtures::BROKEN_MATH {
+    for fixture in fixtures::broken() {
         let mut state = harness::state();
-        let id = harness::page(&mut state, fixture.name);
+        let id = harness::page(&mut state, &fixture.name);
 
-        let render = harness::compile(&mut state, &id, fixture.source);
+        let render = harness::compile(&mut state, &id, &fixture.source);
 
         assert!(
             render.document.is_some(),
@@ -135,11 +135,11 @@ fn recovery_partition_snapshots() {
         );
 
         insta::assert_json_snapshot!(
-            format!("recovery_{}_chunks", fixture.name),
+            format!("broken_{}_chunks", fixture.name),
             summarize(&render.chunks),
         );
         insta::assert_json_snapshot!(
-            format!("recovery_{}_diagnostics", fixture.name),
+            format!("broken_{}_diagnostics", fixture.name),
             render.diagnostics,
         );
     }

@@ -1,0 +1,5 @@
+Before.
+
+$ notdefined(x) $
+
+After.
