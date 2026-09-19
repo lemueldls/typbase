@@ -17,6 +17,7 @@ mod harness;
 mod characterize;
 mod ide;
 mod mapper;
+mod packages;
 mod partition;
 mod recovery;
 mod synth;

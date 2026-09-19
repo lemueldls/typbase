@@ -31,6 +31,11 @@
   width: min(680px, calc(100vw - 2rem));
 }
 
+/* Package browser: wide enough for the list and the per-row actions. */
+.package-dialog {
+  width: min(760px, calc(100vw - 2rem));
+}
+
 .dialog__description {
   margin: 0 0 1rem;
   font-size: 0.85rem;
@@ -188,4 +193,50 @@
 
 .ui-tooltip__arrow {
   fill: var(--color-border);
+}
+
+/* Select dropdown (UiSelect). Portaled like the menus, so the styles live
+   here instead of the component's scoped block. Sits above the dialogs (75)
+   because selects open from inside them. */
+.ui-select__content {
+  z-index: 90;
+  min-width: var(--reka-select-trigger-width);
+  max-height: calc(100dvh - 2rem);
+  padding: 0.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+}
+
+.ui-select__viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ui-select__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  border-radius: 0.4rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.ui-select__item[data-highlighted] {
+  background: var(--color-accent-soft);
+}
+
+.ui-select__item[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ui-select__indicator {
+  display: inline-flex;
+  color: var(--color-accent);
 }

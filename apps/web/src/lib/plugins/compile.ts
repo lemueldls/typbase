@@ -1,5 +1,6 @@
 import type { TypstState } from "@typbase/wasm";
 
+import { specString } from "~/lib/packages";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
 
 import type { PluginSurfaceInput, PluginSurfaceResult } from "./protocol";
@@ -43,6 +44,9 @@ export function compileSurface(
   }
   for (const file of input.files ?? []) {
     typstState.insertFile(typstState.createFileId(file.path), file.bytes);
+  }
+  for (const pkg of input.packages ?? []) {
+    typstState.installPackage(specString(pkg.spec), pkg.bytes);
   }
   typstState.insertFile(
     typstState.createFileId(CTX_PATH),

@@ -50,7 +50,7 @@ export interface PluginManifest {
   name: string;
   version: string;
   description?: string;
-  /** Host protocol version; only `typbase.host.v1` is accepted today. */
+  /** Host protocol version; only `typbase.host.v1` is accepted. */
   api: string;
   /** Entry module, relative to the plugin root, e.g. `main.typ`. */
   entry: string;

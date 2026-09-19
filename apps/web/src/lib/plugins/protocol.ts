@@ -1,4 +1,4 @@
-import type { ThemePaletteTokens } from "@typbase/typing";
+import type { InstalledPackage, ThemePaletteTokens } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 
 /** Types crossing the host <-> plugin-worker boundary. */
@@ -11,6 +11,12 @@ export interface PluginSurfaceSource {
 
 export interface PluginSurfaceFile {
   path: string;
+  bytes: Uint8Array;
+}
+
+/** A package the request loop fetched for this surface. */
+export interface PluginSurfacePackage {
+  spec: InstalledPackage;
   bytes: Uint8Array;
 }
 
@@ -30,6 +36,8 @@ export interface PluginSurfaceInput {
   sources: PluginSurfaceSource[];
   /** Binary files the request loop resolved (query JSON, images, ...). */
   files?: PluginSurfaceFile[];
+  /** Packages the request loop fetched; installed before the compile. */
+  packages?: PluginSurfacePackage[];
   ctx: unknown;
   style: PluginSurfaceStyle;
 }

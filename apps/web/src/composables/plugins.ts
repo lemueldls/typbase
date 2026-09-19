@@ -8,11 +8,14 @@ import type {
   PluginPatch,
 } from "@typbase/typing";
 
+import type { PluginSurfacePackage } from "~/lib/plugins/protocol";
+
 import { resolveAppTheme } from "~/composables/theme";
 import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { createProviderFor, refreshSections, toSections } from "~/lib/ai/generators";
 import { getAiKeys } from "~/lib/ai/keys";
+import { specString } from "~/lib/packages";
 import {
   loadBundledCatalog,
   loadLocalCatalog,
@@ -399,6 +402,7 @@ function usePluginHost() {
       const started = performance.now();
       const sources = plain([{ path: UI_LIBRARY_PATH, text: uiLibrarySource }, ...entry.sources]);
       const files: { path: string; bytes: Uint8Array }[] = [];
+      const packages: PluginSurfacePackage[] = [];
       let result = await compilePluginSurface({
         spaceId: store.workspaceId,
         slug: entry.slug,
@@ -406,6 +410,7 @@ function usePluginHost() {
         fn: surface.fn,
         sources,
         files,
+        packages,
         ctx: plain(ctx),
         style: plain({
           font: settings.font,
@@ -430,6 +435,11 @@ function usePluginHost() {
               sources.push({ path: payload.path, text: payload.text });
               added = true;
             }
+          } else if (payload.type === "package") {
+            if (!packages.some((pkg) => specString(pkg.spec) === specString(payload.spec))) {
+              packages.push({ spec: payload.spec, bytes: payload.bytes });
+              added = true;
+            }
           } else if (!files.some((file) => file.path === payload.path)) {
             files.push({ path: payload.path, bytes: payload.bytes });
             added = true;
@@ -444,6 +454,7 @@ function usePluginHost() {
           fn: surface.fn,
           sources,
           files,
+          packages,
           ctx: plain(ctx),
           style: plain({
             font: settings.font,

@@ -9,6 +9,9 @@ import newcmMathBold from "~~/public/fonts/math/NewCMMath-Bold.otf?url";
 import newcmMath from "~~/public/fonts/math/NewCMMath-Regular.otf?url";
 
 import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWorker";
+import type { RequestPayload } from "~/lib/typstRequests";
+
+import { specString } from "~/lib/packages";
 
 /**
  * Worker entry: owns one TypstState for publish and export renders. The page
@@ -48,9 +51,18 @@ async function ensureState(): Promise<TypstState> {
 
 let currentId = 0;
 let releaseAnswer: ((inserted: number) => void) | undefined;
-/** Request paths already inserted for the current render. A pass that asks
+/** Request keys already inserted for the current render. A pass that asks
  *  only for these has made no progress and must not loop. */
-let insertedPaths = new Set<string>();
+let insertedKeys = new Set<string>();
+
+/** A request and a payload key for the same file or package must match. */
+function requestKey(request: TypstRequest): string {
+  return typeof request.value === "string" ? request.value : specString(request.value);
+}
+
+function payloadKey(payload: RequestPayload): string {
+  return payload.type === "package" ? specString(payload.spec) : payload.path;
+}
 
 self.addEventListener(
   "message",
@@ -69,8 +81,10 @@ self.addEventListener(
         state.insertSource(state.createFileId(payload.path), payload.text);
       } else if (payload?.type === "file") {
         state.insertFile(state.createFileId(payload.path), payload.bytes);
+      } else if (payload?.type === "package") {
+        state.installPackage(specString(payload.spec), payload.bytes);
       }
-      if (payload) insertedPaths.add(payload.path);
+      if (payload) insertedKeys.add(payloadKey(payload));
 
       return;
     }
@@ -86,7 +100,7 @@ self.addEventListener(
     if (message.type !== "render") return;
 
     currentId = message.id;
-    insertedPaths = new Set();
+    insertedKeys = new Set();
     const { pagePath, source, prelude, wants, merged, spaceId } = message;
 
     try {
@@ -197,9 +211,7 @@ async function runPasses<T extends RenderPass>(
 
     const inserted = await requestLoop(rendered.requests);
     if (inserted === 0) {
-      const missing = rendered.requests
-        .map((request) => (typeof request.value === "string" ? request.value : "package"))
-        .join(", ");
+      const missing = rendered.requests.map(requestKey).join(", ");
       post({
         id: currentId,
         type: "result",
@@ -220,9 +232,7 @@ async function runPasses<T extends RenderPass>(
 }
 
 async function requestLoop(requests: TypstRequest[]): Promise<number> {
-  const fresh = requests.filter(
-    (request) => typeof request.value === "string" && !insertedPaths.has(request.value),
-  );
+  const fresh = requests.filter((request) => !insertedKeys.has(requestKey(request)));
   if (!fresh.length) return 0;
 
   postMessage({ id: currentId, type: "request", requests: fresh } satisfies RenderWorkerResponse);

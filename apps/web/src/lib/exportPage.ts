@@ -70,6 +70,10 @@ export async function buildExport(
 
   const collect = (outcome: RenderOutcome): void => {
     for (const payload of outcome.payloads) {
+      // Packages were installed into the worker's world; the exported project
+      // references them by spec instead of vendoring the tarball.
+      if (payload.type === "package") continue;
+
       const bytes = payload.type === "file" ? payload.bytes : encoder.encode(payload.text);
       payloads.set(payload.path, { name: payload.path, bytes });
     }

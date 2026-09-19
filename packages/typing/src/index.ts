@@ -128,6 +128,13 @@ export type ThemePaletteToken = (typeof THEME_PALETTE_TOKEN_KEYS)[number];
 export type ThemePaletteTokens = Record<ThemePaletteToken, string>;
 
 /** Workspace settings stored in the workspace doc's `settings` map. */
+/** A Typst package installed in the workspace, synced with the settings. */
+export interface InstalledPackage {
+  namespace: string;
+  name: string;
+  version: string;
+}
+
 export interface WorkspaceSettings {
   name: string;
   /** Page id shown when the app opens, and the page that "Home" points to. */
@@ -162,6 +169,12 @@ export interface WorkspaceSettings {
   themeName: string;
   /** Token map for the "custom" theme (or a complete override for any theme). */
   themeCustom: ThemePaletteTokens | null;
+  /**
+   * Universe packages the workspace depends on. The spec list syncs with the
+   * workspace; the tarballs stay in a device-local cache and are re-fetched
+   * on demand.
+   */
+  installedPackages: InstalledPackage[];
   publish: PublishSettings;
   ai: AiConfig;
   search: SearchSettings;
@@ -188,6 +201,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   theme: "auto",
   themeName: "default",
   themeCustom: null,
+  installedPackages: [],
   publish: {
     langs: ["en"],
     tags: [],

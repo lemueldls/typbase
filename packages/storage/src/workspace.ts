@@ -413,6 +413,11 @@ export class WorkspaceStore {
         ? themeCustom
         : DEFAULT_SETTINGS.themeCustom;
 
+    const installedPackages = decodeSetting<WorkspaceSettings["installedPackages"] | null>(
+      map.get("installedPackages"),
+    );
+    settings.installedPackages = Array.isArray(installedPackages) ? installedPackages : [];
+
     return settings;
   }
 
@@ -424,6 +429,7 @@ export class WorkspaceStore {
       else if (key === "ai") map.set("ai", encodeSetting(value));
       else if (key === "search") map.set("search", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
+      else if (key === "installedPackages") map.set(key, encodeSetting(value));
       else map.set(key, value);
     }
     this.doc.commit();

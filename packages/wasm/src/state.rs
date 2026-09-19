@@ -222,35 +222,55 @@ impl TypstState {
     #[wasm_bindgen(js_name = "installPackage")]
     pub fn install_package(&mut self, spec: &str, data: Vec<u8>) -> Result<(), JsValue> {
         let package_spec =
-            Some(PackageSpec::from_str(spec).map_err(|e| JsValue::from_str(&e.to_string()))?);
+            PackageSpec::from_str(spec).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         let data = Cursor::new(data);
         let data = flate2::read::GzDecoder::new(data);
         let mut archive = Archive::new(data);
 
-        for entry in archive.entries().unwrap() {
-            let mut file = entry.unwrap();
-            let path = file.path().unwrap();
+        let entries = archive
+            .entries()
+            .map_err(|error| JsValue::from_str(&error.to_string()))?;
 
-            let root = match &package_spec {
-                Some(spec) => VirtualRoot::Package(spec.clone()),
-                None => VirtualRoot::Project,
-            };
+        for entry in entries {
+            let mut file = entry.map_err(|error| JsValue::from_str(&error.to_string()))?;
+
+            // Directory entries (the leading `.` in Universe tarballs) carry
+            // no content and would insert an empty source at the root.
+            if !file.header().entry_type().is_file() {
+                continue;
+            }
+
+            let path = file
+                .path()
+                .map_err(|error| JsValue::from_str(&error.to_string()))?;
+            let path = path
+                .to_str()
+                .ok_or_else(|| JsValue::from_str("package entry path is not utf-8"))?;
 
             let id = FileId::new(RootedPath::new(
-                root,
-                VirtualPath::new(path.to_str().expect("Invalid virtual path"))
-                    .expect("Invalid virtual path"),
+                VirtualRoot::Package(package_spec.clone()),
+                VirtualPath::new(path).map_err(|error| JsValue::from_str(&error.to_string()))?,
             ));
 
             let mut content = Vec::new();
-            file.read_to_end(&mut content).unwrap();
+            file.read_to_end(&mut content)
+                .map_err(|error| JsValue::from_str(&error.to_string()))?;
 
             match String::from_utf8(content.clone()) {
                 Ok(content) => self.world.insert_source(id, content),
                 Err(..) => self.world.insert_file(id, Bytes::new(content)),
             }
         }
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "removePackage")]
+    pub fn remove_package(&mut self, spec: &str) -> Result<(), JsValue> {
+        let package_spec =
+            PackageSpec::from_str(spec).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        self.world.remove_package(&package_spec);
 
         Ok(())
     }

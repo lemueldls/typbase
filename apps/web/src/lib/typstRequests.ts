@@ -1,9 +1,10 @@
 import type { WorkspaceStore } from "@typbase/storage";
-import type { Section } from "@typbase/typing";
+import type { InstalledPackage, Section } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 
 import { parseQueryPath } from "@typbase/typing";
 
+import { fetchPackageBytes, samePackage, specString } from "~/lib/packages";
 import { getPluginSource } from "~/lib/plugins/registry";
 import { mirrorRequestPayload } from "~/lib/projectMirror";
 
@@ -48,7 +49,8 @@ export interface TypstRequestService {
  */
 export type RequestPayload =
   | { type: "source"; path: string; text: string }
-  | { type: "file"; path: string; bytes: Uint8Array };
+  | { type: "file"; path: string; bytes: Uint8Array }
+  | { type: "package"; spec: InstalledPackage; bytes: Uint8Array };
 
 export async function resolveRequestPayloads(
   requests: TypstRequest[],
@@ -59,8 +61,18 @@ export async function resolveRequestPayloads(
   const payloads: RequestPayload[] = [];
 
   for (const request of requests) {
-    if (typeof request.value !== "string") {
-      console.warn(`[typbase] package requests are not supported yet:`, request);
+    if (request.type === "package") {
+      const spec: InstalledPackage = {
+        namespace: request.value.namespace,
+        name: request.value.name,
+        version: request.value.version,
+      };
+
+      try {
+        payloads.push({ type: "package", spec, bytes: await fetchPackageBytes(spec) });
+      } catch (error) {
+        console.warn(`[typbase] could not fetch ${specString(spec)}:`, error);
+      }
       continue;
     }
 
@@ -127,6 +139,7 @@ export function createTypstRequestService(
     insertSource(id: unknown, source: string): void;
     insertFile(id: unknown, bytes: Uint8Array): void;
     removeFile(id: unknown): void;
+    installPackage(spec: string, bytes: Uint8Array): void;
   },
   store: WorkspaceStore,
 ): TypstRequestService {
@@ -140,7 +153,11 @@ export function createTypstRequestService(
     let changed = false;
 
     for (const payload of payloads) {
-      if (payload.type === "source") {
+      if (payload.type === "package") {
+        typstState.installPackage(specString(payload.spec), payload.bytes);
+        rememberPackage(store, payload.spec);
+        changed = true;
+      } else if (payload.type === "source") {
         typstState.insertSource(typstState.createFileId(payload.path), payload.text);
         insertedSources.add(payload.path);
         mirrorRequestPayload(store, payload.path, new TextEncoder().encode(payload.text));
@@ -184,6 +201,18 @@ export function createTypstRequestService(
       currentPage = id;
     },
   };
+}
+
+/**
+ * Records an auto-installed package in the workspace list, so the manager
+ * shows what the notes actually depend on instead of only what was installed
+ * by hand.
+ */
+function rememberPackage(store: WorkspaceStore, spec: InstalledPackage): void {
+  const installed = store.getSettings().installedPackages;
+  if (installed.some((pkg) => samePackage(pkg, spec))) return;
+
+  store.updateSettings({ installedPackages: [...installed, spec] });
 }
 
 export async function buildQueryJson(

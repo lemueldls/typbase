@@ -87,6 +87,7 @@ async function openToday() {
 }
 
 const renameTarget = ref<PageMeta>();
+const packagesOpen = ref(false);
 const renameTitle = ref("");
 /** Page queued for deletion. The target survives the dialog's close event:
  *  reka's action closes the dialog before the confirm handler runs. */
@@ -402,6 +403,12 @@ function onCreated(page: PageMeta) {
         <MsIcon name="science" :size="16" />
         {{ $t("sidebar.debugLab") }}
       </NuxtLink> -->
+      <PackageBrowser v-model:open="packagesOpen" :store="store">
+        <button type="button" class="button button--ghost button--small">
+          <MsIcon name="package_2" :size="16" />
+          {{ $t("packages.title") }}
+        </button>
+      </PackageBrowser>
       <WorkspaceExportDialog :store="store">
         <button type="button" class="button button--ghost button--small">
           <MsIcon name="download" :size="16" />

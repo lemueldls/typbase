@@ -64,6 +64,19 @@ impl TypstWorld {
         self.files.remove(id);
     }
 
+    /// Drops every file loaded under `spec`'s package root. Returns how many
+    /// files were removed so the caller can skip a recompile when nothing
+    /// changed.
+    pub fn remove_package(&mut self, spec: &PackageSpec) -> usize {
+        let before = self.files.len();
+        self.files.retain(|id, _| match id.root() {
+            VirtualRoot::Package(root) => root != spec,
+            VirtualRoot::Project => true,
+        });
+
+        before - self.files.len()
+    }
+
     pub fn insert_file(&mut self, id: FileId, bytes: Bytes) {
         self.files.insert(id, FileSlot::Bytes(bytes));
     }
