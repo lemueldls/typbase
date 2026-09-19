@@ -352,7 +352,7 @@ defineExpose({ scroller, getFrameLayout });
 .paged-preview::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background-clip: content-box;
 }
 
@@ -367,20 +367,20 @@ defineExpose({ scroller, getFrameLayout });
 
 .paged-preview__status {
   position: sticky;
-  top: 0.5rem;
+  top: var(--space-2);
   z-index: 1;
-  margin: 0.5rem;
-  padding: 0.2rem 0.6rem;
+  margin: var(--space-2);
+  padding: var(--space-1) var(--space-2-5);
   width: fit-content;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
 }
 
 .paged-preview__inner {
-  padding: 1rem 1.25rem 3rem;
+  padding: var(--space-4) var(--space-5) var(--space-12);
 }
 
 .paged-preview__flow {
@@ -392,7 +392,7 @@ defineExpose({ scroller, getFrameLayout });
 
 @media (max-width: 768px) {
   .paged-preview__inner {
-    padding: 0.75rem 0.75rem 2rem;
+    padding: var(--space-3) var(--space-3) var(--space-8);
   }
 }
 

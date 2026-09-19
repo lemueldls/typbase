@@ -22,6 +22,19 @@ const creating = ref(false);
 const categories = computed(() => props.store.listCategories());
 const pathPreview = computed(() => `pages/${slugify(title.value || "untitled")}.typ`);
 
+// Reka rejects an empty item value, so "no category" is a sentinel here.
+const categoryChoice = computed({
+  get: () => categoryId.value || "none",
+  set: (value: string) => {
+    categoryId.value = value === "none" ? "" : value;
+  },
+});
+
+const categoryOptions = computed(() => [
+  { value: "none", label: t("newPage.noCategory") },
+  ...categories.value.map((category) => ({ value: category.id, label: category.name })),
+]);
+
 async function submit() {
   const trimmed = title.value.trim();
   if (!trimmed) {
@@ -67,12 +80,11 @@ async function submit() {
 
       <Label class="dialog__field">
         <span>{{ $t("newPage.category") }}</span>
-        <select v-model="categoryId" class="dialog__input">
-          <option value="">{{ $t("newPage.noCategory") }}</option>
-          <option v-for="category in categories" :key="category.id" :value="category.id">
-            {{ category.name }}
-          </option>
-        </select>
+        <UiSelect
+          v-model="categoryChoice"
+          :options="categoryOptions"
+          :label="$t('newPage.category')"
+        />
       </Label>
 
       <p class="dialog__path">{{ pathPreview }}</p>

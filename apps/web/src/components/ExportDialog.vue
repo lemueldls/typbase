@@ -2,6 +2,8 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { TypstState } from "@typbase/wasm";
 
+import type { SelectOption } from "~/components/ui/Select.vue";
+
 import { buildExport, saveExport, type ExportOptions } from "~/lib/exportPage";
 
 const props = defineProps<{
@@ -13,9 +15,21 @@ const props = defineProps<{
   beforeExport?: () => Promise<void> | void;
 }>();
 
+const { t } = useI18n();
+
 const open = ref(false);
 const busy = ref(false);
 const error = ref("");
+
+const themeOptions = computed<SelectOption<ExportOptions["theme"]>[]>(() => [
+  { value: "light", label: t("exportPage.themeLight") },
+  { value: "workspace", label: t("exportPage.themeWorkspace") },
+]);
+
+const pageSizeOptions: SelectOption<ExportOptions["pageSize"]>[] = [
+  { value: "a4", label: "A4" },
+  { value: "letter", label: "Letter" },
+];
 
 const DEFAULTS: ExportOptions = {
   html: true,
@@ -92,17 +106,21 @@ async function run(): Promise<void> {
       <div class="export__options">
         <label class="export__field">
           {{ $t("exportPage.theme") }}
-          <select v-model="options.theme">
-            <option value="light">{{ $t("exportPage.themeLight") }}</option>
-            <option value="workspace">{{ $t("exportPage.themeWorkspace") }}</option>
-          </select>
+          <UiSelect
+            v-model="options.theme"
+            :options="themeOptions"
+            :label="$t('exportPage.theme')"
+            size="small"
+          />
         </label>
         <label class="export__field">
           {{ $t("exportPage.pageSize") }}
-          <select v-model="options.pageSize">
-            <option value="a4">A4</option>
-            <option value="letter">Letter</option>
-          </select>
+          <UiSelect
+            v-model="options.pageSize"
+            :options="pageSizeOptions"
+            :label="$t('exportPage.pageSize')"
+            size="small"
+          />
         </label>
       </div>
 
@@ -127,62 +145,46 @@ async function run(): Promise<void> {
 .export {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: var(--space-2-5);
 }
 
 .export__formats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  padding-bottom: 0.5rem;
+  gap: var(--space-2) var(--space-4);
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 
 .export__options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: var(--space-2) var(--space-4);
 }
 
 .export__field {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
-}
-
-.export__field select {
-  padding: 0.25rem 0.4rem;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
-}
-
-.export__field select:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .export__hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .export__error {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
 .export__actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 </style>

@@ -52,9 +52,9 @@ const icon = computed<MaterialSymbol>(() => {
 .plugin-view__toolbar {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
   min-height: 3.5rem;
-  padding: 0.4rem 0.75rem;
+  padding: var(--space-1-5) var(--space-3);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -67,12 +67,12 @@ const icon = computed<MaterialSymbol>(() => {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .plugin-view__body {
   flex: 1;
   min-height: 0;
-  padding: 0.5rem;
+  padding: var(--space-2);
 }
 </style>

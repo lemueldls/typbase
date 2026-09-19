@@ -428,22 +428,22 @@ definePageMeta({ ssr: false });
 .lab {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-5);
   min-height: 100vh;
 }
 
 .lab__header h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.4rem;
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-3xl);
 }
 
 .lab__hint {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .lab__workspace,
@@ -451,19 +451,19 @@ definePageMeta({ ssr: false });
 .lab__report,
 .lab__console {
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   background: var(--color-surface);
 }
 
 .lab__facts {
   display: flex;
-  gap: 1.5rem;
-  margin: 0 0 0.75rem;
+  gap: var(--space-6);
+  margin: 0 0 var(--space-3);
 }
 
 .lab__facts dt {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
@@ -480,28 +480,28 @@ definePageMeta({ ssr: false });
 .lab__field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.75rem;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-3);
 }
 
 .lab__field span {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .lab__input {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  padding: 0.6rem;
+  font-size: var(--text-md);
+  padding: var(--space-2-5);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   resize: vertical;
 }
 
 .lab__actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2-5);
 }
 
 .lab__actions h2 {
@@ -510,8 +510,8 @@ definePageMeta({ ssr: false });
 
 .lab__check {
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   background: var(--color-surface);
 }
 
@@ -520,28 +520,28 @@ definePageMeta({ ssr: false });
 }
 
 .lab__check ul {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
 .lab__battery {
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   background: var(--color-surface);
 }
 
 .lab__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
-  margin-top: 0.75rem;
+  font-size: var(--text-md);
+  margin-top: var(--space-3);
 }
 
 .lab__table th,
 .lab__table td {
   text-align: left;
-  padding: 0.4rem 0.5rem;
+  padding: var(--space-1-5) var(--space-2);
   border-bottom: 1px solid var(--color-border);
   vertical-align: top;
 }
@@ -552,23 +552,23 @@ definePageMeta({ ssr: false });
 
 .lab__crash {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .lab__error {
   color: var(--color-danger);
   white-space: pre-wrap;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .lab__diags,
 .lab__requests {
-  padding-left: 1.2rem;
-  font-size: 0.85rem;
+  padding-left: var(--space-5);
+  font-size: var(--text-md);
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: var(--space-1);
 }
 
 .lab__sev {
@@ -589,14 +589,14 @@ definePageMeta({ ssr: false });
   overflow: auto;
   background: #111;
   color: #ddd;
-  padding: 0.75rem;
-  border-radius: 0.4rem;
-  font-size: 0.75rem;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   white-space: pre-wrap;
 }
 
 .lab__plugins {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 </style>

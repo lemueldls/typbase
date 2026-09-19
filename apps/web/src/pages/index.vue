@@ -439,17 +439,17 @@ definePageMeta({ ssr: false });
    content area (see .app__content--switching). */
 .app__switching {
   position: fixed;
-  top: 0.9rem;
+  top: var(--space-3-5);
   left: 50%;
   z-index: 90;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.9rem;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3-5);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
   pointer-events: none;
   animation: app-switching-in 0.15s ease-out;
@@ -457,8 +457,8 @@ definePageMeta({ ssr: false });
 }
 
 .app__switching-spinner {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: calc(0.95rem * var(--ui-size));
+  height: calc(0.95rem * var(--ui-size));
   flex: none;
   border: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
   border-top-color: var(--color-accent);
@@ -467,7 +467,7 @@ definePageMeta({ ssr: false });
 }
 
 .app__switching-label {
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -481,7 +481,7 @@ definePageMeta({ ssr: false });
 @keyframes app-switching-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -0.25rem);
+    transform: translate(-50%, calc(var(--space-1) * -1));
   }
 
   to {
@@ -564,7 +564,7 @@ definePageMeta({ ssr: false });
 
 .app__main :deep(.app__nav-toggle--desktop) {
   display: inline-flex;
-  padding: 0.35rem 0.55rem;
+  padding: var(--space-1-5) var(--space-2);
 }
 
 .app__main :deep(.app__nav-toggle:focus-visible),
@@ -605,15 +605,15 @@ definePageMeta({ ssr: false });
   flex: 1;
   display: grid;
   place-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   color: var(--color-text-secondary);
   text-align: center;
   align-content: center;
 }
 
 .app__loading-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.05rem;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
   color: var(--color-text);
 }
 
@@ -623,15 +623,15 @@ definePageMeta({ ssr: false });
 
 .app__note {
   max-width: 26rem;
-  margin: 0.5rem auto 0;
-  font-size: 0.8rem;
+  margin: var(--space-2) auto 0;
+  font-size: var(--text-sm);
 }
 
 .boot-steps {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   margin: 0;
   padding: 0;
   text-align: left;
@@ -641,8 +641,8 @@ definePageMeta({ ssr: false });
 .boot-step {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  gap: var(--space-2);
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
@@ -670,7 +670,7 @@ definePageMeta({ ssr: false });
 }
 
 .boot-step__detail {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;

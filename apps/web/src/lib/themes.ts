@@ -1,4 +1,4 @@
-import type { ThemeMode, ThemePaletteTokens } from "@typbase/typing";
+import type { ThemeMode, ThemePaletteTokens, UiDensity, UiRadius, UiSize } from "@typbase/typing";
 
 import { ThemeColors } from "@typbase/wasm";
 
@@ -349,6 +349,22 @@ export interface AppFontSettings {
   codeFont?: string | null;
 }
 
+/** Everything the chrome needs from the workspace: fonts and the size scale. */
+export interface AppChromeSettings extends AppFontSettings {
+  uiSize?: UiSize;
+  uiDensity?: UiDensity;
+  uiRadius?: UiRadius;
+}
+
+/** Preset to multiplier for the three scale variables in tokens.css. */
+const UI_SIZE_SCALE: Record<UiSize, number> = { small: 0.9, default: 1, large: 1.15 };
+const UI_DENSITY_SCALE: Record<UiDensity, number> = {
+  compact: 0.875,
+  default: 1,
+  spacious: 1.125,
+};
+const UI_RADIUS_SCALE: Record<UiRadius, number> = { square: 0.25, default: 1, round: 1.5 };
+
 function cssFamily(family: string): string {
   // Family names are user data; quote and escape so a stray quote cannot
   // break the declaration.
@@ -381,7 +397,7 @@ export function themeCssVar(token: string): string {
 }
 
 /** Applies the resolved tokens to <html> (CSS custom properties + data attrs). */
-export function applyThemeToDom(resolved: ResolvedTheme, fonts?: AppFontSettings): void {
+export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSettings): void {
   const root = document.documentElement;
   root.dataset.theme = resolved.mode;
   root.dataset.themeName = resolved.definition?.id ?? "custom";
@@ -394,12 +410,20 @@ export function applyThemeToDom(resolved: ResolvedTheme, fonts?: AppFontSettings
   }
 
   // The chrome follows the workspace's text/math/code fonts.
-  if (fonts?.font) {
-    const stacks = fontStacks(fonts);
+  if (settings?.font) {
+    const stacks = fontStacks(settings);
     root.style.setProperty("--font-sans", stacks.sans);
     root.style.setProperty("--font-mono", stacks.mono);
     root.style.setProperty("--font-math", stacks.math);
   }
+
+  // Size presets multiply the token scale; tokens.css carries the fallbacks.
+  root.style.setProperty("--ui-size", String(UI_SIZE_SCALE[settings?.uiSize ?? "default"]));
+  root.style.setProperty(
+    "--ui-density",
+    String(UI_DENSITY_SCALE[settings?.uiDensity ?? "default"]),
+  );
+  root.style.setProperty("--ui-radius", String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]));
 }
 
 // Last-applied settings cache. Workspace theme settings live in a Loro doc,
@@ -409,7 +433,7 @@ export function applyThemeToDom(resolved: ResolvedTheme, fonts?: AppFontSettings
 
 const THEME_CACHE_KEY = "typbase:themeCache";
 
-type CachedThemeSettings = Parameters<typeof resolveTheme>[0] & AppFontSettings;
+type CachedThemeSettings = Parameters<typeof resolveTheme>[0] & AppChromeSettings;
 
 export function cacheThemeSettings(settings: CachedThemeSettings): void {
   try {
@@ -422,6 +446,9 @@ export function cacheThemeSettings(settings: CachedThemeSettings): void {
         font: settings.font ?? null,
         mathFont: settings.mathFont ?? null,
         codeFont: settings.codeFont ?? null,
+        uiSize: settings.uiSize ?? "default",
+        uiDensity: settings.uiDensity ?? "default",
+        uiRadius: settings.uiRadius ?? "default",
       } satisfies CachedThemeSettings),
     );
   } catch {

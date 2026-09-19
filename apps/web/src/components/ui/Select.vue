@@ -79,15 +79,15 @@ const model = defineModel<T>({ required: true });
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   min-width: 0;
-  padding: 0.5rem 0.5rem;
+  padding: var(--space-2);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -101,8 +101,8 @@ const model = defineModel<T>({ required: true });
 }
 
 .ui-select__trigger--small {
-  padding: 0.2rem 0.3rem 0.2rem 0.4rem;
-  font-size: 0.82rem;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1-5);
+  font-size: var(--text-sm);
 }
 
 .ui-select__icon {

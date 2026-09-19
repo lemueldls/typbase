@@ -112,6 +112,21 @@ const editFiles = computed(() => {
     .sort();
 });
 
+const instanceOptions = computed(() =>
+  plugins.instances.value.map((instance) => ({
+    value: instance.id,
+    label: `${instance.title} (${instance.surface})`,
+  })),
+);
+
+const editPluginOptions = computed(() =>
+  localEntries.value.map((entry) => ({ value: entry.manifest.id, label: entry.manifest.name })),
+);
+
+const editFileOptions = computed(() =>
+  editFiles.value.map((file) => ({ value: file, label: file })),
+);
+
 watch(
   localEntries,
   (list) => {
@@ -211,15 +226,12 @@ function formatTime(at: number): string {
     <section class="lab-plugin__group">
       <h3 class="lab-plugin__title">Surface</h3>
       <div class="lab-plugin__row">
-        <select v-model="selectedId" class="lab-plugin__input">
-          <option
-            v-for="instance in plugins.instances.value"
-            :key="instance.id"
-            :value="instance.id"
-          >
-            {{ instance.title }} ({{ instance.surface }})
-          </option>
-        </select>
+        <UiSelect
+          v-model="selectedId"
+          :options="instanceOptions"
+          label="Plugin instance"
+          class="lab-plugin__select"
+        />
         <button type="button" class="button button--primary button--small" @click="compile">
           Compile
         </button>
@@ -285,14 +297,18 @@ function formatTime(at: number): string {
     <section class="lab-plugin__group">
       <h3 class="lab-plugin__title">Sources</h3>
       <div class="lab-plugin__row">
-        <select v-model="editPlugin" class="lab-plugin__input">
-          <option v-for="entry in localEntries" :key="entry.manifest.id" :value="entry.manifest.id">
-            {{ entry.manifest.name }}
-          </option>
-        </select>
-        <select v-model="editFile" class="lab-plugin__input">
-          <option v-for="file in editFiles" :key="file" :value="file">{{ file }}</option>
-        </select>
+        <UiSelect
+          v-model="editPlugin"
+          :options="editPluginOptions"
+          label="Plugin source"
+          class="lab-plugin__select"
+        />
+        <UiSelect
+          v-model="editFile"
+          :options="editFileOptions"
+          label="Plugin file"
+          class="lab-plugin__select"
+        />
         <button
           type="button"
           class="button button--primary button--small"
@@ -327,17 +343,17 @@ function formatTime(at: number): string {
 <style scoped>
 .lab-plugin {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .lab-plugin__group {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .lab-plugin__title {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -348,29 +364,34 @@ function formatTime(at: number): string {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
 }
 
 .lab-plugin__action {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1-5);
 }
 
 .lab-plugin__input,
 .lab-plugin__editor {
-  padding: 0.35rem 0.5rem;
+  padding: var(--space-1-5) var(--space-2);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
 }
 
 .lab-plugin__editor {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   resize: vertical;
+}
+
+.lab-plugin__select {
+  flex: 1;
+  min-width: 0;
 }
 
 .lab-plugin__preview {
@@ -378,28 +399,28 @@ function formatTime(at: number): string {
   overflow: hidden;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .lab-plugin__pre {
   max-height: 18rem;
   margin: 0;
-  padding: 0.6rem;
+  padding: var(--space-2-5);
   overflow: auto;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   white-space: pre-wrap;
   background: var(--color-surface-2);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .lab-plugin__error {
   margin: 0;
-  padding: 0.6rem;
-  font-size: 0.75rem;
+  padding: var(--space-2-5);
+  font-size: var(--text-xs);
   color: var(--color-danger);
   white-space: pre-wrap;
   background: var(--color-danger-soft);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .lab-plugin__logs {
@@ -407,22 +428,22 @@ function formatTime(at: number): string {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0.2rem;
+  gap: var(--space-1);
   max-height: 16rem;
   overflow-y: auto;
 }
 
 .lab-plugin__log {
   display: flex;
-  gap: 0.5rem;
-  font-size: 0.78rem;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .lab-plugin__log-kind {
   flex: none;
   width: 3.6rem;
   text-transform: uppercase;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   color: var(--color-text-secondary);
 }
@@ -446,7 +467,7 @@ function formatTime(at: number): string {
 }
 
 .lab-plugin__muted {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 </style>

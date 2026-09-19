@@ -177,45 +177,45 @@ async function run(choice: StorageSetupChoice): Promise<void> {
   flex: 1;
   display: grid;
   place-content: center;
-  padding: 1rem;
+  padding: var(--space-4);
   overflow: auto;
 }
 
 .storage-setup__card {
   display: grid;
-  gap: 0.9rem;
-  width: min(30rem, calc(100vw - 2rem));
+  gap: var(--space-3-5);
+  width: min(30rem, calc(100vw - var(--space-8)));
 }
 
 .storage-setup__title {
   margin: 0;
   text-align: center;
-  font-size: 1.3rem;
+  font-size: var(--text-2xl);
 }
 
 .storage-setup__intro {
   margin: 0;
   text-align: center;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .storage-setup__options {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .storage-option {
   display: flex;
   align-items: flex-start;
-  gap: 0.7rem;
+  gap: var(--space-3);
   width: 100%;
-  padding: 0.7rem 0.8rem;
+  padding: var(--space-3);
   text-align: left;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
+  border-radius: var(--radius-md);
   color: inherit;
   cursor: pointer;
 }
@@ -238,18 +238,18 @@ async function run(choice: StorageSetupChoice): Promise<void> {
 .storage-option__icon {
   display: grid;
   place-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: var(--control-md);
+  height: var(--control-md);
   flex: none;
   color: var(--color-accent);
   background: var(--color-accent-soft);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .storage-option__body {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
@@ -258,7 +258,7 @@ async function run(choice: StorageSetupChoice): Promise<void> {
 }
 
 .storage-option__path {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -267,7 +267,7 @@ async function run(choice: StorageSetupChoice): Promise<void> {
 }
 
 .storage-option__hint {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -275,13 +275,13 @@ async function run(choice: StorageSetupChoice): Promise<void> {
   margin: 0;
   text-align: center;
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }
 
 .storage-setup__error {
   margin: 0;
   color: var(--color-danger);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   text-align: center;
 }
 

@@ -4,7 +4,7 @@ import type { MaterialSymbol } from "material-symbols";
 withDefaults(
   defineProps<{
     name: MaterialSymbol;
-    /** Icon size in px; the font is sized, not scaled. */
+    /** Icon size in px at the default interface size; the chrome scale multiplies it. */
     size?: number;
     /** Solid fill instead of the outlined style. */
     fill?: boolean;
@@ -23,7 +23,7 @@ withDefaults(
   <span
     class="ms-icon material-symbols-rounded"
     :style="{
-      'font-size': `${size}px`,
+      'font-size': `calc(${size}px * var(--ui-size, 1))`,
       'font-variation-settings': `'FILL' ${fill ? 1 : 0}, 'wght' ${weight}`,
     }"
     aria-hidden="true"

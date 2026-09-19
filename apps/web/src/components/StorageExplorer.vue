@@ -451,7 +451,7 @@ onBeforeUnmount(() => {
         v-for="node in flatNodes"
         :key="node.path"
         class="explorer__node"
-        :style="{ paddingLeft: `${0.4 + node.depth * 1.1}rem` }"
+        :style="{ paddingLeft: `calc(var(--space-1-5) + ${node.depth} * var(--space-4))` }"
       >
         <UiTooltip
           v-if="node.kind === 'directory'"
@@ -519,37 +519,37 @@ onBeforeUnmount(() => {
 .explorer {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   background: var(--color-surface);
 }
 
 .explorer__header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .explorer__title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-lg);
   flex: 1;
 }
 
 .explorer__tabs {
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .explorer__tab {
   border: 1px solid var(--color-border);
   background: transparent;
   color: inherit;
-  border-radius: 0.35rem;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2-5);
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -561,9 +561,9 @@ onBeforeUnmount(() => {
 .explorer__location {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   flex-wrap: wrap;
 }
@@ -578,14 +578,14 @@ onBeforeUnmount(() => {
 .explorer__panel {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--space-0-5);
 }
 
 .explorer__empty,
 .explorer__error,
 .explorer__hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -601,9 +601,9 @@ onBeforeUnmount(() => {
 .explorer__node {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   min-width: 0;
-  padding: 0.25rem 0;
+  padding: var(--space-1) 0;
 }
 
 .explorer__expand,
@@ -630,7 +630,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.05rem;
+  gap: var(--space-0-5);
   border: none;
   background: transparent;
   color: inherit;
@@ -640,19 +640,19 @@ onBeforeUnmount(() => {
 }
 
 .explorer__name-main {
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .explorer__name-meta,
 .explorer__page-meta {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .explorer__node-name {
   flex: 1;
   min-width: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -663,32 +663,32 @@ onBeforeUnmount(() => {
 }
 
 .explorer__node-meta {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   flex: none;
 }
 
 .explorer__actions {
   display: flex;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   flex: none;
 }
 
 .explorer__pages {
   list-style: none;
   margin: 0;
-  padding: 0 0 0.4rem 1.7rem;
+  padding: 0 0 var(--space-1-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
 }
 
 .explorer__page {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   min-width: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .explorer__page-title {
@@ -703,7 +703,7 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   color: var(--color-text-secondary);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

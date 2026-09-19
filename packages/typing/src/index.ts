@@ -96,6 +96,18 @@ export interface SearchSettings {
 export type ThemeMode = "auto" | "light" | "dark";
 
 /**
+ * Interface size preset. Scales chrome text, control heights, and icons
+ * together so controls never clip their labels.
+ */
+export type UiSize = "small" | "default" | "large";
+
+/** Interface density preset. Scales padding and gaps only. */
+export type UiDensity = "compact" | "default" | "spacious";
+
+/** Corner radius preset. Scales the radius tokens; pills stay pills. */
+export type UiRadius = "square" | "default" | "round";
+
+/**
  * Editor spellcheck provider: "off", the browser's own checker ("native"), or
  * Harper's local WASM grammar checker ("harper").
  */
@@ -169,6 +181,10 @@ export interface WorkspaceSettings {
   themeName: string;
   /** Token map for the "custom" theme (or a complete override for any theme). */
   themeCustom: ThemePaletteTokens | null;
+  /** Interface sizing, synced with the workspace like the theme. */
+  uiSize: UiSize;
+  uiDensity: UiDensity;
+  uiRadius: UiRadius;
   /**
    * Universe packages the workspace depends on. The spec list syncs with the
    * workspace; the tarballs stay in a device-local cache and are re-fetched
@@ -201,6 +217,9 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   theme: "auto",
   themeName: "default",
   themeCustom: null,
+  uiSize: "default",
+  uiDensity: "default",
+  uiRadius: "default",
   installedPackages: [],
   publish: {
     langs: ["en"],

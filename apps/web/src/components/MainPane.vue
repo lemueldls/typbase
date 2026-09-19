@@ -52,7 +52,7 @@ const emit = defineEmits<{
   flex: 1;
   display: grid;
   place-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   color: var(--color-text-secondary);
   text-align: center;
 }

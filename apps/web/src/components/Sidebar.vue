@@ -404,13 +404,13 @@ function onCreated(page: PageMeta) {
         {{ $t("sidebar.debugLab") }}
       </NuxtLink> -->
       <PackageBrowser v-model:open="packagesOpen" :store="store">
-        <button type="button" class="button button--ghost button--small">
+        <button type="button" class="button button--ghost button--tiny">
           <MsIcon name="package_2" :size="16" />
           {{ $t("packages.title") }}
         </button>
       </PackageBrowser>
       <WorkspaceExportDialog :store="store">
-        <button type="button" class="button button--ghost button--small">
+        <button type="button" class="button button--ghost button--tiny">
           <MsIcon name="download" :size="16" />
           {{ $t("exportWorkspace.title") }}
         </button>
@@ -434,26 +434,26 @@ function onCreated(page: PageMeta) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.9rem;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3-5);
   border-bottom: 1px solid var(--color-border);
 }
 
 .sidebar__workspace {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   flex: 1;
   min-width: 0;
-  height: 2.25rem;
-  padding: 0.3rem 0.4rem;
-  margin-left: -0.4rem;
+  height: var(--control-md);
+  padding: var(--space-1) var(--space-1-5);
+  margin-left: calc(var(--space-1-5) * -1);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: var(--text-lg);
   color: var(--color-text);
   background: transparent;
   border: none;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -474,7 +474,7 @@ function onCreated(page: PageMeta) {
 .sidebar__name {
   flex: 1;
   min-width: 0;
-  font-size: 1.1rem;
+  font-size: var(--text-xl);
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
@@ -485,7 +485,7 @@ function onCreated(page: PageMeta) {
 .sidebar__header-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .sidebar__sections {
@@ -497,7 +497,7 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__section {
-  padding: 0.75rem 0.5rem;
+  padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--color-border);
   overflow-y: auto;
 }
@@ -506,9 +506,9 @@ function onCreated(page: PageMeta) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0 0.4rem;
-  font-size: 0.85rem;
+  gap: var(--space-2);
+  padding: 0 var(--space-1-5);
+  font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -518,7 +518,7 @@ function onCreated(page: PageMeta) {
 .sidebar__section-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .sidebar__list {
@@ -534,9 +534,9 @@ function onCreated(page: PageMeta) {
 .sidebar__item {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
-  padding-right: 0.25rem;
-  border-radius: 0.35rem;
+  gap: var(--space-0-5);
+  padding-right: var(--space-1);
+  border-radius: var(--radius-sm);
   transition: background 0.12s ease;
 }
 
@@ -558,18 +558,18 @@ function onCreated(page: PageMeta) {
 .sidebar__row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
   flex: 1;
   width: 100%;
   min-width: 0;
-  padding: 0.5rem 0.6rem;
-  font-size: 0.9rem;
+  padding: var(--space-2) var(--space-2-5);
+  font-size: var(--text-md);
   text-align: left;
   font-family: inherit;
   color: var(--color-text);
   background: transparent;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -614,32 +614,38 @@ function onCreated(page: PageMeta) {
 
 .sidebar__row-home {
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }
 
 .sidebar__group {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 .sidebar__group-title {
   display: block;
-  padding: 0.4rem 0.45rem 0.2rem;
-  font-size: 0.75rem;
+  padding: var(--space-1-5) var(--space-2) var(--space-1);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-text-secondary);
 }
 
 .sidebar__empty {
-  padding: 0.5rem 0.45rem;
-  font-size: 0.85rem;
+  padding: var(--space-2);
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
 .sidebar__footer {
-  padding: 0.5rem;
+  padding: var(--space-2);
   border-top: 1px solid var(--color-border);
   display: flex;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  gap: var(--space-1);
   justify-content: flex-end;
+}
+
+/* The two footer actions share one row at text-xs; longer locales wrap. */
+.sidebar__footer .button {
+  font-size: var(--text-xs);
 }
 </style>

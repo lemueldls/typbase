@@ -137,27 +137,27 @@ function goToToday() {
 .calendar__toolbar {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.6rem;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-2-5);
 }
 
 .calendar__month {
   flex: 1;
   text-align: center;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
 }
 
 .calendar__grid {
   width: 100%;
   table-layout: fixed;
   border-collapse: separate;
-  border-spacing: 0.15rem;
+  border-spacing: var(--space-0-5);
 }
 
 .calendar__weekday {
-  padding: 0.15rem 0;
-  font-size: 0.7rem;
+  padding: var(--space-0-5) 0;
+  font-size: var(--text-2xs);
   font-weight: 400;
   text-align: center;
   color: var(--color-text-secondary);
@@ -166,7 +166,7 @@ function goToToday() {
 .calendar__cell {
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   text-align: center;
   vertical-align: middle;
 }
@@ -184,15 +184,15 @@ function goToToday() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   width: 100%;
-  min-height: 2.4rem;
-  padding: 0.15rem;
+  min-height: var(--space-10);
+  padding: var(--space-0-5);
   font-family: inherit;
   color: var(--color-text);
   background: transparent;
   border: none;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -210,14 +210,14 @@ function goToToday() {
 }
 
 .calendar__day {
-  font-size: 0.85rem;
-  line-height: 1;
+  font-size: var(--text-md);
+  line-height: var(--leading-none);
 }
 
 .calendar__dot {
   width: 0.4rem;
   height: 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--color-accent);
 }
 </style>

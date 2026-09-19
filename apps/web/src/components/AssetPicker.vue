@@ -203,25 +203,25 @@ function formatSize(bytes: number): string {
 .picker {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--space-2-5);
 }
 
 .picker__toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .picker__search {
   flex: 1;
   min-width: 0;
-  padding: 0.4rem 0.55rem;
+  padding: var(--space-1-5) var(--space-2);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .picker__search:focus-visible {
@@ -240,7 +240,7 @@ function formatSize(bytes: number): string {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
-  gap: 0.5rem;
+  gap: var(--space-2);
   max-height: min(50vh, 22rem);
   overflow-y: auto;
 }
@@ -248,15 +248,15 @@ function formatSize(bytes: number): string {
 .picker__card {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1-5);
   width: 100%;
-  padding: 0.4rem;
+  padding: var(--space-1-5);
   font: inherit;
   color: var(--color-text);
   text-align: left;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -274,7 +274,7 @@ function formatSize(bytes: number): string {
   overflow: hidden;
   color: var(--color-text-secondary);
   background: var(--color-surface);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
 }
 
 .picker__thumb img {
@@ -286,8 +286,8 @@ function formatSize(bytes: number): string {
 .picker__meta {
   display: flex;
   justify-content: space-between;
-  gap: 0.35rem;
-  font-size: 0.72rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
@@ -298,13 +298,13 @@ function formatSize(bytes: number): string {
 
 .picker__hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .picker__error {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 </style>

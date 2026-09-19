@@ -34,8 +34,8 @@ withDefaults(
 .ui-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: var(--space-2);
+  font-size: var(--text-md);
   cursor: pointer;
 }
 
@@ -49,18 +49,19 @@ withDefaults(
 }
 
 .ui-switch__track {
-  --switch-pad: 0.11rem;
-  --switch-thumb: 0.95rem;
+  --switch-pad: calc(0.11rem * var(--ui-size));
+  --switch-thumb: calc(0.95rem * var(--ui-size));
+  --switch-w: calc(2.2rem * var(--ui-size));
 
   display: flex;
   align-items: center;
-  width: 2.2rem;
-  height: 1.25rem;
+  width: var(--switch-w);
+  height: calc(1.25rem * var(--ui-size));
   flex: none;
   padding: var(--switch-pad);
   background: var(--color-surface-3);
   border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -87,6 +88,6 @@ withDefaults(
 }
 
 .ui-switch__track[data-state="checked"] .ui-switch__thumb {
-  transform: translateX(calc(2.2rem - var(--switch-thumb) - var(--switch-pad) * 2 - 2px));
+  transform: translateX(calc(var(--switch-w) - var(--switch-thumb) - var(--switch-pad) * 2 - 2px));
 }
 </style>

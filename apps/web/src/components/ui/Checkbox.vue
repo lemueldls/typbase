@@ -38,8 +38,8 @@ withDefaults(
 .ui-checkbox {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: var(--space-2);
+  font-size: var(--text-md);
   cursor: pointer;
 }
 
@@ -51,14 +51,14 @@ withDefaults(
 .ui-checkbox__box {
   display: grid;
   place-content: center;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: calc(1.1rem * var(--ui-size));
+  height: calc(1.1rem * var(--ui-size));
   flex: none;
   padding: 0;
   color: var(--color-surface);
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 

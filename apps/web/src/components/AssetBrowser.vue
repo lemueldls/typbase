@@ -251,17 +251,17 @@ async function pruneUnused(): Promise<void> {
 .assets {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
 }
 
 .assets__toolbar {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
 }
 
 .assets__status {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -270,13 +270,13 @@ async function pruneUnused(): Promise<void> {
 
 .assets__error {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
 .assets__empty {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -286,14 +286,14 @@ async function pruneUnused(): Promise<void> {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .assets__row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0;
+  gap: var(--space-2-5);
+  padding: var(--space-1) 0;
   border-bottom: 1px solid var(--color-border);
   cursor: grab;
 }
@@ -312,7 +312,7 @@ async function pruneUnused(): Promise<void> {
   overflow: hidden;
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
 }
 
 .assets__preview img {
@@ -326,21 +326,21 @@ async function pruneUnused(): Promise<void> {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
+  gap: var(--space-0-5);
 }
 
 .assets__name {
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }
 
 .assets__hash {
   font-family: var(--font-mono, monospace);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .assets__refs {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -349,7 +349,7 @@ async function pruneUnused(): Promise<void> {
 
 .assets__actions {
   display: flex;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   flex: none;
 }
 </style>

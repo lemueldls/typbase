@@ -177,8 +177,8 @@ function statusFor(info: WorkspaceInfo): string {
 .ws-screen {
   display: grid;
   place-content: center;
-  gap: 1rem;
-  width: min(480px, calc(100vw - 2rem));
+  gap: var(--space-4);
+  width: min(480px, calc(100vw - var(--space-8)));
   margin: 0 auto;
 }
 
@@ -187,13 +187,13 @@ function statusFor(info: WorkspaceInfo): string {
 }
 
 .ws-screen__title {
-  margin: 0 0 0.35rem;
-  font-size: 1.3rem;
+  margin: 0 0 var(--space-1-5);
+  font-size: var(--text-2xl);
 }
 
 .ws-screen__subtitle {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -203,7 +203,7 @@ function statusFor(info: WorkspaceInfo): string {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
 }
 
 /* The border and surface live on the wrapper, so the row's own hover and
@@ -211,7 +211,7 @@ function statusFor(info: WorkspaceInfo): string {
 .ws-screen__list > li {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -228,20 +228,20 @@ function statusFor(info: WorkspaceInfo): string {
 .ws-menu__error {
   margin: 0;
   color: var(--color-danger);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }
 
 .ws-menu {
-  width: min(320px, calc(100vw - 2rem));
-  padding: 0.35rem;
+  width: min(320px, calc(100vw - var(--space-8)));
+  padding: var(--space-1-5);
 }
 
 .ws-menu__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.35rem 0.6rem 0.45rem;
-  font-size: 0.72rem;
+  padding: var(--space-1-5) var(--space-2-5) var(--space-2);
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -258,13 +258,13 @@ function statusFor(info: WorkspaceInfo): string {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
 }
 
 .ws-menu__add {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   width: 100%;
   color: var(--color-accent);
   font-weight: 600;
@@ -272,9 +272,9 @@ function statusFor(info: WorkspaceInfo): string {
 
 .ws-menu__hint {
   margin: 0;
-  padding: 0.35rem 0.6rem 0.4rem;
-  font-size: 0.72rem;
-  line-height: 1.35;
+  padding: var(--space-1-5) var(--space-2-5) var(--space-1-5);
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
   color: var(--color-text-secondary);
 }
 </style>

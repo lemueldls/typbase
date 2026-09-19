@@ -71,25 +71,25 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
 .icon-picker {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .icon-picker__search {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.55rem;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-2);
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .icon-picker__input {
   flex: 1;
   min-width: 0;
-  font-size: 0.875rem;
+  font-size: var(--text-md);
   font-family: inherit;
   color: var(--color-text);
   background: transparent;
@@ -100,23 +100,23 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
 .icon-picker__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(2.4rem, 1fr));
-  gap: 0.25rem;
+  gap: var(--space-1);
   max-height: 14rem;
   overflow-y: auto;
-  padding: 0.25rem;
+  padding: var(--space-1);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .icon-picker__cell {
   display: grid;
   place-content: center;
   aspect-ratio: 1;
-  padding: 0.25rem;
+  padding: var(--space-1);
   color: var(--color-text);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -131,7 +131,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
 
 .icon-picker__hint {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 </style>

@@ -26,8 +26,8 @@ const SURFACE_CSS = `
   display: block;
   color: var(--color-text, #1f2328);
   font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
   accent-color: var(--color-accent, #1e5aa0);
   caret-color: var(--color-accent, #1e5aa0);
 }
@@ -49,7 +49,7 @@ const SURFACE_CSS = `
 
 h1, h2, h3, h4, h5, h6 {
   margin: 0.4em 0 0.2em;
-  line-height: 1.25;
+  line-height: var(--leading-tight);
 }
 
 p {
@@ -64,14 +64,14 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.7rem;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-3);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text, #1f2328);
   background: var(--color-surface-2, #f3f4f6);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -106,13 +106,13 @@ a {
 
 .tb-input {
   width: 100%;
-  padding: 0.3rem 0.5rem;
+  padding: var(--space-1) var(--space-2);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text, #1f2328);
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
 }
 
 .tb-input:focus {
@@ -122,38 +122,38 @@ a {
 
 .tb-textarea {
   resize: vertical;
-  min-height: 3rem;
+  min-height: var(--space-12);
 }
 
 .tb-field {
   display: grid;
-  gap: 0.2rem;
+  gap: var(--space-1);
 }
 
 .tb-field__label {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary, #6b7280);
 }
 
 .tb-check {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-md);
 }
 
 .tb-panel {
   display: grid;
-  gap: 0.5rem;
-  padding: 0.6rem;
+  gap: var(--space-2);
+  padding: var(--space-2-5);
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .tb-panel__title {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -176,17 +176,17 @@ a {
 }
 
 .tb-card {
-  padding: 0.5rem 0.6rem;
+  padding: var(--space-2) var(--space-2-5);
   background: var(--color-surface-2, #f3f4f6);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-sm);
 }
 
 .tb-badge {
   display: inline-block;
-  padding: 0.05rem 0.4rem;
-  font-size: 0.7rem;
-  border-radius: 999px;
+  padding: var(--space-0-5) var(--space-1-5);
+  font-size: var(--text-2xs);
+  border-radius: var(--radius-full);
   background: var(--color-surface-3, #e9ebee);
 }
 
@@ -201,7 +201,7 @@ a {
 }
 
 .tb-muted {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary, #6b7280);
 }
 
@@ -210,22 +210,22 @@ a {
 }
 
 .tb-flash-front {
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
 .tb-flash-back {
-  padding-top: 0.4rem;
+  padding-top: var(--space-1-5);
   border-top: 1px solid var(--color-border, #e5e7eb);
 }
 
 .tb-day {
-  min-height: 3.1rem;
-  padding: 0.25rem 0.3rem;
-  font-size: 0.78rem;
+  min-height: var(--space-12);
+  padding: var(--space-1);
+  font-size: var(--text-sm);
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -250,14 +250,14 @@ a {
 .tb-event {
   display: block;
   width: 100%;
-  margin-top: 0.15rem;
-  padding: 0.1rem 0.25rem;
-  font-size: 0.7rem;
+  margin-top: var(--space-0-5);
+  padding: var(--space-0-5) var(--space-1);
+  font-size: var(--text-2xs);
   text-align: left;
   color: var(--color-text, #1f2328);
   background: var(--color-accent-soft, #e3edf8);
   border: none;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -270,7 +270,7 @@ a {
     radial-gradient(circle, var(--color-border, #e5e7eb) 1px, transparent 1px) 0 0 / 18px 18px,
     var(--color-surface-2, #f3f4f6);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .tb-board--fill {
@@ -305,7 +305,7 @@ a {
 
 .tb-drop {
   border: 1px dashed var(--color-border-strong, #d1d5db);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
 }
 
 .tb-drop:hover {
@@ -319,7 +319,7 @@ a {
   overflow: hidden;
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .tb-canvas {
@@ -329,9 +329,9 @@ a {
 
 .tb-note {
   width: 180px;
-  padding: 0.4rem;
+  padding: var(--space-1-5);
   border: 1px solid rgb(0 0 0 / 0.06);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.14);
 }
 
@@ -343,10 +343,10 @@ a {
 .tb-note__text {
   display: block;
   width: 100%;
-  min-height: 3.5rem;
+  min-height: var(--space-14);
   padding: 0;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   color: inherit;
   background: transparent;
   border: none;

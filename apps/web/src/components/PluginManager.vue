@@ -187,17 +187,17 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
 <style scoped>
 .plugin-manager {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .plugin-manager__group {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .plugin-manager__title {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -206,7 +206,7 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
 
 .plugin-manager__empty {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
@@ -214,28 +214,28 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--space-1-5);
 }
 
 .plugin-manager__hint {
   flex: 1 1 12rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .plugin-manager__entry {
   display: grid;
-  gap: 0.4rem;
-  padding: 0.65rem 0.75rem;
+  gap: var(--space-1-5);
+  padding: var(--space-2-5) var(--space-3);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .plugin-manager__entry-head {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
 }
 
 .plugin-manager__name {
@@ -243,14 +243,14 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
 }
 
 .plugin-manager__version {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .plugin-manager__actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
   margin-left: auto;
 }
 
@@ -260,39 +260,39 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
 
 .plugin-manager__description {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
 .plugin-manager__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: var(--space-1);
 }
 
 .plugin-manager__chip {
-  padding: 0.05rem 0.45rem;
-  font-size: 0.72rem;
+  padding: var(--space-0-5) var(--space-2);
+  font-size: var(--text-xs);
   background: var(--color-surface-3);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
 }
 
 .plugin-manager__instances {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .plugin-manager__instance {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-md);
 }
 
 .plugin-manager__add {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--space-1-5);
 }
 
 .plugin-manager__errors {
@@ -300,16 +300,16 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0.3rem;
+  gap: var(--space-1);
 }
 
 .plugin-manager__error {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.4rem 0.55rem;
-  font-size: 0.8rem;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  font-size: var(--text-sm);
   background: var(--color-danger-soft);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 </style>

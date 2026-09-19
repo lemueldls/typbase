@@ -745,8 +745,8 @@ function onModeKeydown(event: KeyboardEvent) {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  padding: 0.5rem 0.5rem;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -754,7 +754,7 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__toolbar-main {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -768,9 +768,9 @@ function onModeKeydown(event: KeyboardEvent) {
 
 .page-view__title {
   min-width: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
 }
 
 .page-view__modes-menu {
@@ -783,15 +783,15 @@ function onModeKeydown(event: KeyboardEvent) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: var(--control-sm);
+  height: var(--control-sm);
   flex: none;
   padding: 0;
   margin-left: auto;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -805,9 +805,9 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__format {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   width: 100%;
-  padding: 0.25rem;
+  padding: var(--space-1);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   overflow-x: auto;
@@ -840,29 +840,29 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__modes {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.15rem;
+  gap: var(--space-1);
+  padding: var(--space-0-5);
   flex: none;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .page-view__mode {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.3rem;
-  min-width: 2.1rem;
-  height: 1.8rem;
-  padding: 0 0.5rem;
-  font-size: 0.85rem;
-  line-height: 1;
+  gap: var(--space-1);
+  min-width: calc(2.1rem * var(--ui-size));
+  height: var(--control-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--text-md);
+  line-height: var(--leading-none);
   font-family: inherit;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -893,7 +893,7 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__mode-option {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
 }
 
 .page-view__mode-check {
@@ -902,7 +902,7 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__error {
-  padding: 1rem;
+  padding: var(--space-4);
   color: var(--color-danger);
 }
 
@@ -932,7 +932,7 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__body--read :deep(.paged-preview) {
-  padding: 0 1.5rem;
+  padding: 0 var(--space-6);
   background: var(--color-surface-2);
 }
 
@@ -953,7 +953,7 @@ function onModeKeydown(event: KeyboardEvent) {
   }
 
   .page-view__body--read :deep(.paged-preview) {
-    padding: 0 0.5rem;
+    padding: 0 var(--space-2);
   }
 }
 

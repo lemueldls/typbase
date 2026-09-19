@@ -359,10 +359,10 @@ defineExpose({ view, recompile, revealRange, insertAt });
    text marks where the media lands instead of floating at the pane top. */
 .editable-pane__drop-line {
   position: absolute;
-  left: 0.6rem;
-  right: 0.6rem;
+  left: var(--space-2-5);
+  right: var(--space-2-5);
   height: 2px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--color-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
@@ -374,34 +374,34 @@ defineExpose({ view, recompile, revealRange, insertAt });
   top: 50%;
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--color-accent);
   transform: translateY(-50%);
 }
 
 .editable-pane__drop-line::before {
-  left: -0.25rem;
+  left: calc(var(--space-1) * -1);
 }
 
 .editable-pane__drop-line::after {
-  right: -0.25rem;
+  right: calc(var(--space-1) * -1);
 }
 
 .editable-pane__drop-label {
   position: absolute;
-  bottom: 0.45rem;
+  bottom: var(--space-2);
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.75rem;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-2-5);
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--color-accent);
   background: var(--color-surface);
   border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
   white-space: nowrap;
 }

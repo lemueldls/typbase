@@ -98,20 +98,20 @@ function run(item: ToolbarItem) {
 .edit-toolbar {
   display: inline-flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
 }
 
 .edit-toolbar__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: var(--control-sm);
+  height: var(--control-sm);
   padding: 0;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -127,8 +127,8 @@ function run(item: ToolbarItem) {
 
 .edit-toolbar__separator {
   width: 1px;
-  height: 1.2rem;
-  margin: 0 0.3rem;
+  height: calc(1.2rem * var(--ui-size));
+  margin: 0 var(--space-1);
   background: var(--color-border);
 }
 </style>

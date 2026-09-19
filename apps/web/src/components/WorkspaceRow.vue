@@ -74,9 +74,9 @@ const icon = computed(
 .ws-row {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
-  padding-right: 0.3rem;
-  border-radius: 0.45rem;
+  gap: var(--space-0-5);
+  padding-right: var(--space-1);
+  border-radius: var(--radius-sm);
   transition: background 0.12s ease;
 }
 
@@ -96,15 +96,15 @@ const icon = computed(
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.45rem 0.5rem;
+  gap: var(--space-2);
+  padding: var(--space-2);
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   text-align: left;
   color: var(--color-text);
   background: transparent;
   border: none;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -116,12 +116,12 @@ const icon = computed(
 .ws-row__icon {
   display: grid;
   place-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: var(--control-sm);
+  height: var(--control-sm);
   flex: none;
   color: var(--color-accent);
   background: var(--color-accent-soft);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .ws-row--active .ws-row__icon {
@@ -131,7 +131,7 @@ const icon = computed(
 .ws-row__text {
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
@@ -140,7 +140,7 @@ const icon = computed(
 }
 
 .ws-row__meta {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
@@ -173,8 +173,8 @@ const icon = computed(
 
 .ws-row__spinner {
   flex: none;
-  width: 0.95rem;
-  height: 0.95rem;
+  width: calc(0.95rem * var(--ui-size));
+  height: calc(0.95rem * var(--ui-size));
   margin-left: auto;
   border: 2px solid var(--color-text-secondary);
   border-top-color: transparent;

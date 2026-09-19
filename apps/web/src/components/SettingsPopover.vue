@@ -2,14 +2,20 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type {
   SpellcheckMode,
+  ThemeMode,
   ThemePaletteToken,
   ThemePaletteTokens,
+  UiDensity,
+  UiRadius,
+  UiSize,
   WorkspaceSettings,
 } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { isTauri } from "@typbase/storage";
 import { THEME_PALETTE_TOKEN_KEYS } from "@typbase/typing";
+
+import type { SelectOption } from "~/components/ui/Select.vue";
 
 import { getAiKeys, setAiKeys } from "~/lib/ai/keys";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
@@ -171,9 +177,20 @@ const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
 // every compile. Both sync through settings like everything else.
-function onLocaleChange(event: Event) {
-  appLocale.set((event.target as HTMLSelectElement).value);
-}
+// UiSelect drives the settings selects; each computed maps to a store write.
+const localeOptions = computed<SelectOption[]>(() => [
+  { value: "auto", label: t("settings.languageAuto") },
+  { value: "en", label: "English" },
+  { value: "es", label: "Español" },
+  { value: "de", label: "Deutsch" },
+  { value: "fr", label: "Français" },
+  { value: "zh", label: "中文" },
+]);
+
+const localeSetting = computed({
+  get: () => settings.value.locale ?? "auto",
+  set: (value: string) => appLocale.set(value),
+});
 
 function onDailyTemplateChange(event: Event) {
   props.store.updateSettings({
@@ -186,11 +203,136 @@ function onPagePreludeChange(event: Event) {
   });
 }
 
-function onSpellcheckChange(event: Event) {
-  props.store.updateSettings({
-    spellcheck: (event.target as HTMLSelectElement).value as SpellcheckMode,
-  });
+// Selects run through UiSelect, so each setting gets an options list and a
+// writable computed instead of a change-event handler.
+const spellcheckOptions = computed<SelectOption[]>(() => [
+  { value: "off", label: t("settings.spellcheckOff") },
+  { value: "native", label: t("settings.spellcheckNative") },
+  { value: "harper", label: t("settings.spellcheckHarper") },
+]);
+
+const spellcheck = computed({
+  get: () => settings.value.spellcheck ?? "off",
+  set: (value: string) => props.store.updateSettings({ spellcheck: value as SpellcheckMode }),
+});
+
+const themeModeOptions = computed<SelectOption[]>(() => [
+  { value: "auto", label: t("settings.auto") },
+  { value: "light", label: t("settings.light") },
+  { value: "dark", label: t("settings.dark") },
+]);
+
+const themeMode = computed({
+  get: () => settings.value.theme ?? "auto",
+  set: (mode: string) => {
+    props.store.updateSettings({ theme: mode as ThemeMode });
+    applyTheme(props.store.getSettings());
+    bumpRenderRevision();
+  },
+});
+
+const uiSizeOptions = computed<SelectOption[]>(() => [
+  { value: "small", label: t("settings.uiSizeSmall") },
+  { value: "default", label: t("settings.uiSizeDefault") },
+  { value: "large", label: t("settings.uiSizeLarge") },
+]);
+
+const uiSize = computed({
+  get: () => settings.value.uiSize ?? "default",
+  set: (value: string) => {
+    props.store.updateSettings({ uiSize: value as UiSize });
+    applyTheme(props.store.getSettings());
+  },
+});
+
+const uiDensityOptions = computed<SelectOption[]>(() => [
+  { value: "compact", label: t("settings.uiDensityCompact") },
+  { value: "default", label: t("settings.uiDensityDefault") },
+  { value: "spacious", label: t("settings.uiDensitySpacious") },
+]);
+
+const uiDensity = computed({
+  get: () => settings.value.uiDensity ?? "default",
+  set: (value: string) => {
+    props.store.updateSettings({ uiDensity: value as UiDensity });
+    applyTheme(props.store.getSettings());
+  },
+});
+
+const uiRadiusOptions = computed<SelectOption[]>(() => [
+  { value: "square", label: t("settings.uiRadiusSquare") },
+  { value: "default", label: t("settings.uiRadiusDefault") },
+  { value: "round", label: t("settings.uiRadiusRound") },
+]);
+
+const uiRadius = computed({
+  get: () => settings.value.uiRadius ?? "default",
+  set: (value: string) => {
+    props.store.updateSettings({ uiRadius: value as UiRadius });
+    applyTheme(props.store.getSettings());
+  },
+});
+
+/** Current value first, so a configured font stays visible before it loads. */
+function fontOptionList(families: string[], current: string | null | undefined): SelectOption[] {
+  const values = [...new Set([...(current ? [current] : []), ...families])];
+
+  return values.map((family) => ({ value: family, label: family }));
 }
+
+const textFontOptions = computed(() =>
+  fontOptionList(systemFontOptions.value.text, settings.value.font),
+);
+
+const textFont = computed({
+  get: () => settings.value.font,
+  set: (value: string) => void updateFont({ font: value }),
+});
+
+const mathFontOptions = computed<SelectOption[]>(() => [
+  { value: "same", label: t("settings.sameAsText") },
+  ...fontOptionList(systemFontOptions.value.math, settings.value.mathFont),
+]);
+
+const mathFont = computed({
+  get: () => settings.value.mathFont ?? "same",
+  set: (value: string) => void updateFont({ mathFont: value === "same" ? null : value }),
+});
+
+const codeFontOptions = computed<SelectOption[]>(() => [
+  { value: "same", label: t("settings.sameAsText") },
+  ...fontOptionList(systemFontOptions.value.code, settings.value.codeFont),
+]);
+
+const codeFont = computed({
+  get: () => settings.value.codeFont ?? "same",
+  set: (value: string) => void updateFont({ codeFont: value === "same" ? null : value }),
+});
+
+const providerOptions: SelectOption[] = [
+  { value: "ollama", label: "Ollama (local)" },
+  { value: "openai-compatible", label: "OpenAI-compatible" },
+  { value: "anthropic", label: "Anthropic" },
+];
+
+const aiProvider = computed({
+  get: () => aiConfig.value.provider,
+  set: (provider: string) => updateAiPatching({ provider }),
+});
+
+const textSize = computed<number | null>({
+  get: () => settings.value.textSize,
+  set: (size) => {
+    if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return;
+
+    props.store.updateSettings({ textSize: size });
+    // Push the size into the wasm space context before the render revision
+    // triggers recompiles; the structure-change echo re-applies it anyway.
+    void applyWorkspaceStyleToTypst(workspaceId.value, props.store).then(() => {
+      bumpRenderRevision();
+    });
+  },
+});
 
 // Search status.
 const { ensure: ensureSearch, search, status: searchStatus } = useSearch();
@@ -269,13 +411,6 @@ onMounted(() => {
   applyTheme(props.store.getSettings());
 });
 
-function onThemeChange(event: Event) {
-  const mode = (event.target as HTMLSelectElement).value as "auto" | "light" | "dark";
-  props.store.updateSettings({ theme: mode });
-  applyTheme(props.store.getSettings());
-  bumpRenderRevision();
-}
-
 function formatAgo(timestamp: number): string {
   if (!timestamp) return t("settings.syncNever");
 
@@ -287,10 +422,6 @@ function shortDid(did: string | null): string {
 
   return did.length > 18 ? `${did.slice(0, 10)}...${did.slice(-6)}` : did;
 }
-
-const textFontOptions = computed(() => systemFontOptions.value.text);
-const mathFontOptions = computed(() => systemFontOptions.value.math);
-const codeFontOptions = computed(() => systemFontOptions.value.code);
 
 function supportsLocalFonts() {
   if (isTauri()) return true;
@@ -320,30 +451,6 @@ async function updateFont(patch: {
 async function renameWorkspace(event: Event) {
   const name = (event.target as HTMLInputElement).value.trim();
   if (name) props.store.updateSettings({ name });
-}
-
-function onFontChange(event: Event) {
-  updateFont({ font: (event.target as HTMLSelectElement).value });
-}
-
-function onMathFontChange(event: Event) {
-  updateFont({ mathFont: (event.target as HTMLSelectElement).value || null });
-}
-
-function onCodeFontChange(event: Event) {
-  updateFont({ codeFont: (event.target as HTMLSelectElement).value || null });
-}
-
-function onTextSizeChange(event: Event) {
-  const size = Number((event.target as HTMLInputElement).value);
-  if (!Number.isFinite(size) || size <= 0) return;
-
-  props.store.updateSettings({ textSize: size });
-  // Push the size into the wasm space context before the render revision
-  // triggers recompiles; the structure-change echo re-applies it anyway.
-  void applyWorkspaceStyleToTypst(workspaceId.value, props.store).then(() => {
-    bumpRenderRevision();
-  });
 }
 </script>
 
@@ -435,18 +542,11 @@ function onTextSizeChange(event: Event) {
 
           <Label class="settings__field">
             <span>{{ $t("settings.language") }}</span>
-            <select
-              class="settings__input"
-              :value="settings.locale ?? 'auto'"
-              @change="onLocaleChange"
-            >
-              <option value="auto">{{ $t("settings.languageAuto") }}</option>
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="de">Deutsch</option>
-              <option value="fr">Français</option>
-              <option value="zh">中文</option>
-            </select>
+            <UiSelect
+              v-model="localeSetting"
+              :options="localeOptions"
+              :label="$t('settings.language')"
+            />
           </Label>
 
           <div class="settings__field">
@@ -498,15 +598,11 @@ function onTextSizeChange(event: Event) {
 
           <Label class="settings__field">
             <span>{{ $t("settings.spellcheck") }}</span>
-            <select
-              class="settings__input"
-              :value="settings.spellcheck ?? 'off'"
-              @change="onSpellcheckChange"
-            >
-              <option value="off">{{ $t("settings.spellcheckOff") }}</option>
-              <option value="native">{{ $t("settings.spellcheckNative") }}</option>
-              <option value="harper">{{ $t("settings.spellcheckHarper") }}</option>
-            </select>
+            <UiSelect
+              v-model="spellcheck"
+              :options="spellcheckOptions"
+              :label="$t('settings.spellcheck')"
+            />
             <span class="settings__hint">{{ $t("settings.spellcheckHint") }}</span>
           </Label>
         </section>
@@ -536,15 +632,11 @@ function onTextSizeChange(event: Event) {
 
           <Label class="settings__field">
             <span>{{ $t("settings.themeMode") }}</span>
-            <select
-              class="settings__input"
-              :value="settings.theme ?? 'auto'"
-              @change="onThemeChange"
-            >
-              <option value="auto">{{ $t("settings.auto") }}</option>
-              <option value="light">{{ $t("settings.light") }}</option>
-              <option value="dark">{{ $t("settings.dark") }}</option>
-            </select>
+            <UiSelect
+              v-model="themeMode"
+              :options="themeModeOptions"
+              :label="$t('settings.themeMode')"
+            />
           </Label>
 
           <div v-if="paletteDraft" class="settings__field">
@@ -570,54 +662,68 @@ function onTextSizeChange(event: Event) {
           </div>
 
           <Label class="settings__field">
+            <span>{{ $t("settings.uiSize") }}</span>
+            <UiSelect v-model="uiSize" :options="uiSizeOptions" :label="$t('settings.uiSize')" />
+            <span class="settings__hint">{{ $t("settings.uiSizeHint") }}</span>
+          </Label>
+
+          <Label class="settings__field">
+            <span>{{ $t("settings.uiDensity") }}</span>
+            <UiSelect
+              v-model="uiDensity"
+              :options="uiDensityOptions"
+              :label="$t('settings.uiDensity')"
+            />
+            <span class="settings__hint">{{ $t("settings.uiDensityHint") }}</span>
+          </Label>
+
+          <Label class="settings__field">
+            <span>{{ $t("settings.uiRadius") }}</span>
+            <UiSelect
+              v-model="uiRadius"
+              :options="uiRadiusOptions"
+              :label="$t('settings.uiRadius')"
+            />
+            <span class="settings__hint">{{ $t("settings.uiRadiusHint") }}</span>
+          </Label>
+
+          <Label class="settings__field">
             <span>{{ $t("settings.textSize") }}</span>
-            <input
-              class="settings__input"
-              type="number"
-              min="8"
-              max="72"
-              step="1"
-              :value="settings.textSize"
-              @change="onTextSizeChange"
+            <UiNumberField
+              v-model="textSize"
+              :min="8"
+              :max="72"
+              :step="1"
+              :label="$t('settings.textSize')"
             />
             <span class="settings__hint">{{ $t("settings.textSizeHint") }}</span>
           </Label>
 
           <Label class="settings__field">
             <span>{{ $t("settings.textFont") }}</span>
-            <select class="settings__input" :value="settings.font" @change="onFontChange">
-              <option v-for="font in textFontOptions" :key="font" :value="font">
-                {{ font }}
-              </option>
-            </select>
+            <UiSelect
+              v-model="textFont"
+              :options="textFontOptions"
+              :label="$t('settings.textFont')"
+            />
           </Label>
 
           <Label class="settings__field">
             <span>{{ $t("settings.mathFont") }}</span>
-            <select
-              class="settings__input"
-              :value="settings.mathFont ?? 'New Computer Modern Math'"
-              @change="onMathFontChange"
-            >
-              <option value="">{{ $t("settings.sameAsText") }}</option>
-              <option v-for="font in mathFontOptions" :key="font" :value="font">
-                {{ font }}
-              </option>
-            </select>
+            <UiSelect
+              v-model="mathFont"
+              :options="mathFontOptions"
+              :label="$t('settings.mathFont')"
+            />
           </Label>
 
           <Label class="settings__field">
             <span>{{ $t("settings.codeFont") }}</span>
-            <select
-              class="settings__input"
-              :value="settings.codeFont ?? ''"
-              @change="onCodeFontChange"
-            >
-              <option value="">{{ $t("settings.sameAsText") }}</option>
-              <option v-for="font in codeFontOptions" :key="font" :value="font">
-                {{ font }}
-              </option>
-            </select>
+            <UiSelect
+              v-model="codeFont"
+              :options="codeFontOptions"
+              :label="$t('settings.codeFont')"
+            />
           </Label>
 
           <div class="settings__system-fonts">
@@ -696,19 +802,11 @@ function onTextSizeChange(event: Event) {
             <template v-if="aiConfig.enabled">
               <Label class="settings__field">
                 <span>{{ $t("settings.provider") }}</span>
-                <select
-                  class="settings__input"
-                  :value="aiConfig.provider"
-                  @change="
-                    updateAiPatching({
-                      provider: ($event.target as HTMLSelectElement).value,
-                    })
-                  "
-                >
-                  <option value="ollama">Ollama (local)</option>
-                  <option value="openai-compatible">OpenAI-compatible</option>
-                  <option value="anthropic">Anthropic</option>
-                </select>
+                <UiSelect
+                  v-model="aiProvider"
+                  :options="providerOptions"
+                  :label="$t('settings.provider')"
+                />
               </Label>
               <Label class="settings__field">
                 <span>{{ $t("settings.baseUrl") }}</span>
@@ -870,21 +968,21 @@ function onTextSizeChange(event: Event) {
 .settings__tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.15rem;
-  padding: 0.15rem;
-  margin-bottom: 0.75rem;
+  gap: var(--space-0-5);
+  padding: var(--space-0-5);
+  margin-bottom: var(--space-3);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .settings__tab {
-  padding: 0.25rem 0.55rem;
-  font-size: 0.8rem;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -901,19 +999,19 @@ function onTextSizeChange(event: Event) {
 .settings__tabpanel {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .settings__section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .settings__heading {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -921,12 +1019,12 @@ function onTextSizeChange(event: Event) {
   resize: vertical;
   min-height: 8rem;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .settings__row {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .settings__input--grow {
@@ -939,78 +1037,78 @@ function onTextSizeChange(event: Event) {
 }
 
 .settings__members ul {
-  margin: 0.25rem 0 0;
-  padding-left: 1rem;
-  font-size: 0.8rem;
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .settings__field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
 }
 
 .settings__field > span {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .settings__input {
-  padding: 0.35rem 0.5rem;
+  padding: var(--space-1-5) var(--space-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .settings__divider {
   height: 1px;
   background: var(--color-border);
-  margin: 0.75rem 0;
+  margin: var(--space-3) 0;
 }
 
 .settings__hint {
-  margin: 0 0 0.5rem;
-  font-size: 0.8rem;
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .settings__storage {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: space-between;
 }
 
 .settings__storage-info {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
 .settings__storage-label {
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .settings__storage-path {
   max-width: 14rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .settings__ok {
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
   color: var(--color-ok);
 }
 
 .settings__error {
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
@@ -1018,21 +1116,21 @@ function onTextSizeChange(event: Event) {
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-  gap: 0.4rem;
+  gap: var(--space-1-5);
 }
 
 .theme-card {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.5rem;
+  gap: var(--space-1-5);
+  padding: var(--space-2);
   font-family: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   text-align: left;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -1047,14 +1145,14 @@ function onTextSizeChange(event: Event) {
 
 .theme-card__swatches {
   display: flex;
-  gap: 0.2rem;
+  gap: var(--space-1);
 }
 
 .theme-card__dot {
   width: 1.1rem;
   height: 1.1rem;
   border: 1px solid rgb(0 0 0 / 0.12);
-  border-radius: 0.3rem;
+  border-radius: var(--radius-xs);
 }
 
 .theme-card__label {
@@ -1064,36 +1162,47 @@ function onTextSizeChange(event: Event) {
   white-space: nowrap;
 }
 
-/* Custom palette editor: one row per token with a native color picker. */
+/* Custom palette editor: one row per token with a color swatch, name, and
+   value field. ColorSwatch paints through --reka-color-swatch-color; the
+   checkerboard below it shows through translucent values. */
 .palette-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-  gap: 0.3rem 0.6rem;
-  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .palette-token {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 6.5rem;
   align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
+  gap: var(--space-2);
+  min-height: var(--control-xs);
 }
 
 .palette-token__swatch {
+  width: 1.25rem;
+  height: 1.25rem;
   flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.3rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xs);
+  background-image:
+    linear-gradient(
+      var(--reka-color-swatch-color, transparent),
+      var(--reka-color-swatch-color, transparent)
+    ),
+    repeating-conic-gradient(var(--color-border) 0% 25%, transparent 0% 50%);
+  background-size:
+    auto,
+    8px 8px;
 }
 
 .palette-token__label {
-  flex: 1;
   min-width: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1101,23 +1210,23 @@ function onTextSizeChange(event: Event) {
 }
 
 .palette-token__input {
-  flex: none;
-  width: 5rem;
-  padding: 0.15rem 0.3rem;
+  width: 100%;
+  padding: var(--space-0-5) var(--space-1-5);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: var(--color-text);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 0.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
 }
 
 .palette-token__input:hover {
-  border-color: var(--color-border);
+  border-color: var(--color-border-strong);
 }
 
 .palette-token__input:focus {
-  background: var(--color-surface);
-  border-color: var(--color-border-strong);
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 </style>

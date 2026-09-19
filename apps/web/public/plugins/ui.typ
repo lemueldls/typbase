@@ -100,19 +100,19 @@
   ],
 )
 
-#let stack(body: [], gap: "0.4rem") = html.elem(
+#let stack(body: [], gap: "0.5rem") = html.elem(
   "div",
   attrs: (class: "tb-stack", style: "gap:" + gap),
   body,
 )
 
-#let row(body: [], gap: "0.4rem") = html.elem(
+#let row(body: [], gap: "0.5rem") = html.elem(
   "div",
   attrs: (class: "tb-row", style: "gap:" + gap),
   body,
 )
 
-#let grid(columns, body: [], gap: "0.4rem") = html.elem(
+#let grid(columns, body: [], gap: "0.5rem") = html.elem(
   "div",
   attrs: (
     class: "tb-grid",

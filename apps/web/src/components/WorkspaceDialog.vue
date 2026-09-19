@@ -113,23 +113,23 @@ async function submit() {
 .ws-dialog__preview {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
-  padding: 0.6rem 0.75rem;
+  gap: var(--space-2-5);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2-5) var(--space-3);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
+  border-radius: var(--radius-md);
 }
 
 .ws-dialog__preview-icon {
   display: grid;
   place-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: var(--control-md);
+  height: var(--control-md);
   flex: none;
   color: var(--color-accent);
   background: var(--color-accent-soft);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .ws-dialog__preview-name {
@@ -141,7 +141,7 @@ async function submit() {
 }
 
 .dialog__field-label {
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 </style>

@@ -1,14 +1,15 @@
 .button {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  font-size: 0.85rem;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-md);
   font-family: inherit;
+  white-space: nowrap;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -54,10 +55,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--control-md);
+  height: var(--control-md);
   padding: 0;
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .button .ms-icon,
@@ -67,24 +68,24 @@
 }
 
 .button--tiny {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.8rem;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .button--small {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.78rem;
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--text-sm);
 }
 
 .button--small.button--icon {
-  width: 1.9rem;
-  height: 1.9rem;
+  width: var(--control-sm);
+  height: var(--control-sm);
   padding: 0;
 }
 
 .button--tiny.button--icon {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: var(--control-xs);
+  height: var(--control-xs);
   padding: 0;
 }
 

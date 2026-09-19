@@ -81,15 +81,15 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
 <style scoped>
 .plugin-sidebar {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1-5);
 }
 
 .plugin-sidebar__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0.25rem 0.15rem;
-  font-size: 0.85rem;
+  padding: 0 var(--space-1) var(--space-0-5);
+  font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -98,13 +98,13 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
 
 .plugin-sidebar__empty {
   margin: 0;
-  padding: 0 0.25rem 0.2rem;
-  font-size: 0.82rem;
+  padding: 0 var(--space-1) var(--space-1);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .plugin-sidebar__widget {
-  margin-bottom: 0.3rem;
+  margin-bottom: var(--space-1);
 }
 
 .plugin-sidebar__list {
@@ -116,15 +116,15 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
 .plugin-sidebar__row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
   width: 100%;
-  padding: 0.45rem 0.55rem;
-  font-size: 0.9rem;
+  padding: var(--space-2);
+  font-size: var(--text-md);
   text-align: left;
   color: var(--color-text);
   background: transparent;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 

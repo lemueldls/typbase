@@ -131,23 +131,23 @@ definePageMeta({ ssr: false });
 .profile {
   max-width: 760px;
   margin: 0 auto;
-  padding: 2rem 1rem 4rem;
+  padding: var(--space-8) var(--space-4) var(--space-16);
 }
 
 .profile__header h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: var(--text-3xl);
 }
 
 .profile__sub {
-  margin: 0.15rem 0 0;
+  margin: var(--space-0-5) 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .profile__count {
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }
 
 .profile__status {
@@ -161,14 +161,14 @@ definePageMeta({ ssr: false });
 .profile__posts {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
 }
 
 .profile__post {
   border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   background: var(--color-surface);
 }
 
@@ -176,18 +176,18 @@ definePageMeta({ ssr: false });
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .profile__post-head h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--text-xl);
 }
 
 .profile__meta {
   display: flex;
-  gap: 0.75rem;
-  font-size: 0.75rem;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
@@ -196,27 +196,27 @@ definePageMeta({ ssr: false });
 }
 
 .profile__summary {
-  margin: 0.4rem 0;
+  margin: var(--space-1-5) 0;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .profile__tags {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   flex-wrap: wrap;
-  margin-bottom: 0.6rem;
+  margin-bottom: var(--space-2-5);
 }
 
 .profile__tag {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .profile__frame {
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   background: #fff;
   min-height: 300px;
 }

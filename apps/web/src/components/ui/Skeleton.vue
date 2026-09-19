@@ -8,7 +8,7 @@ withDefaults(
     /** Any CSS length. Use "0" for flush rows. */
     radius?: string;
   }>(),
-  { width: "100%", height: "1rem", radius: "0.35rem" },
+  { width: "100%", height: "1rem", radius: "var(--radius-sm)" },
 );
 </script>
 

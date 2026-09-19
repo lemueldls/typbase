@@ -56,7 +56,7 @@ export const typstEditorTheme = EditorView.theme({
   ".cm-searchMatch": {
     backgroundColor: "color-mix(in srgb, var(--color-warning) 32%, transparent)",
     outline: "1px solid color-mix(in srgb, var(--color-warning) 45%, transparent)",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-xs)",
   },
   ".cm-searchMatch-selected": {
     backgroundColor: "color-mix(in srgb, var(--color-accent) 35%, transparent)",
@@ -79,7 +79,7 @@ export const typstEditorTheme = EditorView.theme({
     lineHeight: "1.4",
   },
   ".cm-lineNumbers .cm-gutterElement": {
-    padding: "0 0.75rem 0 0.5rem",
+    padding: "0 var(--space-3) 0 var(--space-2)",
     minWidth: "2.75rem",
     textAlign: "right",
     fontVariantNumeric: "tabular-nums",
@@ -103,7 +103,7 @@ export const typstEditorTheme = EditorView.theme({
     content: "none",
     width: "0.5rem",
     height: "0.5rem",
-    borderRadius: "999px",
+    borderRadius: "var(--radius-full)",
     backgroundImage: "none",
   },
   ".cm-lint-marker-error": {
@@ -123,12 +123,12 @@ export const typstEditorTheme = EditorView.theme({
   ".cm-matchingBracket": {
     backgroundColor: "color-mix(in srgb, var(--color-ok) 20%, transparent)",
     outline: "1px solid color-mix(in srgb, var(--color-ok) 45%, transparent)",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-xs)",
   },
   ".cm-nonmatchingBracket": {
     backgroundColor: "color-mix(in srgb, var(--color-danger) 22%, transparent)",
     outline: "1px solid color-mix(in srgb, var(--color-danger) 45%, transparent)",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-xs)",
   },
 
   // Panels: search, go-to-line, lint.
@@ -136,7 +136,7 @@ export const typstEditorTheme = EditorView.theme({
     backgroundColor: "var(--color-surface-2)",
     color: "var(--color-text)",
     fontFamily: "var(--font-sans)",
-    fontSize: "0.85rem",
+    fontSize: "var(--text-md)",
   },
   ".cm-panels-top": {
     borderBottom: "1px solid var(--color-border)",
@@ -148,8 +148,8 @@ export const typstEditorTheme = EditorView.theme({
     display: "flex",
     flexWrap: "wrap",
     alignItems: "center",
-    gap: "0.35rem",
-    padding: "0.5rem 2rem 0.5rem 0.65rem",
+    gap: "var(--space-1-5)",
+    padding: "var(--space-2) var(--space-8) var(--space-2) var(--space-2-5)",
   },
   ".cm-panel.cm-search input, .cm-panel.cm-search button, .cm-panel.cm-search label": {
     margin: "0",
@@ -157,8 +157,8 @@ export const typstEditorTheme = EditorView.theme({
   ".cm-panel.cm-search label": {
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.25rem",
-    fontSize: "0.78rem",
+    gap: "var(--space-1)",
+    fontSize: "var(--text-sm)",
     color: "var(--color-text-secondary)",
   },
   ".cm-panel.cm-search input[type=checkbox]": {
@@ -167,16 +167,16 @@ export const typstEditorTheme = EditorView.theme({
   },
   ".cm-panel.cm-search [name=close], .cm-dialog-close, .cm-panel.cm-panel-lint [name=close]": {
     position: "absolute",
-    top: "0.4rem",
-    right: "0.4rem",
-    padding: "0.1rem 0.35rem",
+    top: "var(--space-1-5)",
+    right: "var(--space-1-5)",
+    padding: "var(--space-0-5) var(--space-1-5)",
     font: "inherit",
-    fontSize: "1rem",
-    lineHeight: "1",
+    fontSize: "var(--text-lg)",
+    lineHeight: "var(--leading-none)",
     color: "var(--color-text-secondary)",
     backgroundColor: "transparent",
     border: "none",
-    borderRadius: "0.35rem",
+    borderRadius: "var(--radius-sm)",
     cursor: "pointer",
   },
   ".cm-panel.cm-search [name=close]:hover, .cm-dialog-close:hover, .cm-panel.cm-panel-lint [name=close]:hover":
@@ -185,13 +185,13 @@ export const typstEditorTheme = EditorView.theme({
       backgroundColor: "var(--color-surface-3)",
     },
   ".cm-textfield": {
-    padding: "0.25rem 0.5rem",
+    padding: "var(--space-1) var(--space-2)",
     color: "var(--color-text)",
     fontFamily: "var(--font-mono)",
-    fontSize: "0.85rem",
+    fontSize: "var(--text-md)",
     backgroundColor: "var(--color-surface)",
     border: "1px solid var(--color-border)",
-    borderRadius: "0.5rem",
+    borderRadius: "var(--radius-md)",
     outline: "none",
   },
   ".cm-textfield:focus": {
@@ -199,13 +199,13 @@ export const typstEditorTheme = EditorView.theme({
     boxShadow: "0 0 0 2px var(--color-focus-ring)",
   },
   ".cm-button": {
-    padding: "0.25rem 0.6rem",
+    padding: "var(--space-1) var(--space-2-5)",
     fontFamily: "inherit",
-    fontSize: "0.8rem",
+    fontSize: "var(--text-sm)",
     color: "var(--color-text)",
     background: "var(--color-surface-3)",
     border: "1px solid var(--color-border)",
-    borderRadius: "0.5rem",
+    borderRadius: "var(--radius-md)",
     cursor: "pointer",
   },
   ".cm-button:hover": {
@@ -214,11 +214,11 @@ export const typstEditorTheme = EditorView.theme({
   ".cm-panel.cm-goto-line": {
     display: "flex",
     alignItems: "center",
-    gap: "0.5rem",
-    padding: "0.5rem 2rem 0.5rem 0.65rem",
+    gap: "var(--space-2)",
+    padding: "var(--space-2) var(--space-8) var(--space-2) var(--space-2-5)",
   },
   ".cm-panel.cm-goto-line label": {
-    fontSize: "0.78rem",
+    fontSize: "var(--text-sm)",
     color: "var(--color-text-secondary)",
   },
   ".cm-panel.cm-panel-lint ul": {
@@ -228,7 +228,7 @@ export const typstEditorTheme = EditorView.theme({
     listStyle: "none",
   },
   ".cm-panel.cm-panel-lint ul li": {
-    padding: "0.3rem 2rem 0.3rem 0.65rem",
+    padding: "var(--space-1) var(--space-8) var(--space-1) var(--space-2-5)",
     cursor: "pointer",
   },
   ".cm-panel.cm-panel-lint ul li[aria-selected]": {
@@ -243,11 +243,11 @@ export const typstEditorTheme = EditorView.theme({
   ".cm-tooltip": {
     maxWidth: "min(50vw, 28rem)",
     fontFamily: "var(--font-sans)",
-    fontSize: "0.85rem",
+    fontSize: "var(--text-md)",
     color: "var(--color-text)",
     backgroundColor: "var(--color-surface)",
     border: "1px solid var(--color-border)",
-    borderRadius: "0.6rem",
+    borderRadius: "var(--radius-md)",
     boxShadow: "0 8px 30px rgb(0 0 0 / 0.12)",
     // Long identifiers and URLs would otherwise run past the edge.
     overflowWrap: "anywhere",
@@ -256,7 +256,7 @@ export const typstEditorTheme = EditorView.theme({
     borderTop: "1px solid var(--color-border)",
   },
   ".cm-tooltip-hover": {
-    padding: "0.5rem",
+    padding: "var(--space-2)",
     // Docs hovers, render popups, and lint lists can outgrow the viewport.
     // None of these tooltips set `arrow`, so scrolling the host clips nothing.
     maxHeight: "min(70vh, 32rem)",
@@ -267,7 +267,7 @@ export const typstEditorTheme = EditorView.theme({
   ".cm-tooltip pre": {
     margin: "0",
     fontFamily: "var(--font-mono)",
-    fontSize: "0.8rem",
+    fontSize: "var(--text-sm)",
     whiteSpace: "pre-wrap",
     overflowWrap: "anywhere",
   },
@@ -284,19 +284,19 @@ export const typstEditorTheme = EditorView.theme({
 
   // Autocomplete.
   ".cm-tooltip.cm-tooltip-autocomplete": {
-    padding: "0.2rem",
+    padding: "var(--space-1)",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul": {
     minWidth: "16rem",
     maxHeight: "14em",
     fontFamily: "var(--font-mono)",
-    fontSize: "0.875rem",
+    fontSize: "var(--text-md)",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul > li, .cm-tooltip.cm-tooltip-autocomplete > ul > completion-section":
     {
-      padding: "0.3rem 0.45rem",
-      lineHeight: "1.4",
-      borderRadius: "0.35rem",
+      padding: "var(--space-1) var(--space-2)",
+      lineHeight: "var(--leading-tight)",
+      borderRadius: "var(--radius-sm)",
     },
   ".cm-tooltip-autocomplete ul li[aria-selected]": {
     color: "var(--color-text)",
@@ -307,7 +307,7 @@ export const typstEditorTheme = EditorView.theme({
     backgroundColor: "var(--color-surface-3)",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul > completion-section": {
-    fontSize: "0.75rem",
+    fontSize: "var(--text-xs)",
     color: "var(--color-text-secondary)",
     borderBottom: "1px solid var(--color-border)",
   },
@@ -326,13 +326,13 @@ export const typstEditorTheme = EditorView.theme({
     color: "var(--color-text-secondary)",
   },
   ".cm-tooltip.cm-completionInfo": {
-    padding: "0.5rem 0.65rem",
+    padding: "var(--space-2) var(--space-2-5)",
     maxHeight: "min(70vh, 32rem)",
     overflow: "auto",
     overscrollBehavior: "contain",
   },
   ".cm-snippetField": {
-    borderRadius: "2px",
+    borderRadius: "var(--radius-xs)",
     backgroundColor: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
   },
 
@@ -414,11 +414,11 @@ export const typstEditorTheme = EditorView.theme({
     textUnderlineOffset: "3px",
   },
   ".cm-lintRange-active": {
-    borderRadius: "2px",
+    borderRadius: "var(--radius-xs)",
     backgroundColor: "color-mix(in srgb, var(--color-warning) 18%, transparent)",
   },
   ".cm-diagnostic": {
-    padding: "0.4rem 0.65rem",
+    padding: "var(--space-1-5) var(--space-2-5)",
     fontFamily: "var(--font-sans)",
   },
   ".cm-diagnosticText": {
@@ -441,21 +441,21 @@ export const typstEditorTheme = EditorView.theme({
     borderLeft: "3px solid var(--color-border-strong)",
   },
   ".cm-diagnosticSource": {
-    marginTop: "0.3rem",
+    marginTop: "var(--space-1)",
     fontSize: "0.75em",
     opacity: "0.75",
   },
   ".cm-diagnosticAction": {
-    margin: "0.35rem 0.4rem 0 0",
-    padding: "0.2rem 0.55rem",
+    margin: "var(--space-1-5) var(--space-1-5) 0 0",
+    padding: "var(--space-1) var(--space-2)",
     font: "inherit",
-    fontSize: "0.78rem",
-    lineHeight: "1.4",
+    fontSize: "var(--text-sm)",
+    lineHeight: "var(--leading-tight)",
     textAlign: "left",
     color: "var(--color-text)",
     backgroundColor: "var(--color-surface-2)",
     border: "1px solid var(--color-border)",
-    borderRadius: "0.4rem",
+    borderRadius: "var(--radius-sm)",
     cursor: "pointer",
   },
   ".cm-diagnosticAction:hover": {

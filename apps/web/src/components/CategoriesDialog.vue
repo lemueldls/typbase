@@ -88,7 +88,7 @@ async function remove(id: string) {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   max-height: 16rem;
   overflow-y: auto;
 }
@@ -96,9 +96,9 @@ async function remove(id: string) {
 .category-list__row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.4rem;
-  border-radius: 0.3rem;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-xs);
 }
 
 .category-list__row:hover {
@@ -108,11 +108,11 @@ async function remove(id: string) {
 .category-list__count {
   margin-left: auto;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .category-list__empty {
   color: var(--color-text-secondary);
-  padding: 0.5rem 0.2rem;
+  padding: var(--space-2) var(--space-1);
 }
 </style>

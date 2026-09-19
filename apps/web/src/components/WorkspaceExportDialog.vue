@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 
+import type { SelectOption } from "~/components/ui/Select.vue";
+
 import { useTypst } from "~/composables/typst";
 import { saveExport, type ExportOptions } from "~/lib/exportPage";
 import { buildWorkspaceExport, type WorkspaceExportOptions } from "~/lib/exportWorkspace";
 
 const props = defineProps<{ store: WorkspaceStore }>();
+
+const { t } = useI18n();
 
 const open = ref(false);
 const busy = ref(false);
@@ -13,6 +17,16 @@ const error = ref("");
 const query = ref("");
 const dailyOnly = ref(false);
 const selected = ref(new Set<string>());
+
+const themeOptions = computed<SelectOption<ExportOptions["theme"]>[]>(() => [
+  { value: "light", label: t("exportPage.themeLight") },
+  { value: "workspace", label: t("exportPage.themeWorkspace") },
+]);
+
+const pageSizeOptions: SelectOption<ExportOptions["pageSize"]>[] = [
+  { value: "a4", label: "A4" },
+  { value: "letter", label: "Letter" },
+];
 
 const DEFAULTS: WorkspaceExportOptions = {
   html: true,
@@ -174,17 +188,21 @@ async function run(): Promise<void> {
       <div class="workspace-export__options">
         <label class="workspace-export__field">
           {{ $t("exportPage.theme") }}
-          <select v-model="options.theme">
-            <option value="light">{{ $t("exportPage.themeLight") }}</option>
-            <option value="workspace">{{ $t("exportPage.themeWorkspace") }}</option>
-          </select>
+          <UiSelect
+            v-model="options.theme"
+            :options="themeOptions"
+            :label="$t('exportPage.theme')"
+            size="small"
+          />
         </label>
         <label class="workspace-export__field">
           {{ $t("exportPage.pageSize") }}
-          <select v-model="options.pageSize">
-            <option value="a4">A4</option>
-            <option value="letter">Letter</option>
-          </select>
+          <UiSelect
+            v-model="options.pageSize"
+            :options="pageSizeOptions"
+            :label="$t('exportPage.pageSize')"
+            size="small"
+          />
         </label>
       </div>
 
@@ -209,25 +227,25 @@ async function run(): Promise<void> {
 .workspace-export {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--space-2-5);
 }
 
 .workspace-export__toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .workspace-export__search {
   flex: 1;
   min-width: 0;
-  padding: 0.4rem 0.55rem;
+  padding: var(--space-1-5) var(--space-2);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 .workspace-export__search:focus-visible {
@@ -240,32 +258,32 @@ async function run(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .workspace-export__count {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .workspace-export__pages {
   list-style: none;
   margin: 0;
-  padding: 0.25rem;
+  padding: var(--space-1);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   max-height: min(40vh, 16rem);
   overflow-y: auto;
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .workspace-export__pages :deep(.ui-checkbox) {
   width: 100%;
   align-items: flex-start;
-  padding: 0.3rem 0.4rem;
-  border-radius: 0.35rem;
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-sm);
 }
 
 .workspace-export__pages :deep(.ui-checkbox:hover) {
@@ -278,55 +296,39 @@ async function run(): Promise<void> {
 
 .workspace-export__page-meta {
   display: block;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .workspace-export__formats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: var(--space-2) var(--space-4);
 }
 
 .workspace-export__options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: var(--space-2) var(--space-4);
 }
 
 .workspace-export__field {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
-}
-
-.workspace-export__field select {
-  padding: 0.25rem 0.4rem;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
-}
-
-.workspace-export__field select:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .workspace-export__hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .workspace-export__error {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 

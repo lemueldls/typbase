@@ -106,11 +106,11 @@ async function onUnpublish() {
 .publish {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .publish__status {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
@@ -119,15 +119,15 @@ async function onUnpublish() {
 }
 
 .publish__hint {
-  margin: 0.5rem 0 0;
-  padding: 0.5rem 0.6rem 0.25rem;
-  font-size: 0.75rem;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-2-5) var(--space-1);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .publish__error {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-danger);
   max-width: 12rem;
 }

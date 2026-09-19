@@ -426,8 +426,8 @@ function openRepository(entry: PackageEntry) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.4rem;
+  gap: var(--space-2-5);
+  margin-bottom: var(--space-1-5);
 }
 
 .package-browser__search {
@@ -436,8 +436,8 @@ function openRepository(entry: PackageEntry) {
 }
 
 .package-browser__count {
-  margin: 0 0 0.4rem;
-  font-size: 0.78rem;
+  margin: 0 0 var(--space-1-5);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -445,17 +445,17 @@ function openRepository(entry: PackageEntry) {
   height: min(60vh, 26rem);
   overflow-y: auto;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .package-browser__row {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-2);
   box-sizing: border-box;
   height: 120px;
-  padding: 0.5rem;
+  padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -464,7 +464,7 @@ function openRepository(entry: PackageEntry) {
   flex: 1 1 auto;
   height: 100%;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -472,7 +472,7 @@ function openRepository(entry: PackageEntry) {
   display: flex;
   align-items: start;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -480,24 +480,24 @@ function openRepository(entry: PackageEntry) {
   min-width: 0;
   overflow: hidden;
   font-weight: 600;
-  font-size: 1.15rem;
+  font-size: var(--text-xl);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .package-browser__badge {
-  padding: 0 0.35rem;
-  border-radius: 999px;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   color: var(--color-accent);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .package-browser__description {
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   flex: 1 1 auto;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -509,22 +509,22 @@ function openRepository(entry: PackageEntry) {
 .package-browser__meta {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: var(--space-1);
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 
 .package-browser__chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   flex: none;
-  padding: 0 0.1rem 0 0.35rem;
+  padding: 0 var(--space-0-5) 0 var(--space-1-5);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
 }
 
 .package-browser__select {
@@ -535,7 +535,7 @@ function openRepository(entry: PackageEntry) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
@@ -548,7 +548,7 @@ function openRepository(entry: PackageEntry) {
 .package-browser__spinner {
   width: 0.8rem;
   height: 0.8rem;
-  margin-right: 0.3rem;
+  margin-right: var(--space-1);
   border: 2px solid var(--color-text-secondary);
   border-top-color: transparent;
   border-radius: 50%;
@@ -565,25 +565,25 @@ function openRepository(entry: PackageEntry) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 2rem 1rem;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
 }
 
 .package-browser__note,
 .package-browser__error {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
 }
 
 .package-browser__banner {
-  margin: 0 0 0.4rem;
-  padding: 0.4rem 0.6rem;
+  margin: 0 0 var(--space-1-5);
+  padding: var(--space-1-5) var(--space-2-5);
   border: 1px solid color-mix(in srgb, var(--color-danger, #b42828) 35%, transparent);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--color-danger, #b42828) 8%, transparent);
   color: var(--color-danger, #b42828);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .package-browser__error {
@@ -598,7 +598,7 @@ mark {
   padding: 0;
   background: color-mix(in srgb, var(--color-accent) 22%, transparent);
   color: inherit;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 /* Narrow screens: the row stacks its actions under the text and the search
@@ -613,8 +613,8 @@ mark {
 
   .package-browser__search {
     flex: 1 1 100%;
-    padding: 0.6rem 0.7rem;
-    font-size: 0.9rem;
+    padding: var(--space-2-5) var(--space-3);
+    font-size: var(--text-md);
   }
 }
 </style>
