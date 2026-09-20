@@ -88,7 +88,7 @@ defineExpose({ input, focus: () => input.value?.focus() });
 }
 
 .ui-text-field--default {
-  padding: var(--space-1-5) var(--space-2);
+  padding: var(--space-2);
 }
 
 .ui-text-field--large {

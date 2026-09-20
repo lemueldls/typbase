@@ -106,15 +106,10 @@ function statusFor(info: WorkspaceInfo): string {
     </ul>
     <p v-else class="ws-screen__hint">{{ $t("switcher.noWorkspaces") }}</p>
 
-    <button
-      type="button"
-      class="button button--primary ws-screen__add"
-      :disabled="busy"
-      @click="openCreate"
-    >
+    <UiButton variant="primary" class="ws-screen__add" :disabled="busy" @click="openCreate">
       <MsIcon name="add" :size="20" />
       {{ $t("switcher.add") }}
-    </button>
+    </UiButton>
 
     <p v-if="error" class="ws-screen__error" role="alert">{{ error }}</p>
   </div>

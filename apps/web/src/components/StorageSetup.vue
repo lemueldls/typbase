@@ -159,15 +159,14 @@ async function run(choice: StorageSetupChoice): Promise<void> {
       <p v-if="busy" class="storage-setup__busy">{{ $t("storage.working") }}</p>
       <p v-if="error" class="storage-setup__error" role="alert">{{ error }}</p>
 
-      <button
+      <UiButton
         v-if="props.setup.canCancel"
-        type="button"
-        class="button storage-setup__cancel"
+        class="storage-setup__cancel"
         :disabled="busy"
         @click="cancelStorageSetup"
       >
         {{ $t("storage.cancel") }}
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>

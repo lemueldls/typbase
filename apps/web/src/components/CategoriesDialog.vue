@@ -69,13 +69,13 @@ async function remove(id: string) {
       <div class="dialog__field">
         <UiTextField v-model="newName" :placeholder="$t('categories.label')" />
       </div>
-      <button type="submit" class="button button--primary">{{ $t("categories.add") }}</button>
+      <UiButton variant="primary" type="submit">{{ $t("categories.add") }}</UiButton>
     </form>
     <p v-if="error" class="dialog__error">{{ error }}</p>
 
     <div class="dialog__actions">
       <DialogClose as-child>
-        <button type="button" class="button button--ghost">{{ $t("common.close") }}</button>
+        <UiButton variant="ghost">{{ $t("common.close") }}</UiButton>
       </DialogClose>
     </div>
   </UiDialog>

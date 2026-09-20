@@ -168,11 +168,11 @@ function formatSize(bytes: number): string {
             <MsIcon name="search" :size="20" />
           </template>
         </UiTextField>
-        <Label class="button picker__upload">
+        <UiButton as="label" class="picker__upload">
           <MsIcon name="upload" :size="20" />
           {{ $t("assets.upload") }}
           <input type="file" hidden @change="upload" />
-        </Label>
+        </UiButton>
       </div>
 
       <p v-if="error" class="picker__error" role="alert">{{ error }}</p>

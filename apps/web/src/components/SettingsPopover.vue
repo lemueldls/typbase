@@ -576,9 +576,9 @@ async function renameWorkspace(event: Event) {
                   :text="storageLocation.path"
                 />
               </span>
-              <button type="button" class="button button--tiny" @click="openStorageSetup">
+              <UiButton @click="openStorageSetup">
                 {{ $t("settings.changeStorage") }}
-              </button>
+              </UiButton>
             </div>
             <!-- <span class="settings__hint">{{ $t("settings.storageHint") }}</span> -->
           </div>
@@ -769,15 +769,14 @@ async function renameWorkspace(event: Event) {
             </p>
 
             <template v-if="supportsLocalFonts()">
-              <button
+              <UiButton
+                variant="primary"
                 v-if="!systemFontsLoaded"
-                type="button"
-                class="button button--primary"
                 :disabled="systemFontsLoading"
                 @click="installSystemFonts"
               >
                 {{ systemFontsLoading ? "Loading..." : "Load system fonts" }}
-              </button>
+              </UiButton>
               <p v-if="systemFontsLoaded" class="settings__ok">
                 {{
                   $t("settings.systemFontsLoaded", {
@@ -908,9 +907,7 @@ async function renameWorkspace(event: Event) {
             <p v-if="searchStatus?.indexError" class="settings__error">
               {{ $t("settings.searchIndexError", { error: searchStatus.indexError }) }}
             </p>
-            <button type="button" class="button button--small" @click="onRebuildIndex">
-              Rebuild
-            </button>
+            <UiButton size="small" @click="onRebuildIndex"> Rebuild </UiButton>
           </section>
         </section>
         <section v-show="activeTab === 'sync'" class="settings__tabpanel">
@@ -930,14 +927,13 @@ async function renameWorkspace(event: Event) {
                     :placeholder="$t('settings.syncSignInPlaceholder')"
                     @keydown.enter="onSignIn"
                   />
-                  <button
-                    type="button"
-                    class="button button--primary"
+                  <UiButton
+                    variant="primary"
                     :disabled="signInBusy || !signInIdentifier.trim()"
                     @click="onSignIn"
                   >
                     Sign in
-                  </button>
+                  </UiButton>
                 </div>
               </template>
 
@@ -973,9 +969,9 @@ async function renameWorkspace(event: Event) {
                   </ul>
                 </div>
 
-                <button type="button" class="button" :disabled="!atprotoReady" @click="onSignOut">
+                <UiButton :disabled="!atprotoReady" @click="onSignOut">
                   {{ $t("settings.syncSignOut") }}
-                </button>
+                </UiButton>
               </template>
 
               <p v-if="signInError" class="settings__error">

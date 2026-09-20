@@ -251,9 +251,9 @@ definePageMeta({ ssr: false });
           <dd>{{ wasmMemoryMB }} MB</dd>
         </div>
       </dl>
-      <button type="button" class="button button--color-danger" @click="resetWorkspace">
+      <UiButton class="button--color-danger" @click="resetWorkspace">
         Wipe storage and reload
-      </button>
+      </UiButton>
     </section>
 
     <StorageExplorer />
@@ -270,20 +270,15 @@ definePageMeta({ ssr: false });
         <textarea v-model="source" rows="14" class="lab__input" spellcheck="false" />
       </Label>
       <div class="lab__actions">
-        <button type="button" class="button button--primary" :disabled="running" @click="run">
+        <UiButton variant="primary" :disabled="running" @click="run">
           {{ running ? "Compiling..." : "Compile" }}
-        </button>
-        <button
-          type="button"
-          class="button"
-          :disabled="indexCheckRunning"
-          @click="runIndexMappingCheck"
-        >
+        </UiButton>
+        <UiButton :disabled="indexCheckRunning" @click="runIndexMappingCheck">
           {{ indexCheckRunning ? "Checking..." : "Check index" }}
-        </button>
-        <button type="button" class="button" :disabled="typingRunning" @click="runTypingSimulation">
+        </UiButton>
+        <UiButton :disabled="typingRunning" @click="runTypingSimulation">
           {{ typingRunning ? "Typing..." : "Simulate typing" }}
-        </button>
+        </UiButton>
       </div>
     </section>
 
@@ -342,9 +337,9 @@ definePageMeta({ ssr: false });
     <section class="lab__battery">
       <div class="lab__actions">
         <h2>Recovery battery</h2>
-        <button type="button" class="button" :disabled="batteryRunning" @click="runRecoveryBattery">
+        <UiButton :disabled="batteryRunning" @click="runRecoveryBattery">
           {{ batteryRunning ? "Running..." : `Run ${RECOVERY_CASES.length} cases` }}
-        </button>
+        </UiButton>
       </div>
       <table v-if="battery.length" class="lab__table">
         <thead>

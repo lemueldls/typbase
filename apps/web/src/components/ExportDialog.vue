@@ -134,14 +134,9 @@ async function run(): Promise<void> {
       <p v-if="error" class="export__error" role="alert">{{ error }}</p>
 
       <div class="export__actions">
-        <button
-          type="button"
-          class="button button--primary"
-          :disabled="busy || !hasArtifacts"
-          @click="run"
-        >
+        <UiButton variant="primary" :disabled="busy || !hasArtifacts" @click="run">
           {{ busy ? $t("exportPage.working") : $t("exportPage.export") }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </UiDialog>

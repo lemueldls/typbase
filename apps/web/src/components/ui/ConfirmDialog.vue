@@ -29,19 +29,14 @@ const emit = defineEmits<{ (e: "confirm"): void }>();
 
         <div class="dialog__actions">
           <AlertDialogCancel as-child>
-            <button type="button" class="button button--ghost">
+            <UiButton variant="ghost">
               {{ cancelLabel ?? $t("common.cancel") }}
-            </button>
+            </UiButton>
           </AlertDialogCancel>
           <AlertDialogAction as-child>
-            <button
-              type="button"
-              class="button"
-              :class="danger ? 'button--danger' : 'button--primary'"
-              @click="emit('confirm')"
-            >
+            <UiButton :variant="danger ? 'danger' : 'primary'" @click="emit('confirm')">
               {{ confirmLabel ?? $t("common.delete") }}
-            </button>
+            </UiButton>
           </AlertDialogAction>
         </div>
       </AlertDialogContent>

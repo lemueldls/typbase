@@ -214,9 +214,7 @@ function formatTime(at: number): string {
           Mode: <strong>{{ plugins.engine.mode }}</strong> · worker crashes:
           {{ plugins.engine.workerCrashes }}
         </span>
-        <button type="button" class="button button--small" @click="plugins.resetEngine()">
-          Retry worker
-        </button>
+        <UiButton size="small" @click="plugins.resetEngine()"> Retry worker </UiButton>
       </p>
       <pre v-if="plugins.engine.lastError" class="lab-plugin__error">{{
         plugins.engine.lastError
@@ -232,12 +230,8 @@ function formatTime(at: number): string {
           label="Plugin instance"
           class="lab-plugin__select"
         />
-        <button type="button" class="button button--primary button--small" @click="compile">
-          Compile
-        </button>
-        <button type="button" class="button button--small" @click="refreshInspection">
-          Refresh state
-        </button>
+        <UiButton variant="primary" size="small" @click="compile"> Compile </UiButton>
+        <UiButton size="small" @click="refreshInspection"> Refresh state </UiButton>
       </div>
 
       <div class="lab-plugin__action">
@@ -250,9 +244,7 @@ function formatTime(at: number): string {
           placeholder="fields JSON"
         />
         <div class="lab-plugin__row">
-          <button type="button" class="button button--small" @click="dispatchAction">
-            Dispatch action
-          </button>
+          <UiButton size="small" @click="dispatchAction"> Dispatch action </UiButton>
           <span class="lab-plugin__muted">{{ actionStatus }}</span>
         </div>
       </div>
@@ -268,9 +260,7 @@ function formatTime(at: number): string {
     <section class="lab-plugin__group">
       <div class="lab-plugin__row">
         <h3 class="lab-plugin__title">Logs ({{ plugins.logs.value.length }})</h3>
-        <button type="button" class="button button--small" @click="plugins.clearLogs()">
-          Clear
-        </button>
+        <UiButton size="small" @click="plugins.clearLogs()"> Clear </UiButton>
       </div>
       <ul class="lab-plugin__logs">
         <li v-for="(entry, index) in plugins.logs.value" :key="index" class="lab-plugin__log">
@@ -287,9 +277,9 @@ function formatTime(at: number): string {
       <h3 class="lab-plugin__title">State</h3>
       <pre class="lab-plugin__pre">{{ stateJson || "{}" }}</pre>
       <div class="lab-plugin__row">
-        <button type="button" class="button button--small" @click="showHtml = !showHtml">
+        <UiButton size="small" @click="showHtml = !showHtml">
           {{ showHtml ? "Hide" : "Show" }} rendered HTML ({{ htmlPreview.length }}b)
-        </button>
+        </UiButton>
       </div>
       <pre v-if="showHtml" class="lab-plugin__pre">{{ htmlPreview }}</pre>
     </section>
@@ -309,14 +299,14 @@ function formatTime(at: number): string {
           label="Plugin file"
           class="lab-plugin__select"
         />
-        <button
-          type="button"
-          class="button button--primary button--small"
+        <UiButton
+          variant="primary"
+          size="small"
           :disabled="saving || !editFile"
           @click="saveSource"
         >
           Save + reload
-        </button>
+        </UiButton>
       </div>
 
       <textarea v-model="editText" rows="16" class="lab-plugin__editor" spellcheck="false" />

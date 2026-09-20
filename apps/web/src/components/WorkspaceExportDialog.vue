@@ -140,9 +140,9 @@ async function run(): Promise<void> {
           :placeholder="$t('exportWorkspace.search')"
           :aria-label="$t('exportWorkspace.search')"
         />
-        <button type="button" class="button button--small" @click="setAll(!allSelected)">
+        <UiButton size="small" @click="setAll(!allSelected)">
           {{ allSelected ? $t("exportWorkspace.none") : $t("exportWorkspace.all") }}
-        </button>
+        </UiButton>
       </div>
 
       <div class="workspace-export__filters">
@@ -216,14 +216,9 @@ async function run(): Promise<void> {
       <p v-if="error" class="workspace-export__error" role="alert">{{ error }}</p>
 
       <div class="workspace-export__actions">
-        <button
-          type="button"
-          class="button button--primary"
-          :disabled="busy || !selected.size"
-          @click="run"
-        >
+        <UiButton variant="primary" :disabled="busy || !selected.size" @click="run">
           {{ busy ? $t("exportPage.working") : $t("exportPage.export") }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </UiDialog>

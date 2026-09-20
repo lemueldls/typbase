@@ -46,17 +46,12 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
       <h3 class="plugin-manager__title">{{ $t("plugins.available") }}</h3>
 
       <div class="plugin-manager__tools">
-        <button type="button" class="button button--small" @click="plugins.refreshCatalog()">
+        <UiButton size="small" @click="plugins.refreshCatalog()">
           {{ $t("plugins.reload") }}
-        </button>
-        <button
-          v-if="canImportFolder"
-          type="button"
-          class="button button--small"
-          @click="plugins.installFromFolder()"
-        >
+        </UiButton>
+        <UiButton size="small" v-if="canImportFolder" @click="plugins.installFromFolder()">
           {{ $t("plugins.installFolder") }}
-        </button>
+        </UiButton>
         <!-- <span class="plugin-manager__hint">{{ $t("plugins.localHint") }}</span> -->
       </div>
 
@@ -81,27 +76,28 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
           </span>
 
           <span class="plugin-manager__actions">
-            <button
+            <UiButton
               v-if="!installOf(entry.manifest.id)"
-              type="button"
-              class="button button--primary button--small"
+              variant="primary"
+              size="small"
               @click="plugins.install(entry.manifest.id)"
             >
               {{ $t("plugins.install") }}
-            </button>
+            </UiButton>
             <template v-else>
               <UiSwitch
                 :model-value="installOf(entry.manifest.id)?.enabled ?? false"
                 :aria-label="entry.manifest.name"
                 @update:model-value="(value) => plugins.setEnabled(entry.manifest.id, value)"
               />
-              <button
-                type="button"
-                class="button button--ghost button--small plugin-manager__danger"
+              <UiButton
+                variant="ghost"
+                size="small"
+                class="plugin-manager__danger"
                 @click="removePlugin(entry.manifest.id, entry.manifest.name)"
               >
                 {{ $t("plugins.remove") }}
-              </button>
+              </UiButton>
             </template>
           </span>
         </header>
@@ -143,15 +139,15 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
           </div>
 
           <div class="plugin-manager__add">
-            <button
+            <UiButton
               v-for="surface in entry.manifest.surfaces"
               :key="surface.kind"
-              type="button"
-              class="button button--ghost button--small"
+              variant="ghost"
+              size="small"
               @click="plugins.createInstance(entry.manifest.id, surface.kind)"
             >
               + {{ $t("plugins.addSurface", { surface: surface.title }) }}
-            </button>
+            </UiButton>
           </div>
         </div>
       </article>
@@ -160,13 +156,9 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
     <section v-if="plugins.errors.value.length" class="plugin-manager__group">
       <header class="plugin-manager__entry-head">
         <h3 class="plugin-manager__title">{{ $t("plugins.problems") }}</h3>
-        <button
-          type="button"
-          class="button button--ghost button--small"
-          @click="plugins.clearErrors()"
-        >
+        <UiButton variant="ghost" size="small" @click="plugins.clearErrors()">
           {{ $t("plugins.clear") }}
-        </button>
+        </UiButton>
       </header>
       <ul class="plugin-manager__errors">
         <li

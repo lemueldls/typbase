@@ -105,11 +105,11 @@ async function submit() {
 
       <div class="dialog__actions">
         <DialogClose as-child>
-          <button type="button" class="button button--ghost">{{ $t("common.cancel") }}</button>
+          <UiButton variant="ghost">{{ $t("common.cancel") }}</UiButton>
         </DialogClose>
-        <button type="submit" class="button button--primary" :disabled="creating">
+        <UiButton variant="primary" type="submit" :disabled="creating">
           {{ creating ? $t("common.working") : $t("newPage.create") }}
-        </button>
+        </UiButton>
       </div>
     </form>
   </UiDialog>

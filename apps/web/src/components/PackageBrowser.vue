@@ -296,21 +296,16 @@ function openRepository(entry: PackageEntry) {
 
     <div v-else-if="indexError && entries.length === 0" class="package-browser__state">
       <p class="package-browser__error">{{ indexError }}</p>
-      <button type="button" class="button button--ghost button--small" @click="loadIndex(true)">
+      <UiButton variant="ghost" size="small" @click="loadIndex(true)">
         {{ $t("packages.retry") }}
-      </button>
+      </UiButton>
     </div>
 
     <div v-else-if="filtered.length === 0" class="package-browser__state">
       <p class="package-browser__note">{{ $t("packages.empty") }}</p>
-      <button
-        v-if="query"
-        type="button"
-        class="button button--ghost button--small"
-        @click="query = ''"
-      >
+      <UiButton v-if="query" variant="ghost" size="small" @click="query = ''">
         {{ $t("packages.clear") }}
-      </button>
+      </UiButton>
     </div>
 
     <div v-else v-bind="containerProps" class="package-browser__list">
@@ -385,10 +380,10 @@ function openRepository(entry: PackageEntry) {
           </div>
 
           <div class="package-browser__actions">
-            <button
-              type="button"
-              class="button button--small package-browser__action"
-              :class="{ 'button--primary': !isInstalled(entry.name, versionFor(entry)) }"
+            <UiButton
+              size="small"
+              class="package-browser__action"
+              :variant="isInstalled(entry.name, versionFor(entry)) ? 'plain' : 'primary'"
               :disabled="busy === rowKey(entry)"
               @click="toggle(entry)"
             >
@@ -399,7 +394,7 @@ function openRepository(entry: PackageEntry) {
               />
               <MsIcon v-else :name="actionIcon(entry)" :size="20" />
               {{ actionLabel(entry) }}
-            </button>
+            </UiButton>
 
             <UiIconButton
               :icon="copied === entry.name ? 'check' : 'content_copy'"

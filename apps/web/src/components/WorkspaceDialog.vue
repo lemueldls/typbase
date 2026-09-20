@@ -95,12 +95,12 @@ async function submit() {
       </div>
 
       <div class="dialog__actions">
-        <button type="button" class="button button--ghost" @click="open = false">
+        <UiButton variant="ghost" @click="open = false">
           {{ $t("switcher.renameCancel") }}
-        </button>
-        <button type="submit" class="button button--primary" :disabled="!canSubmit">
+        </UiButton>
+        <UiButton variant="primary" type="submit" :disabled="!canSubmit">
           {{ mode === "create" ? t("switcher.create") : t("switcher.renameSave") }}
-        </button>
+        </UiButton>
       </div>
     </form>
 

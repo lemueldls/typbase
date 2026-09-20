@@ -348,22 +348,22 @@ onBeforeUnmount(() => {
           {{ $t("explorer.tabAssets") }}
         </button>
       </div>
-      <button type="button" class="button button--tiny" :disabled="loading" @click="refresh">
+      <UiButton size="tiny" :disabled="loading" @click="refresh">
         {{ loading ? $t("explorer.refreshing") : $t("explorer.refresh") }}
-      </button>
+      </UiButton>
     </header>
 
     <p class="explorer__location">
       <span>{{ storageLocation.label }}</span>
       <span v-if="storageLocation.path" class="explorer__path">{{ storageLocation.path }}</span>
-      <button
+      <UiButton
+        variant="ghost"
+        size="tiny"
         v-if="isNative && storageLocation.path"
-        type="button"
-        class="button button--ghost button--tiny"
         @click="reveal('')"
       >
         {{ $t("explorer.reveal") }}
-      </button>
+      </UiButton>
     </p>
 
     <p v-if="error" class="explorer__error" role="alert">{{ error }}</p>
@@ -442,10 +442,10 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else-if="view === 'files'" class="explorer__panel">
-      <Label class="button button--tiny explorer__upload">
+      <UiButton as="label" size="tiny" class="explorer__upload">
         {{ $t("explorer.upload") }}
         <input type="file" hidden @change="upload" />
-      </Label>
+      </UiButton>
 
       <div
         v-for="node in flatNodes"

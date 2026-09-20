@@ -69,7 +69,7 @@ async function onUnpublish() {
 
     <PopoverRoot v-model:open="menuOpen">
       <PopoverTrigger as-child>
-        <button type="button" class="button button--small" :disabled="busy">
+        <UiButton size="small" :disabled="busy">
           {{
             busy
               ? t("pageView.publishWorking")
@@ -77,7 +77,7 @@ async function onUnpublish() {
                 ? t("pageView.republish")
                 : t("pageView.publish")
           }}
-        </button>
+        </UiButton>
       </PopoverTrigger>
       <PopoverPortal>
         <PopoverContent class="menu publish__menu" :side-offset="6" align="end">

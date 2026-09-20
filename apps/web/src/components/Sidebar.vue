@@ -383,12 +383,12 @@ function onCreated(page: PageMeta) {
           <UiTextField v-model="renameTitle" autofocus />
         </Label>
         <div class="dialog__actions">
-          <button type="button" class="button button--ghost" @click="renameTarget = undefined">
+          <UiButton variant="ghost" @click="renameTarget = undefined">
             {{ $t("common.cancel") }}
-          </button>
-          <button type="submit" class="button button--primary">
+          </UiButton>
+          <UiButton variant="primary" type="submit">
             {{ $t("sidebar.rename") }}
-          </button>
+          </UiButton>
         </div>
       </form>
     </UiDialog>
@@ -407,16 +407,16 @@ function onCreated(page: PageMeta) {
         {{ $t("sidebar.debugLab") }}
       </NuxtLink> -->
       <PackageBrowser v-model:open="packagesOpen" :store="store">
-        <button type="button" class="button button--ghost button--tiny">
+        <UiButton variant="ghost" size="tiny">
           <MsIcon name="package_2" :size="16" />
           {{ $t("packages.title") }}
-        </button>
+        </UiButton>
       </PackageBrowser>
       <WorkspaceExportDialog :store="store">
-        <button type="button" class="button button--ghost button--tiny">
+        <UiButton variant="ghost" size="tiny">
           <MsIcon name="download" :size="16" />
           {{ $t("exportWorkspace.title") }}
-        </button>
+        </UiButton>
       </WorkspaceExportDialog>
     </footer>
   </aside>

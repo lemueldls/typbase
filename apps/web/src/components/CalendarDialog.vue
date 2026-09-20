@@ -100,9 +100,9 @@ function goToToday() {
             <MsIcon name="chevron_right" :size="20" />
           </CalendarNext>
         </UiTooltip>
-        <button type="button" class="button button--ghost button--tiny" @click="goToToday">
+        <UiButton variant="ghost" size="tiny" @click="goToToday">
           {{ $t("common.today") }}
-        </button>
+        </UiButton>
       </CalendarHeader>
 
       <CalendarGrid v-for="month in grid" :key="month.value.toString()" class="calendar__grid">
