@@ -52,8 +52,6 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
       />
     </div>
 
-    <p v-if="active.length === 0" class="plugin-sidebar__empty">{{ $t("plugins.empty") }}</p>
-
     <div v-for="instance in sidebarInstances" :key="instance.id" class="plugin-sidebar__widget">
       <PluginSurface :instance-id="instance.id" :title="titleOf(instance)" auto-height />
     </div>
@@ -93,13 +91,6 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary);
-}
-
-.plugin-sidebar__empty {
-  margin: 0;
-  padding: 0 var(--space-1) var(--space-1);
-  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 

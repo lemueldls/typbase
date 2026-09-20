@@ -2,6 +2,7 @@
 import { SplitterPanel } from "reka-ui";
 
 import { refreshSections, toSections } from "~/lib/ai/generators";
+import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
 const {
@@ -98,6 +99,18 @@ watch(workspaceGeneration, () => {
   currentPluginId.value = null;
 });
 
+// Demo capture and e2e tests reach the active store through this handle.
+watch(
+  workspace,
+  (store) => {
+    testApi.store = store ?? null;
+  },
+  { immediate: true },
+);
+
+testApi.openPage = (id) => openPage(id);
+testApi.setMode = (value) => void setMode(value as ViewModeId);
+
 // Section metadata should stay fresh even without the editor being open:
 // the store's page changes drive a re-extract on every page switch.
 watch(currentPageId, async (id) => {
@@ -158,6 +171,10 @@ onMounted(async () => {
   if (instanceId && store.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
 
   setPluginNavigation({ openPage, openPlugin });
+});
+
+watch(currentPageId, (id) => {
+  testApi.pageId = id || null;
 });
 
 watch(currentPageId, (id) => {

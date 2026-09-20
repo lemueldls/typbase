@@ -26,6 +26,7 @@ import {
 } from "@codemirror/view";
 import {
   type TextRef,
+  autocomplete,
   typstHoverTooltip,
   typstKeymap,
   typstLanguageData,
@@ -37,6 +38,7 @@ import {
 
 import { typstEditorTheme } from "~/lib/cmTheme";
 import { spellcheckCompartment, spellcheckExtension } from "~/lib/spellcheck";
+import { testApi } from "~/lib/testApi";
 
 const props = defineProps<{
   fileId: FileId;
@@ -147,6 +149,9 @@ const createView = () => {
     parent: container.value!,
     state: EditorState.create(config),
   });
+
+  testApi.view = view.value;
+  testApi.fileId = props.fileId;
 };
 
 // typbase.page-link and plugin embeds render as typbase:// anchors inside
@@ -186,6 +191,8 @@ onBeforeUnmount(() => {
   element?.removeEventListener("dragleave", onDragLeave, true);
   element?.removeEventListener("drop", onDrop, true);
   view.value?.destroy();
+  testApi.view = null;
+  testApi.fileId = null;
 });
 
 // Write, notebook, and source mode need different extension sets; rebuild on
@@ -247,7 +254,11 @@ function createStateConfig(): EditorStateConfig {
       typstHoverTooltip(props.fileId, props.typstState),
       typstKeymap,
       typstLanguageData,
-      autocompletion(),
+      // The WYSIWYG plugin installs the same source; Split and Source mode
+      // need it too or the editor has no completions at all.
+      autocompletion({
+        override: [(context) => autocomplete(context, props.fileId, props.typstState)],
+      }),
     );
   }
 

@@ -15,6 +15,7 @@
     "packages:dev": "moon run typing:build-dev storage:build-dev spaces:build-dev codemirror:build-dev",
     "preview": "moon run web:preview",
     "symbols": "node scripts/symbols/transform.mjs",
+    "test:e2e": "pnpm --filter @typbase/web test:e2e",
     "typecheck": "pnpm --filter @typbase/web typecheck && pnpm --filter @typbase/typing --filter @typbase/storage --filter @typbase/spaces --filter @typbase/codemirror typecheck"
   },
   "dependencies": {
@@ -32,7 +33,8 @@
     "golar": "^0.1.10",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.81.0",
-    "oxlint-tsgolint": "^7.0.2001"
+    "oxlint-tsgolint": "^7.0.2001",
+    "playwright": "^1.63.0"
   },
   "packageManager": "pnpm@12.4.2"
 }

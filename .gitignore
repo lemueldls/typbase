@@ -2,6 +2,7 @@
 .output
 .data
 .nuxt
+.nuxt-e2e
 .nitro
 .cache
 dist
@@ -25,6 +26,10 @@ apps/native/gen/schemas
 
 # moon
 .moon/cache
+
+# Wrangler local state and worker env
+.wrangler
+.dev.vars
 
 # Node dependencies
 node_modules

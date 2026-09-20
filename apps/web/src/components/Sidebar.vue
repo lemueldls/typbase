@@ -406,18 +406,18 @@ function onCreated(page: PageMeta) {
         <MsIcon name="science" :size="16" />
         {{ $t("sidebar.debugLab") }}
       </NuxtLink> -->
-      <PackageBrowser v-model:open="packagesOpen" :store="store">
+      <!-- <PackageBrowser v-model:open="packagesOpen" :store="store">
         <UiButton variant="ghost" size="tiny">
           <MsIcon name="package_2" :size="16" />
           {{ $t("packages.title") }}
         </UiButton>
-      </PackageBrowser>
-      <WorkspaceExportDialog :store="store">
+      </PackageBrowser> -->
+      <!-- <WorkspaceExportDialog :store="store">
         <UiButton variant="ghost" size="tiny">
           <MsIcon name="download" :size="16" />
           {{ $t("exportWorkspace.title") }}
         </UiButton>
-      </WorkspaceExportDialog>
+      </WorkspaceExportDialog> -->
     </footer>
   </aside>
 </template>

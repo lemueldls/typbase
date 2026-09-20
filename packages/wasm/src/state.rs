@@ -491,6 +491,20 @@ impl TypstState {
         }
     }
 
+    /// Cursor position in raw-source bytes, clamped to the end of the source.
+    ///
+    /// The editor can be one keystroke ahead of the last compile: typing at
+    /// the end of a block puts the cursor past the text the engine still
+    /// holds. Returning `None` there cancels the IDE query, which reads as
+    /// "no completion at the end of a block". Clamping keeps the query alive
+    /// with the context from the previous keystroke.
+    fn raw_cursor_byte(source: &Source, cursor_utf16: usize) -> usize {
+        source
+            .lines()
+            .utf16_to_byte(cursor_utf16)
+            .unwrap_or_else(|| source.text().len())
+    }
+
     /// Plain-Rust core of [`Self::autocomplete`].
     pub fn autocomplete_at(
         &mut self,
@@ -500,7 +514,7 @@ impl TypstState {
     ) -> Option<Autocomplete> {
         let synth_id = self.source_context_map.get(id)?.synth_id;
         let raw_source = self.source_context_map.get(id)?.raw_source(&self.world)?;
-        let raw_cursor = raw_source.lines().utf16_to_byte(raw_cursor_utf16)?;
+        let raw_cursor = Self::raw_cursor_byte(raw_source, raw_cursor_utf16);
 
         let (main_id, parse_source) = self.ide_query_sources(id, raw_cursor)?;
 
@@ -511,8 +525,11 @@ impl TypstState {
 
             let raw_source = context.raw_source(&self.world)?;
             let raw_lines = raw_source.lines();
-            let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::After);
+            let raw_cursor = Self::raw_cursor_byte(raw_source, raw_cursor_utf16);
+            // `Before` keeps the cursor at the end of the copied text. `After`
+            // jumps past a generated block separator, which lands the cursor in
+            // markup and kills completion at the end of a block.
+            let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::Before);
 
             let (synth_offset, completions) = typst_ide::autocomplete(
                 &self.world,
@@ -837,7 +854,7 @@ impl TypstState {
         let synth_id = self.source_context_map.get(id)?.synth_id;
         let raw_cursor = {
             let raw_source = self.source_context_map.get(id)?.raw_source(&self.world)?;
-            raw_source.lines().utf16_to_byte(raw_cursor_utf16)?
+            Self::raw_cursor_byte(raw_source, raw_cursor_utf16)
         };
 
         let (main_id, parse_source) = self.ide_query_sources(id, raw_cursor)?;
@@ -849,8 +866,10 @@ impl TypstState {
 
             let raw_source = context.raw_source(&self.world)?;
             let raw_lines = raw_source.lines();
-            let raw_cursor = raw_lines.utf16_to_byte(raw_cursor_utf16)?;
-            let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::After);
+            let raw_cursor = Self::raw_cursor_byte(raw_source, raw_cursor_utf16);
+            // Same as autocomplete: the cursor belongs at the end of the copied
+            // text, not after a generated separator.
+            let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::Before);
 
             let side = if side == -1 {
                 Side::Before
