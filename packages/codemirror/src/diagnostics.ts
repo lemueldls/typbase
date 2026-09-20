@@ -62,6 +62,8 @@ export function toLintDiagnostics(typstDiagnostics: TypstDiagnostic[]): Diagnost
 export interface TypstLinterOptions {
   onRequests?: TypstRequestHandler;
   onPanic?: (fileId: FileId) => void;
+  /** Called after a diagnostics compile succeeds. */
+  onCompile?: () => void;
 }
 
 /**
@@ -102,6 +104,7 @@ export const typstLinter = (
       }
 
       rememberDiagnostics(path, text, result.diagnostics);
+      options.onCompile?.();
 
       return toLintDiagnostics(result.diagnostics);
     },

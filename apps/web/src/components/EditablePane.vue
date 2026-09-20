@@ -50,6 +50,12 @@ const props = defineProps<{
   wysiwyg: boolean;
   /** Notebook cell rendering; undefined outside notebook mode. */
   notebook?: NotebookOptions;
+  /**
+   * Engine failed: install only engine-free extensions so the user keeps
+   * editing (and saving) while previews, diagnostics, hover, and completions
+   * are gone.
+   */
+  degraded?: boolean;
   /** Spellcheck provider; reconfigured in place when it changes. */
   spellcheck?: SpellcheckMode;
   typstState: TypstState;
@@ -59,6 +65,8 @@ const props = defineProps<{
   extensions?: Extension[];
   /** Fired when the plugin's compile trapped; the parent rebuilds the wasm state. */
   onPanic?: () => void;
+  /** Fired after a compile succeeds; the parent resets engine health. */
+  onCompile?: () => void;
   /** Fired when a Typbase link inside a rendered widget is clicked. */
   onNavigate?: (pageId: string) => void;
   /** Fired when a plugin link inside a rendered widget is clicked. */
@@ -197,9 +205,9 @@ onBeforeUnmount(() => {
 
 // Write, notebook, and source mode need different extension sets; rebuild on
 // switch. The notebook prop's identity is stable per page, so only the mode
-// flag matters.
+// flag matters. Degraded drops the engine-backed set entirely.
 watch(
-  () => `${props.wysiwyg}:${Boolean(props.notebook)}`,
+  () => `${props.wysiwyg}:${Boolean(props.notebook)}:${Boolean(props.degraded)}`,
   () => {
     view.value?.destroy();
     createView();
@@ -224,7 +232,18 @@ function createStateConfig(): EditorStateConfig {
   // the defaults (cursor, tooltip, selection, gutters).
   extensions.push(typstEditorTheme);
 
-  if (props.wysiwyg || props.notebook) {
+  if (props.degraded) {
+    // Engine-free editing: keep text sync, keymap, language data, and
+    // spellcheck; drop everything that calls into the wasm state.
+    extensions.push(
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) props.text.value = update.state.doc.toString();
+      }),
+      typstKeymap,
+      typstLanguageData,
+      autocompletion(),
+    );
+  } else if (props.wysiwyg || props.notebook) {
     extensions.push(
       typstPlugin(
         props.fileId,
@@ -238,6 +257,7 @@ function createStateConfig(): EditorStateConfig {
           onRequests: props.onRequests,
           revision: props.revision,
           onPanic: props.onPanic,
+          onCompile: props.onCompile,
           notebook: props.notebook,
         },
       ),
@@ -263,13 +283,18 @@ function createStateConfig(): EditorStateConfig {
   }
 
   extensions.push(
-    // Diagnostics in every mode: the linter source combines with the
-    // spellcheck source instead of replacing it, and split/source have no
+    // Diagnostics in every engine-backed mode: the linter source combines with
+    // the spellcheck source instead of replacing it, and split/source have no
     // WYSIWYG plugin to compile for them.
-    typstLinter(props.fileId, props.spaceId, props.path, props.prelude, props.typstState, {
-      onRequests: props.onRequests,
-      onPanic: props.onPanic,
-    }),
+    ...(props.degraded
+      ? []
+      : [
+          typstLinter(props.fileId, props.spaceId, props.path, props.prelude, props.typstState, {
+            onRequests: props.onRequests,
+            onPanic: props.onPanic,
+            onCompile: props.onCompile,
+          }),
+        ]),
     spellcheckCompartment.of(spellcheckExtension(props.spellcheck)),
     EditorView.exceptionSink.of((error) => {
       console.error(error);

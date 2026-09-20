@@ -6,7 +6,14 @@ import { parseBackticks } from "./highlight";
 
 export const typstHoverTooltip = (fileId: FileId, typstState: TypstState) =>
   hoverTooltip((_, pos, side) => {
-    const tooltip = typstState.hover(fileId, pos, side);
+    let tooltip: ReturnType<TypstState["hover"]>;
+    try {
+      tooltip = typstState.hover(fileId, pos, side);
+    } catch (error) {
+      console.error("[typst] hover panicked:", error);
+
+      return null;
+    }
 
     if (tooltip) {
       return {

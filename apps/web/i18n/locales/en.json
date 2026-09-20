@@ -25,6 +25,15 @@
     "closeNav": "Close navigation",
     "createOne": "Create one from the sidebar."
   },
+  "engine": {
+    "restarting": "Restarting the Typst engine…",
+    "restarted": "Typst engine restarted",
+    "failedTitle": "Typst engine stopped",
+    "failedBody": "Rendering and diagnostics are off. Your text is safe and editing still works.",
+    "renderCrashed": "The render engine crashed; the next export will restart it.",
+    "retry": "Retry",
+    "reload": "Reload app"
+  },
   "sidebar": {
     "daily": "Daily",
     "pages": "Pages",

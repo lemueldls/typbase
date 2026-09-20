@@ -15,6 +15,7 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { createProviderFor, refreshSections, toSections } from "~/lib/ai/generators";
 import { getAiKeys } from "~/lib/ai/keys";
+import { engineAvailable } from "~/lib/engineHealth";
 import { specString } from "~/lib/packages";
 import {
   loadBundledCatalog,
@@ -672,7 +673,7 @@ function usePluginHost() {
         const typstState = await useTypst().catch(() => null);
         if (typstState) {
           await refreshSections(store, page.id, next, (source) =>
-            toSections(typstState.extractSections(source), source),
+            engineAvailable() ? toSections(typstState.extractSections(source), source) : null,
           );
         }
         bumpPluginsRevision();

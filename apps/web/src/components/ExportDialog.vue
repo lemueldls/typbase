@@ -4,6 +4,7 @@ import type { TypstState } from "@typbase/wasm";
 
 import type { SelectOption } from "~/components/ui/Select.vue";
 
+import { engineAvailable } from "~/lib/engineHealth";
 import { buildExport, saveExport, type ExportOptions } from "~/lib/exportPage";
 
 const props = defineProps<{
@@ -57,6 +58,15 @@ async function run(): Promise<void> {
   busy.value = true;
   error.value = "";
   try {
+    if (!engineAvailable()) {
+      // The project export reads the stdlib out of the engine; the render
+      // worker is separate but a half-built project bundle is worse than an
+      // honest stop. The failed toast carries the recovery actions.
+      error.value = t("engine.failedBody");
+
+      return;
+    }
+
     await props.beforeExport?.();
     const { base, files } = await buildExport(
       props.store,

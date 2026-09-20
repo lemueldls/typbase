@@ -25,6 +25,15 @@
     "closeNav": "Cerrar navegación",
     "createOne": "Crea una desde la barra lateral."
   },
+  "engine": {
+    "restarting": "Reiniciando el motor de Typst…",
+    "restarted": "Motor de Typst reiniciado",
+    "failedTitle": "El motor de Typst se detuvo",
+    "failedBody": "La representación y los diagnósticos están desactivados. Tu texto está a salvo y puedes seguir editando.",
+    "renderCrashed": "El motor de renderizado falló; la próxima exportación lo reiniciará.",
+    "retry": "Reintentar",
+    "reload": "Recargar la app"
+  },
   "sidebar": {
     "daily": "Diario",
     "pages": "Páginas",

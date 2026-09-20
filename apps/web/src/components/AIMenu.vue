@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
-import type { Section } from "@typbase/typing";
 
 import {
   createProviderFor,
@@ -15,6 +14,7 @@ import {
 } from "~/lib/ai/generators";
 import { refreshSections, toSections } from "~/lib/ai/generators";
 import { getAiKeys } from "~/lib/ai/keys";
+import { engineAvailable } from "~/lib/engineHealth";
 
 const props = defineProps<{
   pageId: string;
@@ -48,15 +48,15 @@ async function onTrigger() {
   menuOpen.value = !menuOpen.value;
 }
 
-// Section extraction runs in wasm; the first call loads the instance.
-let extractor: Promise<(source: string) => Section[]> | undefined;
+// Section extraction runs in wasm; the first call loads the instance. Resolve
+// the state per call: a recovery swaps the singleton, and a cached closure
+// would keep talking to the dead one.
 async function extractSections(source: string) {
-  extractor ??= useTypst().then(
-    (typstState) => (text: string) => toSections(typstState.extractSections(text), text),
-  );
-  const sections = await extractor;
+  if (!engineAvailable()) return null;
 
-  return sections(source);
+  const typstState = await useTypst();
+
+  return toSections(typstState.extractSections(source), source);
 }
 
 async function context(): Promise<GenerationContext> {

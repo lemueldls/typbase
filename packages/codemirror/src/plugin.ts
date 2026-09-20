@@ -33,6 +33,9 @@ export interface TypstPluginOptions {
    * the editor; the plugin drops the decorations for the failed pass.
    */
   onPanic?: (fileId: FileId) => void;
+  /** Called after a compile pass succeeds; the host resets its health and
+   *  heap watchdog on it. */
+  onCompile?: () => void;
   /**
    * Cell rendering and cell commands. When set, the editor behaves like a
    * notebook: markup cells render inline, code cells render below, and the

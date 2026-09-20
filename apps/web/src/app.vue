@@ -4,5 +4,6 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
+    <UiToaster />
   </TooltipProvider>
 </template>

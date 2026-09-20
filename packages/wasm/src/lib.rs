@@ -50,7 +50,13 @@ pub mod world;
 #[cfg(test)]
 mod tests;
 
+mod alloc;
 mod utils;
+
+/// Records allocation failures so the app can tell OOM from a normal panic.
+/// See [`alloc`].
+#[global_allocator]
+static ALLOC: alloc::RecordingAlloc = alloc::RecordingAlloc;
 
 use wasm_bindgen::prelude::*;
 
@@ -94,6 +100,28 @@ fn start() {
 #[must_use]
 pub fn is_development_build() -> bool {
     cfg!(debug_assertions)
+}
+
+/// Drains the allocation-failure flag without going through a `TypstState`
+/// handle.
+///
+/// A trap inside a `&mut self` method leaves wasm-bindgen's borrow flag set
+/// (there is no unwinding and no `Drop`), so the method form of this call
+/// throws the aliasing error on the dead object exactly when the host needs
+/// the reason for the failure. This free function touches a static and a
+/// primitive only, so it works on a poisoned instance.
+#[wasm_bindgen(js_name = "takeOomGlobal")]
+#[must_use]
+pub fn take_oom_global() -> bool {
+    alloc::take_oom()
+}
+
+/// Drains the panic message without going through a `TypstState` handle.
+/// See [`take_oom_global`] for why the method form is not usable here.
+#[wasm_bindgen(js_name = "takePanicGlobal")]
+#[must_use]
+pub fn take_panic_global() -> Option<String> {
+    utils::take_panic()
 }
 
 #[macro_export]

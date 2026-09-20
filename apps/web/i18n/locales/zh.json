@@ -25,6 +25,15 @@
     "closeNav": "关闭导航",
     "createOne": "从侧边栏创建一个。"
   },
+  "engine": {
+    "restarting": "正在重启 Typst 引擎…",
+    "restarted": "Typst 引擎已重启",
+    "failedTitle": "Typst 引擎已停止",
+    "failedBody": "渲染和诊断已关闭。你的文本安然无恙，仍可继续编辑。",
+    "renderCrashed": "渲染引擎已崩溃；下次导出时会自动重启。",
+    "retry": "重试",
+    "reload": "重新加载应用"
+  },
   "sidebar": {
     "daily": "每日",
     "pages": "页面",

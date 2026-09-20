@@ -16,7 +16,15 @@ export async function autocomplete(
   typstState: TypstState,
 ): Promise<CompletionResult | null> {
   const { pos, explicit } = context;
-  const result = typstState.autocomplete(fileId, pos, explicit);
+  let result: ReturnType<TypstState["autocomplete"]>;
+  try {
+    result = typstState.autocomplete(fileId, pos, explicit);
+  } catch (error) {
+    console.error("[typst] autocomplete panicked:", error);
+
+    return null;
+  }
+
   if (!result) return null;
 
   const { offset, completions } = result;

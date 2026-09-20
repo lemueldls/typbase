@@ -25,7 +25,14 @@ function buildDecorations(
   typstState: TypstState,
 ): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
-  const tokens = typstState.highlight(fileId, state.doc.toString());
+  let tokens: ReturnType<TypstState["highlight"]>;
+  try {
+    tokens = typstState.highlight(fileId, state.doc.toString());
+  } catch (error) {
+    console.error("[typst] highlight panicked:", error);
+
+    return Decoration.none;
+  }
 
   for (const token of tokens)
     builder.add(token.range.start, token.range.end, Decoration.mark({ class: token.tag }));

@@ -4,6 +4,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { SelectOption } from "~/components/ui/Select.vue";
 
 import { useTypst } from "~/composables/typst";
+import { engineAvailable } from "~/lib/engineHealth";
 import { saveExport, type ExportOptions } from "~/lib/exportPage";
 import { buildWorkspaceExport, type WorkspaceExportOptions } from "~/lib/exportWorkspace";
 
@@ -103,6 +104,14 @@ async function run(): Promise<void> {
   busy.value = true;
   error.value = "";
   try {
+    if (!engineAvailable()) {
+      // Project exports read the stdlib out of the engine. Rendering would
+      // work in the worker, but stop instead of writing a bundle without it.
+      error.value = t("engine.failedBody");
+
+      return;
+    }
+
     const typstState = await useTypst();
     const { name, files } = await buildWorkspaceExport(
       props.store,

@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { InstalledPackage } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
+import { engineAvailable } from "~/lib/engineHealth";
 import {
   PACKAGE_NAMESPACE,
   fetchPackageBytes,
@@ -165,6 +166,12 @@ function updatedLabel(entry: PackageEntry): string {
 }
 
 async function install(spec: InstalledPackage) {
+  if (!engineAvailable()) {
+    actionError.value = t("engine.failedBody");
+
+    return;
+  }
+
   busy.value = specString(spec);
   actionError.value = undefined;
 
@@ -191,6 +198,12 @@ async function install(spec: InstalledPackage) {
 }
 
 async function remove(spec: InstalledPackage) {
+  if (!engineAvailable()) {
+    actionError.value = t("engine.failedBody");
+
+    return;
+  }
+
   busy.value = specString(spec);
   actionError.value = undefined;
 

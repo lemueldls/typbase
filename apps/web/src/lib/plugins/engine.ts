@@ -1,6 +1,7 @@
 import { reactive } from "vue";
 
 import { useTypst } from "~/composables/typst";
+import { useEngineHealth } from "~/lib/engineHealth";
 
 import type {
   PluginCompileRequest,
@@ -113,6 +114,13 @@ function compileInWorker(input: PluginSurfaceInput): Promise<PluginSurfaceResult
 }
 
 async function compileLocally(input: PluginSurfaceInput): Promise<PluginSurfaceResult> {
+  if (useEngineHealth().value.status === "failed") {
+    // The fallback compiles on the shared main-thread state, which traps
+    // while failed. The caller shows this in the plugin's error list; the
+    // engine toast already explains how to recover.
+    throw new Error("The Typst engine stopped; retry it before loading plugin surfaces.");
+  }
+
   const typstState = await useTypst();
 
   return compileSurface(typstState, input);

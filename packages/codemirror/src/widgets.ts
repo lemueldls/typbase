@@ -7,7 +7,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
-import type { NotebookOptions } from "./notebook";
+import type { NotebookCell, NotebookOptions } from "./notebook";
 import type { TextRef, TypstRequestHandler } from "./types";
 
 import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
@@ -170,6 +170,7 @@ interface DecorateArgs {
   revision?: () => string | number | undefined;
   onRequests?: TypstRequestHandler;
   onPanic?: (fileId: FileId) => void;
+  onCompile?: () => void;
   notebook?: NotebookOptions;
 }
 
@@ -187,6 +188,7 @@ function decorate({
   revision,
   onRequests,
   onPanic,
+  onCompile,
   notebook,
 }: DecorateArgs): DecorateResult {
   const text = update.state.doc.toString();
@@ -217,6 +219,7 @@ function decorate({
     }
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
     rememberDiagnostics(path, text, compileResult.diagnostics);
+    onCompile?.();
 
     if (compileResult.requests.length > 0 && onRequests) {
       void Promise.resolve(onRequests(compileResult.requests, spaceId)).then((wasUpdated) => {
@@ -245,7 +248,16 @@ function decorate({
   const { view, state } = update;
 
   if (notebook) {
-    const cells = notebook.cells(text);
+    let cells: NotebookCell[];
+    try {
+      cells = notebook.cells(text);
+    } catch (error) {
+      console.error("[typst] cell extraction panicked:", error);
+      onPanic?.(fileId);
+
+      return { decorations: Decoration.none, tooltips: [], frames: [], active: [] };
+    }
+
     notebook.onCells?.(cells);
     notebook.onActiveCell?.(cells.length ? cellIndexAt(cells, state.selection.main.head) : null);
 
@@ -299,6 +311,9 @@ export interface TypstViewPluginOptions {
   revision?: () => string | number | undefined;
   /** See TypstPluginOptions#onPanic. */
   onPanic?: (fileId: FileId) => void;
+  /** Called after a compile pass succeeds; the host resets its health and
+   *  heap watchdog on it. */
+  onCompile?: () => void;
   /** Cell rendering, run effects, and cell commands for notebook mode. */
   notebook?: NotebookOptions;
 }
@@ -390,11 +405,20 @@ export const typstViewPlugin = (
         if (update.geometryChanged) {
           const { scrollDOM, contentDOM } = update.view;
 
-          widthChanged = typstState.resize(
-            fileId,
-            editorRenderWidth(scrollDOM, contentDOM),
-            locked ? scrollDOM.clientHeight : undefined,
-          );
+          try {
+            widthChanged = typstState.resize(
+              fileId,
+              editorRenderWidth(scrollDOM, contentDOM),
+              locked ? scrollDOM.clientHeight : undefined,
+            );
+          } catch (error) {
+            // A dead instance throws here before the host remounts the pane.
+            // Report it like a compile trap and skip the rest of the pass.
+            console.error("[typst] resize panicked:", error);
+            options.onPanic?.(fileId);
+
+            return;
+          }
         }
 
         if (widthChanged) {
@@ -432,6 +456,7 @@ export const typstViewPlugin = (
               revision: options.revision,
               onRequests: options.onRequests,
               onPanic: options.onPanic,
+              onCompile: options.onCompile,
               notebook: options.notebook,
             });
 

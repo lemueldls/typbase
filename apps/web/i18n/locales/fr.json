@@ -25,6 +25,15 @@
     "closeNav": "Fermer la navigation",
     "createOne": "Créez-en une depuis la barre latérale."
   },
+  "engine": {
+    "restarting": "Redémarrage du moteur Typst…",
+    "restarted": "Moteur Typst redémarré",
+    "failedTitle": "Le moteur Typst s'est arrêté",
+    "failedBody": "Le rendu et les diagnostics sont désactivés. Votre texte est intact et l'édition fonctionne toujours.",
+    "renderCrashed": "Le moteur de rendu a planté ; la prochaine exportation le redémarrera.",
+    "retry": "Réessayer",
+    "reload": "Recharger l'application"
+  },
   "sidebar": {
     "daily": "Quotidien",
     "pages": "Pages",

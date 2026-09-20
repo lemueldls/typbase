@@ -1,4 +1,4 @@
-import init, { TypstState } from "@typbase/wasm";
+import init, { takePanicGlobal, TypstState } from "@typbase/wasm";
 import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
 import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
 import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";
@@ -83,7 +83,7 @@ self.addEventListener("message", (event: MessageEvent<PluginCompileRequest>) => 
         requests: result.requests,
       } satisfies PluginCompileResponse);
     } catch (error) {
-      const panic = state?.takePanic() ?? "";
+      const panic = takePanicGlobal() ?? "";
       const reason = error instanceof Error ? error : new Error(String(error));
 
       self.postMessage({

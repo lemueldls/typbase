@@ -11,6 +11,8 @@ import type { TypstState } from "@typbase/wasm";
 import { notebookRefreshEffect, typstRecompileEffect } from "@typbase/codemirror";
 import { reactive } from "vue";
 
+import { noteCompileSuccess } from "~/lib/engineHealth";
+
 /**
  * Notebook session state. Everything here is per open page and per session:
  * execution counters, output visibility, collapse, and the active cell.
@@ -118,6 +120,11 @@ export function createNotebookController(args: {
       session.running = index;
     },
     onCompile: () => {
+      // The compile that a run waits on is also the one that proves the
+      // engine recovered; report it so a notebook that was mid-run when the
+      // engine died does not leave the failure breaker set.
+      noteCompileSuccess();
+
       if (pendingRun !== null) {
         applyRun(pendingRun);
         pendingRun = null;

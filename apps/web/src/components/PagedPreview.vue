@@ -15,10 +15,11 @@ const props = defineProps<{
   onRequests?: (requests: unknown[], spaceId: string) => Promise<boolean> | boolean;
   /** Fired when a compile call trapped; the parent rebuilds the wasm state. */
   onPanic?: () => void;
+  /** Fired after a compile succeeds; the parent resets engine health. */
+  onCompile?: () => void;
 }>();
 
 const emit = defineEmits<{
-  (e: "panic"): void;
   (e: "navigate", pageId: string): void;
   (e: "navigatePlugin", instanceId: string): void;
   (e: "jump", range: { from: number; to: number }): void;
@@ -117,7 +118,7 @@ const renderNow = async () => {
       result = props.typstState.compilePaged(props.fileId, props.text.value, props.prelude.value);
     } catch (error) {
       console.error("[typst] paged compile panicked:", error);
-      emit("panic");
+      props.onPanic?.();
 
       return;
     }
@@ -131,6 +132,7 @@ const renderNow = async () => {
     }
 
     frames.value = result.frames;
+    props.onCompile?.();
   } finally {
     rendering.value = false;
   }
@@ -172,7 +174,19 @@ useResizeObserver(scroller, () => {
   // resize() reports whether the width actually changed. Height-only
   // observer ticks must not schedule another compile, or the pane keeps
   // reflowing after it has settled.
-  if (props.typstState.resize(props.fileId, width)) scheduleRender();
+  let changed = false;
+  try {
+    changed = props.typstState.resize(props.fileId, width);
+  } catch (error) {
+    // The engine is dead; the parent is already handling it. Do not let the
+    // trap escape the observer callback.
+    console.error("[typst] preview resize panicked:", error);
+    props.onPanic?.();
+
+    return;
+  }
+
+  if (changed) scheduleRender();
 });
 
 onMounted(() => {

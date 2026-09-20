@@ -73,6 +73,8 @@ impl TypstState {
     #[must_use]
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
+        comemo::evict(0);
+
         let mut this = Self::default();
 
         let id = FileId::new(RootedPath::new(
@@ -132,14 +134,14 @@ impl TypstState {
         self.revision
     }
 
-    /// Drains and returns the most recent panic message, if any. JS calls
-    /// this right after a call into the wasm boundary throws: a panic on
-    /// wasm32-unknown-unknown aborts the instance (no unwinding), so the
-    /// caller must recreate the state and retry.
-    #[wasm_bindgen(js_name = "takePanic")]
-    #[must_use]
-    pub fn take_panic(&self) -> Option<String> {
-        crate::utils::take_panic()
+    /// Test-only trap for the engine recovery e2e suite. Debug builds only,
+    /// so nothing in a release bundle can call it. Takes `&mut self` on
+    /// purpose: a trap here leaks the same borrow flag a real compile trap
+    /// leaks, which is the case the recovery has to survive.
+    #[cfg(debug_assertions)]
+    #[wasm_bindgen(js_name = "debugPanic")]
+    pub fn debug_panic(&mut self) {
+        panic!("debugPanic");
     }
 
     /// Current WASM heap size in bytes. The lab watches this to catch leaks;
@@ -285,6 +287,14 @@ impl TypstState {
     #[wasm_bindgen(js_name = "evictCaches")]
     pub fn evict_caches(&mut self) {
         comemo::evict(0);
+    }
+
+    /// Evicts entries unused across two eviction rounds. The heap watchdog
+    /// uses this while typing: per-keystroke entries age out, shared entries
+    /// such as the library and fonts stay warm.
+    #[wasm_bindgen(js_name = "evictCachesAged")]
+    pub fn evict_caches_aged(&mut self, max_age: usize) {
+        comemo::evict(max_age);
     }
 
     #[wasm_bindgen(js_name = "installFont")]

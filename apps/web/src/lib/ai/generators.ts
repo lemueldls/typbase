@@ -147,13 +147,17 @@ export function toSections(spans: SectionSpan[], source: string): Section[] {
   }));
 }
 
-/** Re-extracts `#typbase.section` spans into the page doc after content changes. */
+/** Re-extracts `#typbase.section` spans into the page doc after content changes.
+ *  The extractor returns null when the engine cannot run; the stored sections
+ *  stay as they are rather than being wiped. */
 export async function refreshSections(
   store: WorkspaceStore,
   pageId: string,
   text: string,
-  extract: (source: string) => Section[] | Promise<Section[]>,
+  extract: (source: string) => Section[] | null | Promise<Section[] | null>,
 ): Promise<void> {
   const sections = await extract(text);
+  if (!sections) return;
+
   await store.setSections(pageId, sections);
 }

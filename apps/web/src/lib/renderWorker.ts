@@ -2,6 +2,8 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 
+import { pushToast } from "~/composables/toasts";
+import { isWasmTrap } from "~/lib/typstRecovery";
 import { resolveRequestPayloads, type RequestPayload } from "~/lib/typstRequests";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
 
@@ -127,7 +129,17 @@ function ensureWorker(): Worker {
         payloads: entry.payloads,
       });
     } else {
-      entry.reject(new Error(message.error ?? "Render failed"));
+      const error = new Error(message.error ?? "Render failed");
+      entry.reject(error);
+
+      // A trap killed the worker's wasm instance; every later render would
+      // trap in the same place. Drop the worker so the next render starts
+      // clean, and say so, since the export just failed.
+      if (isWasmTrap(error)) {
+        console.warn("[render] worker engine trapped, restarting:", error.message);
+        pushToast({ titleKey: "engine.renderCrashed", duration: 6000 });
+        stopWorker(error);
+      }
     }
   });
 

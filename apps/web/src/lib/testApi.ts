@@ -20,6 +20,14 @@ export interface TypbaseTestApi {
   openPage: ((id: string) => void) | null;
   /** Switch view mode without a reload. */
   setMode: ((mode: string) => void) | null;
+  /** The view mode PageView is currently in. */
+  mode: (() => string) | null;
+  /** Engine health status: "ok" | "recovering" | "failed". */
+  engineStatus: (() => string) | null;
+  /** Wasm heap size in bytes, for leak checks. */
+  engineMemory: (() => number) | null;
+  /** Crash the wasm engine on purpose. Debug wasm builds only. */
+  crashEngine: (() => void) | null;
 }
 
 export const testApi: TypbaseTestApi = {
@@ -29,6 +37,10 @@ export const testApi: TypbaseTestApi = {
   pageId: null,
   openPage: null,
   setMode: null,
+  mode: null,
+  engineStatus: null,
+  engineMemory: null,
+  crashEngine: null,
 };
 
 if (import.meta.dev && typeof window !== "undefined") {

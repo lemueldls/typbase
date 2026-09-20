@@ -18,6 +18,17 @@ import {
 } from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
 
+import {
+  beginRecovery,
+  canAutoRebuild,
+  failEngine,
+  noteCompileSuccess,
+  noteTrap,
+  requestEngineRetry,
+  setEngineRetryHandler,
+  useEngineHealth,
+  type EngineFailure,
+} from "~/lib/engineHealth";
 import { fontFamiliesInSource } from "~/lib/fonts";
 import {
   createNotebookController,
@@ -28,7 +39,8 @@ import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { mirrorPageProject } from "~/lib/projectMirror";
 import { revealRequests } from "~/lib/reveal";
-import { recreateTypstState } from "~/lib/typstRecovery";
+import { testApi } from "~/lib/testApi";
+import { recreateTypstState, takeEngineFailure } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
@@ -48,6 +60,21 @@ const { t } = useI18n();
 
 const typstState = shallowRef<TypstState>();
 const fileId = shallowRef<FileId>();
+
+const engineHealth = useEngineHealth();
+const degraded = computed(() => engineHealth.value.status === "failed");
+
+/** Evict comemo caches once the wasm heap passes this. */
+const HEAP_WATERMARK = 1_000_000_000;
+/** Age out per-keystroke cache entries this often. */
+const EVICT_AGED_EVERY = 50;
+/** Throttle the heap read; every compile would be a needless syscall. */
+const HEAP_CHECK_MS = 2000;
+/** Idle sweep interval for the heap watchdog. */
+const HEAP_IDLE_MS = 30_000;
+
+let compilesSinceEvict = 0;
+let lastHeapCheck = 0;
 
 const boundState = computed(() => typstState.value as TypstState);
 const boundFileId = computed(() => fileId.value as FileId);
@@ -251,38 +278,110 @@ useEventListener(window, "keydown", onNotebookCommandKey);
 const stateGeneration = ref(0);
 let recovering = false;
 
-async function handlePanic() {
+/**
+ * One automatic rebuild per failure burst, and only for an out-of-memory
+ * abort: the OOM trace lands in the memoized call body where comemo holds no
+ * lock, so the same module instance is safe to rebuild. Anything else goes
+ * straight to `failed`, because a lock held at abort time would hang the next
+ * wasm call and JS cannot time out a synchronous call. Manual retries bypass
+ * the breaker.
+ */
+async function handlePanic(options: { manual?: boolean } = {}) {
   if (recovering) return;
   recovering = true;
 
+  // The flags come from module-level bindings: after a trap in a `&mut self`
+  // method the state object itself is unusable, and a method call here would
+  // throw instead of reporting why the engine died.
+  const { oom: isOom, message } = takeEngineFailure();
+  const reason: EngineFailure = isOom ? "oom" : "trap";
+
   try {
-    const message = (typstState.value?.takePanic() ?? "").trim();
-    console.error(`[typst] renderer panicked, rebuilding state${message ? `: ${message}` : ""}`);
+    if (!options.manual && !canAutoRebuild(isOom)) {
+      console.error(`[typst] engine failed (${reason})${message ? `: ${message}` : ""}`);
+      failEngine(reason, message);
+      return;
+    }
+
+    noteTrap(reason, message);
+    console.error(
+      `[typst] renderer panicked (${reason})${message ? `: ${message}` : ""}, rebuilding state`,
+    );
+    beginRecovery(reason);
 
     const fresh = await recreateTypstState();
     typstState.value = fresh;
-    stateGeneration.value += 1;
-
     // The old request service pointed at a dead instance.
     requestService = createTypstRequestService(fresh, store);
-    requestService.setCurrentPage(props.pageId);
     await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
-
-    const page = store.getPage(props.pageId);
-    if (page) {
-      fileId.value = fresh.createSourceId(page.path, workspaceId.value);
-      fresh.insertSource(fileId.value, text.value);
-    }
+    if (pageDisposed) return;
 
     notebookController.value?.cancelRun();
-    syncNotebookController();
-
-    void nextTick(() => {
-      editorPane.value?.recompile();
-    });
+    if (meta.value) bindPage(props.pageId, meta.value, setupToken);
+    // Bump last: the remount has to see the fresh state and the new file id
+    // together, or the editor binds one to the other.
+    stateGeneration.value += 1;
+  } catch (cause) {
+    console.error("[typst] engine rebuild failed:", cause);
+    failEngine("rebuild-failed", cause instanceof Error ? cause.message : String(cause));
   } finally {
     recovering = false;
   }
+}
+
+/**
+ * Every successful compile lands here: it clears the failure breaker and, past
+ * the heap watermark, trims the memoization caches that grow while typing.
+ */
+function onEngineCompile() {
+  noteCompileSuccess();
+
+  compilesSinceEvict += 1;
+  const state = typstState.value;
+  if (!state) return;
+
+  const now = performance.now();
+  if (now - lastHeapCheck >= HEAP_CHECK_MS) {
+    lastHeapCheck = now;
+    if (state.memoryBytes() > HEAP_WATERMARK) {
+      console.warn("[typst] wasm heap over watermark, evicting caches");
+      state.evictCaches();
+      compilesSinceEvict = 0;
+      return;
+    }
+  }
+
+  if (compilesSinceEvict >= EVICT_AGED_EVERY) {
+    compilesSinceEvict = 0;
+    state.evictCachesAged(1);
+  }
+}
+
+/** Mode to restore once a failed engine recovers. */
+let modeBeforeFailure: ViewModeId | undefined;
+
+watch(
+  () => engineHealth.value.status,
+  (status) => {
+    if (status === "failed") {
+      if (props.modelValue !== "source") {
+        modeBeforeFailure = props.modelValue;
+        emit("update:modelValue", "source");
+      }
+
+      return;
+    }
+
+    if (status === "ok" && modeBeforeFailure) {
+      const restore = modeBeforeFailure;
+      modeBeforeFailure = undefined;
+      if (props.modelValue === "source") emit("update:modelValue", restore);
+    }
+  },
+);
+
+function reloadApp() {
+  window.location.reload();
 }
 
 // Remote cursor rendering + reporting. Extra CM extensions ride the same
@@ -417,6 +516,20 @@ async function setupPage() {
   // prelude, appended on every compile.
   prelude.value = store.getSettings().pagePrelude ?? "";
 
+  if (engineHealth.value.status === "failed") {
+    // No wasm calls while failed. The text is loaded and the watchers from the
+    // previous page go away so they cannot write this page's text into that
+    // one; `handlePanic` rebinds the open page when the user retries.
+    unsubscribeSave?.();
+    unsubscribeSave = undefined;
+    unsubscribeFontScan?.();
+    unsubscribeFontScan = undefined;
+    fileId.value = undefined;
+    ready.value = false;
+
+    return;
+  }
+
   if (!typstState.value) {
     typstState.value = await useTypst();
     if (pageDisposed || token !== setupToken) return;
@@ -429,8 +542,11 @@ async function setupPage() {
     // Query JSON goes stale when pages/categories/settings change. Re-apply
     // fonts first (settings may have changed), purge the inserted files, then
     // recompile. Preview panes re-render off dataRevision on their own.
+    unsubscribeStructure?.();
     unsubscribeStructure = store.onStructureChange(() => {
       void (async () => {
+        if (engineHealth.value.status !== "ok") return;
+
         await applyWorkspaceStyleToTypst(
           workspaceId.value,
           store,
@@ -446,15 +562,26 @@ async function setupPage() {
     });
   }
 
-  requestService!.setCurrentPage(pageId);
+  bindPage(pageId, page, token);
+}
+
+/** Binds the open page to the current wasm state: request service page, file
+ *  id and source, save watchers, and readiness. `meta` and `text` must already
+ *  describe `pageId`. Recovery calls this again after swapping in a fresh
+ *  state, so a page opened while the engine was down gets its watchers too. */
+function bindPage(pageId: string, page: PageMeta, token: number): void {
+  const state = typstState.value;
+  if (!store || !state) return;
+
+  requestService?.setCurrentPage(pageId);
   syncNotebookController();
 
-  fileId.value = typstState.value.createSourceId(page.path, workspaceId.value);
-  typstState.value.insertSource(fileId.value, text.value);
+  fileId.value = state.createSourceId(page.path, workspaceId.value);
+  state.insertSource(fileId.value, text.value);
 
   // Mirror a compilable entry for external tools (typst CLI, Tinymist):
   // `typst compile --root <sources> typbase/entries/<path>`.
-  void mirrorPageProject(store, pageId, typstState.value).catch((cause) => {
+  void mirrorPageProject(store, pageId, state).catch((cause) => {
     console.warn("[page] project mirror failed:", cause);
   });
 
@@ -492,7 +619,8 @@ async function setupPage() {
 const scannedFamilies = new Set<string>();
 async function ensureSourceFonts(): Promise<void> {
   const state = typstState.value;
-  if (!state) return;
+  // `recovering` is allowed: the fresh state is already in place by then.
+  if (!state || engineHealth.value.status === "failed") return;
 
   const families = fontFamiliesInSource(text.value).filter(
     (family) => !scannedFamilies.has(family),
@@ -500,14 +628,57 @@ async function ensureSourceFonts(): Promise<void> {
   if (families.length === 0) return;
 
   for (const family of families) scannedFamilies.add(family);
-  await ensureFontsInstalled(state, families);
+  await ensureFontsInstalled(state, families).catch((cause) => {
+    console.warn("[page] font install failed:", cause);
+  });
 }
 
 const scanSourceFonts = useDebounceFn(() => void ensureSourceFonts(), 1200);
 
+let heapTimer: ReturnType<typeof setInterval> | undefined;
+
+onMounted(() => {
+  setEngineRetryHandler(() => handlePanic({ manual: true }));
+  testApi.mode = () => props.modelValue;
+  testApi.engineStatus = () => engineHealth.value.status;
+  testApi.engineMemory = () => {
+    try {
+      return typstState.value?.memoryBytes() ?? 0;
+    } catch {
+      // A dead instance traps; the watchdog cannot read it either.
+      return -1;
+    }
+  };
+  testApi.crashEngine = () => {
+    // `debugPanic` exists in debug wasm only; the cast keeps this compiling
+    // against release typings too.
+    const state = typstState.value as unknown as { debugPanic?: () => void } | undefined;
+    state?.debugPanic?.();
+  };
+
+  // Backstop for idle tabs and for stretches with no compiles at all; the
+  // per-compile check in `onEngineCompile` handles the busy case.
+  heapTimer = setInterval(() => {
+    const state = typstState.value;
+    if (!state || engineHealth.value.status !== "ok") return;
+
+    if (state.memoryBytes() > HEAP_WATERMARK) {
+      console.warn("[typst] wasm heap over watermark, evicting caches");
+      state.evictCaches();
+      compilesSinceEvict = 0;
+    }
+  }, HEAP_IDLE_MS);
+});
+
 onBeforeUnmount(() => {
   pageDisposed = true;
   setupToken += 1;
+  setEngineRetryHandler(undefined);
+  testApi.mode = null;
+  testApi.engineStatus = null;
+  testApi.engineMemory = null;
+  testApi.crashEngine = null;
+  if (heapTimer) clearInterval(heapTimer);
   cleanupScrollSync();
   unsubscribeSave?.();
   unsubscribePage?.();
@@ -631,6 +802,8 @@ const editorRevision = () =>
 // Plugin sources and plugin data are request-channel files; when they change
 // the injected copies must go so the next compile re-requests them.
 watch(pluginsRevision, () => {
+  if (engineHealth.value.status !== "ok") return;
+
   requestService?.purge();
   editorPane.value?.recompile();
 });
@@ -776,30 +949,6 @@ function onModeKeydown(event: KeyboardEvent) {
           <UiTruncatedText class="page-view__title" :text="meta?.title ?? pageId" />
         </div>
 
-        <div
-          class="page-view__modes"
-          role="tablist"
-          :aria-label="$t('pageView.viewMode')"
-          aria-orientation="horizontal"
-          @keydown="onModeKeydown"
-        >
-          <button
-            v-for="mode in modes"
-            :key="mode.id"
-            type="button"
-            role="tab"
-            :aria-selected="modelValue === mode.id"
-            :tabindex="modelValue === mode.id ? 0 : -1"
-            class="page-view__mode"
-            :class="{ 'page-view__mode--active': modelValue === mode.id }"
-            :disabled="!ready"
-            @click="emit('update:modelValue', mode.id)"
-          >
-            <MsIcon :name="mode.icon" :size="18" />
-            <span class="page-view__mode-label">{{ $t(mode.key) }}</span>
-          </button>
-        </div>
-
         <AssetPicker v-if="modelValue !== 'read' && store" :store="store" @select="insertAsset">
           <UiIconButton
             icon="add_photo_alternate"
@@ -838,6 +987,30 @@ function onModeKeydown(event: KeyboardEvent) {
           class="page-view__format-toggle"
           @click="formatOpen = true"
         />
+
+        <div
+          class="page-view__modes"
+          role="tablist"
+          :aria-label="$t('pageView.viewMode')"
+          aria-orientation="horizontal"
+          @keydown="onModeKeydown"
+        >
+          <button
+            v-for="mode in modes"
+            :key="mode.id"
+            type="button"
+            role="tab"
+            :aria-selected="modelValue === mode.id"
+            :tabindex="modelValue === mode.id ? 0 : -1"
+            class="page-view__mode"
+            :class="{ 'page-view__mode--active': modelValue === mode.id }"
+            :disabled="!ready"
+            @click="emit('update:modelValue', mode.id)"
+          >
+            <MsIcon :name="mode.icon" :size="18" />
+            <span class="page-view__mode-label">{{ $t(mode.key) }}</span>
+          </button>
+        </div>
 
         <span class="page-view__modes-menu">
           <UiMenu align="end">
@@ -878,7 +1051,7 @@ function onModeKeydown(event: KeyboardEvent) {
       v-if="modelValue === 'notebook' && store"
       :session="notebookSession"
       :selected="notebookSelected"
-      :disabled="!ready"
+      :disabled="!ready || degraded"
       @run-cell="runNotebookCell"
       @run-all="runAllNotebook"
       @restart="restartNotebook"
@@ -895,6 +1068,16 @@ function onModeKeydown(event: KeyboardEvent) {
         class="page-view__format-collapse"
         @click="formatOpen = false"
       />
+    </div>
+
+    <div v-if="degraded" class="page-view__engine" role="status">
+      <span class="page-view__engine-text">{{ $t("engine.failedBody") }}</span>
+      <UiButton size="small" variant="ghost" @click="requestEngineRetry">
+        {{ $t("engine.retry") }}
+      </UiButton>
+      <UiButton size="small" variant="ghost" @click="reloadApp">
+        {{ $t("engine.reload") }}
+      </UiButton>
     </div>
 
     <div v-if="pageError" class="page-view__error">{{ pageError }}</div>
@@ -916,12 +1099,14 @@ function onModeKeydown(event: KeyboardEvent) {
         :path="meta?.path ?? ''"
         :wysiwyg="modelValue === 'write'"
         :notebook="modelValue === 'notebook' ? notebookController?.options : undefined"
+        :degraded="degraded"
         :spellcheck="spellcheckMode"
         :typst-state="boundState"
         :on-requests="onRequests"
         :revision="editorRevision"
         :extensions="extraExtensions"
-        :on-panic="handlePanic"
+        :on-panic="() => handlePanic()"
+        :on-compile="onEngineCompile"
         :on-navigate="(pageId) => emit('openPage', pageId)"
         :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
         :on-asset-drop="handleAssetDrop"
@@ -930,7 +1115,7 @@ function onModeKeydown(event: KeyboardEvent) {
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
 
       <PagedPreview
-        v-if="boundFileId"
+        v-if="boundFileId && !degraded"
         :key="`${pageId}:preview:${stateGeneration}`"
         v-show="modelValue === 'split' || modelValue === 'read'"
         v-bind="sharedState"
@@ -941,7 +1126,8 @@ function onModeKeydown(event: KeyboardEvent) {
         :data-revision="dataRevision + pluginsRevision"
         :render-revision="renderRevision"
         :on-requests="onRequests"
-        :on-panic="handlePanic"
+        :on-panic="() => handlePanic()"
+        :on-compile="onEngineCompile"
         @navigate="emit('openPage', $event)"
         @navigate-plugin="emit('openPlugin', $event)"
         @jump="onPreviewJump"
@@ -1126,6 +1312,22 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__error {
   padding: var(--space-4);
   color: var(--color-danger);
+}
+
+.page-view__engine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text);
+  background: var(--color-danger-soft);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-view__engine-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
 }
 
 .page-view__body {

@@ -3,6 +3,7 @@ import { SplitterPanel } from "reka-ui";
 import faviconUrl from "~~/public/favicon.svg?url";
 
 import { refreshSections, toSections } from "~/lib/ai/generators";
+import { engineAvailable } from "~/lib/engineHealth";
 import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
@@ -127,7 +128,7 @@ watch(currentPageId, async (id) => {
   if (!typstState) return;
 
   await refreshSections(store, id, text, (source) =>
-    toSections(typstState.extractSections(source), source),
+    engineAvailable() ? toSections(typstState.extractSections(source), source) : null,
   );
 });
 

@@ -24,6 +24,10 @@ declare global {
       };
       openPage(id: string): void;
       setMode(mode: string): void;
+      mode(): string;
+      engineStatus(): string;
+      engineMemory(): number;
+      crashEngine(): void;
     };
   }
 }
@@ -162,6 +166,117 @@ describe("typbase app", async () => {
     await expect(
       page.locator(".cm-lintRange-error, .cm-lint-marker-error").count(),
     ).resolves.toBeGreaterThan(0);
+    await page.close();
+  });
+
+  it("recovers from a forced engine trap without a reload", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Recovery check",
+      content: "= Recovery\n\nbefore the crash\n",
+    });
+    await showPage(page, id, "write");
+
+    // Trap the instance directly. The evaluate sees the trap; the editor's
+    // next compile is what reports it to the health state.
+    await page.evaluate(() => {
+      try {
+        window.__typbase.crashEngine();
+      } catch {
+        // expected: the wasm trap surfaces as a thrown RuntimeError
+      }
+    });
+
+    // Typing forces a compile; the trap lands in the plugin's catch, which
+    // reports it. The character must survive the trap (the highlight guard
+    // keeps the transaction from aborting), which the degraded check below
+    // proves along with the later text.
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" x");
+
+    await page.waitForFunction(() => window.__typbase.engineStatus() === "failed", null, {
+      timeout: 60_000,
+    });
+
+    // A non-OOM trap fails immediately: the strip and the toast are the notice.
+    await expect(page.locator(".page-view__engine").count()).resolves.toBeGreaterThan(0);
+    await expect(page.locator(".ui-toast").count()).resolves.toBeGreaterThan(0);
+
+    // The editor fell back to source and remounted, so focus it again. Edits
+    // still work and still save while the engine is down.
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" still editable");
+    await page.waitForTimeout(800);
+    await page.evaluate(() => window.__typbase.store.flush());
+    const degraded = await page.evaluate(
+      (pageId) => window.__typbase.store.loadPageText(pageId),
+      id,
+    );
+    expect(degraded).toContain("still editable");
+
+    // Retry rebuilds the engine and restores the previous mode.
+    await page.locator(".page-view__engine button").first().click();
+    await page.waitForFunction(() => window.__typbase.engineStatus() === "ok", null, {
+      timeout: 120_000,
+    });
+    await expect(page.locator(".page-view__engine").count()).resolves.toBe(0);
+    await page.waitForFunction(() => window.__typbase.mode() === "write", null, {
+      timeout: 30_000,
+    });
+
+    // A second trap after the rebuild fails again instead of looping.
+    await page.evaluate(() => {
+      try {
+        window.__typbase.crashEngine();
+      } catch {
+        // expected
+      }
+    });
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" again");
+    await page.waitForFunction(() => window.__typbase.engineStatus() === "failed", null, {
+      timeout: 60_000,
+    });
+
+    await page.close();
+  });
+
+  it("keeps compiling through a rapid un-define loop", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Heap check",
+      content: "#let doomed = 0\n\n= Heap\n\n#doomed\n",
+    });
+    await showPage(page, id, "write");
+    await page.locator(".cm-content").click();
+
+    // The original OOM repro: repeatedly remove and re-add the definition, so
+    // every edit is a new source hash for the memoized compile.
+    for (let index = 0; index < 12; index++) {
+      await page.keyboard.press("Control+Home");
+      await page.keyboard.press("Shift+End");
+      await page.keyboard.press("Delete");
+      await page.keyboard.type(`#let doomed = ${index}`);
+      await page.waitForTimeout(120);
+    }
+
+    await expect(page.evaluate(() => window.__typbase.engineStatus())).resolves.toBe("ok");
+    const memory = await page.evaluate(() => window.__typbase.engineMemory());
+    expect(memory).toBeGreaterThan(0);
+    expect(memory).toBeLessThan(1_000_000_000);
+
+    // The text still saves and the engine still compiles the final source.
+    await page.evaluate(() => window.__typbase.store.flush());
+    const text = await page.evaluate((pageId) => window.__typbase.store.loadPageText(pageId), id);
+    expect(text).toContain("#let doomed = 11");
+
     await page.close();
   });
 });
