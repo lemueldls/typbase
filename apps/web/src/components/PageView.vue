@@ -800,6 +800,36 @@ function onModeKeydown(event: KeyboardEvent) {
           </button>
         </div>
 
+        <AssetPicker v-if="modelValue !== 'read' && store" :store="store" @select="insertAsset">
+          <UiIconButton
+            icon="add_photo_alternate"
+            :label="$t('assets.title')"
+            :disabled="!ready"
+            class="page-view__asset-toggle"
+          />
+        </AssetPicker>
+
+        <AIMenu
+          v-if="store && aiEnabled"
+          :page-id="pageId"
+          :store="store"
+          :get-selection="getSelection"
+          :insert-below-selection="insertBelowSelection"
+          @open-page="emit('openPage', $event)"
+        />
+
+        <ExportDialog
+          v-if="store"
+          :page-id="pageId"
+          :store="store"
+          :typst-state="typstState"
+          :before-export="flushText"
+        >
+          <UiIconButton icon="download" :label="$t('exportPage.title')" :disabled="!ready" />
+        </ExportDialog>
+
+        <PublishButton v-if="store" :page-id="pageId" :store="store" />
+
         <UiIconButton
           v-if="modelValue !== 'read' && !formatOpen"
           icon="text_format"
@@ -841,36 +871,6 @@ function onModeKeydown(event: KeyboardEvent) {
             </DropdownMenuRadioGroup>
           </UiMenu>
         </span>
-
-        <AssetPicker v-if="modelValue !== 'read' && store" :store="store" @select="insertAsset">
-          <UiIconButton
-            icon="add_photo_alternate"
-            :label="$t('assets.title')"
-            :disabled="!ready"
-            class="page-view__asset-toggle"
-          />
-        </AssetPicker>
-
-        <AIMenu
-          v-if="store && aiEnabled"
-          :page-id="pageId"
-          :store="store"
-          :get-selection="getSelection"
-          :insert-below-selection="insertBelowSelection"
-          @open-page="emit('openPage', $event)"
-        />
-
-        <ExportDialog
-          v-if="store"
-          :page-id="pageId"
-          :store="store"
-          :typst-state="typstState"
-          :before-export="flushText"
-        >
-          <UiIconButton icon="download" :label="$t('exportPage.title')" :disabled="!ready" />
-        </ExportDialog>
-
-        <PublishButton v-if="store" :page-id="pageId" :store="store" />
       </div>
     </div>
 

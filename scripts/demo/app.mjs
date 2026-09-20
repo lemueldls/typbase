@@ -53,44 +53,170 @@ export async function installChromePreferences(context) {
 
 /**
  * A fake pointer for the clips: Playwright video does not render the real
- * cursor, and a clip without one is hard to follow. The overlay follows
- * `mousemove`, which `page.mouse` dispatches like a real pointer.
+ * cursor. The overlay follows `mousemove`; `moveCursor` below dispatches real
+ * moves over time, so the pointer glides instead of teleporting. The press
+ * scale and ripple are CSS, driven by real mousedown/mouseup events.
  */
 export async function installCursor(context) {
   await context.addInitScript(() => {
     const attach = () => {
       if (document.getElementById("__demo-cursor")) return;
 
-      const cursor = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const cursor = document.createElement("div");
       cursor.id = "__demo-cursor";
-      cursor.setAttribute("viewBox", "0 0 20 20");
-      cursor.innerHTML =
-        '<path d="M3 2l12 8-5 .8 3 6-2.4 1.2-3-6L3 15z" fill="#fff" stroke="#111" stroke-width="1.1"/>';
-      Object.assign(cursor.style, {
-        position: "fixed",
-        left: "0",
-        top: "0",
-        width: "20px",
-        height: "20px",
-        zIndex: "2147483647",
-        pointerEvents: "none",
-        filter: "drop-shadow(0 1px 1px rgb(0 0 0 / 0.45))",
-        transform: "translate(-100px, -100px)",
-      });
+      cursor.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M5.2 2.6 L5.2 19.2 L9.6 15.2 L12.3 21.4 L15.1 20.2 L12.4 14 L18.2 14 Z"
+            fill="#ffffff"
+            stroke="#1f2328"
+            stroke-width="1.1"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="__demo-cursor-ring"></span>`;
+
+      const style = document.createElement("style");
+      style.textContent = `
+        #__demo-cursor {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 24px;
+          height: 24px;
+          z-index: 2147483647;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.18s ease;
+          will-change: transform;
+        }
+
+        #__demo-cursor.is-visible {
+          opacity: 1;
+        }
+
+        #__demo-cursor svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+          filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.4));
+          transform-origin: 5px 3px;
+          transition: transform 90ms ease;
+        }
+
+        #__demo-cursor.is-pressed svg {
+          transform: scale(0.82);
+        }
+
+        #__demo-cursor .__demo-cursor-ring {
+          position: absolute;
+          left: -1px;
+          top: -1px;
+          width: 26px;
+          height: 26px;
+          border: 2px solid rgb(31 35 40 / 0.35);
+          border-radius: 50%;
+          opacity: 0;
+        }
+
+        #__demo-cursor.is-clicked .__demo-cursor-ring {
+          animation: __demo-cursor-ripple 320ms ease-out;
+        }
+
+        @keyframes __demo-cursor-ripple {
+          from {
+            opacity: 0.55;
+            transform: scale(0.35);
+          }
+
+          to {
+            opacity: 0;
+            transform: scale(1.5);
+          }
+        }
+      `;
+
+      document.head.append(style);
       document.body.append(cursor);
+
+      document.addEventListener(
+        "mousemove",
+        (event) => {
+          cursor.classList.add("is-visible");
+          cursor.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
+        },
+        true,
+      );
+      document.addEventListener("mousedown", () => cursor.classList.add("is-pressed"), true);
+      document.addEventListener(
+        "mouseup",
+        () => {
+          cursor.classList.remove("is-pressed");
+          cursor.classList.remove("is-clicked");
+          // Restart the ripple animation on every click.
+          void cursor.offsetWidth;
+          cursor.classList.add("is-clicked");
+        },
+        true,
+      );
     };
 
-    document.addEventListener(
-      "mousemove",
-      (event) => {
-        const cursor = document.getElementById("__demo-cursor");
-        if (cursor) cursor.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
-      },
-      true,
-    );
     document.addEventListener("DOMContentLoaded", attach);
     if (document.body) attach();
   });
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
+/** Last animated pointer position, so moves start where the last one ended. */
+let cursorPoint = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
+
+/**
+ * Moves the pointer to a point over `duration` ms along a slightly curved,
+ * eased path, dispatching a real mousemove per frame. Playwright's built-in
+ * `steps` all fire in one tick, which reads as a teleport on video.
+ */
+export async function moveCursor(page, x, y, { duration = 420 } = {}) {
+  const from = cursorPoint;
+  const dx = x - from.x;
+  const dy = y - from.y;
+  const distance = Math.hypot(dx, dy);
+
+  if (distance < 2) {
+    await page.mouse.move(x, y);
+
+    return;
+  }
+
+  // A gentle arc, like a hand moving a mouse: control point perpendicular to
+  // the straight line, scaled by the distance.
+  const bow = Math.min(distance * 0.12, 46) * (dx >= 0 ? 1 : -1);
+  const control = {
+    x: (from.x + x) / 2 + (-dy / distance) * bow,
+    y: (from.y + y) / 2 + (dx / distance) * bow,
+  };
+
+  const started = Date.now();
+
+  for (;;) {
+    const t = Math.min(1, (Date.now() - started) / duration);
+    const e = easeInOutCubic(t);
+    const point = {
+      x: (1 - e) ** 2 * from.x + 2 * (1 - e) * e * control.x + e ** 2 * x,
+      y: (1 - e) ** 2 * from.y + 2 * (1 - e) * e * control.y + e ** 2 * y,
+    };
+
+    await page.mouse.move(point.x, point.y);
+    cursorPoint = point;
+
+    if (t >= 1) break;
+    await page.waitForTimeout(12);
+  }
+
+  cursorPoint = { x, y };
 }
 
 export async function boot(page) {
@@ -155,14 +281,14 @@ export async function show(page, pageId, mode) {
     .catch(() => console.log("[warn] diagnostics still present"));
 }
 
-/** Moves the visible cursor to a locator and clicks it. */
+/** Glides the visible cursor to a locator and clicks it. */
 export async function clickWithCursor(page, locator, options = {}) {
   const box = await locator.boundingBox();
   if (!box) throw new Error("Locator has no box to click");
 
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
-  await page.mouse.move(x, y, { steps: 14 });
+  await moveCursor(page, x, y, { duration: options.duration ?? 420 });
   await page.waitForTimeout(options.pause ?? 220);
   await page.mouse.click(x, y);
 }
@@ -197,7 +323,7 @@ export async function hoverToken(page, text, wait = 1200) {
   const point = await tokenPoint(page, text);
   if (!point) return false;
 
-  await page.mouse.move(point.x, point.y, { steps: 12 });
+  await moveCursor(page, point.x, point.y, { duration: 380 });
   await page.waitForTimeout(wait);
 
   return true;
@@ -208,7 +334,7 @@ export async function clickToken(page, text, pause = 600) {
   const point = await tokenPoint(page, text);
   if (!point) return false;
 
-  await page.mouse.move(point.x, point.y, { steps: 12 });
+  await moveCursor(page, point.x, point.y, { duration: 380 });
   await page.waitForTimeout(200);
   await page.mouse.click(point.x, point.y);
   await page.waitForTimeout(pause);

@@ -36,39 +36,6 @@ const RAW = "/tmp/opencode/demo-video";
 
 const pause = (page, ms) => page.waitForTimeout(ms);
 
-async function titleCard(page) {
-  await page.evaluate(() => {
-    const card = document.createElement("div");
-    card.id = "__demo-title";
-    card.innerHTML = `
-      <h1 style="margin:0;font-size:2.6rem;font-weight:600;color:var(--color-text)">Typbase</h1>
-      <p style="margin:0;font-size:1.05rem;color:var(--color-text-secondary)">
-        A local-first knowledge base where every page is a Typst document.
-      </p>`;
-    Object.assign(card.style, {
-      position: "fixed",
-      inset: "0",
-      zIndex: "2147483646",
-      display: "grid",
-      placeContent: "center",
-      gap: "0.4rem",
-      textAlign: "center",
-      background: "var(--color-surface)",
-      transition: "opacity 0.4s ease",
-    });
-    document.body.append(card);
-  });
-  await pause(page, 1900);
-  await page.evaluate(() => {
-    const card = document.getElementById("__demo-title");
-    if (!card) return;
-
-    card.style.opacity = "0";
-    setTimeout(() => card.remove(), 500);
-  });
-  await pause(page, 500);
-}
-
 async function clickMode(page, name) {
   await clickWithCursor(page, page.getByRole("tab", { name }));
   await pause(page, 700);

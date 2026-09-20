@@ -16,6 +16,7 @@ import {
   hoverToken,
   installChromePreferences,
   installCursor,
+  moveCursor,
   seedBeforeBoot,
   show,
   tokenPoint,
@@ -159,7 +160,7 @@ const clips = {
 
       // Widen the bars: select the width value and replace it.
       const point = await tokenPoint(page, "0.35");
-      if (point) await page.mouse.move(point.x, point.y, { steps: 12 });
+      if (point) await moveCursor(page, point.x, point.y, { duration: 380 });
       await page.waitForTimeout(250);
       await page.evaluate(() => {
         const view = window.__typbase.view;
