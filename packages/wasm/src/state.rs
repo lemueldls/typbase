@@ -35,7 +35,7 @@ use crate::{
         CheckResult, CompileHTMLResult, CompilePagedResult, RenderSvgResult, TypstCompletion,
         TypstDiagnostic, TypstFileId, TypstHighlight, TypstJump,
     },
-    flatten::{FlattenedBlock, SectionSpan},
+    flatten::{CellSpan, FlattenedBlock, SectionSpan},
     renderer::{
         html::{self, RenderHtmlResult},
         paged::svg::render_svgs_by_items,
@@ -615,6 +615,16 @@ impl TypstState {
         Ok(crate::flatten::extract_sections(text)
             .into_iter()
             .map(|span| span.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Extracts notebook cells (`// %%` markers) as UTF-16 spans, ready for
+    /// CodeMirror positions. Pure syntax pass; no state needed.
+    #[wasm_bindgen(js_name = "extractCells")]
+    pub fn extract_cells(&self, text: &str) -> Result<Vec<Ts<CellSpan>>, JsError> {
+        Ok(crate::flatten::extract_cells(text)
+            .into_iter()
+            .map(|cell| cell.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
     }
 

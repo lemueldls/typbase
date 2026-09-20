@@ -5,9 +5,26 @@ import type { FileId, TypstState } from "@typbase/wasm";
 import type { MaterialSymbol } from "material-symbols";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
+import {
+  deleteCellAt,
+  focusCell,
+  insertCell,
+  insertCellAt,
+  moveCellAt,
+  runAllCells,
+  runCell,
+  setCellType,
+  typstRecompileEffect,
+  type NotebookLabels,
+} from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
 
 import { fontFamiliesInSource } from "~/lib/fonts";
+import {
+  createNotebookController,
+  createNotebookSession,
+  type NotebookController,
+} from "~/lib/notebook";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { mirrorPageProject } from "~/lib/projectMirror";
@@ -44,6 +61,209 @@ const ready = ref(false);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
 
+// ---- Notebook mode -------------------------------------------------------
+
+const notebookSession = createNotebookSession();
+const notebookController = shallowRef<NotebookController>();
+/** Cell selected in command mode (editor blurred); null while editing. */
+const notebookSelected = ref<number | null>(null);
+let pendingNotebookDelete = false;
+let pendingDeleteTimer: ReturnType<typeof setTimeout> | undefined;
+
+const notebookLabels = computed<NotebookLabels>(() => ({
+  run: t("notebook.run"),
+  code: t("notebook.code"),
+  markup: t("notebook.markup"),
+  moveUp: t("notebook.moveUp"),
+  moveDown: t("notebook.moveDown"),
+  duplicate: t("notebook.duplicate"),
+  remove: t("notebook.remove"),
+  clearOutput: t("notebook.clearOutput"),
+  toggleSource: t("notebook.toggleSource"),
+  noOutput: t("notebook.noOutput"),
+  stale: t("notebook.stale"),
+  error: t("notebook.error"),
+}));
+
+const notebookAutoRun = computed(() => {
+  void dataRevision.value;
+
+  return store?.getSettings().notebook.autoRun ?? true;
+});
+
+function notebookView(): EditorView | undefined {
+  return editorPane.value?.view;
+}
+
+function syncNotebookController(): void {
+  const state = typstState.value;
+  if (!state || !store) return;
+
+  notebookController.value = createNotebookController({
+    store,
+    typstState: state,
+    session: notebookSession,
+    labels: notebookLabels.value,
+    onCommandMode: () => {
+      notebookSelected.value = notebookSession.active;
+      notebookView()?.contentDOM.blur();
+    },
+  });
+}
+
+function toggleNotebookAutoRun(): void {
+  if (!store) return;
+
+  const settings = store.getSettings().notebook;
+  store.updateSettings({ notebook: { ...settings, autoRun: !settings.autoRun } });
+
+  // Turning live mode back on should refresh outputs immediately.
+  if (!settings.autoRun) notebookView()?.dispatch({ effects: typstRecompileEffect.of(null) });
+}
+
+function runNotebookCell(): void {
+  const view = notebookView();
+  const index = notebookSelected.value ?? notebookSession.active;
+  if (view && index !== null && index >= 0) runCell(view, index);
+}
+
+function runAllNotebook(): void {
+  const view = notebookView();
+  if (view) runAllCells(view);
+}
+
+function restartNotebook(): void {
+  notebookController.value?.restart(notebookView());
+}
+
+function clearNotebookOutput(): void {
+  const view = notebookView();
+  const index = notebookSelected.value ?? notebookSession.active;
+  if (view && index !== null && index >= 0) notebookController.value?.clearOutput(view, index);
+}
+
+function addNotebookCell(): void {
+  const view = notebookView();
+  if (view) insertCell(view, "end");
+}
+
+function selectNotebookCell(index: number | null): void {
+  const count = notebookSession.cells.length;
+  if (index === null || count === 0) {
+    notebookSelected.value = null;
+
+    return;
+  }
+
+  notebookSelected.value = Math.min(Math.max(index, 0), count - 1);
+}
+
+/** Command-mode keys, Jupyter style (A/B/DD/M/Y/L), while the editor is blurred. */
+function onNotebookCommandKey(event: KeyboardEvent): void {
+  if (notebookSelected.value === null) return;
+
+  const target = event.target as HTMLElement | null;
+  if (
+    target &&
+    (target.isContentEditable ||
+      target.closest("input, textarea, select, [contenteditable='true']"))
+  ) {
+    return;
+  }
+
+  const view = notebookView();
+  const index = notebookSelected.value;
+  if (!view) return;
+
+  const consume = () => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const resetDelete = () => {
+    pendingNotebookDelete = false;
+    clearTimeout(pendingDeleteTimer);
+  };
+
+  if (event.key === "Enter") {
+    consume();
+    if (event.shiftKey) {
+      runCell(view, index);
+
+      return;
+    }
+
+    focusCell(view, index);
+    notebookSelected.value = null;
+
+    return;
+  }
+
+  if (event.key === "Escape") {
+    consume();
+    resetDelete();
+    notebookSelected.value = null;
+
+    return;
+  }
+
+  if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+    consume();
+
+    const delta = event.key === "ArrowUp" ? -1 : 1;
+    if (event.altKey) {
+      moveCellAt(view, index, delta);
+      selectNotebookCell(index + delta);
+
+      return;
+    }
+
+    resetDelete();
+    selectNotebookCell(index + delta);
+
+    return;
+  }
+
+  switch (event.key.toLowerCase()) {
+    case "a":
+      consume();
+      insertCellAt(view, index, "above");
+      return;
+    case "b":
+      consume();
+      insertCellAt(view, index, "below");
+      selectNotebookCell(index + 1);
+      return;
+    case "d":
+      consume();
+      if (pendingNotebookDelete) {
+        resetDelete();
+        deleteCellAt(view, index);
+        selectNotebookCell(Math.min(index, notebookSession.cells.length - 1));
+      } else {
+        pendingNotebookDelete = true;
+        pendingDeleteTimer = setTimeout(resetDelete, 800);
+      }
+      return;
+    case "m":
+      consume();
+      setCellType(view, index, "markup");
+      return;
+    case "y":
+      consume();
+      setCellType(view, index, "code");
+      return;
+    case "l":
+      consume();
+      notebookController.value?.toggleCollapse(view, index);
+      return;
+    default:
+      break;
+  }
+}
+
+useEventListener(window, "keydown", onNotebookCommandKey);
+
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
 // this remount, so the editor plugin and preview bind to the fresh instance.
 const stateGeneration = ref(0);
@@ -72,6 +292,9 @@ async function handlePanic() {
       fresh.insertSource(fileId.value, text.value);
     }
 
+    notebookController.value?.cancelRun();
+    syncNotebookController();
+
     void nextTick(() => {
       editorPane.value?.recompile();
     });
@@ -88,6 +311,9 @@ const extraExtensions = computed(() => {
   return [
     presenceCursors(props.pageId, () => presence.value as Map<string, PresencePeer>),
     EditorView.updateListener.of((update) => {
+      // Focusing the editor leaves command mode; the cursor cell becomes the
+      // active one again.
+      if (update.focusChanged && update.view.hasFocus) notebookSelected.value = null;
       if (!update.selectionSet && !update.docChanged) return;
 
       reportCursor(update);
@@ -239,6 +465,7 @@ async function setupPage() {
   }
 
   requestService!.setCurrentPage(pageId);
+  syncNotebookController();
 
   fileId.value = typstState.value.createSourceId(page.path, workspaceId.value);
   typstState.value.insertSource(fileId.value, text.value);
@@ -665,6 +892,20 @@ function onModeKeydown(event: KeyboardEvent) {
       </div>
     </div>
 
+    <NotebookToolbar
+      v-if="modelValue === 'notebook' && store"
+      :session="notebookSession"
+      :selected="notebookSelected"
+      :auto-run="notebookAutoRun"
+      :disabled="!ready"
+      @run-cell="runNotebookCell"
+      @run-all="runAllNotebook"
+      @restart="restartNotebook"
+      @clear-output="clearNotebookOutput"
+      @add-cell="addNotebookCell"
+      @toggle-auto-run="toggleNotebookAutoRun"
+    />
+
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">
       <EditToolbar :disabled="!ready" :view="editorPane?.view" />
       <UiIconButton
@@ -694,6 +935,7 @@ function onModeKeydown(event: KeyboardEvent) {
         :space-id="workspaceId"
         :path="meta?.path ?? ''"
         :wysiwyg="modelValue === 'write'"
+        :notebook="modelValue === 'notebook' ? notebookController?.options : undefined"
         :spellcheck="spellcheckMode"
         :typst-state="boundState"
         :on-requests="onRequests"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { NotebookOptions } from "@typbase/codemirror";
 import type { SpellcheckMode } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 import type { FileId, TypstState } from "@typbase/wasm";
@@ -45,6 +46,8 @@ const props = defineProps<{
   prelude: TextRef;
   /** WYSIWYG (inline previews) vs plain source editing. */
   wysiwyg: boolean;
+  /** Notebook cell rendering; undefined outside notebook mode. */
+  notebook?: NotebookOptions;
   /** Spellcheck provider; reconfigured in place when it changes. */
   spellcheck?: SpellcheckMode;
   typstState: TypstState;
@@ -185,9 +188,11 @@ onBeforeUnmount(() => {
   view.value?.destroy();
 });
 
-// Write vs source mode need different extension sets; rebuild on switch.
+// Write, notebook, and source mode need different extension sets; rebuild on
+// switch. The notebook prop's identity is stable per page, so only the mode
+// flag matters.
 watch(
-  () => props.wysiwyg,
+  () => `${props.wysiwyg}:${Boolean(props.notebook)}`,
   () => {
     view.value?.destroy();
     createView();
@@ -212,7 +217,7 @@ function createStateConfig(): EditorStateConfig {
   // the defaults (cursor, tooltip, selection, gutters).
   extensions.push(typstEditorTheme);
 
-  if (props.wysiwyg) {
+  if (props.wysiwyg || props.notebook) {
     extensions.push(
       typstPlugin(
         props.fileId,
@@ -226,6 +231,7 @@ function createStateConfig(): EditorStateConfig {
           onRequests: props.onRequests,
           revision: props.revision,
           onPanic: props.onPanic,
+          notebook: props.notebook,
         },
       ),
     );

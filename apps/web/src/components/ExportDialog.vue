@@ -37,6 +37,7 @@ const DEFAULTS: ExportOptions = {
   svg: false,
   svgMerged: true,
   project: true,
+  stripMarkers: false,
   fonts: true,
   theme: "light",
   pageSize: "a4",
@@ -97,6 +98,11 @@ async function run(): Promise<void> {
         :disabled="!options.svg"
       />
       <UiCheckbox v-model="options.project" :label="$t('exportPage.project')" />
+      <UiCheckbox
+        v-model="options.stripMarkers"
+        :label="$t('exportPage.stripMarkers')"
+        :disabled="!options.project"
+      />
       <UiCheckbox
         v-model="options.fonts"
         :label="$t('exportPage.fonts')"

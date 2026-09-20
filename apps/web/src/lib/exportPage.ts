@@ -2,6 +2,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
 import type { TypstState } from "@typbase/wasm";
 
+import { stripCellMarkers } from "@typbase/codemirror";
 import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 
 import { THEME_COLOR_KEYS, paletteSlots } from "~/lib/palette";
@@ -17,6 +18,8 @@ export interface ExportOptions {
   svgMerged: boolean;
   /** Write the compilable Typst project: source, lib, data, fonts. */
   project: boolean;
+  /** Strip `// %%` cell markers from project sources. */
+  stripMarkers?: boolean;
   fonts: boolean;
   /** "light" (default) normalizes colors for reading/printing. */
   theme: "light" | "workspace";
@@ -141,7 +144,8 @@ export async function buildExport(
   }
 
   if (options.project) {
-    files.push({ name: `${base}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${source}`) });
+    const projectSource = options.stripMarkers ? stripCellMarkers(source) : source;
+    files.push({ name: `${base}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`) });
     if (typstState) {
       files.push({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
     }

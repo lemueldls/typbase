@@ -150,6 +150,7 @@ onMounted(async () => {
   else currentPageId.value = fallbackPageId();
 
   if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
+  else syncModeToPage(currentPageId.value);
 
   // A ?view=plugin:<instance> link reopens the plugin pane when it exists.
   const linkedView = queryString(viewQuery.value);
@@ -228,6 +229,20 @@ function openPage(id: string) {
   currentPluginId.value = null; // opening a page leaves the plugin pane
   // An empty id means the open page was deleted; fall back to home/first.
   currentPageId.value = id || fallbackPageId();
+  syncModeToPage(currentPageId.value);
+}
+
+/**
+ * Notebook pages open in notebook mode instead of the default write mode, and
+ * documents do not stay in notebook mode. A deliberately chosen
+ * split/source/read mode carries across both kinds.
+ */
+function syncModeToPage(pageId: string) {
+  const page = workspace.value?.getPage(pageId);
+  if (!page) return;
+
+  if (page.kind === "notebook" && mode.value === "write") mode.value = "notebook";
+  else if (page.kind === "document" && mode.value === "notebook") mode.value = "write";
 }
 
 function openPlugin(instanceId: string) {

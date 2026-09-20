@@ -1,9 +1,11 @@
-//! Syntax-level passes shared by search and the section store.
+//! Syntax-level passes shared by search, the section store, and notebooks.
 //!
 //! [`flatten_document`] turns Typst markup into plain text per block with a
 //! byte map back to the raw source, so FTS hits land in the editor.
 //! [`extract_sections`] finds `#typbase.section(kind: "...")[...]` calls and
 //! reports their content ranges, populating the page doc's `sections` list.
+//! [`extract_cells`] finds notebook cell markers (`// %%`) and reports their
+//! spans in UTF-16, ready for CodeMirror.
 
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -33,6 +35,23 @@ pub struct SectionSpan {
     pub full_start: usize,
     pub full_end: usize,
     pub title: String,
+}
+
+/// A notebook cell: one `// %%` marker line plus the content below it, up to
+/// the next marker or the end of the document. Ranges are UTF-16 offsets into
+/// the raw source, so they can be used as editor positions directly.
+#[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CellSpan {
+    /// Cell type from the marker label: `"markup"` or `"code"`.
+    pub kind: String,
+    /// Marker line range, excluding the newline. Both zero on the implicit
+    /// leading cell of a document whose first marker is not on line one.
+    pub marker_start: usize,
+    pub marker_end: usize,
+    /// Content range. Blank lines below the content belong to the gap before
+    /// the next marker and are excluded.
+    pub content_start: usize,
+    pub content_end: usize,
 }
 
 /// Flattens a whole document into per-block plain text.
@@ -271,6 +290,187 @@ fn make_title(content: &str) -> String {
     title.trim().to_string()
 }
 
+/// Marker lines look like `// %%`, `// %% [markup]`, or `// %% [code]`.
+/// Unknown labels return `None` so a future cell type degrades to a plain
+/// comment instead of splitting cells the app does not understand.
+fn marker_kind(comment: &str) -> Option<String> {
+    let rest = comment.strip_prefix("//")?.trim();
+    let rest = rest.strip_prefix("%%")?.trim();
+
+    if rest.is_empty() {
+        return Some(String::from("markup"));
+    }
+
+    let label = rest.strip_prefix('[')?.strip_suffix(']')?.trim().to_ascii_lowercase();
+    match label.as_str() {
+        "markup" | "text" => Some(String::from("markup")),
+        "code" => Some(String::from("code")),
+        _ => None,
+    }
+}
+
+/// Cells in raw-byte coordinates, before the UTF-16 conversion.
+struct CellBytes {
+    kind: String,
+    marker_start: usize,
+    marker_end: usize,
+    content_start: usize,
+    content_end: usize,
+}
+
+/// Finds notebook cells. Only top-level line comments count, so a `// %%`
+/// line inside a raw block, a code block, or a nested content block stays
+/// text. A document with no markers is one implicit markup cell, which is what
+/// lets notebook mode open any page.
+pub fn extract_cells(text: &str) -> Vec<CellSpan> {
+    let root = typst_syntax::parse(text);
+    let linked = LinkedNode::new(&root);
+
+    let mut markers: Vec<(usize, String)> = Vec::new();
+
+    for child in linked.children() {
+        if child.kind() != SyntaxKind::LineComment {
+            continue;
+        }
+
+        let range = child.range();
+        let Some(comment) = text.get(range.clone()) else {
+            continue;
+        };
+        let Some(kind) = marker_kind(comment) else {
+            continue;
+        };
+
+        let line_start = text[..range.start].rfind('\n').map_or(0, |index| index + 1);
+        markers.push((line_start, kind));
+    }
+
+    if markers.is_empty() {
+        return to_spans(
+            text,
+            vec![CellBytes {
+                kind: String::from("markup"),
+                marker_start: 0,
+                marker_end: 0,
+                content_start: 0,
+                content_end: text.len(),
+            }],
+        );
+    }
+
+    let mut cells: Vec<CellBytes> = Vec::new();
+
+    // Content above the first marker is a cell of its own; a document that
+    // starts with a marker does not get an empty leading cell.
+    let leading_end = trim_trailing_blank(text, 0, markers[0].0);
+    if !text[..leading_end].trim().is_empty() {
+        cells.push(CellBytes {
+            kind: String::from("markup"),
+            marker_start: 0,
+            marker_end: 0,
+            content_start: 0,
+            content_end: leading_end,
+        });
+    }
+
+    for (index, (line_start, kind)) in markers.iter().enumerate() {
+        let next_start = markers.get(index + 1).map_or(text.len(), |(start, _)| *start);
+        let marker_end = line_end(text, *line_start);
+        let content_start = after_line(text, marker_end);
+        let content_end = trim_trailing_blank(text, content_start, next_start);
+
+        cells.push(CellBytes {
+            kind: kind.clone(),
+            marker_start: *line_start,
+            marker_end,
+            content_start,
+            content_end,
+        });
+    }
+
+    to_spans(text, cells)
+}
+
+/// End of the line starting at `start`, excluding the newline.
+fn line_end(text: &str, start: usize) -> usize {
+    text[start..].find('\n').map_or(text.len(), |offset| start + offset)
+}
+
+/// First byte after the line ending at `end`; the end of the text when the
+/// line has no newline.
+fn after_line(text: &str, end: usize) -> usize {
+    if end < text.len() && text.as_bytes()[end] == b'\n' {
+        end + 1
+    } else {
+        text.len()
+    }
+}
+
+/// Walks back over blank or whitespace-only lines in `start..end` and returns
+/// the offset just past the last non-whitespace character.
+fn trim_trailing_blank(text: &str, start: usize, end: usize) -> usize {
+    let mut cut = end;
+
+    for line in text[start..end].split_inclusive('\n').rev() {
+        if line.trim().is_empty() {
+            cut -= line.len();
+        } else {
+            break;
+        }
+    }
+
+    let trimmed = text[start..cut].trim_end();
+
+    start + trimmed.len()
+}
+
+/// Converts the four byte boundaries of every cell to UTF-16 in one pass.
+/// The boundaries arrive sorted, which the walk relies on.
+fn to_spans(text: &str, cells: Vec<CellBytes>) -> Vec<CellSpan> {
+    let mut bytes = Vec::with_capacity(cells.len() * 4);
+    for cell in &cells {
+        bytes.push(cell.marker_start);
+        bytes.push(cell.marker_end);
+        bytes.push(cell.content_start);
+        bytes.push(cell.content_end);
+    }
+
+    let utf16 = utf16_offsets(text, &bytes);
+
+    cells
+        .into_iter()
+        .enumerate()
+        .map(|(index, cell)| CellSpan {
+            kind: cell.kind,
+            marker_start: utf16[index * 4],
+            marker_end: utf16[index * 4 + 1],
+            content_start: utf16[index * 4 + 2],
+            content_end: utf16[index * 4 + 3],
+        })
+        .collect()
+}
+
+/// Maps sorted byte offsets to UTF-16 offsets. Offsets must sit on char
+/// boundaries, which line boundaries always do.
+fn utf16_offsets(text: &str, bytes: &[usize]) -> Vec<usize> {
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut cursor = 0;
+    let mut utf16 = 0;
+
+    for &byte in bytes {
+        while cursor < byte {
+            let Some(ch) = text[cursor..].chars().next() else {
+                break;
+            };
+            cursor += ch.len_utf8();
+            utf16 += ch.len_utf16();
+        }
+        out.push(utf16);
+    }
+
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -318,5 +518,99 @@ mod tests {
     fn ignores_other_section_calls() {
         let text = "#other.section(kind: \"x\")[nope]\n";
         assert!(extract_sections(text).is_empty());
+    }
+
+    #[test]
+    fn splits_cells_by_marker() {
+        let text = "// %% [markup]\n= Title\n\n// %% [code]\n#let x = 1\n\n// %%\n#x\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 3);
+        assert_eq!(cells[0].kind, "markup");
+        assert_eq!(cells[1].kind, "code");
+        assert_eq!(cells[2].kind, "markup");
+        assert_eq!(&text[cells[0].content_start..cells[0].content_end], "= Title");
+        assert_eq!(
+            &text[cells[1].content_start..cells[1].content_end],
+            "#let x = 1"
+        );
+        assert_eq!(&text[cells[2].content_start..cells[2].content_end], "#x");
+        assert_eq!(
+            &text[cells[1].marker_start..cells[1].marker_end],
+            "// %% [code]"
+        );
+    }
+
+    #[test]
+    fn no_markers_is_one_implicit_cell() {
+        let text = "= Title\n\nParagraph.\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0].kind, "markup");
+        assert_eq!(cells[0].content_start, 0);
+        assert_eq!(cells[0].content_end, text.len());
+        assert_eq!(cells[0].marker_start, cells[0].marker_end);
+    }
+
+    #[test]
+    fn leading_content_becomes_a_cell() {
+        let text = "= Intro\n\n// %%\nBody\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 2);
+        assert_eq!(&text[cells[0].content_start..cells[0].content_end], "= Intro");
+        assert_eq!(cells[0].marker_start, cells[0].marker_end);
+        assert_eq!(&text[cells[1].content_start..cells[1].content_end], "Body");
+    }
+
+    #[test]
+    fn keeps_empty_cells() {
+        let text = "// %%\n\n// %%\n#let x = 1\n\n// %%\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 3);
+        assert_eq!(cells[0].content_start, cells[0].content_end);
+        assert_eq!(cells[2].content_start, cells[2].content_end);
+    }
+
+    #[test]
+    fn markers_inside_raw_and_code_blocks_are_text() {
+        let text = "// %%\n```\n// %%\n```\n\n#{\n  // %%\n  let x = 1\n}\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0].kind, "markup");
+    }
+
+    #[test]
+    fn trailing_blank_lines_belong_to_the_gap() {
+        let text = "// %%\n#let x = 1\n\n\n// %%\n#x\n";
+        let cells = extract_cells(text);
+        assert_eq!(
+            &text[cells[0].content_start..cells[0].content_end],
+            "#let x = 1"
+        );
+    }
+
+    #[test]
+    fn unknown_marker_labels_are_comments() {
+        let text = "// %% [widget]\n#let x = 1\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0].content_start, 0);
+    }
+
+    #[test]
+    fn cell_ranges_are_utf16() {
+        // "é" is one UTF-16 unit in two UTF-8 bytes; the emoji is two units in
+        // four bytes. Offsets after them must count code units, not bytes.
+        let text = "// %%\nHéllo 🎉\n\n// %%\n#x\n";
+        let cells = extract_cells(text);
+        assert_eq!(cells.len(), 2);
+
+        let boundary = text.find("\n\n// %%").unwrap();
+        let expected = text[..boundary].chars().map(char::len_utf16).sum::<usize>();
+        assert_eq!(cells[0].content_end, expected);
+
+        let second = text.rfind("// %%").unwrap() + "// %%\n".len();
+        let second_start = text[..second].chars().map(char::len_utf16).sum::<usize>();
+        assert_eq!(cells[1].content_start, second_start);
+        assert_eq!(cells[1].content_end, second_start + 2);
     }
 }

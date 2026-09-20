@@ -14,6 +14,11 @@ export interface PageMeta {
   /** Virtual Typst path, e.g. `pages/welcome.typ` or `daily/2026-08-31.typ`. */
   path: string;
   title: string;
+  /**
+   * How the page is edited. "notebook" splits the source into `// %%` cells;
+   * "document" is the plain editor. Older docs read back as "document".
+   */
+  kind: PageKind;
   categoryId: string | null;
   tags: string[];
   createdAt: number;
@@ -22,6 +27,9 @@ export interface PageMeta {
   publishedAt: number | null;
   publishUri: string | null;
 }
+
+/** Page editing shape; the notebook marker syntax is in AGENTS.md. */
+export type PageKind = "document" | "notebook";
 
 /** A page category. Categories are named groups in the sidebar. */
 export interface Category {
@@ -91,6 +99,17 @@ export interface SearchSettings {
   semantic: boolean;
   /** HuggingFace model id used for embeddings. */
   embeddingModel: string;
+}
+
+/** Notebook-mode behavior, synced with the workspace like the theme. */
+export interface NotebookSettings {
+  /**
+   * True (default): outputs recompile as you type. False: outputs update only
+   * when a cell is run, and edited cells show a stale mark.
+   */
+  autoRun: boolean;
+  /** Show the `[n]` execution counters in cell headers. */
+  showCounters: boolean;
 }
 
 export type ThemeMode = "auto" | "light" | "dark";
@@ -194,6 +213,7 @@ export interface WorkspaceSettings {
   publish: PublishSettings;
   ai: AiConfig;
   search: SearchSettings;
+  notebook: NotebookSettings;
 }
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
@@ -235,6 +255,10 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   search: {
     semantic: false,
     embeddingModel: "BAAI/bge-small-en-v1.5",
+  },
+  notebook: {
+    autoRun: true,
+    showCounters: true,
   },
 };
 

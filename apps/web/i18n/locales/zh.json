@@ -67,7 +67,8 @@
     "publishConfirm": "取消发布这篇笔记？公开记录可能被 firehose 服务镜像，且无法撤回。",
     "publishHint": "公开记录对任何人可读。取消发布会删除记录；firehose 镜像可能保留副本。",
     "publishWorking": "处理中…",
-    "dropMedia": "拖放以插入素材"
+    "dropMedia": "拖放以插入素材",
+    "notebook": "笔记本"
   },
   "settings": {
     "title": "工作区设置",
@@ -113,6 +114,11 @@
     "spellcheckNative": "浏览器拼写",
     "spellcheckHarper": "Harper（离线语法）",
     "spellcheckHint": "浏览器方案使用浏览器自带的检查器。Harper 是本地语法检查器：模型只需下载一次，文本不会离开设备。",
+    "notebook": "笔记本",
+    "notebookAutoRun": "输入时运行",
+    "notebookAutoRunHint": "输入时单元格会重新编译。关闭后仅在运行单元格时更新输出。",
+    "notebookCounters": "执行计数器",
+    "notebookCountersHint": "在单元格标题中显示 [n] 运行计数。",
     "textFont": "正文字体",
     "mathFont": "数学字体",
     "codeFont": "代码字体",
@@ -239,7 +245,10 @@
     "category": "分类",
     "noCategory": "无分类",
     "create": "创建",
-    "givingTitle": "请填写页面标题。"
+    "givingTitle": "请填写页面标题。",
+    "kind": "类型",
+    "kindDocument": "文档",
+    "kindNotebook": "笔记本"
   },
   "categories": {
     "title": "分类",
@@ -323,6 +332,7 @@
     "svg": "SVG 页面",
     "svgMerged": "将 SVG 页面合并为一个文件",
     "project": "Typst 项目（源文件、库、数据）",
+    "stripMarkers": "干净源码（移除笔记本单元格标记）",
     "fonts": "包含字体",
     "dialogHint": "Typst 项目可在应用外编译：typst compile --root . --font-path typbase/fonts。",
     "theme": "主题",
@@ -427,5 +437,26 @@
     "localHint": "本地插件位于工作区存储的 plugins/ 目录中。",
     "sourceLocal": "本地",
     "capPagesWrite": "编辑页面"
+  },
+  "notebook": {
+    "runCell": "运行单元格",
+    "run": "运行单元格",
+    "runAll": "全部运行",
+    "restart": "重新启动",
+    "addCell": "添加单元格",
+    "clearOutput": "清除输出",
+    "autoRun": "输入时运行",
+    "running": "运行中…",
+    "commandHint": "Enter 编辑 · A/B 添加 · DD 删除 · M/Y 类型",
+    "code": "代码",
+    "markup": "文本",
+    "moveUp": "上移单元格",
+    "moveDown": "下移单元格",
+    "duplicate": "复制单元格",
+    "remove": "删除单元格",
+    "toggleSource": "折叠单元格",
+    "noOutput": "无输出",
+    "stale": "输出已过期",
+    "error": "单元格错误"
   }
 }

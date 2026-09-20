@@ -2,6 +2,8 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 import type { TypstState } from "@typbase/wasm";
 
+import { stripCellMarkers } from "@typbase/codemirror";
+
 import {
   escapeHtml,
   fileBase,
@@ -126,7 +128,11 @@ export async function buildWorkspaceExport(
     }
 
     if (options.project) {
-      files.push({ name: `${stem}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${source}`) });
+      const projectSource = options.stripMarkers ? stripCellMarkers(source) : source;
+      files.push({
+        name: `${stem}.typ`,
+        bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`),
+      });
     }
   };
 
@@ -208,7 +214,10 @@ export async function buildWorkspaceExport(
       });
     }
 
-    files.push({ name: `${name}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${paged}`) });
+    if (options.project) {
+      const combined = options.stripMarkers ? stripCellMarkers(paged) : paged;
+      files.push({ name: `${name}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${combined}`) });
+    }
   }
 
   if (options.project) {

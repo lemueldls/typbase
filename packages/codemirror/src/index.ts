@@ -1,10 +1,12 @@
 export * from "./plugin";
 export * from "./commands";
 export * from "./diagnostics";
+export * from "./frames";
 export * from "./highlight";
 export * from "./hover";
 export * from "./keymap";
 export * from "./language";
+export * from "./notebook";
 export * from "./tooltip";
 export * from "./widgets";
 export type { TextRef, TypstRequestHandler } from "./types";

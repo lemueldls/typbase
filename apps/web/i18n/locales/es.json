@@ -67,7 +67,8 @@
     "publishConfirm": "¿Despublicar esta nota? Los registros públicos pueden estar replicados por servicios de firehose y no se pueden retirar.",
     "publishHint": "Los registros públicos son legibles por cualquiera. Despublicar elimina el registro; las réplicas de firehose pueden conservarlo.",
     "publishWorking": "Trabajando…",
-    "dropMedia": "Suelta para insertar medios"
+    "dropMedia": "Suelta para insertar medios",
+    "notebook": "Cuaderno"
   },
   "settings": {
     "title": "Ajustes del espacio",
@@ -113,6 +114,11 @@
     "spellcheckNative": "Navegador",
     "spellcheckHarper": "Harper (gramática, sin conexión)",
     "spellcheckHint": "Nativo usa el corrector del navegador. Harper es un corrector gramatical local: el modelo se descarga una vez y el texto no sale del dispositivo.",
+    "notebook": "Cuaderno",
+    "notebookAutoRun": "Ejecutar al escribir",
+    "notebookAutoRunHint": "Las celdas se recompilan mientras escribes. Desactívalo para actualizar las salidas solo al ejecutar.",
+    "notebookCounters": "Contadores de ejecución",
+    "notebookCountersHint": "Mostrar el contador [n] en las cabeceras de celda.",
     "textFont": "Fuente de texto",
     "mathFont": "Fuente matemática",
     "codeFont": "Fuente de código",
@@ -239,7 +245,10 @@
     "category": "Categoría",
     "noCategory": "Sin categoría",
     "create": "Crear",
-    "givingTitle": "Pon un título a la página."
+    "givingTitle": "Pon un título a la página.",
+    "kind": "Tipo",
+    "kindDocument": "Documento",
+    "kindNotebook": "Cuaderno"
   },
   "categories": {
     "title": "Categorías",
@@ -323,6 +332,7 @@
     "svg": "Páginas SVG",
     "svgMerged": "Combinar las páginas SVG en un solo archivo",
     "project": "Proyecto Typst (código, biblioteca, datos)",
+    "stripMarkers": "Fuente limpia (quitar los marcadores de celda)",
     "fonts": "Incluir fuentes",
     "dialogHint": "El proyecto Typst se compila fuera de la app: typst compile --root . --font-path typbase/fonts.",
     "theme": "Tema",
@@ -427,5 +437,26 @@
     "localHint": "Los plugins locales viven en plugins/ dentro del almacenamiento del espacio.",
     "sourceLocal": "local",
     "capPagesWrite": "Editar páginas"
+  },
+  "notebook": {
+    "runCell": "Ejecutar celda",
+    "run": "Ejecutar celda",
+    "runAll": "Ejecutar todo",
+    "restart": "Reiniciar",
+    "addCell": "Añadir celda",
+    "clearOutput": "Borrar salida",
+    "autoRun": "Ejecutar al escribir",
+    "running": "Ejecutando…",
+    "commandHint": "Enter edita · A/B añade · DD borra · M/Y tipo",
+    "code": "Código",
+    "markup": "Texto",
+    "moveUp": "Subir celda",
+    "moveDown": "Bajar celda",
+    "duplicate": "Duplicar celda",
+    "remove": "Eliminar celda",
+    "toggleSource": "Contraer celda",
+    "noOutput": "Sin salida",
+    "stale": "La salida está desactualizada",
+    "error": "Error de celda"
   }
 }

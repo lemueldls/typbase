@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PageMeta } from "@typbase/typing";
+import type { PageKind, PageMeta } from "@typbase/typing";
 
 import { slugify, type WorkspaceStore } from "@typbase/storage";
 
@@ -16,11 +16,17 @@ const open = defineModel<boolean>("open", { default: false });
 
 const title = ref("");
 const categoryId = ref<string>("");
+const kind = ref<PageKind>("document");
 const error = ref<string>();
 const creating = ref(false);
 
 const categories = computed(() => props.store.listCategories());
 const pathPreview = computed(() => `pages/${slugify(title.value || "untitled")}.typ`);
+
+const kindOptions = computed(() => [
+  { value: "document", label: t("newPage.kindDocument") },
+  { value: "notebook", label: t("newPage.kindNotebook") },
+]);
 
 // Reka rejects an empty item value, so "no category" is a sentinel here.
 const categoryChoice = computed({
@@ -48,10 +54,12 @@ async function submit() {
   try {
     const page = await props.store.createPage({
       title: trimmed,
+      kind: kind.value,
       categoryId: categoryId.value || null,
     });
     title.value = "";
     categoryId.value = "";
+    kind.value = "document";
     open.value = false;
     emit("created", page);
   } catch (reason) {
@@ -76,6 +84,11 @@ async function submit() {
       <Label class="dialog__field">
         <span>{{ $t("newPage.titleField") }}</span>
         <input v-model="title" class="dialog__input" placeholder="Project ideas" autofocus />
+      </Label>
+
+      <Label class="dialog__field">
+        <span>{{ $t("newPage.kind") }}</span>
+        <UiSelect v-model="kind" :options="kindOptions" :label="$t('newPage.kind')" />
       </Label>
 
       <Label class="dialog__field">

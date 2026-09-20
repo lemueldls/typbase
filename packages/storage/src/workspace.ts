@@ -1,6 +1,7 @@
 import type {
   AssetMeta,
   Category,
+  PageKind,
   PageMeta,
   PluginInstall,
   PluginInstance,
@@ -47,6 +48,15 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 
   return slug || "untitled";
+}
+
+/**
+ * Default source for a new notebook: one markup cell with the title, then an
+ * empty code cell to type into. The marker line is a comment, so the file
+ * still compiles anywhere.
+ */
+export function notebookTemplate(title: string): string {
+  return `// %% [markup]\n= ${title}\n\n// %% [code]\n`;
 }
 
 /**
@@ -145,7 +155,9 @@ export interface CreatePageInput {
   /** Virtual Typst path. Defaults to `pages/<slug>.typ`. */
   path?: string;
   categoryId?: string | null;
-  /** Typst source. Defaults to a `= Title` heading. */
+  /** "notebook" writes the cell-marker template as the default content. */
+  kind?: PageKind;
+  /** Typst source. Defaults to a `= Title` heading (or the notebook template). */
   content?: string;
 }
 
@@ -477,6 +489,10 @@ export class WorkspaceStore {
       ...DEFAULT_SETTINGS.search,
       ...decodeSetting<Partial<WorkspaceSettings["search"]>>(map.get("search")),
     };
+    settings.notebook = {
+      ...DEFAULT_SETTINGS.notebook,
+      ...decodeSetting<Partial<WorkspaceSettings["notebook"]>>(map.get("notebook")),
+    };
     const themeName = map.get("themeName");
     settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
     const themeCustom = decodeSetting<WorkspaceSettings["themeCustom"] | null>(
@@ -502,6 +518,7 @@ export class WorkspaceStore {
       if (key === "publish") map.set("publish", encodeSetting(value));
       else if (key === "ai") map.set("ai", encodeSetting(value));
       else if (key === "search") map.set("search", encodeSetting(value));
+      else if (key === "notebook") map.set("notebook", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
       else if (key === "installedPackages") map.set(key, encodeSetting(value));
       else map.set(key, value);
@@ -541,7 +558,9 @@ export class WorkspaceStore {
     const map = this.doc.getMap("pages").get(id) as LoroMap | undefined;
     if (!map || map.isDeleted()) return undefined;
 
-    return map.toJSON() as PageMeta;
+    const meta = map.toJSON() as PageMeta;
+
+    return { ...meta, kind: meta.kind === "notebook" ? "notebook" : "document" };
   }
 
   private writePageMeta(meta: PageMeta): void {
@@ -558,6 +577,7 @@ export class WorkspaceStore {
     map.set("id", meta.id);
     map.set("path", meta.path);
     map.set("title", meta.title);
+    map.set("kind", meta.kind);
     map.set("categoryId", meta.categoryId);
     map.set("createdAt", meta.createdAt);
     map.set("updatedAt", meta.updatedAt);
@@ -570,10 +590,12 @@ export class WorkspaceStore {
 
   async createPage(input: CreatePageInput): Promise<PageMeta> {
     const now = Date.now();
+    const kind = input.kind ?? "document";
     const meta: PageMeta = {
       id: createId(),
       path: this.uniquePath(input.path ?? `pages/${slugify(input.title)}.typ`),
       title: input.title.trim() || "Untitled",
+      kind,
       categoryId: input.categoryId ?? null,
       tags: [],
       createdAt: now,
@@ -588,6 +610,8 @@ export class WorkspaceStore {
 
     if (input.content !== undefined) {
       pageDoc.getText("content").update(input.content);
+    } else if (kind === "notebook") {
+      pageDoc.getText("content").update(notebookTemplate(meta.title));
     } else {
       pageDoc.getText("content").update(`= ${meta.title}\n`);
     }

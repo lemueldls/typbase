@@ -271,6 +271,12 @@ function onCreated(page: PageMeta) {
                 :aria-current="page.id === currentPageId ? 'page' : undefined"
                 @click="emit('select', page.id)"
               >
+                <MsIcon
+                  v-if="page.kind === 'notebook'"
+                  name="note_stack"
+                  :size="16"
+                  class="sidebar__row-kind"
+                />
                 <UiTruncatedText class="sidebar__row-label" :text="page.title" />
                 <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
                   <span class="sidebar__row-home">
@@ -323,6 +329,12 @@ function onCreated(page: PageMeta) {
                 :aria-current="page.id === currentPageId ? 'page' : undefined"
                 @click="emit('select', page.id)"
               >
+                <MsIcon
+                  v-if="page.kind === 'notebook'"
+                  name="note_stack"
+                  :size="16"
+                  class="sidebar__row-kind"
+                />
                 <UiTruncatedText class="sidebar__row-label" :text="page.title" />
                 <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
                   <span class="sidebar__row-home">
@@ -610,6 +622,12 @@ function onCreated(page: PageMeta) {
 
 .sidebar__row-label {
   min-width: 0;
+}
+
+.sidebar__row-kind {
+  flex: none;
+  margin-right: var(--space-1);
+  color: var(--color-text-secondary);
 }
 
 .sidebar__row-home {

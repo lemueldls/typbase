@@ -67,7 +67,8 @@
     "publishConfirm": "Dépublier cette note ? Les enregistrements publics peuvent être répliqués par des services firehose et ne peuvent pas être rappelés.",
     "publishHint": "Les enregistrements publics sont lisibles par tous. Dépublier supprime l'enregistrement ; les miroirs firehose peuvent en conserver des copies.",
     "publishWorking": "En cours…",
-    "dropMedia": "Déposer pour insérer un média"
+    "dropMedia": "Déposer pour insérer un média",
+    "notebook": "Carnet"
   },
   "settings": {
     "title": "Paramètres de l'espace",
@@ -113,6 +114,11 @@
     "spellcheckNative": "Navigateur",
     "spellcheckHarper": "Harper (grammaire, hors ligne)",
     "spellcheckHint": "Natif utilise le correcteur du navigateur. Harper est un correcteur grammatical local : le modèle est téléchargé une fois et le texte ne quitte jamais l'appareil.",
+    "notebook": "Carnet",
+    "notebookAutoRun": "Exécuter en saisissant",
+    "notebookAutoRunHint": "Les cellules sont recompilées pendant la saisie. Désactivez pour ne mettre à jour les sorties qu'à l'exécution.",
+    "notebookCounters": "Compteurs d'exécution",
+    "notebookCountersHint": "Afficher le compteur [n] dans les en-têtes de cellule.",
     "textFont": "Police de texte",
     "mathFont": "Police mathématique",
     "codeFont": "Police de code",
@@ -239,7 +245,10 @@
     "category": "Catégorie",
     "noCategory": "Sans catégorie",
     "create": "Créer",
-    "givingTitle": "Donnez un titre à la page."
+    "givingTitle": "Donnez un titre à la page.",
+    "kind": "Type",
+    "kindDocument": "Document",
+    "kindNotebook": "Carnet"
   },
   "categories": {
     "title": "Catégories",
@@ -323,6 +332,7 @@
     "svg": "Pages SVG",
     "svgMerged": "Fusionner les pages SVG en un seul fichier",
     "project": "Projet Typst (source, bibliothèque, données)",
+    "stripMarkers": "Source propre (retirer les marqueurs de cellule)",
     "fonts": "Inclure les polices",
     "dialogHint": "Le projet Typst se compile hors de l'application : typst compile --root . --font-path typbase/fonts.",
     "theme": "Thème",
@@ -427,5 +437,26 @@
     "localHint": "Les plugins locaux vivent dans plugins/ dans le stockage de l’espace.",
     "sourceLocal": "local",
     "capPagesWrite": "Modifier les pages"
+  },
+  "notebook": {
+    "runCell": "Exécuter la cellule",
+    "run": "Exécuter la cellule",
+    "runAll": "Tout exécuter",
+    "restart": "Redémarrer",
+    "addCell": "Ajouter une cellule",
+    "clearOutput": "Effacer la sortie",
+    "autoRun": "Exécuter en saisissant",
+    "running": "Exécution…",
+    "commandHint": "Entrée modifie · A/B ajoute · DD supprime · M/Y type",
+    "code": "Code",
+    "markup": "Texte",
+    "moveUp": "Monter la cellule",
+    "moveDown": "Descendre la cellule",
+    "duplicate": "Dupliquer la cellule",
+    "remove": "Supprimer la cellule",
+    "toggleSource": "Replier la cellule",
+    "noOutput": "Aucune sortie",
+    "stale": "La sortie est obsolète",
+    "error": "Erreur de cellule"
   }
 }

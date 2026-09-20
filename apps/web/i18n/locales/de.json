@@ -67,7 +67,8 @@
     "publishConfirm": "Diese Notiz zurückziehen? Öffentliche Einträge können von Firehose-Diensten gespiegelt werden und sind nicht zurückholbar.",
     "publishHint": "Öffentliche Einträge sind für jeden lesbar. Zurückziehen löscht den Eintrag; Firehose-Spiegel können Kopien behalten.",
     "publishWorking": "Arbeite…",
-    "dropMedia": "Zum Einfügen von Medien hier ablegen"
+    "dropMedia": "Zum Einfügen von Medien hier ablegen",
+    "notebook": "Notizbuch"
   },
   "settings": {
     "title": "Arbeitsbereich-Einstellungen",
@@ -113,6 +114,11 @@
     "spellcheckNative": "Browser-Rechtschreibung",
     "spellcheckHarper": "Harper (Grammatik, offline)",
     "spellcheckHint": "Nativ nutzt die Rechtschreibprüfung des Browsers. Harper ist eine lokale Grammatikprüfung: Das Modell wird einmalig geladen, Texte verlassen das Gerät nicht.",
+    "notebook": "Notizbuch",
+    "notebookAutoRun": "Beim Tippen ausführen",
+    "notebookAutoRunHint": "Zellen werden beim Tippen neu kompiliert. Ausschalten, um Ausgaben nur beim Ausführen zu aktualisieren.",
+    "notebookCounters": "Ausführungszähler",
+    "notebookCountersHint": "Den [n]-Zähler in den Zellenköpfen anzeigen.",
     "textFont": "Textschrift",
     "mathFont": "Mathematikschrift",
     "codeFont": "Codeschrift",
@@ -239,7 +245,10 @@
     "category": "Kategorie",
     "noCategory": "Keine Kategorie",
     "create": "Erstellen",
-    "givingTitle": "Gib der Seite einen Titel."
+    "givingTitle": "Gib der Seite einen Titel.",
+    "kind": "Typ",
+    "kindDocument": "Dokument",
+    "kindNotebook": "Notizbuch"
   },
   "categories": {
     "title": "Kategorien",
@@ -323,6 +332,7 @@
     "svg": "SVG-Seiten",
     "svgMerged": "SVG-Seiten in einer Datei zusammenfassen",
     "project": "Typst-Projekt (Quelltext, Bibliothek, Daten)",
+    "stripMarkers": "Saubere Quelle (Notizbuch-Zellenmarker entfernen)",
     "fonts": "Schriften mitliefern",
     "dialogHint": "Das Typst-Projekt lässt sich außerhalb der App kompilieren: typst compile --root . --font-path typbase/fonts.",
     "theme": "Design",
@@ -427,5 +437,26 @@
     "localHint": "Lokale Plugins liegen in plugins/ im Arbeitsbereichsspeicher.",
     "sourceLocal": "lokal",
     "capPagesWrite": "Seiten bearbeiten"
+  },
+  "notebook": {
+    "runCell": "Zelle ausführen",
+    "run": "Zelle ausführen",
+    "runAll": "Alle ausführen",
+    "restart": "Neu starten",
+    "addCell": "Zelle hinzufügen",
+    "clearOutput": "Ausgabe löschen",
+    "autoRun": "Beim Tippen ausführen",
+    "running": "Läuft…",
+    "commandHint": "Enter bearbeitet · A/B einfügen · DD löschen · M/Y Typ",
+    "code": "Code",
+    "markup": "Text",
+    "moveUp": "Zelle nach oben",
+    "moveDown": "Zelle nach unten",
+    "duplicate": "Zelle duplizieren",
+    "remove": "Zelle löschen",
+    "toggleSource": "Zelle einklappen",
+    "noOutput": "Keine Ausgabe",
+    "stale": "Ausgabe ist veraltet",
+    "error": "Zellenfehler"
   }
 }

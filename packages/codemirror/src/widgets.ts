@@ -1,161 +1,28 @@
-import type { EditorState } from "@codemirror/state";
+import type { EditorState, Range } from "@codemirror/state";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typbase/wasm";
 
 import { setDiagnostics } from "@codemirror/lint";
-import { type Range, StateEffect, StateField } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
+import { StateEffect, StateField } from "@codemirror/state";
+import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
+import type { NotebookOptions } from "./notebook";
+import type { NotebookFrameStore } from "./notebook-widgets";
 import type { TextRef, TypstRequestHandler } from "./types";
 
 import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
-
-// Frame geometry comes back in the app's display units: one Typst point per
-// CSS pixel, so pt values are used as px directly. Converting px <-> true pt
-// (96/72) would make frames render 4/3 larger than the editor's own text.
-
-const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
-
-/**
- * The compiled size of an SVG frame, from the markup's viewBox. The viewBox
- * is the page width the engine laid out at (pt), and the app renders one
- * Typst point per CSS pixel, so the numbers map to px directly.
- *
- * `frame.render.width` is the chunk's bounding-box width, which does not
- * change with the pane for fixed-size blocks (images, boxes) — the viewBox
- * width is the correct resize key, and the size to pin: a render laid out
- * for a wider pane must keep its size, not be stretched by CSS while a
- * resize is in flight.
- */
-function frameSize(frame: SvgRangedFrame): { width: number; height: number } {
-  const match = frame.render.svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
-
-  return {
-    width: match ? Number(match[1]) : frame.render.width,
-    height: match ? Number(match[2]) : frame.render.height,
-  };
-}
-
-class TypstWidget extends WidgetType {
-  private container: HTMLElement;
-  private readonly size: { width: number; height: number };
-
-  public constructor(
-    private readonly view: EditorView,
-    private readonly frame: SvgRangedFrame,
-    private readonly locked: boolean,
-    private readonly fileId: FileId,
-    private readonly typstState: TypstState,
-  ) {
-    super();
-
-    this.size = frameSize(frame);
-
-    const cached = containerCache.get(frame.render.hash);
-
-    // The content hash does not include pane width; a reused container may
-    // hold a frame laid out for a wider pane. Refresh its markup when the
-    // geometry differs, so resizing the editor reflows the inline preview.
-    if (cached?.isConnected) {
-      this.container = cached;
-      this.syncRenderInfo(cached);
-    } else {
-      const container = document.createElement("div");
-
-      container.dataset.hash = frame.render.hash.toString();
-      container.classList.add("typst-render");
-
-      if (!locked) {
-        container.addEventListener("click", this.handleMouseEvent.bind(this));
-        container.addEventListener("mousedown", this.handleMouseEvent.bind(this));
-      }
-
-      containerCache.set(frame.render.hash, container);
-      this.container = container;
-      this.syncRenderInfo(container);
-    }
-  }
-
-  private syncRenderInfo(container: HTMLElement) {
-    const widthKey = Math.round(this.size.width).toString();
-
-    if (container.dataset.renderWidth !== widthKey) {
-      container.dataset.renderWidth = widthKey;
-      // Pin the SVG to the compiled frame size (via CSS variables). The
-      // container keeps max-width: 100% so it never exceeds the line — an
-      // explicit container width would make CodeMirror's flex layout grow
-      // the content width forever (resize -> wider widget -> wider content).
-      // The pinned SVG overflows the clamped container while the pane is
-      // narrower than the compiled width; the scroller clips it, so the
-      // render stays its size instead of scaling with the pane.
-      container.style.setProperty("--render-w", this.size.width + "px");
-      container.style.setProperty("--render-h", this.size.height + "px");
-      container.style.height = this.size.height + "px";
-      container.setHTMLUnsafe(this.frame.render.svg);
-    }
-  }
-
-  private handleMouseEvent(event: MouseEvent) {
-    event.preventDefault();
-
-    const target = event.target as Element | null;
-    const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
-
-    // Alt-click edits the link instead of following it: fall through to the
-    // jump so the cursor lands in the link source and the block opens.
-    if (anchor && !event.altKey) {
-      if (event.type !== "click") return;
-
-      const href = anchor.getAttribute("href") ?? "";
-      if (href.startsWith("typbase://")) return;
-
-      if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
-        window.open(href, "_blank", "noopener,noreferrer");
-      }
-
-      return;
-    }
-
-    const { clientX, clientY } = event;
-    this.handleJump(clientX, clientY);
-  }
-
-  private handleJump(clientX: number, clientY: number) {
-    const { typstState, frame, view } = this;
-    const { top, left } = this.container.getBoundingClientRect();
-
-    // App pt == screen px, so the click lands in document points as is.
-    const x = clientX - left;
-    const y = clientY - top + frame.render.yOffset;
-
-    const jump = typstState.jumpPaged(this.fileId, x, y);
-    const position = jump ? jump.position : frame.range.end;
-
-    view.focus();
-    view.dispatch({ selection: { anchor: position } });
-  }
-
-  public override eq(other: TypstWidget) {
-    return (
-      other.frame.render.hash === this.frame.render.hash &&
-      other.size.width === this.size.width &&
-      other.size.height === this.size.height
-    );
-  }
-
-  public toDOM() {
-    return this.container;
-  }
-
-  public override get estimatedHeight() {
-    return this.frame.render.height;
-  }
-}
+import { frameActiveDecorations, frameIsInactive, TypstWidget } from "./frames";
+import { cellIndexAt, notebookRunEffect, notebookRefreshEffect } from "./notebook";
+import { createNotebookFrameStore, decorateNotebook } from "./notebook-widgets";
 
 export const compileCache = new LRUCache<
   string,
-  { frames: SvgRangedFrame[]; tooltips: SvgRangedFrame[] }
+  {
+    frames: SvgRangedFrame[];
+    tooltips: SvgRangedFrame[];
+    diagnostics: TypstDiagnostic[];
+  }
 >({ max: 8 });
 
 const updateFlagStore = new Set<string>();
@@ -205,22 +72,6 @@ export const tooltipsStateField = StateField.define<SvgRangedFrame[]>({
   },
 });
 
-interface DecorateArgs {
-  fileId: FileId;
-  spaceId: string;
-  path: string;
-  prelude: string;
-  locked: boolean;
-  update: ViewUpdate;
-  updateInWidget: boolean;
-  widthChanged: boolean;
-  forced: boolean;
-  typstState: TypstState;
-  revision?: () => string | number | undefined;
-  onRequests?: TypstRequestHandler;
-  onPanic?: (fileId: FileId) => void;
-}
-
 interface BuildDecorationsArgs {
   state: EditorState;
   view: EditorView;
@@ -260,17 +111,7 @@ function buildDecorations({
 
     if (!frame.render) continue;
 
-    const inactive =
-      !view.hasFocus ||
-      state.selection.ranges.every(
-        (range) =>
-          (range.from < start || range.from > end) &&
-          (range.to < start || range.to > end) &&
-          (start < range.from || start > range.to) &&
-          (end < range.from || end > range.to),
-      );
-
-    if (inactive) {
+    if (frameIsInactive(view, state, start, end)) {
       const widget = new TypstWidget(view, frame, locked, fileId, typstState);
       decorations.push(Decoration.replace({ widget }).range(start, end));
 
@@ -278,28 +119,7 @@ function buildDecorations({
     }
 
     active.push(frame);
-
-    let lineHeight = 0;
-
-    const { number: startLine } = state.doc.lineAt(start);
-    const { number: endLine } = state.doc.lineAt(end);
-
-    for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
-      const line = state.doc.line(currentLine);
-      let style = "";
-      if (currentLine == startLine)
-        style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
-      if (currentLine == endLine)
-        style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${Math.max(0, frame.render.height - lineHeight)}px`;
-      else lineHeight += lineHeights?.get(line.from) ?? view.lineBlockAt(line.from).height;
-
-      decorations.push(
-        Decoration.line({
-          class: "cm-activeLine",
-          attributes: { style },
-        }).range(line.from),
-      );
-    }
+    decorations.push(...frameActiveDecorations(view, state, frame, lineHeights));
   }
 
   return { decorations: Decoration.set(decorations, true), active };
@@ -337,6 +157,26 @@ interface DecorateResult {
   active: SvgRangedFrame[];
 }
 
+interface DecorateArgs {
+  fileId: FileId;
+  spaceId: string;
+  path: string;
+  prelude: string;
+  locked: boolean;
+  update: ViewUpdate;
+  updateInWidget: boolean;
+  widthChanged: boolean;
+  forced: boolean;
+  typstState: TypstState;
+  revision?: () => string | number | undefined;
+  onRequests?: TypstRequestHandler;
+  onPanic?: (fileId: FileId) => void;
+  notebook?: NotebookOptions;
+  /** See NotebookDecorateArgs#runIndex. */
+  runIndex?: number | "all";
+  frameStore: NotebookFrameStore;
+}
+
 function decorate({
   fileId,
   spaceId,
@@ -351,6 +191,9 @@ function decorate({
   revision,
   onRequests,
   onPanic,
+  notebook,
+  runIndex,
+  frameStore,
 }: DecorateArgs): DecorateResult {
   const text = update.state.doc.toString();
   const isFlaggedForUpdate = updateFlagStore.has(path);
@@ -358,8 +201,18 @@ function decorate({
 
   let frames: SvgRangedFrame[];
   let tooltips: SvgRangedFrame[];
+  let diagnostics: TypstDiagnostic[];
 
-  if (forced || update.docChanged || widthChanged || !compileCache.has(cacheKey)) {
+  // Manual-run notebooks only compile when a run (or a settings change) asks
+  // for it; everything else reuses the last compile so outputs stay put while
+  // the source changes under them.
+  const live = notebook?.live?.() ?? true;
+  const mustCompile =
+    forced ||
+    ((!notebook || live) && (update.docChanged || widthChanged)) ||
+    !compileCache.has(cacheKey);
+
+  if (mustCompile) {
     if (isFlaggedForUpdate) updateFlagStore.delete(path);
     else updateFlagStore.add(path);
 
@@ -372,6 +225,7 @@ function decorate({
       // letting the trap break CodeMirror's update loop.
       console.error("[typst] compile panicked:", error);
       onPanic?.(fileId);
+
       return { decorations: Decoration.none, tooltips: [], frames: [], active: [] };
     }
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
@@ -392,10 +246,47 @@ function decorate({
     }
 
     ({ frames, tooltips } = compileResult);
-    compileCache.set(cacheKey, { frames, tooltips });
-  } else ({ frames, tooltips } = compileCache.get(cacheKey)!);
+    diagnostics = compileResult.diagnostics;
+    compileCache.set(cacheKey, { frames, tooltips, diagnostics });
+
+    notebook?.onCompile?.({ text, frames, diagnostics });
+  } else {
+    const cached = compileCache.get(cacheKey)!;
+    ({ frames, tooltips, diagnostics } = cached);
+  }
 
   const { view, state } = update;
+
+  if (notebook) {
+    const cells = notebook.cells(text);
+    notebook.onCells?.(cells);
+    notebook.onActiveCell?.(cells.length ? cellIndexAt(cells, state.selection.main.head) : null);
+
+    return {
+      decorations: Decoration.set(
+        decorateNotebook({
+          view,
+          state,
+          cells,
+          frames,
+          diagnostics,
+          fileId,
+          typstState,
+          locked,
+          options: notebook,
+          runIndex,
+          frameStore,
+        }),
+        true,
+      ),
+      tooltips,
+      frames,
+      // Notebook cells do their own source-height handling; there is no
+      // around-the-widget remeasure to schedule.
+      active: [],
+    };
+  }
+
   const built = buildDecorations({ state, view, frames, locked, fileId, typstState });
 
   return { decorations: built.decorations, tooltips, frames, active: built.active };
@@ -423,6 +314,8 @@ export interface TypstViewPluginOptions {
   revision?: () => string | number | undefined;
   /** See TypstPluginOptions#onPanic. */
   onPanic?: (fileId: FileId) => void;
+  /** Cell rendering, run effects, and cell commands for notebook mode. */
+  notebook?: NotebookOptions;
 }
 
 export const typstViewPlugin = (
@@ -443,6 +336,7 @@ export const typstViewPlugin = (
     // runs until the user clicks or types.
     let firstUpdate = true;
     let resizeTimer: number | undefined;
+    const frameStore = createNotebookFrameStore();
 
     // Dedupes remeasure requests for this view; the latest one wins.
     const remeasureKey = {};
@@ -497,12 +391,24 @@ export const typstViewPlugin = (
     return {
       update(update: ViewUpdate) {
         let widthChanged = false;
+        const effects = update.transactions.flatMap((transaction) => transaction.effects);
+        const run = effects.find((effect) => effect.is(notebookRunEffect));
+        const refresh = effects.some((effect) => effect.is(notebookRefreshEffect));
         const forced =
           firstUpdate ||
           update.transactions.some((transaction) =>
             transaction.effects.some((effect) => effect.is(typstRecompileEffect)),
           );
         firstUpdate = false;
+
+        if (run) options.notebook?.onRun?.(run.value.index);
+        if (update.docChanged && options.notebook?.onChange) {
+          let first = Number.POSITIVE_INFINITY;
+          update.changes.iterChangedRanges((fromA) => {
+            if (fromA < first) first = fromA;
+          });
+          if (Number.isFinite(first)) options.notebook.onChange(first);
+        }
 
         if (update.geometryChanged) {
           const { scrollDOM, contentDOM } = update.view;
@@ -526,40 +432,14 @@ export const typstViewPlugin = (
           }, 150);
         }
 
-        if (update.docChanged || update.selectionSet || update.focusChanged || forced) {
-          const { state } = update;
-          const currentDecorations = state.field(typstStateField);
-
-          let updateInWidget = false;
-
-          // Stop at the first frame that intersects the selection; the widget
-          // update path wants to know whether any active frame exists.
-          const cursor = currentDecorations.iter();
-          while (cursor.value) {
-            const from = cursor.from;
-            const to = cursor.to;
-
-            if (to > state.doc.length) break;
-
-            const { from: start } = state.doc.lineAt(from);
-            const { to: end } = state.doc.lineAt(to);
-
-            const active = state.selection.ranges.some(
-              (range) =>
-                (range.from >= start && range.from <= end) ||
-                (range.to >= start && range.to <= end) ||
-                (start >= range.from && start <= range.to) ||
-                (end >= range.from && end <= range.to),
-            );
-
-            if (active) {
-              updateInWidget = true;
-              break;
-            }
-
-            cursor.next();
-          }
-
+        if (
+          update.docChanged ||
+          update.selectionSet ||
+          update.focusChanged ||
+          forced ||
+          run ||
+          refresh
+        ) {
           queueMicrotask(() => {
             const result = decorate({
               fileId,
@@ -568,21 +448,24 @@ export const typstViewPlugin = (
               prelude: prelude.value,
               locked,
               update,
-              updateInWidget,
+              updateInWidget: false,
               widthChanged,
-              forced,
+              forced: forced || Boolean(run),
               typstState,
               revision: options.revision,
               onRequests: options.onRequests,
               onPanic: options.onPanic,
+              notebook: options.notebook,
+              runIndex: run?.value.index,
+              frameStore,
             });
 
             if (result) {
-              const effects = [
+              const stateEffects = [
                 typstStateEffect.of({ decorations: result.decorations }),
                 tooltipsStateEffect.of(result.tooltips),
               ];
-              update.view.dispatch({ effects });
+              update.view.dispatch({ effects: stateEffects });
 
               remeasureActive(update, result);
             }

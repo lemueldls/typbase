@@ -6,6 +6,7 @@ import { autocompletion } from "@codemirror/autocomplete";
 import { indentService } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 
+import type { NotebookOptions } from "./notebook";
 import type { TextRef } from "./types";
 import type { TypstRequestHandler } from "./types";
 
@@ -13,6 +14,7 @@ import { typstSyntaxHighlighting } from "./highlight";
 import { typstHoverTooltip } from "./hover";
 import { typstKeymap } from "./keymap";
 import { autocomplete, typstLanguageData } from "./language";
+import { notebookKeymap, notebookOptionsFacet } from "./notebook";
 import { tooltipStateField, tooltipViewPlugin } from "./tooltip";
 import { typstStateField, typstViewPlugin, tooltipsStateField } from "./widgets";
 
@@ -31,6 +33,12 @@ export interface TypstPluginOptions {
    * the editor; the plugin drops the decorations for the failed pass.
    */
   onPanic?: (fileId: FileId) => void;
+  /**
+   * Cell rendering and cell commands. When set, the editor behaves like a
+   * notebook: markup cells render inline, code cells render below, and the
+   * notebook keymap takes precedence over the line editing bindings.
+   */
+  notebook?: NotebookOptions;
 }
 
 export const typstPlugin = (
@@ -42,33 +50,43 @@ export const typstPlugin = (
   locked: boolean,
   typstState: TypstState,
   options: TypstPluginOptions = {},
-): Extension => [
-  typstStateField,
-  tooltipsStateField,
-  typstViewPlugin(fileId, spaceId, path, text, prelude, locked, typstState, options),
-  tooltipViewPlugin(),
-  tooltipStateField,
+): Extension => {
+  const extensions: Extension[] = [
+    typstStateField,
+    tooltipsStateField,
+    typstViewPlugin(fileId, spaceId, path, text, prelude, locked, typstState, options),
+    tooltipViewPlugin(),
+    tooltipStateField,
 
-  autocompletion({
-    override: [(context) => autocomplete(context, fileId, typstState)],
-  }),
+    autocompletion({
+      override: [(context) => autocomplete(context, fileId, typstState)],
+    }),
 
-  typstKeymap,
-  typstLanguageData,
-  typstSyntaxHighlighting(fileId, typstState),
-  typstHoverTooltip(fileId, typstState),
+    typstKeymap,
+    typstLanguageData,
+    typstSyntaxHighlighting(fileId, typstState),
+    typstHoverTooltip(fileId, typstState),
 
-  addSpaceBeforeClosingBracket,
-  indentService.of((ctx: IndentContext, pos: number): number => {
-    const last = Math.max(0, pos - 1);
-    const prev = ctx.lineAt(last).text;
-    if (prev.endsWith("$") && prev !== "$") return 0;
+    addSpaceBeforeClosingBracket,
+    indentService.of((ctx: IndentContext, pos: number): number => {
+      const last = Math.max(0, pos - 1);
+      const prev = ctx.lineAt(last).text;
+      if (prev.endsWith("$") && prev !== "$") return 0;
 
-    const indent = /[{[($]\s*$/.test(prev);
+      const indent = /[{[($]\s*$/.test(prev);
 
-    return ctx.lineIndent(last) + (indent ? ctx.unit : 0);
-  }),
-];
+      return ctx.lineIndent(last) + (indent ? ctx.unit : 0);
+    }),
+  ];
+
+  if (options.notebook) {
+    // High precedence: Alt-Arrow moves cells and Escape reaches command mode
+    // instead of the line-editing bindings in typstKeymap.
+    extensions.push(notebookOptionsFacet.of(options.notebook), notebookKeymap);
+  }
+
+  return extensions;
+};
 
 const addSpaceBeforeClosingBracket = EditorView.inputHandler.of((view, from, to, text) => {
   if (text === " ") {
