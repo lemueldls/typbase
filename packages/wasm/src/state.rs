@@ -80,12 +80,16 @@ impl TypstState {
             VirtualPath::new("typbase/lib.typ").expect("Invalid virtual path"),
         ));
         this.world.insert_source(id, String::from(TYPBASE_LIB));
+        this.insert_syntax_theme(&ThemeColors::default());
 
         this
     }
 
     #[wasm_bindgen(js_name = "setTheme")]
     pub fn set_theme(&mut self, id: &TypstFileId, theme: ThemeColors) {
+        // The code-block theme travels with the palette: a per-theme virtual
+        // file means switching themes can never serve the previous colors.
+        self.insert_syntax_theme(&theme);
         self.get_space_context_mut(id).theme = theme;
         self.revision += 1;
     }
@@ -1127,6 +1131,22 @@ impl TypstState {
         &mut self.world
     }
 
+    /// Serves the generated tmTheme for a palette as a virtual project file.
+    /// The prelude references it; the same file name is what exports bundle.
+    fn insert_syntax_theme(&mut self, theme: &ThemeColors) {
+        let path = theme.syntax_theme_path();
+        let file_id = FileId::new(RootedPath::new(
+            VirtualRoot::Project,
+            VirtualPath::new(path).expect("Invalid virtual path"),
+        ));
+        if self.world.files.contains_key(&file_id) {
+            return;
+        }
+
+        self.world
+            .insert_file(file_id, Bytes::from_string(theme.tm_theme()));
+    }
+
     pub fn get_source_context(&self, id: &TypstFileId) -> &SourceContext {
         self.source_context_map.get(id).unwrap()
     }
@@ -1197,6 +1217,61 @@ const TYPBASE_PRELUDE: &str = r#"
     #import "/typbase/lib.typ" as typbase
 "#;
 
+/// The canonical document style: theme, body text, headings, links, shape
+/// strokes, math and raw fonts, and the code-block theme. Live compiles append
+/// the render-target page config in `TypstState::prelude`; exports and the
+/// project mirror call it through the `stylePrelude` binding, so the app and
+/// the files it writes cannot drift.
+fn style_prelude(
+    theme: &ThemeColors,
+    text_size: f64,
+    font: &str,
+    math_font: &str,
+    code_font: &str,
+    locale: &str,
+) -> String {
+    formatdoc!(
+        r#"
+            #let theme={theme}
+            #let theme=(..theme,base00:theme.surface,base01:theme.surface-2,base02:theme.surface-3,base03:theme.border,base04:theme.text-secondary,base05:theme.text,base06:theme.border-strong,base07:theme.surface,base08:theme.red,base09:theme.orange,base0a:theme.yellow,base0b:theme.green,base0c:theme.cyan,base0d:theme.blue,base0e:theme.violet,base0f:theme.orange)
+            #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
+
+            #show heading.where(level:1):set text(fill:theme.accent,size:32pt,weight:400)
+            #show heading.where(level:2):set text(fill:theme.text,size:28pt,weight:400)
+            #show heading.where(level:3):set text(fill:theme.text-secondary,size:24pt,weight:400)
+            #show heading.where(level:4):set text(fill:theme.accent,size:22pt,weight:400)
+            #show heading.where(level:5):set text(fill:theme.text,size:16pt,weight:500)
+            #show heading.where(level:6):set text(fill:theme.text-secondary,size:14pt,weight:500)
+
+            #show link:set text(fill:theme.accent)
+            #show link:underline
+
+            #set line(stroke:theme.border)
+            #set table(stroke:theme.border)
+            #set circle(stroke:theme.border)
+            #set ellipse(stroke:theme.border)
+            #set curve(stroke:theme.border)
+            #set polygon(stroke:theme.border)
+            #set rect(stroke:theme.border)
+            #set square(stroke:theme.border)
+
+            #show math.equation:set text(font:"{math_font}")
+            #show math.equation.where(block:true):set text(size:18pt)
+            #show math.equation.where(block:true):set par(leading:9pt)
+
+            #show raw:set text(font:"{code_font}")
+            #show raw:set raw(theme:"/{syntax_theme}")
+            #show raw.where(block:true):it=>block(fill:theme.code,inset:8pt,radius:4pt,width:100%,it)
+
+            #context {{show math.equation:set text(size:text.size*2)}}
+
+            {typbase_prelude}
+        "#,
+        typbase_prelude = TYPBASE_PRELUDE,
+        syntax_theme = theme.syntax_theme_path(),
+    )
+}
+
 #[comemo::track]
 impl TypstState {
     pub fn prelude(&self, id: &TypstFileId, render_target: RenderTarget) -> String {
@@ -1225,50 +1300,46 @@ impl TypstState {
             RenderTarget::Html => formatdoc!(""),
         };
 
+        let style = style_prelude(
+            &space_ctx.theme,
+            space_ctx.text_size,
+            &space_ctx.font,
+            space_ctx.math_font.as_ref().unwrap_or(&space_ctx.font),
+            space_ctx.code_font.as_ref().unwrap_or(&space_ctx.font),
+            &space_ctx.locale,
+        );
+
         formatdoc!(
             r#"
-                #let theme={theme}
-                #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
-
-                #show heading.where(level:1):set text(fill:theme.accent,size:32pt,weight:400)
-                #show heading.where(level:2):set text(fill:theme.text,size:28pt,weight:400)
-                #show heading.where(level:3):set text(fill:theme.text-secondary,size:24pt,weight:400)
-                #show heading.where(level:4):set text(fill:theme.accent,size:22pt,weight:400)
-                #show heading.where(level:5):set text(fill:theme.text,size:16pt,weight:500)
-                #show heading.where(level:6):set text(fill:theme.text-secondary,size:14pt,weight:500)
-
-                #show link:set text(fill:theme.accent)
-                #show link:underline
-
-                #set line(stroke:theme.border)
-                #set table(stroke:theme.border)
-                #set circle(stroke:theme.border)
-                #set ellipse(stroke:theme.border)
-                #set line(stroke:theme.border)
-                #set curve(stroke:theme.border)
-                #set polygon(stroke:theme.border)
-                #set rect(stroke:theme.border)
-                #set square(stroke:theme.border)
-
-                #show math.equation:set text(font:"{math_font}")
-                #show math.equation.where(block:true):set text(size:18pt)
-                #show math.equation.where(block:true):set par(leading:9pt)
-
-                #show raw:set text(font:"{code_font}")
-
-                #context {{show math.equation:set text(size:text.size*2)}}
-
-                {typbase_prelude}
+                {style}
 
                 {page_config}
             "#,
-            typbase_prelude = TYPBASE_PRELUDE,
-            text_size = space_ctx.text_size,
-            font = space_ctx.font,
-            math_font = space_ctx.math_font.as_ref().unwrap_or(&space_ctx.font),
-            code_font = space_ctx.code_font.as_ref().unwrap_or(&space_ctx.font),
-            locale = space_ctx.locale,
-            theme = space_ctx.theme,
+        )
+    }
+}
+
+#[wasm_bindgen]
+impl TypstState {
+    /// The style block alone, for exports and the project mirror: the same
+    /// text the engine prepends, minus the render-target page config.
+    #[must_use]
+    #[wasm_bindgen(js_name = "stylePrelude")]
+    pub fn style_prelude_export(
+        theme: ThemeColors,
+        text_size: f64,
+        font: String,
+        math_font: Option<String>,
+        code_font: Option<String>,
+        locale: String,
+    ) -> String {
+        style_prelude(
+            &theme,
+            text_size,
+            &font,
+            math_font.as_deref().unwrap_or(&font),
+            code_font.as_deref().unwrap_or(&font),
+            &locale,
         )
     }
 }

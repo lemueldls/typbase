@@ -132,7 +132,48 @@ export type UiRadius = "square" | "default" | "round";
  */
 export type SpellcheckMode = "off" | "native" | "harper";
 
-/** Palette token names, in display order. The renderer maps them 1:1. */
+/**
+ * Theme seed names, in display order. A theme authors these; the resolver
+ * derives soft variants, mode-dependent overlay, and on-* text from them.
+ */
+export const THEME_SEED_KEYS = [
+  "surface",
+  "surface2",
+  "surface3",
+  "border",
+  "borderStrong",
+  "text",
+  "textSecondary",
+  "accent",
+  "ok",
+  "warning",
+  "danger",
+  "info",
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "cyan",
+  "blue",
+  "violet",
+  "code",
+] as const;
+
+export type ThemeSeedToken = (typeof THEME_SEED_KEYS)[number];
+
+/**
+ * What a theme author writes: the surface and text ramps, borders, the
+ * accent, status solids, the tinted hue ramp, and the code surface. Soft
+ * backgrounds, overlay, and on-* text colors are derived, so themes cannot
+ * drift apart on those.
+ */
+export type ThemeSeeds = Record<ThemeSeedToken, string>;
+
+/**
+ * Resolved palette token names, in display order. The custom palette editor
+ * edits these; the chrome reads them as `--color-*` and the Typst renderer
+ * mirrors the ones that are not chrome-only (see `THEME_COLOR_KEYS`).
+ */
 export const THEME_PALETTE_TOKEN_KEYS = [
   "surface",
   "surface2",
@@ -144,9 +185,22 @@ export const THEME_PALETTE_TOKEN_KEYS = [
   "accent",
   "accentSoft",
   "ok",
+  "okSoft",
   "warning",
+  "warningSoft",
   "danger",
   "dangerSoft",
+  "info",
+  "infoSoft",
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "cyan",
+  "blue",
+  "violet",
+  "code",
+  "overlay",
 ] as const;
 
 export type ThemePaletteToken = (typeof THEME_PALETTE_TOKEN_KEYS)[number];

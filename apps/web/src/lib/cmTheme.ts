@@ -6,7 +6,7 @@ export const typstEditorTheme = EditorView.theme({
     backgroundColor: "transparent",
     color: "var(--color-text)",
     fontFamily: "var(--font-mono)",
-    fontSize: "1rem",
+    fontSize: "var(--doc-text-size, 1rem)",
   },
   "&.cm-editor.cm-focused": {
     outline: "none",
@@ -74,7 +74,7 @@ export const typstEditorTheme = EditorView.theme({
     backgroundColor: "transparent",
     color: "var(--color-text-secondary)",
     border: "none",
-    fontSize: "1rem",
+    fontSize: "var(--doc-text-size, 1rem)",
     // Same as the content so numbers share the raw text baseline.
     lineHeight: "1.4",
   },

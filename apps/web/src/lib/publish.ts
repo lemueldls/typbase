@@ -3,7 +3,7 @@ import type { PublishSettings } from "@typbase/typing";
 
 import type { AtprotoService } from "~/lib/atproto";
 
-import { publishPrelude } from "~/lib/publishPrelude";
+import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
 
 export interface PublishOptions {
@@ -45,8 +45,9 @@ export async function publishPage(
   const appSettings = store.getSettings();
   // Published pages are read on white in the public reader, so they get the
   // light palette and real page geometry rather than the workspace theme.
-  const htmlPrelude = publishPrelude(appSettings, { theme: "light", paged: false });
-  const pdfPrelude = publishPrelude(appSettings, {
+  const palette = publishThemePalette(appSettings, { theme: "light" });
+  const htmlPrelude = await publishPrelude(appSettings, { theme: "light", paged: false });
+  const pdfPrelude = await publishPrelude(appSettings, {
     theme: "light",
     pageSize: "a4",
     paged: true,
@@ -59,6 +60,7 @@ export async function publishPage(
     prelude: htmlPrelude,
     wants: "html",
     spaceId: store.workspaceId,
+    theme: palette,
   });
   if (!rendered.html) {
     throw new Error("Render produced no HTML; check the page diagnostics");
@@ -77,6 +79,7 @@ export async function publishPage(
       prelude: pdfPrelude,
       wants: "pdf",
       spaceId: store.workspaceId,
+      theme: palette,
     });
     if (renderedPdf.pdf) {
       pdf = await airspace.blobs.upload(renderedPdf.pdf, { mimeType: "application/pdf" });

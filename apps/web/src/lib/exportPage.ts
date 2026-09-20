@@ -6,7 +6,7 @@ import { stripCellMarkers } from "@typbase/codemirror";
 import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 
 import { THEME_COLOR_KEYS, paletteSlots } from "~/lib/palette";
-import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
+import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 import { createZip } from "~/lib/zip";
 
@@ -63,8 +63,8 @@ export async function buildExport(
   const source = await store.loadPageText(pageId);
   const base = fileBase(page.title, page.path);
   const themeOptions = { theme: options.theme, pageSize: options.pageSize } as const;
-  const htmlPrelude = publishPrelude(store.getSettings(), { ...themeOptions, paged: false });
-  const pagedPrelude = publishPrelude(store.getSettings(), { ...themeOptions, paged: true });
+  const htmlPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: false });
+  const pagedPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: true });
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
@@ -91,6 +91,7 @@ export async function buildExport(
       prelude: htmlPrelude,
       wants: "html",
       spaceId: store.workspaceId,
+      theme: palette,
     });
     if (!rendered.html) {
       throw new Error("The render produced no HTML; check the page diagnostics.");
@@ -111,6 +112,7 @@ export async function buildExport(
       prelude: pagedPrelude,
       wants: "pdf",
       spaceId: store.workspaceId,
+      theme: palette,
     });
     if (!rendered.pdf) {
       throw new Error("The render produced no PDF; check the page diagnostics.");
@@ -129,6 +131,7 @@ export async function buildExport(
       wants: "svg",
       merged: options.svgMerged,
       spaceId: store.workspaceId,
+      theme: palette,
     });
     if (!rendered.svg?.length) {
       throw new Error("The render produced no SVG pages; check the page diagnostics.");
@@ -149,6 +152,8 @@ export async function buildExport(
     if (typstState) {
       files.push({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
     }
+    const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
+    files.push({ name: syntax.path, bytes: encoder.encode(syntax.text) });
     for (const payload of payloads.values()) files.push(payload);
     if (options.fonts) files.push(...(await fontFiles()));
   }

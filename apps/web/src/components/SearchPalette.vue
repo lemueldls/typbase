@@ -147,7 +147,7 @@ function open(result: SearchResultItem) {
   display: flex;
   justify-content: center;
   padding-top: 10dvh;
-  background: rgb(0 0 0 / 0.3);
+  background: var(--color-overlay);
 }
 
 .search-palette__box {

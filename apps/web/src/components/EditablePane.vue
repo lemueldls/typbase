@@ -289,6 +289,9 @@ function createStateConfig(): EditorStateConfig {
 
 /** Forces a recompile even though the doc did not change (data/fonts did). */
 function recompile() {
+  // The document text size can have changed with the same doc text; measure
+  // before recompiling so widget heights and line boxes match the new font.
+  view.value?.requestMeasure();
   view.value?.dispatch({ effects: typstRecompileEffect.of(null) });
 }
 

@@ -1,7 +1,7 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { TypstState } from "@typbase/wasm";
 
-import { publishPrelude } from "~/lib/publishPrelude";
+import { publishPrelude, publishSyntaxTheme } from "~/lib/publishPrelude";
 
 const encoder = new TextEncoder();
 
@@ -38,12 +38,15 @@ export async function mirrorPageProject(
     await store.writeProjectFile("typbase/lib.typ", encoder.encode(typstState.typbaseLib()));
   }
 
-  const prelude = publishPrelude(store.getSettings(), { theme: "light", paged: true });
+  const prelude = await publishPrelude(store.getSettings(), { theme: "light", paged: true });
   const source = await store.loadPageText(pageId);
   await store.writeProjectFile(
     `typbase/entries/${page.path}`,
     encoder.encode(`${prelude}\n${source}`),
   );
+  // The prelude references this file for code-block syntax highlighting.
+  const syntax = await publishSyntaxTheme(store.getSettings(), { theme: "light" });
+  await store.writeProjectFile(syntax.path, encoder.encode(syntax.text));
   await store.writeProjectFile("typbase/README.md", encoder.encode(README));
 }
 

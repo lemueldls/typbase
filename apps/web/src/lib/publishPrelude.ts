@@ -1,6 +1,9 @@
 import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
-import { typstThemeDict } from "~/lib/palette";
+import { TypstState } from "@typbase/wasm";
+
+import { useTypst } from "~/composables/typst";
+import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { resolveLightTheme, resolveTheme } from "~/lib/themes";
 
 export interface PublishPreludeOptions {
@@ -17,6 +20,8 @@ export interface PublishPreludeOptions {
    * it; HTML export has no pages.
    */
   paged?: boolean;
+  /** Body text size in pt; defaults to the workspace's configured size. */
+  textSize?: number;
 }
 
 const PAGE_WIDTHS = { a4: 595.28, letter: 612 } as const;
@@ -30,18 +35,40 @@ export function publishThemePalette(
     .palette;
 }
 
-export function publishPrelude(
+/**
+ * The code-block theme for an export palette: the generated tmTheme plus the
+ * virtual path the prelude references. Project bundles write it next to
+ * `lib.typ`; the render worker inserts it into its own world.
+ */
+export async function publishSyntaxTheme(
+  settings: WorkspaceSettings,
+  options: Pick<PublishPreludeOptions, "theme"> = {},
+): Promise<{ path: string; text: string }> {
+  await useTypst();
+  const colors = themeColorsFromPalette(publishThemePalette(settings, options));
+
+  return { path: colors.tmThemePath(), text: colors.tmTheme() };
+}
+
+/**
+ * The document prelude for exports, publishing, and the project mirror. The
+ * style block (theme, text, headings, fonts, code-block theme) comes from the
+ * wasm engine's `stylePrelude`, so it is byte-for-byte the prelude the app
+ * compiles with; only the page geometry and the user's prelude are added here.
+ */
+export async function publishPrelude(
   settings: WorkspaceSettings,
   options: PublishPreludeOptions = {},
-): string {
-  // The same registry as the app chrome: named themes, custom overrides,
-  // renderer colors derived from the token map. Build the Typst dictionary
-  // from the tokens directly: a wasm ThemeColors has no enumerable fields, so
-  // JSON.stringify of it produced "{}" and the published page lost its theme.
-  const theme = typstThemeDict(publishThemePalette(settings, options));
-  const font = settings.font;
-  const mathFont = settings.mathFont ?? font;
-  const codeFont = settings.codeFont ?? font;
+): Promise<string> {
+  await useTypst();
+  const style = TypstState.stylePrelude(
+    themeColorsFromPalette(publishThemePalette(settings, options)),
+    options.textSize ?? settings.textSize,
+    settings.font,
+    settings.mathFont,
+    settings.codeFont,
+    settings.locale && settings.locale !== "auto" ? settings.locale : "en",
+  );
 
   const page = options.paged
     ? [
@@ -52,33 +79,5 @@ export function publishPrelude(
       ]
     : [];
 
-  return [
-    `#let theme = ${theme}`,
-    `#set text(fill: theme.text, size: 12pt, font: "${font}")`,
-    ...page,
-    "#show heading.where(level:1): set text(fill: theme.accent, size: 32pt, weight: 400)",
-    "#show heading.where(level:2): set text(fill: theme.text, size: 28pt, weight: 400)",
-    "#show heading.where(level:3): set text(fill: theme.text-secondary, size: 24pt, weight: 400)",
-    "#show heading.where(level:4): set text(fill: theme.accent, size: 22pt, weight: 400)",
-    "#show heading.where(level:5): set text(fill: theme.text, size: 16pt, weight: 500)",
-    "#show heading.where(level:6): set text(fill: theme.text-secondary, size: 14pt, weight: 500)",
-    "",
-    "#show link:set text(fill: theme.accent)",
-    "#show link:underline",
-    "",
-    "#set line(stroke: theme.border)",
-    "#set table(stroke: theme.border)",
-    "#set rect(stroke: theme.border)",
-    "#set circle(stroke: theme.border)",
-    "#set ellipse(stroke: theme.border)",
-    "",
-    `#show math.equation:set text(font: "${mathFont}")`,
-    `#show raw:set text(font: "${codeFont}")`,
-    "",
-    '#import "/typbase/lib.typ" as typbase',
-    "",
-    // The user's workspace prelude, same text the editor appends.
-    settings.pagePrelude ?? "",
-    "",
-  ].join("\n");
+  return [style, ...page, settings.pagePrelude ?? ""].join("\n");
 }

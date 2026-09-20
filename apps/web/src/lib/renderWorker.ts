@@ -1,4 +1,5 @@
 import type { WorkspaceStore } from "@typbase/storage";
+import type { ThemePaletteTokens } from "@typbase/typing";
 import type { TypstRequest } from "@typbase/wasm";
 
 import { resolveRequestPayloads, type RequestPayload } from "~/lib/typstRequests";
@@ -14,6 +15,8 @@ export interface RenderWorkerRequest {
   /** SVG only: merge all pages into a single document. */
   merged?: boolean;
   spaceId: string;
+  /** Export palette; the worker installs it so the code-block theme exists. */
+  theme?: ThemePaletteTokens;
 }
 
 export interface RenderWorkerResponse {
@@ -175,6 +178,7 @@ export function renderInWorker(input: {
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
   spaceId: string;
+  theme?: ThemePaletteTokens;
 }): Promise<RenderOutcome> {
   const run = renderQueue.then(() => renderOnce(input));
   renderQueue = run.catch(() => undefined);
@@ -189,6 +193,7 @@ async function renderOnce(input: {
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
   spaceId: string;
+  theme?: ThemePaletteTokens;
 }): Promise<RenderOutcome> {
   const instance = ensureWorker();
   const id = nextId++;

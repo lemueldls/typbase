@@ -1,7 +1,15 @@
-import type { ThemeMode, ThemePaletteTokens, UiDensity, UiRadius, UiSize } from "@typbase/typing";
+import type {
+  ThemeMode,
+  ThemePaletteTokens,
+  ThemeSeeds,
+  UiDensity,
+  UiRadius,
+  UiSize,
+} from "@typbase/typing";
 
 import { ThemeColors } from "@typbase/wasm";
 
+import { expandSeeds, normalizeCssColor } from "./palette";
 import { themeColorsFromPalette } from "./rendererPalette";
 
 /**
@@ -24,7 +32,8 @@ export interface ThemeDefinition {
   label: string;
   /** Key colors for readability in the picker. */
   swatch: { background: string; text: string; accent: string };
-  variants: { light: ThemePaletteTokens | null; dark: ThemePaletteTokens };
+  /** Seeds per mode; `light` may be null for dark-only themes. */
+  variants: { light: ThemeSeeds | null; dark: ThemeSeeds };
 }
 
 export const THEMES: ThemeDefinition[] = [
@@ -42,11 +51,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#1f2328",
         textSecondary: "#6b7280",
         accent: "#1e5aa0",
-        accentSoft: "#e3edf8",
-        danger: "#b42828",
-        dangerSoft: "#f9e3e3",
         ok: "#2f6f4f",
         warning: "#96660f",
+        danger: "#b42828",
+        info: "#0e7490",
+        red: "#b42828",
+        orange: "#b45309",
+        yellow: "#96660f",
+        green: "#2f6f4f",
+        cyan: "#0e7490",
+        blue: "#1e5aa0",
+        violet: "#6d4fa0",
+        code: "#f6f8fa",
       },
       dark: {
         surface: "#1b1d21",
@@ -57,11 +73,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#e8eaed",
         textSecondary: "#9aa1aa",
         accent: "#6ea6e3",
-        accentSoft: "#223349",
-        danger: "#e08585",
-        dangerSoft: "#4a2a2a",
         ok: "#7cc49d",
         warning: "#d3a54f",
+        danger: "#e08585",
+        info: "#67c9e0",
+        red: "#e08585",
+        orange: "#d9a05b",
+        yellow: "#d3a54f",
+        green: "#7cc49d",
+        cyan: "#67c9e0",
+        blue: "#6ea6e3",
+        violet: "#b39ddb",
+        code: "#15171a",
       },
     },
   },
@@ -79,11 +102,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#4c4f69",
         textSecondary: "#6c6f85",
         accent: "#1e66f5",
-        accentSoft: "#ccd0da",
-        danger: "#d20f39",
-        dangerSoft: "#f2d5dd",
         ok: "#40a02b",
         warning: "#df8e1d",
+        danger: "#d20f39",
+        info: "#04a5e5",
+        red: "#d20f39",
+        orange: "#fe640b",
+        yellow: "#df8e1d",
+        green: "#40a02b",
+        cyan: "#179299",
+        blue: "#1e66f5",
+        violet: "#8839ef",
+        code: "#e6e9ef",
       },
       dark: {
         surface: "#1e1e2e",
@@ -94,11 +124,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#cdd6f4",
         textSecondary: "#a6adc8",
         accent: "#89b4fa",
-        accentSoft: "#313244",
-        danger: "#f38ba8",
-        dangerSoft: "#453246",
         ok: "#a6e3a1",
         warning: "#f9e2af",
+        danger: "#f38ba8",
+        info: "#74c7ec",
+        red: "#f38ba8",
+        orange: "#fab387",
+        yellow: "#f9e2af",
+        green: "#a6e3a1",
+        cyan: "#94e2d5",
+        blue: "#89b4fa",
+        violet: "#cba6f7",
+        code: "#181825",
       },
     },
   },
@@ -116,11 +153,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#2b3034",
         textSecondary: "#455355",
         accent: "#8294ad",
-        accentSoft: "#dde5e8",
-        danger: "#c58687",
-        dangerSoft: "#ecdcdd",
         ok: "#91a77a",
         warning: "#c4aa80",
+        danger: "#c58687",
+        info: "#4a7c8c",
+        red: "#c58687",
+        orange: "#cb8f5e",
+        yellow: "#c4aa80",
+        green: "#91a77a",
+        cyan: "#7ba7a3",
+        blue: "#8294ad",
+        violet: "#a08bb0",
+        code: "#ede5da",
       },
       dark: {
         surface: "#232a2e",
@@ -131,11 +175,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#f8f9e8",
         textSecondary: "#adc9bc",
         accent: "#b3e6db",
-        accentSoft: "#2b3a3c",
-        danger: "#f57f82",
-        dangerSoft: "#43262a",
         ok: "#cbe3b3",
         warning: "#f5d098",
+        danger: "#f57f82",
+        info: "#7fc4c9",
+        red: "#f57f82",
+        orange: "#e8a273",
+        yellow: "#f5d098",
+        green: "#cbe3b3",
+        cyan: "#b3e6db",
+        blue: "#8fb8d8",
+        violet: "#c6a6d8",
+        code: "#1c2226",
       },
     },
   },
@@ -153,11 +204,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#54433a",
         textSecondary: "#7d6658",
         accent: "#bc5c00",
-        accentSoft: "#f3e0d2",
-        danger: "#bf0021",
-        dangerSoft: "#f5dcdc",
         ok: "#3a684a",
         warning: "#a06d00",
+        danger: "#bf0021",
+        info: "#2d7f8a",
+        red: "#bf0021",
+        orange: "#bc5c00",
+        yellow: "#a06d00",
+        green: "#3a684a",
+        cyan: "#2d7f8a",
+        blue: "#3d6a99",
+        violet: "#7d5a9e",
+        code: "#e9e1db",
       },
       dark: {
         surface: "#292522",
@@ -168,11 +226,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#ece1d7",
         textSecondary: "#c1a78e",
         accent: "#e49b5d",
-        accentSoft: "#40342b",
-        danger: "#d47766",
-        dangerSoft: "#452e2b",
         ok: "#85b695",
         warning: "#ebc06d",
+        danger: "#d47766",
+        info: "#6fc3c9",
+        red: "#d47766",
+        orange: "#e49b5d",
+        yellow: "#ebc06d",
+        green: "#85b695",
+        cyan: "#6fc3c9",
+        blue: "#8fb4d8",
+        violet: "#c9a0dc",
+        code: "#211e1c",
       },
     },
   },
@@ -190,11 +255,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#2e3440",
         textSecondary: "#5c6675",
         accent: "#4783a0",
-        accentSoft: "#dce7ee",
-        danger: "#bf616a",
-        dangerSoft: "#f0dee0",
         ok: "#5f8a6e",
         warning: "#a3813f",
+        danger: "#bf616a",
+        info: "#5e81ac",
+        red: "#bf616a",
+        orange: "#d08770",
+        yellow: "#ebcb8b",
+        green: "#a3be8c",
+        cyan: "#88c0d0",
+        blue: "#81a1c1",
+        violet: "#b48ead",
+        code: "#e5e9f0",
       },
       dark: {
         surface: "#2e3440",
@@ -205,11 +277,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#eceff4",
         textSecondary: "#a3b1c6",
         accent: "#88c0d0",
-        accentSoft: "#3b4a5c",
-        danger: "#bf616a",
-        dangerSoft: "#4c3a3e",
         ok: "#a3be8c",
         warning: "#ebcb8b",
+        danger: "#bf616a",
+        info: "#81a1c1",
+        red: "#bf616a",
+        orange: "#d08770",
+        yellow: "#ebcb8b",
+        green: "#a3be8c",
+        cyan: "#88c0d0",
+        blue: "#81a1c1",
+        violet: "#b48ead",
+        code: "#272b34",
       },
     },
   },
@@ -227,11 +306,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#3c3836",
         textSecondary: "#7c6f64",
         accent: "#79740e",
-        accentSoft: "#e8dfa9",
-        danger: "#9d0006",
-        dangerSoft: "#f0c9c9",
         ok: "#79740e",
         warning: "#b57614",
+        danger: "#9d0006",
+        info: "#076678",
+        red: "#9d0006",
+        orange: "#af3a03",
+        yellow: "#b57614",
+        green: "#79740e",
+        cyan: "#427b58",
+        blue: "#076678",
+        violet: "#8f3f71",
+        code: "#f2e5bc",
       },
       dark: {
         surface: "#282828",
@@ -242,11 +328,18 @@ export const THEMES: ThemeDefinition[] = [
         text: "#ebdbb2",
         textSecondary: "#a89984",
         accent: "#83a598",
-        accentSoft: "#3e4a4d",
-        danger: "#fb4934",
-        dangerSoft: "#4c3634",
         ok: "#b8bb26",
         warning: "#fabd2f",
+        danger: "#fb4934",
+        info: "#83a598",
+        red: "#fb4934",
+        orange: "#fe8019",
+        yellow: "#fabd2f",
+        green: "#b8bb26",
+        cyan: "#8ec07c",
+        blue: "#83a598",
+        violet: "#d3869b",
+        code: "#1d2021",
       },
     },
   },
@@ -281,11 +374,11 @@ export function resolveLightTheme(settings: {
 }): ResolvedTheme {
   const def = themeById(settings.themeName ?? "default") ?? null;
   const fallback = THEMES[0]!;
-  const base = def?.variants.light ?? fallback.variants.light ?? fallback.variants.dark;
+  const seeds = def?.variants.light ?? fallback.variants.light ?? fallback.variants.dark;
   const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
 
   return {
-    palette: { ...base, ...custom },
+    palette: { ...expandSeeds(seeds, "light"), ...normalizeCustom(custom) },
     mode: "light",
     definition: def,
   };
@@ -308,29 +401,29 @@ export function resolveTheme(settings: {
     settings.theme === "dark" || (settings.theme === "auto" && prefersDarkScheme());
 
   const def = themeById(settings.themeName ?? "default") ?? null;
-  let base: ThemePaletteTokens;
+  let seeds: ThemeSeeds;
   let mode: "light" | "dark";
 
   if (!def) {
     // Pure custom (or unknown id): use the default palette, flipped by mode.
     const fallback = THEMES[0]!;
     mode = preferDark ? "dark" : "light";
-    base =
+    seeds =
       mode === "dark"
         ? fallback.variants.dark
         : (fallback.variants.light ?? fallback.variants.dark);
   } else if (preferDark || !def.variants.light) {
-    base = def.variants.dark;
+    seeds = def.variants.dark;
     mode = "dark";
   } else {
-    base = def.variants.light;
+    seeds = def.variants.light;
     mode = "light";
   }
 
   const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
 
   return {
-    palette: { ...base, ...custom },
+    palette: { ...expandSeeds(seeds, mode), ...normalizeCustom(custom) },
     mode,
     definition: def,
   };
@@ -340,6 +433,20 @@ function prefersDarkScheme(): boolean {
   return (
     typeof window !== "undefined" && !!window.matchMedia?.("(prefers-color-scheme: dark)").matches
   );
+}
+
+/**
+ * Stored custom palettes can predate the current token set or carry syntax no
+ * parser downstream understands. Normalize what we can; unknown keys merge
+ * over the base as usual.
+ */
+function normalizeCustom(custom: Partial<ThemePaletteTokens>): Partial<ThemePaletteTokens> {
+  return Object.fromEntries(
+    Object.entries(custom).map(([key, value]) => [
+      key,
+      typeof value === "string" ? normalizeCssColor(value) : value,
+    ]),
+  ) as Partial<ThemePaletteTokens>;
 }
 
 /** The workspace font settings that also drive the app chrome. */
@@ -354,6 +461,8 @@ export interface AppChromeSettings extends AppFontSettings {
   uiSize?: UiSize;
   uiDensity?: UiDensity;
   uiRadius?: UiRadius;
+  /** Document text size in pt; the editor renders 1pt as 1px. */
+  textSize?: number;
 }
 
 /** Preset to multiplier for the three scale variables in tokens.css. */
@@ -424,6 +533,9 @@ export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSet
     String(UI_DENSITY_SCALE[settings?.uiDensity ?? "default"]),
   );
   root.style.setProperty("--ui-radius", String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]));
+  // The editor and the rendered headings follow the document text size; the
+  // engine gets the same number for compiled output.
+  root.style.setProperty("--doc-text-size", `${settings?.textSize ?? 16}px`);
 }
 
 // Last-applied settings cache. Workspace theme settings live in a Loro doc,
@@ -449,6 +561,7 @@ export function cacheThemeSettings(settings: CachedThemeSettings): void {
         uiSize: settings.uiSize ?? "default",
         uiDensity: settings.uiDensity ?? "default",
         uiRadius: settings.uiRadius ?? "default",
+        textSize: settings.textSize ?? 16,
       } satisfies CachedThemeSettings),
     );
   } catch {

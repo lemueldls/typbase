@@ -29,5 +29,17 @@ export function themeColorsFromPalette(palette: ThemePaletteTokens): ThemeColors
     c[12]!,
     c[13]!,
     c[14]!,
+    c[15]!,
+    c[16]!,
+    c[17]!,
+    c[18]!,
+    c[19]!,
+    c[20]!,
+    c[21]!,
+    c[22]!,
+    c[23]!,
+    c[24]!,
+    c[25]!,
+    c[26]!,
   );
 }

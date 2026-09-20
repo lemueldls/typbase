@@ -13,6 +13,10 @@
   --ui-density: 1;
   --ui-radius: 1;
 
+  /* Document text size, written from the workspace's textSize setting. The
+     editor source and its rendered headings both scale from it. */
+  --doc-text-size: 16px;
+
   /* Spacing: quarter-rem steps on a 2px grid. --space-1 is 4px, --space-4
      is 16px. Density scales padding and gaps only. */
   --space-0-5: calc(0.125rem * var(--ui-density));
@@ -67,12 +71,24 @@
   --color-text: #1f2328;
   --color-text-secondary: #6b7280;
   --color-accent: #1e5aa0;
-  --color-accent-soft: #e3edf8;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   --color-danger: #b42828;
-  --color-danger-soft: #f9e3e3;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
   --color-ok: #2f6f4f;
+  --color-ok-soft: color-mix(in srgb, var(--color-ok) 12%, var(--color-surface));
   --color-warning: #96660f;
-  --color-overlay: rgb(0 0 0 / 0.35);
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --color-info: #0e7490;
+  --color-info-soft: color-mix(in srgb, var(--color-info) 12%, var(--color-surface));
+  --color-red: #b42828;
+  --color-orange: #b45309;
+  --color-yellow: #96660f;
+  --color-green: #2f6f4f;
+  --color-cyan: #0e7490;
+  --color-blue: #1e5aa0;
+  --color-violet: #6d4fa0;
+  --color-code: #f6f8fa;
+  --color-overlay: #00000059;
   --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
 
   color-scheme: light;
@@ -87,12 +103,24 @@
   --color-text: #e8eaed;
   --color-text-secondary: #9aa1aa;
   --color-accent: #6ea6e3;
-  --color-accent-soft: #223349;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   --color-danger: #e08585;
-  --color-danger-soft: #4a2a2a;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
   --color-ok: #7cc49d;
+  --color-ok-soft: color-mix(in srgb, var(--color-ok) 12%, var(--color-surface));
   --color-warning: #d3a54f;
-  --color-overlay: rgb(0 0 0 / 0.55);
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --color-info: #67c9e0;
+  --color-info-soft: color-mix(in srgb, var(--color-info) 12%, var(--color-surface));
+  --color-red: #e08585;
+  --color-orange: #d9a05b;
+  --color-yellow: #d3a54f;
+  --color-green: #7cc49d;
+  --color-cyan: #67c9e0;
+  --color-blue: #6ea6e3;
+  --color-violet: #b39ddb;
+  --color-code: #15171a;
+  --color-overlay: #0000008c;
   --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
 
   color-scheme: dark;

@@ -13,7 +13,7 @@ import {
   type ExportFile,
   type ExportOptions,
 } from "~/lib/exportPage";
-import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
+import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 
 export interface WorkspaceExportOptions extends ExportOptions {
@@ -39,8 +39,8 @@ export async function buildWorkspaceExport(
   }
 
   const themeOptions = { theme: options.theme, pageSize: options.pageSize } as const;
-  const htmlPrelude = publishPrelude(store.getSettings(), { ...themeOptions, paged: false });
-  const pagedPrelude = publishPrelude(store.getSettings(), { ...themeOptions, paged: true });
+  const htmlPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: false });
+  const pagedPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: true });
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
@@ -75,6 +75,7 @@ export async function buildWorkspaceExport(
         prelude: htmlPrelude,
         wants: "html",
         spaceId: store.workspaceId,
+        theme: palette,
       });
       if (!rendered.html) {
         throw new Error(`The render produced no HTML for ${pagePath}.`);
@@ -95,6 +96,7 @@ export async function buildWorkspaceExport(
         prelude: pagedPrelude,
         wants: "pdf",
         spaceId: store.workspaceId,
+        theme: palette,
       });
       if (!rendered.pdf) {
         throw new Error(`The render produced no PDF for ${pagePath}.`);
@@ -112,6 +114,7 @@ export async function buildWorkspaceExport(
         wants: "svg",
         merged: options.svgMerged,
         spaceId: store.workspaceId,
+        theme: palette,
       });
       if (!rendered.svg?.length) {
         throw new Error(`The render produced no SVG pages for ${pagePath}.`);
@@ -168,6 +171,7 @@ export async function buildWorkspaceExport(
         prelude: htmlPrelude,
         wants: "html",
         spaceId: store.workspaceId,
+        theme: palette,
       });
       if (!rendered.html) throw new Error("The combined render produced no HTML.");
 
@@ -186,6 +190,7 @@ export async function buildWorkspaceExport(
         prelude: pagedPrelude,
         wants: "pdf",
         spaceId: store.workspaceId,
+        theme: palette,
       });
       if (!rendered.pdf) throw new Error("The combined render produced no PDF.");
 
@@ -201,6 +206,7 @@ export async function buildWorkspaceExport(
         wants: "svg",
         merged: options.svgMerged,
         spaceId: store.workspaceId,
+        theme: palette,
       });
       if (!rendered.svg?.length) throw new Error("The combined render produced no SVG pages.");
 
@@ -224,6 +230,8 @@ export async function buildWorkspaceExport(
     if (typstState) {
       files.push({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
     }
+    const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
+    files.push({ name: syntax.path, bytes: encoder.encode(syntax.text) });
     for (const payload of payloads.values()) files.push(payload);
     if (options.fonts) files.push(...(await fontFiles()));
   }

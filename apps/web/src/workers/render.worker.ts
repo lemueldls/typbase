@@ -12,6 +12,7 @@ import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWork
 import type { RequestPayload } from "~/lib/typstRequests";
 
 import { specString } from "~/lib/packages";
+import { themeColorsFromPalette } from "~/lib/rendererPalette";
 
 /**
  * Worker entry: owns one TypstState for publish and export renders. The page
@@ -101,7 +102,7 @@ self.addEventListener(
 
     currentId = message.id;
     insertedKeys = new Set();
-    const { pagePath, source, prelude, wants, merged, spaceId } = message;
+    const { pagePath, source, prelude, wants, merged, spaceId, theme } = message;
 
     try {
       const typstState = await ensureState();
@@ -110,6 +111,10 @@ self.addEventListener(
       // prelude.
       const file = typstState.createSourceId(pagePath, spaceId);
       typstState.insertSource(file, source);
+
+      // Install the export palette so the engine's prelude (and the code-block
+      // theme file it references) matches the caller prelude.
+      if (theme) typstState.setTheme(file, themeColorsFromPalette(theme));
 
       if (wants === "svg") {
         await runPasses(
