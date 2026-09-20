@@ -21,7 +21,7 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 - [CodeMirror](https://codemirror.net) 6 with syntax highlighting, hover, autocomplete, Typst-aware keymaps, and WYSIWYG inline widgets.
 - [Harper](https://writewithharper.com) for optional grammar checking in a worker, alongside the browser's native spellchecker.
-- Four view modes: Write (inline WYSIWYG), Split, Source, and Read.
+- Five view modes: Write (inline WYSIWYG), Notebook (Jupyter-style), Split, Source, and Read.
 
 ### Engine
 
@@ -62,9 +62,9 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 ## Inspirations
 
 - [Typst](https://typst.app) for the language and compiler, and the idea that documents can be queried as data.
-- [Notion](https://www.notion.com) and [Obsidian](https://obsidian.md) for the product shape: daily notes, categories, command palette, backlinks, and plain files on disk.
+- [Notion](https://www.notion.com) and [Obsidian](https://obsidian.md) for the product shape: daily notes, categories, command palette, backlinks, and files on disk.
 - [Mnemo](https://github.com/lemueldls/mnemo), an earlier Typst WYSIWYG editor whose editor and WebAssembly engine were extracted into Typbase.
-- [Noteworthy](https://github.com/sihooleebd/noteworthy), a Typst framework for educational documents and a reference for Typst-first authoring, study material, and flashcards.
+- [Noteworthy](https://github.com/sihooleebd/noteworthy), a Typst framework for educational documents and a reference for Typst-first authoring.
 - [The LEAST Private Operating System Ever Created](https://www.youtube.com/watch?v=M_720LesVg4) for reflective systems where everything is inspectable.
 - [Dynamic Documents as Personal Software](https://www.youtube.com/watch?v=MccJdr61xnc) for documents that run their own code.
 - [PlayBook: A Programmable Paper Notebook](https://www.youtube.com/watch?v=GurWDZ8ENpA) for programmable notebook pages.
@@ -74,7 +74,7 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 
 ## Development
 
-Prerequisites: Node 26+, pnpm 12+, Rust with the WebAssembly target, and [wasm-pack](https://github.com/rustwasm/wasm-pack). Without Rust, the dev command cannot build the engine and fails.
+Prerequisites: Node 26+, pnpm 12+, Rust with the WebAssembly target, and [wasm-pack](https://github.com/rustwasm/wasm-pack).
 
 ```sh
 pnpm install
