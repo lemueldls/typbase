@@ -221,6 +221,122 @@ interface DecorateArgs {
   onPanic?: (fileId: FileId) => void;
 }
 
+interface BuildDecorationsArgs {
+  state: EditorState;
+  view: EditorView;
+  frames: SvgRangedFrame[];
+  locked: boolean;
+  fileId: FileId;
+  typstState: TypstState;
+  /**
+   * Measured source heights for the active blocks, keyed by line start. The
+   * first pass runs while the blocks' widgets are still mounted, so the view
+   * reports the render height for those lines; the remeasure pass fills this
+   * from the source lines once they exist.
+   */
+  lineHeights?: Map<number, number>;
+}
+
+/**
+ * Builds the decoration set for a compile result: rendered blocks become
+ * replace widgets, the block the cursor is in shows its source and stretches
+ * its last line to the render's height. Returns the frames that show source,
+ * for the remeasure pass.
+ */
+function buildDecorations({
+  state,
+  view,
+  frames,
+  locked,
+  fileId,
+  typstState,
+  lineHeights,
+}: BuildDecorationsArgs): { decorations: DecorationSet; active: SvgRangedFrame[] } {
+  const decorations: Range<Decoration>[] = [];
+  const active: SvgRangedFrame[] = [];
+
+  for (const frame of frames) {
+    const { start, end } = frame.range;
+
+    if (!frame.render) continue;
+
+    const inactive =
+      !view.hasFocus ||
+      state.selection.ranges.every(
+        (range) =>
+          (range.from < start || range.from > end) &&
+          (range.to < start || range.to > end) &&
+          (start < range.from || start > range.to) &&
+          (end < range.from || end > range.to),
+      );
+
+    if (inactive) {
+      const widget = new TypstWidget(view, frame, locked, fileId, typstState);
+      decorations.push(Decoration.replace({ widget }).range(start, end));
+
+      continue;
+    }
+
+    active.push(frame);
+
+    let lineHeight = 0;
+
+    const { number: startLine } = state.doc.lineAt(start);
+    const { number: endLine } = state.doc.lineAt(end);
+
+    for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
+      const line = state.doc.line(currentLine);
+      let style = "";
+      if (currentLine == startLine)
+        style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
+      if (currentLine == endLine)
+        style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${Math.max(0, frame.render.height - lineHeight)}px`;
+      else lineHeight += lineHeights?.get(line.from) ?? view.lineBlockAt(line.from).height;
+
+      decorations.push(
+        Decoration.line({
+          class: "cm-activeLine",
+          attributes: { style },
+        }).range(line.from),
+      );
+    }
+  }
+
+  return { decorations: Decoration.set(decorations, true), active };
+}
+
+/**
+ * Source line heights for the blocks whose widgets were just removed. Runs
+ * inside the view's measure pass, after the source lines are in the DOM, so
+ * the heights are the text's and not the widget's.
+ */
+function measureLineHeights(view: EditorView, frames: SvgRangedFrame[]): Map<number, number> {
+  const heights = new Map<number, number>();
+  const { state } = view;
+
+  for (const frame of frames) {
+    const { number: startLine } = state.doc.lineAt(frame.range.start);
+    const { number: endLine } = state.doc.lineAt(frame.range.end);
+
+    for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
+      const line = state.doc.line(currentLine);
+
+      if (!heights.has(line.from)) {
+        heights.set(line.from, view.lineBlockAt(line.from).height);
+      }
+    }
+  }
+
+  return heights;
+}
+
+interface DecorateResult {
+  decorations: DecorationSet;
+  tooltips: SvgRangedFrame[];
+  frames: SvgRangedFrame[];
+  active: SvgRangedFrame[];
+}
+
 function decorate({
   fileId,
   spaceId,
@@ -235,7 +351,7 @@ function decorate({
   revision,
   onRequests,
   onPanic,
-}: DecorateArgs) {
+}: DecorateArgs): DecorateResult {
   const text = update.state.doc.toString();
   const isFlaggedForUpdate = updateFlagStore.has(path);
   const cacheKey = compileCacheKey(path, typstState, revision);
@@ -256,7 +372,7 @@ function decorate({
       // letting the trap break CodeMirror's update loop.
       console.error("[typst] compile panicked:", error);
       onPanic?.(fileId);
-      return { decorations: Decoration.none, tooltips: [] };
+      return { decorations: Decoration.none, tooltips: [], frames: [], active: [] };
     }
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
     rememberDiagnostics(path, text, compileResult.diagnostics);
@@ -280,57 +396,9 @@ function decorate({
   } else ({ frames, tooltips } = compileCache.get(cacheKey)!);
 
   const { view, state } = update;
+  const built = buildDecorations({ state, view, frames, locked, fileId, typstState });
 
-  const decorations: Range<Decoration>[] = [];
-
-  for (const frame of frames) {
-    const { start, end } = frame.range;
-
-    if (frame.render) {
-      const inactive =
-        !view.hasFocus ||
-        state.selection.ranges.every(
-          (range) =>
-            (range.from < start || range.from > end) &&
-            (range.to < start || range.to > end) &&
-            (start < range.from || start > range.to) &&
-            (end < range.from || end > range.to),
-        );
-
-      if (inactive) {
-        const widget = new TypstWidget(view, frame, locked, fileId, typstState);
-
-        decorations.push(Decoration.replace({ widget }).range(start, end));
-      } else {
-        let lineHeight = 0;
-
-        const { number: startLine } = state.doc.lineAt(start);
-        const { number: endLine } = state.doc.lineAt(end);
-
-        for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
-          const line = state.doc.line(currentLine);
-          let style = "";
-          if (currentLine == startLine)
-            style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
-          if (currentLine == endLine)
-            style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${frame.render.height - lineHeight}px`;
-          else lineHeight += view.lineBlockAt(line.from).height;
-
-          decorations.push(
-            Decoration.line({
-              class: "cm-activeLine",
-              attributes: { style },
-            }).range(line.from),
-          );
-        }
-      }
-    }
-  }
-
-  return {
-    decorations: Decoration.set(decorations, true),
-    tooltips,
-  };
+  return { decorations: built.decorations, tooltips, frames, active: built.active };
 }
 
 const typstStateEffect = StateEffect.define<{ decorations: DecorationSet }>({});
@@ -375,6 +443,56 @@ export const typstViewPlugin = (
     // runs until the user clicks or types.
     let firstUpdate = true;
     let resizeTimer: number | undefined;
+
+    // Dedupes remeasure requests for this view; the latest one wins.
+    const remeasureKey = {};
+
+    /**
+     * A pass that shows a block's source runs while the block's widget is still
+     * mounted, so the view reports the widget's height for those lines and the
+     * min-height that should keep the render's height comes out as zero. Once
+     * the source lines are in the DOM and measured, rebuild the active
+     * decorations with the real text heights. The measure pass runs before
+     * paint, so the rebuild is not visible.
+     */
+    const remeasureActive = (update: ViewUpdate, result: DecorateResult) => {
+      if (result.active.length === 0) return;
+
+      const { view, state } = update;
+      const focused = view.hasFocus;
+      const stale = () =>
+        view.state.doc !== state.doc ||
+        !view.state.selection.eq(state.selection) ||
+        view.hasFocus !== focused;
+
+      view.requestMeasure({
+        key: remeasureKey,
+        read: (readView) => (stale() ? null : measureLineHeights(readView, result.active)),
+        write: (heights) => {
+          if (!heights) return;
+
+          queueMicrotask(() => {
+            // Another update changed the inputs; that pass schedules its own
+            // remeasure.
+            if (stale()) return;
+
+            const rebuilt = buildDecorations({
+              state: view.state,
+              view,
+              frames: result.frames,
+              locked,
+              fileId,
+              typstState,
+              lineHeights: heights,
+            });
+
+            view.dispatch({
+              effects: typstStateEffect.of({ decorations: rebuilt.decorations }),
+            });
+          });
+        },
+      });
+    };
 
     return {
       update(update: ViewUpdate) {
@@ -465,6 +583,8 @@ export const typstViewPlugin = (
                 tooltipsStateEffect.of(result.tooltips),
               ];
               update.view.dispatch({ effects });
+
+              remeasureActive(update, result);
             }
           });
 

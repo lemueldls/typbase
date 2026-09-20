@@ -90,15 +90,18 @@ pub fn sync_source_context(
     world: &mut TypstWorld,
 ) -> SynthResult {
     // A compile with the same raw text and prelude rebuilds nothing. Restore
-    // the pristine render source and map that recovery may have rewritten,
-    // then hand back the cached structure. The prelude carries the pane width,
+    // the pristine sources and map that recovery may have rewritten, then
+    // hand back the cached structure. The prelude carries the pane width,
     // theme, fonts, and text size, so every setting change is a miss.
+    //
+    // The check reads the cached input text, not the world's raw source: the
+    // editor's syntax-highlight field rewrites that source on every keystroke,
+    // before the compile microtask runs, so it always looks unchanged.
     if let Some(last) = &context.last_sync
-        && context
-            .raw_source(world)
-            .is_some_and(|source| source.text() == text)
+        && last.raw == text
         && last.prelude == prelude
     {
+        world.insert_source_object(context.synth_id, last.synth_source.clone());
         world.insert_source_object(context.ide_id, last.synth_source.clone());
         world.insert_source_object(context.render_id, last.render_source.clone());
         context.render_map = last.render_map.clone();
@@ -144,6 +147,7 @@ pub fn sync_source_context(
     context.marked_raw_ranges.clear();
 
     context.last_sync = Some(SyncedInput {
+        raw: text.to_string(),
         prelude,
         blocks: render.blocks.clone(),
         equation_ranges: render.equation_ranges.clone(),

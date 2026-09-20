@@ -143,6 +143,43 @@ fn unchanged_input_restores_the_pristine_render_source() {
     );
 }
 
+/// The editor's syntax-highlight field runs in the transaction, before the
+/// plugin's compile microtask, and rewrites the world's raw source. The sync
+/// cache keys on its own input text, not on that source, or every compile
+/// after an edit serves the previous text's blocks and render source.
+#[test]
+fn highlight_between_syncs_does_not_hit_the_early_out() {
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "highlight_cache");
+
+    let first = "Alpha.\n";
+    let second = "Alpha, plus a new line of text.\n";
+
+    let _ = sync_source_state(&id, first, "", RenderTarget::Svg, &mut state);
+    let first_synth = harness::render_text(&state, &id);
+
+    // Exactly what `TypstState::highlight` does on every keystroke.
+    let _ = state.highlight(&id, second);
+
+    let result = sync_source_state(&id, second, "", RenderTarget::Svg, &mut state);
+    let second_synth = harness::render_text(&state, &id);
+
+    assert_ne!(
+        first_synth, second_synth,
+        "the second sync reused the first text's synth",
+    );
+    assert!(
+        second_synth.contains("plus a new line of text"),
+        "the synth does not contain the new text:\n{second_synth}",
+    );
+    assert_eq!(result.blocks.len(), 1);
+    assert_eq!(
+        result.blocks[0].range.end,
+        second.len() - 1,
+        "block range still describes the old text",
+    );
+}
+
 /// The prelude carries the pane width, theme, fonts, and text size, so any of
 /// those changing must rebuild instead of hitting the early-out.
 #[test]

@@ -235,3 +235,50 @@ fn list_markers_stay_with_their_items() {
         "list marker parsed as plain text: {first_texts:?}",
     );
 }
+
+/// The editor's syntax-highlight field rewrites the world's raw source in the
+/// transaction, before the plugin's compile microtask. That must not make the
+/// sync reuse the previous text: the stale blocks carry the old ranges, and a
+/// replace decoration built from them hides the text that followed the block.
+#[test]
+fn highlight_between_compiles_keeps_frame_ranges_current() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "highlight_ranges");
+    state.resize(&id, Some(600.0), None);
+
+    let first = "One.\n";
+    let second = "One.\n\nTwo.\n";
+
+    let first_render = render_svgs_by_items(&id, first, "", &mut state);
+    assert_eq!(
+        first_render.frames.len(),
+        1,
+        "first text should make one chunk",
+    );
+
+    // Exactly what `TypstState::highlight` does on every keystroke.
+    let _ = state.highlight(&id, second);
+
+    let second_render = render_svgs_by_items(&id, second, "", &mut state);
+
+    assert_eq!(
+        second_render.frames.len(),
+        2,
+        "the second compile served the first text's chunks: {:?}",
+        second_render
+            .frames
+            .iter()
+            .map(|frame| frame.range.clone())
+            .collect::<Vec<_>>(),
+    );
+    assert!(
+        second_render.frames[1].range.start >= first.len(),
+        "the second chunk starts inside the first text: {:?}",
+        second_render.frames[1].range,
+    );
+}

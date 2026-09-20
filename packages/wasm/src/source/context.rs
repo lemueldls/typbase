@@ -54,6 +54,10 @@ impl Default for SpaceContext {
 /// source and map from here instead of parsing and building again.
 #[derive(Debug)]
 pub(crate) struct SyncedInput {
+    /// Raw text this build was made from. The world's raw source cannot key
+    /// the cache: `highlight` rewrites it on every keystroke, before the
+    /// editor's compile microtask runs.
+    pub(crate) raw: String,
     /// Full prelude: space settings plus the caller's prelude.
     pub(crate) prelude: String,
     /// Top-level blocks, in repaired-source bytes.
@@ -62,7 +66,8 @@ pub(crate) struct SyncedInput {
     pub(crate) equation_ranges: Vec<Range<usize>>,
     /// Pristine render map, before recovery splices edits into it.
     pub(crate) render_map: SourceMap,
-    /// Pristine synth source, re-inserted into the IDE id on restore.
+    /// Pristine synth source, re-inserted into the synth and IDE ids on
+    /// restore.
     pub(crate) synth_source: Source,
     /// Pristine render source, re-inserted on restore.
     pub(crate) render_source: Source,

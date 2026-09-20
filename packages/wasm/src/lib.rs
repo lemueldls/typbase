@@ -81,6 +81,21 @@ fn start() {
     utils::set_panic_hook();
 }
 
+/// True when the module was built by the dev profile.
+///
+/// The two wasm tasks write the same `pkg/` directory, so a stray
+/// `wasm:build-dev` edge in a release graph silently swaps the optimized
+/// engine for the unoptimized one. `scripts/ci/check-wasm-release.mjs` reads
+/// this before publishing. Custom sections cannot key that check: wasm-opt and
+/// wasm-bindgen rewrite them.
+// wasm-bindgen only accepts non-const functions.
+#[allow(clippy::missing_const_for_fn)]
+#[wasm_bindgen(js_name = "isDevelopmentBuild")]
+#[must_use]
+pub fn is_development_build() -> bool {
+    cfg!(debug_assertions)
+}
+
 #[macro_export]
 macro_rules! log {
     ($($e:tt)*) => {

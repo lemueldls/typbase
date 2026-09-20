@@ -8,7 +8,7 @@ tasks:
   build:
     command: "pnpm build"
     deps:
-      - "wasm:build-dev"
+      - "wasm:build"
     inputs:
       - "src/**/*"
       - "tsconfig.json"
