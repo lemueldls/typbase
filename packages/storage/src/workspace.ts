@@ -565,12 +565,9 @@ export class WorkspaceStore {
 
   private writePageMeta(meta: PageMeta): void {
     const pages = this.doc.getMap("pages");
-    // Older docs hold regular op-id children at these keys;
-    // ensureMergeableMap throws on those. Reuse what exists, create
-    // deterministic mergeable children only for fresh keys.
-    const map = (pages.get(meta.id) as LoroMap | undefined) ?? pages.ensureMergeableMap(meta.id);
+    const map = pages.ensureMergeableMap(meta.id);
 
-    const tags = (map.get("tags") as LoroList | undefined) ?? map.ensureMergeableList("tags");
+    const tags = map.ensureMergeableList("tags");
     for (let i = tags.length - 1; i >= 0; i--) tags.delete(i, 1);
     for (const tag of meta.tags) tags.push(tag);
 
@@ -1021,7 +1018,7 @@ export class WorkspaceStore {
   async setAsset(pageId: string, ref: string, asset: AssetMeta): Promise<void> {
     const doc = await this.openPageDoc(pageId);
     const map = doc.getMap("assets");
-    const entry = (map.get(ref) as LoroMap | undefined) ?? map.ensureMergeableMap(ref);
+    const entry = map.ensureMergeableMap(ref);
     for (const [key, value] of Object.entries(asset)) entry.set(key, value);
     doc.commit();
   }
@@ -1076,8 +1073,7 @@ export class WorkspaceStore {
 
   setPluginInstall(install: PluginInstall): void {
     const plugins = this.doc.getMap("plugins");
-    const map =
-      (plugins.get(install.id) as LoroMap | undefined) ?? plugins.ensureMergeableMap(install.id);
+    const map = plugins.ensureMergeableMap(install.id);
     map.set("id", install.id);
     map.set("version", install.version);
     map.set("enabled", install.enabled);
@@ -1169,9 +1165,7 @@ export class WorkspaceStore {
 
   private writePluginInstance(instance: PluginInstance): void {
     const instances = this.doc.getMap("instances");
-    const map =
-      (instances.get(instance.id) as LoroMap | undefined) ??
-      instances.ensureMergeableMap(instance.id);
+    const map = instances.ensureMergeableMap(instance.id);
     map.set("id", instance.id);
     map.set("pluginId", instance.pluginId);
     map.set("surface", instance.surface);
@@ -1217,14 +1211,10 @@ export class WorkspaceStore {
     const collections = doc.getMap("collections");
 
     for (const op of ops) {
-      const collection =
-        (collections.get(op.collection) as LoroMap | undefined) ??
-        collections.ensureMergeableMap(op.collection);
+      const collection = collections.ensureMergeableMap(op.collection);
 
       if (op.op === "append") {
-        const map =
-          (collection.get(op.record.id) as LoroMap | undefined) ??
-          collection.ensureMergeableMap(op.record.id);
+        const map = collection.ensureMergeableMap(op.record.id);
         for (const [key, value] of Object.entries(op.record)) {
           if (key === "id" || value === undefined) continue;
           map.set(key, value);
@@ -1237,8 +1227,7 @@ export class WorkspaceStore {
         continue;
       }
 
-      const map =
-        (collection.get(op.id) as LoroMap | undefined) ?? collection.ensureMergeableMap(op.id);
+      const map = collection.ensureMergeableMap(op.id);
 
       if (op.op === "set") {
         map.set(op.key, op.value);
