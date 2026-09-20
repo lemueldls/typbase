@@ -115,8 +115,6 @@
     "spellcheckHarper": "Harper（离线语法）",
     "spellcheckHint": "浏览器方案使用浏览器自带的检查器。Harper 是本地语法检查器：模型只需下载一次，文本不会离开设备。",
     "notebook": "笔记本",
-    "notebookAutoRun": "输入时运行",
-    "notebookAutoRunHint": "输入时单元格会重新编译。关闭后仅在运行单元格时更新输出。",
     "notebookCounters": "执行计数器",
     "notebookCountersHint": "在单元格标题中显示 [n] 运行计数。",
     "textFont": "正文字体",
@@ -445,7 +443,6 @@
     "restart": "重新启动",
     "addCell": "添加单元格",
     "clearOutput": "清除输出",
-    "autoRun": "输入时运行",
     "running": "运行中…",
     "commandHint": "Enter 编辑 · A/B 添加 · DD 删除 · M/Y 类型",
     "code": "代码",
@@ -456,7 +453,6 @@
     "remove": "删除单元格",
     "toggleSource": "折叠单元格",
     "noOutput": "无输出",
-    "stale": "输出已过期",
     "error": "单元格错误"
   }
 }

@@ -14,7 +14,6 @@ import {
   runAllCells,
   runCell,
   setCellType,
-  typstRecompileEffect,
   type NotebookLabels,
 } from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
@@ -81,15 +80,8 @@ const notebookLabels = computed<NotebookLabels>(() => ({
   clearOutput: t("notebook.clearOutput"),
   toggleSource: t("notebook.toggleSource"),
   noOutput: t("notebook.noOutput"),
-  stale: t("notebook.stale"),
   error: t("notebook.error"),
 }));
-
-const notebookAutoRun = computed(() => {
-  void dataRevision.value;
-
-  return store?.getSettings().notebook.autoRun ?? true;
-});
 
 function notebookView(): EditorView | undefined {
   return editorPane.value?.view;
@@ -109,16 +101,6 @@ function syncNotebookController(): void {
       notebookView()?.contentDOM.blur();
     },
   });
-}
-
-function toggleNotebookAutoRun(): void {
-  if (!store) return;
-
-  const settings = store.getSettings().notebook;
-  store.updateSettings({ notebook: { ...settings, autoRun: !settings.autoRun } });
-
-  // Turning live mode back on should refresh outputs immediately.
-  if (!settings.autoRun) notebookView()?.dispatch({ effects: typstRecompileEffect.of(null) });
 }
 
 function runNotebookCell(): void {
@@ -896,14 +878,12 @@ function onModeKeydown(event: KeyboardEvent) {
       v-if="modelValue === 'notebook' && store"
       :session="notebookSession"
       :selected="notebookSelected"
-      :auto-run="notebookAutoRun"
       :disabled="!ready"
       @run-cell="runNotebookCell"
       @run-all="runAllNotebook"
       @restart="restartNotebook"
       @clear-output="clearNotebookOutput"
       @add-cell="addNotebookCell"
-      @toggle-auto-run="toggleNotebookAutoRun"
     />
 
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">

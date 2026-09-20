@@ -103,11 +103,6 @@ export interface SearchSettings {
 
 /** Notebook-mode behavior, synced with the workspace like the theme. */
 export interface NotebookSettings {
-  /**
-   * True (default): outputs recompile as you type. False: outputs update only
-   * when a cell is run, and edited cells show a stale mark.
-   */
-  autoRun: boolean;
   /** Show the `[n]` execution counters in cell headers. */
   showCounters: boolean;
 }
@@ -311,7 +306,6 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     embeddingModel: "BAAI/bge-small-en-v1.5",
   },
   notebook: {
-    autoRun: true,
     showCounters: true,
   },
 };

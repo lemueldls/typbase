@@ -115,8 +115,6 @@
     "spellcheckHarper": "Harper (Grammatik, offline)",
     "spellcheckHint": "Nativ nutzt die Rechtschreibprüfung des Browsers. Harper ist eine lokale Grammatikprüfung: Das Modell wird einmalig geladen, Texte verlassen das Gerät nicht.",
     "notebook": "Notizbuch",
-    "notebookAutoRun": "Beim Tippen ausführen",
-    "notebookAutoRunHint": "Zellen werden beim Tippen neu kompiliert. Ausschalten, um Ausgaben nur beim Ausführen zu aktualisieren.",
     "notebookCounters": "Ausführungszähler",
     "notebookCountersHint": "Den [n]-Zähler in den Zellenköpfen anzeigen.",
     "textFont": "Textschrift",
@@ -445,7 +443,6 @@
     "restart": "Neu starten",
     "addCell": "Zelle hinzufügen",
     "clearOutput": "Ausgabe löschen",
-    "autoRun": "Beim Tippen ausführen",
     "running": "Läuft…",
     "commandHint": "Enter bearbeitet · A/B einfügen · DD löschen · M/Y Typ",
     "code": "Code",
@@ -456,7 +453,6 @@
     "remove": "Zelle löschen",
     "toggleSource": "Zelle einklappen",
     "noOutput": "Keine Ausgabe",
-    "stale": "Ausgabe ist veraltet",
     "error": "Zellenfehler"
   }
 }

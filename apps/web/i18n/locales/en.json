@@ -115,8 +115,6 @@
     "spellcheckHarper": "Harper (grammar, offline)",
     "spellcheckHint": "Native uses the browser's own checker. Harper is a local grammar checker: its model is fetched once and text never leaves the device.",
     "notebook": "Notebook",
-    "notebookAutoRun": "Run as you type",
-    "notebookAutoRunHint": "Cells recompile while you type. Turn this off to update outputs only when you run a cell.",
     "notebookCounters": "Execution counters",
     "notebookCountersHint": "Show the [n] run counter in cell headers.",
     "textFont": "Text font",
@@ -304,7 +302,6 @@
     "restart": "Restart",
     "addCell": "Add cell",
     "clearOutput": "Clear output",
-    "autoRun": "Run as you type",
     "running": "Running…",
     "commandHint": "Enter edits · A/B add · DD deletes · M/Y type",
     "code": "Code",
@@ -315,7 +312,6 @@
     "remove": "Delete cell",
     "toggleSource": "Collapse cell",
     "noOutput": "No output",
-    "stale": "Output is stale",
     "error": "Cell error"
   },
   "formatting": {

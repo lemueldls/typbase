@@ -115,8 +115,6 @@
     "spellcheckHarper": "Harper (gramática, sin conexión)",
     "spellcheckHint": "Nativo usa el corrector del navegador. Harper es un corrector gramatical local: el modelo se descarga una vez y el texto no sale del dispositivo.",
     "notebook": "Cuaderno",
-    "notebookAutoRun": "Ejecutar al escribir",
-    "notebookAutoRunHint": "Las celdas se recompilan mientras escribes. Desactívalo para actualizar las salidas solo al ejecutar.",
     "notebookCounters": "Contadores de ejecución",
     "notebookCountersHint": "Mostrar el contador [n] en las cabeceras de celda.",
     "textFont": "Fuente de texto",
@@ -445,7 +443,6 @@
     "restart": "Reiniciar",
     "addCell": "Añadir celda",
     "clearOutput": "Borrar salida",
-    "autoRun": "Ejecutar al escribir",
     "running": "Ejecutando…",
     "commandHint": "Enter edita · A/B añade · DD borra · M/Y tipo",
     "code": "Código",
@@ -456,7 +453,6 @@
     "remove": "Eliminar celda",
     "toggleSource": "Contraer celda",
     "noOutput": "Sin salida",
-    "stale": "La salida está desactualizada",
     "error": "Error de celda"
   }
 }

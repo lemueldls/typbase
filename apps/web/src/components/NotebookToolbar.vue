@@ -5,7 +5,6 @@ const props = defineProps<{
   session: NotebookSession;
   /** Cell selected in command mode, or null while editing. */
   selected: number | null;
-  autoRun: boolean;
   disabled: boolean;
 }>();
 
@@ -15,7 +14,6 @@ const emit = defineEmits<{
   (e: "restart"): void;
   (e: "clearOutput"): void;
   (e: "addCell"): void;
-  (e: "toggleAutoRun"): void;
 }>();
 
 const activeIndex = computed(() => props.selected ?? props.session.active);
@@ -64,13 +62,6 @@ const status = computed(() => {
     <span class="notebook-toolbar__spacer" />
 
     <span v-if="status" class="notebook-toolbar__status">{{ $t(status) }}</span>
-
-    <UiSwitch
-      class="notebook-toolbar__autorun"
-      :model-value="autoRun"
-      :label="$t('notebook.autoRun')"
-      @update:model-value="emit('toggleAutoRun')"
-    />
   </div>
 </template>
 
@@ -97,13 +88,6 @@ const status = computed(() => {
 .notebook-toolbar__status {
   flex: none;
   font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.notebook-toolbar__autorun {
-  flex: none;
-  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   white-space: nowrap;
 }

@@ -125,6 +125,8 @@ async function main() {
     await page.keyboard.type("12", { delay: 140 });
     await pause(page, 1300);
 
+    await hoverToken(page, "#count");
+
     // Write mode: completion from the document. Add a sentence that uses the
     // function defined above, so the edit reads like part of the note.
     await clickMode(page, "Write");
@@ -149,8 +151,8 @@ async function main() {
     await page.screenshot({ path: `${IMAGES}/hero-poster.png` });
 
     // Hover info: the computed bindings, not just function docs.
-    await hoverToken(page, "count");
     await hoverToken(page, "nums");
+    // await hoverToken(page, "count");
     // Reveal the paragraph so its reference can be hovered too; the tooltip
     // resolves it to the current value.
     await page.evaluate(() => {
@@ -161,7 +163,7 @@ async function main() {
       api.view.focus();
     });
     await pause(page, 500);
-    await hoverToken(page, "#count");
+    // await hoverToken(page, "#count");
 
     // Math tooltips.
     await page.evaluate(() => {

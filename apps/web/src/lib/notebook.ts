@@ -13,14 +13,16 @@ import { reactive } from "vue";
 
 /**
  * Notebook session state. Everything here is per open page and per session:
- * execution counters, output visibility, staleness, and the active cell.
+ * execution counters, output visibility, collapse, and the active cell.
  * Counters and cleared flags are keyed by cell index, so a structural edit
  * shifts them; closing the page resets them the way a Jupyter restart does.
+ *
+ * Outputs are always live: the editor recompiles as the text changes, and a
+ * run only records the counter and clears any explicitly cleared output.
  */
 export interface NotebookSession {
   cells: NotebookCell[];
   counts: Record<number, number>;
-  stale: Record<number, boolean>;
   cleared: Record<number, boolean>;
   collapsed: Record<number, boolean>;
   active: number | null;
@@ -31,7 +33,6 @@ export function createNotebookSession(): NotebookSession {
   return reactive({
     cells: [] as NotebookCell[],
     counts: {} as Record<number, number>,
-    stale: {} as Record<number, boolean>,
     cleared: {} as Record<number, boolean>,
     collapsed: {} as Record<number, boolean>,
     active: null,
@@ -46,7 +47,7 @@ export function extractNotebookCells(typstState: TypstState, text: string): Note
 
 export interface NotebookController {
   options: NotebookOptions;
-  /** Clears counters, outputs, and staleness; recompiles when live. */
+  /** Clears counters and output visibility, then recompiles. */
   restart(view: EditorView | undefined): void;
   clearOutput(view: EditorView | undefined, index: number): void;
   toggleCollapse(view: EditorView | undefined, index: number): void;
@@ -66,8 +67,6 @@ export function createNotebookController(args: {
   /** Run request waiting for its compile; set by onRun, consumed by onCompile. */
   let pendingRun: number | "all" | null = null;
 
-  const autoRun = (): boolean => store.getSettings().notebook.autoRun;
-
   const refresh = (view: EditorView | undefined): void => {
     if (!view) return;
     view.dispatch({ effects: notebookRefreshEffect.of(null) });
@@ -85,40 +84,30 @@ export function createNotebookController(args: {
       let count = nextCount();
       for (let index = 0; index < session.cells.length; index++) {
         session.counts[index] = count++;
-        delete session.stale[index];
         delete session.cleared[index];
       }
 
       return;
     }
 
-    // Running cell N recompiles the prefix, so N and everything above it is
-    // fresh again. Cells below keep their previous output and stale marks.
+    // Running cell N also clears the outputs of the cells above it.
     session.counts[run] = nextCount();
-    for (let index = 0; index <= run; index++) {
-      delete session.stale[index];
-      delete session.cleared[index];
-    }
+    for (let index = 0; index <= run; index++) delete session.cleared[index];
   };
 
   const options: NotebookOptions = {
     cells: (text) => extractNotebookCells(typstState, text),
     state: (index): NotebookCellState => ({
       count: session.counts[index],
-      stale: session.stale[index] ?? false,
       cleared: session.cleared[index] ?? false,
       collapsed: session.collapsed[index] ?? false,
     }),
-    live: autoRun,
     counters: () => store.getSettings().notebook.showCounters,
     labels,
     onCells: (cells) => {
       // Structural changes invalidate output visibility; counters survive,
       // the way Jupyter keeps execution counts across cell moves.
-      if (cells.length !== session.cells.length) {
-        session.cleared = {};
-        session.stale = {};
-      }
+      if (cells.length !== session.cells.length) session.cleared = {};
       session.cells = cells;
     },
     onActiveCell: (index) => {
@@ -127,14 +116,6 @@ export function createNotebookController(args: {
     onRun: (index) => {
       pendingRun = index;
       session.running = index;
-    },
-    onChange: (from) => {
-      if (autoRun()) return;
-      // A change in cell N can only affect N and everything below it.
-      for (let index = 0; index < session.cells.length; index++) {
-        const cell = session.cells[index];
-        if (cell && cell.content_end >= from) session.stale[index] = true;
-      }
     },
     onCompile: () => {
       if (pendingRun !== null) {
@@ -156,19 +137,11 @@ export function createNotebookController(args: {
     options,
     restart(view) {
       session.counts = {};
-      session.stale = {};
       session.cleared = {};
       pendingRun = null;
       session.running = null;
-
-      if (autoRun()) {
-        // A forced compile repopulates every output.
-        view?.dispatch({ effects: typstRecompileEffect.of(null) });
-      } else {
-        // Manual mode: restart hides outputs until the next run.
-        for (let index = 0; index < session.cells.length; index++) session.cleared[index] = true;
-        refresh(view);
-      }
+      // A forced compile repopulates every output.
+      view?.dispatch({ effects: typstRecompileEffect.of(null) });
     },
     clearOutput(view, index) {
       session.cleared[index] = true;

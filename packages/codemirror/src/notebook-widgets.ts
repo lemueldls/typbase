@@ -50,7 +50,6 @@ const FALLBACK_LABELS: NotebookLabels = {
   clearOutput: "Clear output",
   toggleSource: "Collapse cell",
   noOutput: "No output",
-  stale: "Output is stale",
   error: "Cell error",
 };
 
@@ -83,7 +82,6 @@ interface HeaderArgs {
   kind: NotebookCell["kind"];
   counter: boolean;
   count?: number;
-  stale: boolean;
   collapsed: boolean;
   labels: NotebookLabels;
 }
@@ -105,7 +103,6 @@ class NotebookHeaderWidget extends WidgetType {
       a.kind === b.kind &&
       a.counter === b.counter &&
       a.count === b.count &&
-      a.stale === b.stale &&
       a.collapsed === b.collapsed &&
       a.labels === b.labels
     );
@@ -138,14 +135,6 @@ class NotebookHeaderWidget extends WidgetType {
         "tb-cell-btn--type",
       ),
     );
-
-    if (this.args.stale) {
-      const stale = document.createElement("span");
-      stale.className = "tb-cell-stale";
-      stale.title = labels.stale;
-      stale.append(iconSpan("history"));
-      header.append(stale);
-    }
 
     const spacer = document.createElement("span");
     spacer.className = "tb-cell-spacer";
@@ -189,7 +178,6 @@ interface OutputArgs {
   frames: SvgRangedFrame[];
   diagnostics: TypstDiagnostic[];
   cleared: boolean;
-  stale: boolean;
   /** The cell has been run at least once; only then does "No output" show. */
   hasRun: boolean;
   labels: NotebookLabels;
@@ -210,7 +198,7 @@ class NotebookOutputWidget extends WidgetType {
     const frames = this.args.frames.map((frame) => frame.render.hash).join(",");
     const diagnostics = this.args.diagnostics.map((diagnostic) => diagnostic.message).join("|");
 
-    return `${this.args.index}:${this.args.cleared}:${this.args.stale}:${this.args.hasRun}:${frames}:${diagnostics}`;
+    return `${this.args.index}:${this.args.cleared}:${this.args.hasRun}:${frames}:${diagnostics}`;
   }
 
   public override eq(other: NotebookOutputWidget) {
@@ -219,7 +207,7 @@ class NotebookOutputWidget extends WidgetType {
 
   public toDOM() {
     const root = document.createElement("div");
-    const { cleared, stale, labels } = this.args;
+    const { cleared, labels } = this.args;
 
     root.className = "tb-cell-output";
     if (cleared) {
@@ -227,8 +215,6 @@ class NotebookOutputWidget extends WidgetType {
 
       return root;
     }
-
-    if (stale) root.classList.add("tb-cell-output--stale");
 
     const hasContent =
       this.args.frames.length > 0 || this.args.diagnostics.length > 0 || this.args.hasRun;
@@ -297,67 +283,16 @@ export interface NotebookDecorateArgs {
   typstState: TypstState;
   locked: boolean;
   options: NotebookOptions;
-  /** Which run triggered this compile; undefined for live/data compiles. */
-  runIndex?: number | "all";
-  /** Per-cell frames that survive manual-mode compiles. */
-  frameStore: NotebookFrameStore;
-}
-
-/**
- * Cell frames shown between compiles. Manual-run notebooks only replace the
- * frames up to the cell that was run; everything below keeps the output of
- * the previous run, which is what makes the stale mark meaningful.
- */
-export interface NotebookFrameStore {
-  /** Cell count the stored frames were grouped for; a structural edit resets. */
-  cells: number;
-  frames: SvgRangedFrame[][];
-}
-
-export function createNotebookFrameStore(): NotebookFrameStore {
-  return { cells: -1, frames: [] };
 }
 
 export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[] {
-  const {
-    view,
-    state,
-    cells,
-    frames,
-    diagnostics,
-    fileId,
-    typstState,
-    locked,
-    options,
-    runIndex,
-    frameStore,
-  } = args;
+  const { view, state, cells, frames, diagnostics, fileId, typstState, locked, options } = args;
   const decorations: Range<Decoration>[] = [];
 
-  const compiled: SvgRangedFrame[][] = cells.map(() => []);
+  const byCell: SvgRangedFrame[][] = cells.map(() => []);
   for (const frame of frames) {
     const index = cellIndexAt(cells, frame.range.start);
-    if (index >= 0) compiled[index]!.push(frame);
-  }
-
-  const live = options.live?.() ?? true;
-  let byCell = compiled;
-
-  if (!live) {
-    if (runIndex === undefined || runIndex === "all" || frameStore.cells !== cells.length) {
-      frameStore.frames = compiled;
-    } else {
-      // Keep the stored frames below the run cell.
-      for (let index = runIndex + 1; index < cells.length; index++) {
-        compiled[index] = frameStore.frames[index] ?? [];
-      }
-      frameStore.frames = compiled;
-    }
-    frameStore.cells = cells.length;
-    byCell = frameStore.frames;
-  } else {
-    frameStore.frames = compiled;
-    frameStore.cells = cells.length;
+    if (index >= 0) byCell[index]!.push(frame);
   }
 
   const counter = options.counters?.() ?? false;
@@ -375,7 +310,6 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
           kind: cell.kind,
           counter,
           count: cellState.count,
-          stale: cellState.stale ?? false,
           collapsed: cellState.collapsed ?? false,
           labels: options.labels ?? FALLBACK_LABELS,
         }),
@@ -436,7 +370,6 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
           frames: byCell[index] ?? [],
           diagnostics: cellDiagnostics,
           cleared: cellState.cleared ?? false,
-          stale: cellState.stale ?? false,
           hasRun: cellState.count !== undefined,
           labels: options.labels ?? FALLBACK_LABELS,
         }),

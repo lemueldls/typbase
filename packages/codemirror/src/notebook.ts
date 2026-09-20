@@ -20,12 +20,10 @@ export interface NotebookCell {
   content_end: number;
 }
 
-/** Per-cell state the host owns: run counters, staleness, visibility. */
+/** Per-cell state the host owns: run counters and visibility. */
 export interface NotebookCellState {
   /** Execution counter shown as `[n]`; undefined until the cell is run. */
   count?: number;
-  /** Output predates the current source (manual-run mode). */
-  stale?: boolean;
   /** Output hidden until the next run. */
   cleared?: boolean;
   /** Source hidden behind the header. */
@@ -44,7 +42,6 @@ export interface NotebookLabels {
   clearOutput: string;
   toggleSource: string;
   noOutput: string;
-  stale: string;
   error: string;
 }
 
@@ -59,8 +56,6 @@ export interface NotebookOptions {
   cells: (text: string) => NotebookCell[];
   /** Run/visibility state per cell index. */
   state?: (index: number) => NotebookCellState | undefined;
-  /** True (default): outputs follow the text. False: only runs recompile. */
-  live?: () => boolean;
   /** Show `[n]` execution counters. */
   counters?: () => boolean;
   labels?: NotebookLabels;
@@ -70,8 +65,6 @@ export interface NotebookOptions {
   onActiveCell?: (index: number | null) => void;
   /** Fires after every compile that ran; `run` carries the requested cell. */
   onRun?: (index: number | "all") => void;
-  /** Fires on every document change with the first changed offset. */
-  onChange?: (from: number) => void;
   /** Fires after a compile with the fresh frames and diagnostics. */
   onCompile?: (result: NotebookCompileResult) => void;
   onClearOutput?: (index: number) => void;

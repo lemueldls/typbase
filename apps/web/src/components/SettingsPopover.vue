@@ -216,14 +216,6 @@ const spellcheck = computed({
   set: (value: string) => props.store.updateSettings({ spellcheck: value as SpellcheckMode }),
 });
 
-const notebookAutoRun = computed({
-  get: () => settings.value.notebook?.autoRun ?? true,
-  set: (value: boolean) =>
-    props.store.updateSettings({
-      notebook: { ...settings.value.notebook, autoRun: value },
-    }),
-});
-
 const notebookCounters = computed({
   get: () => settings.value.notebook?.showCounters ?? true,
   set: (value: boolean) =>
@@ -624,14 +616,6 @@ async function renameWorkspace(event: Event) {
 
           <section class="settings__section">
             <h4 class="settings__heading">{{ $t("settings.notebook") }}</h4>
-            <div class="settings__field">
-              <UiSwitch
-                v-model="notebookAutoRun"
-                :label="$t('settings.notebookAutoRun')"
-                :aria-label="$t('settings.notebookAutoRun')"
-              />
-              <span class="settings__hint">{{ $t("settings.notebookAutoRunHint") }}</span>
-            </div>
             <div class="settings__field">
               <UiSwitch
                 v-model="notebookCounters"

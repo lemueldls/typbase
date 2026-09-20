@@ -8,13 +8,12 @@ import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
 import type { NotebookOptions } from "./notebook";
-import type { NotebookFrameStore } from "./notebook-widgets";
 import type { TextRef, TypstRequestHandler } from "./types";
 
 import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
 import { frameActiveDecorations, frameIsInactive, TypstWidget } from "./frames";
 import { cellIndexAt, notebookRunEffect, notebookRefreshEffect } from "./notebook";
-import { createNotebookFrameStore, decorateNotebook } from "./notebook-widgets";
+import { decorateNotebook } from "./notebook-widgets";
 
 export const compileCache = new LRUCache<
   string,
@@ -172,9 +171,6 @@ interface DecorateArgs {
   onRequests?: TypstRequestHandler;
   onPanic?: (fileId: FileId) => void;
   notebook?: NotebookOptions;
-  /** See NotebookDecorateArgs#runIndex. */
-  runIndex?: number | "all";
-  frameStore: NotebookFrameStore;
 }
 
 function decorate({
@@ -192,8 +188,6 @@ function decorate({
   onRequests,
   onPanic,
   notebook,
-  runIndex,
-  frameStore,
 }: DecorateArgs): DecorateResult {
   const text = update.state.doc.toString();
   const isFlaggedForUpdate = updateFlagStore.has(path);
@@ -203,14 +197,7 @@ function decorate({
   let tooltips: SvgRangedFrame[];
   let diagnostics: TypstDiagnostic[];
 
-  // Manual-run notebooks only compile when a run (or a settings change) asks
-  // for it; everything else reuses the last compile so outputs stay put while
-  // the source changes under them.
-  const live = notebook?.live?.() ?? true;
-  const mustCompile =
-    forced ||
-    ((!notebook || live) && (update.docChanged || widthChanged)) ||
-    !compileCache.has(cacheKey);
+  const mustCompile = forced || update.docChanged || widthChanged || !compileCache.has(cacheKey);
 
   if (mustCompile) {
     if (isFlaggedForUpdate) updateFlagStore.delete(path);
@@ -274,8 +261,6 @@ function decorate({
           typstState,
           locked,
           options: notebook,
-          runIndex,
-          frameStore,
         }),
         true,
       ),
@@ -336,7 +321,6 @@ export const typstViewPlugin = (
     // runs until the user clicks or types.
     let firstUpdate = true;
     let resizeTimer: number | undefined;
-    const frameStore = createNotebookFrameStore();
 
     // Dedupes remeasure requests for this view; the latest one wins.
     const remeasureKey = {};
@@ -402,13 +386,6 @@ export const typstViewPlugin = (
         firstUpdate = false;
 
         if (run) options.notebook?.onRun?.(run.value.index);
-        if (update.docChanged && options.notebook?.onChange) {
-          let first = Number.POSITIVE_INFINITY;
-          update.changes.iterChangedRanges((fromA) => {
-            if (fromA < first) first = fromA;
-          });
-          if (Number.isFinite(first)) options.notebook.onChange(first);
-        }
 
         if (update.geometryChanged) {
           const { scrollDOM, contentDOM } = update.view;
@@ -456,8 +433,6 @@ export const typstViewPlugin = (
               onRequests: options.onRequests,
               onPanic: options.onPanic,
               notebook: options.notebook,
-              runIndex: run?.value.index,
-              frameStore,
             });
 
             if (result) {

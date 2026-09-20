@@ -44,7 +44,7 @@ $ "Attention"(Q, K, V) = op("softmax")((Q K^top) / sqrt(d_k)) V $
 ]
 
 // %% [markup]
-== Why divide by sqrt(d_k)?
+== Why divide by $sqrt(d_k)$?
 
 The dot products grow with the dimension, so the softmax saturates.
 Scaling keeps the gradients usable.

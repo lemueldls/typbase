@@ -18,6 +18,7 @@ import {
   installCursor,
   seedBeforeBoot,
   show,
+  tokenPoint,
 } from "./app.mjs";
 
 /**
@@ -144,7 +145,7 @@ const clips = {
     },
   },
 
-  /** Run a cell with auto-run off, then edit above and watch output go stale. */
+  /** Run a cell, then edit it and watch the output follow along live. */
   "notebook-run": {
     stage: async ({ page, ids }) => {
       await applySettings(page, SHOT_SETTINGS["notebook-hero"]);
@@ -152,24 +153,25 @@ const clips = {
       await page.waitForSelector(".tb-cell-output svg", { timeout: 60_000 });
     },
     act: async ({ page }) => {
-      await clickWithCursor(page, page.locator(".notebook-toolbar button[role='switch']"), {
-        pause: 350,
-      });
-      await page.waitForTimeout(400);
-
       await clickWithCursor(page, page.locator(".tb-cell-btn--run").nth(1), { pause: 350 });
       await page.waitForSelector(".tb-cell-counter", { timeout: 30_000 });
       await page.waitForTimeout(900);
 
-      // Edit the code cell; with auto-run off its output goes stale until the
-      // next run. The cell keeps its source visible, so the frame stays clean.
-      const line = page.locator(".cm-line").filter({ hasText: "#linebreak()" }).first();
-      await clickWithCursor(page, line, { pause: 350 });
+      // Widen the bars: select the width value and replace it.
+      const point = await tokenPoint(page, "0.35");
+      if (point) await page.mouse.move(point.x, point.y, { steps: 12 });
       await page.waitForTimeout(250);
-      await page.keyboard.press("End");
-      await page.keyboard.type(" // tweak", { delay: 60 });
-      await page.waitForSelector(".tb-cell-stale", { timeout: 30_000 });
-      await page.waitForTimeout(1800);
+      await page.evaluate(() => {
+        const view = window.__typbase.view;
+        const doc = view.state.doc.toString();
+        const index = doc.indexOf("0.35");
+
+        view.dispatch({ selection: { anchor: index, head: index + "0.35".length } });
+        view.focus();
+      });
+      await page.waitForTimeout(250);
+      await page.keyboard.type("0.6", { delay: 120 });
+      await page.waitForTimeout(1400);
     },
   },
 

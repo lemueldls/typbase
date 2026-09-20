@@ -252,17 +252,12 @@
   border: 1px solid var(--color-border);
 }
 
-.tb-cell-counter,
-.tb-cell-stale {
+.tb-cell-counter {
   display: inline-flex;
   align-items: center;
   flex: none;
   font-family: var(--font-mono);
   color: var(--color-text-secondary);
-}
-
-.tb-cell-stale {
-  color: var(--color-warning);
 }
 
 .tb-cell-spacer {
@@ -308,10 +303,6 @@
 .tb-cell-output--cleared,
 .tb-cell-output--empty {
   display: none;
-}
-
-.tb-cell-output--stale {
-  opacity: 0.55;
 }
 
 .tb-cell-output-body {

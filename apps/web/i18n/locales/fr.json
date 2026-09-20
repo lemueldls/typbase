@@ -115,8 +115,6 @@
     "spellcheckHarper": "Harper (grammaire, hors ligne)",
     "spellcheckHint": "Natif utilise le correcteur du navigateur. Harper est un correcteur grammatical local : le modèle est téléchargé une fois et le texte ne quitte jamais l'appareil.",
     "notebook": "Carnet",
-    "notebookAutoRun": "Exécuter en saisissant",
-    "notebookAutoRunHint": "Les cellules sont recompilées pendant la saisie. Désactivez pour ne mettre à jour les sorties qu'à l'exécution.",
     "notebookCounters": "Compteurs d'exécution",
     "notebookCountersHint": "Afficher le compteur [n] dans les en-têtes de cellule.",
     "textFont": "Police de texte",
@@ -445,7 +443,6 @@
     "restart": "Redémarrer",
     "addCell": "Ajouter une cellule",
     "clearOutput": "Effacer la sortie",
-    "autoRun": "Exécuter en saisissant",
     "running": "Exécution…",
     "commandHint": "Entrée modifie · A/B ajoute · DD supprime · M/Y type",
     "code": "Code",
@@ -456,7 +453,6 @@
     "remove": "Supprimer la cellule",
     "toggleSource": "Replier la cellule",
     "noOutput": "Aucune sortie",
-    "stale": "La sortie est obsolète",
     "error": "Erreur de cellule"
   }
 }
