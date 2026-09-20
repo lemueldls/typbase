@@ -166,6 +166,10 @@ node scripts/demo/clips.mjs [--only=typing]
 4. Record the clips the same way, with a fake pointer overlay and Playwright
    video, then trim to the action window and convert with ffmpeg (GIF via a
    palette pass, plus an mp4). Raw webm files stay in `/tmp/opencode/demo-video`.
+   The overlay follows real mouse events, and `moveCursor` dispatches an eased,
+   slightly curved path over time (Playwright's own `steps` fire in one tick,
+   which reads as a teleport on video); press scale and ripple come from real
+   mousedown/mouseup events.
 
 The dev-only test handle (`apps/web/src/lib/testApi.ts`) exposes the active
 store, the editor view, and the page/mode navigation. Production builds never

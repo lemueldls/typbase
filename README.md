@@ -2,88 +2,53 @@
 
 Local-first knowledge base built around the [Typst](https://typst.app) language.
 
-<!-- Pages, daily notes, and plugin surfaces are Typst documents compiled against a small standard library that reads the workspace as data. -->
+[![Typbase demo: writing, querying, and rendering Typst](docs/images/hero-poster.png)](docs/video/hero.mp4)
 
-<!-- Everything runs offline: workspaces live in the browser or on disk, sync through atproto Spaces, and merge with Loro CRDTs. Signing in with an atproto account attaches a Space to a workspace, and publishing writes public records any atproto client can read. -->
+<!-- _A one-minute walkthrough: inline editing, workspace queries, math, themes, and export._ -->
+
+## Features
+
+- **Inline WYSIWYG.** Compiled output replaces the source as you type; click a rendered element to jump back to it. Split, Source, and Read views come with it.
+- **Notebook cells.** `// %%` markers turn a page into cells that render in place and run with a click, with execution counters and Jupyter keybindings.
+- **The workspace as data.** `#typbase.query`, `#typbase.embed`, `#typbase.page-link`, and `#typbase.section` read pages, categories, daily notes, and sections from inside a document.
+- **Standalone output.** Export HTML, PDF, SVG, or a compilable Typst project. The source mirror is plain `.typ`, and `typst compile --root .` works outside the app.
+- **Local-first.** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto Spaces. Publish a page as a public post when you want a URL.
+
+<!-- - **Search and AI.** Local full-text search with optional semantic search, plus OpenAI-compatible, Anthropic, or Ollama providers for summaries, flashcards, and study guides. -->
+<!-- - Web, desktop, and mobile builds. -->
 
 ## Technologies
 
-### App
-
-- [Nuxt](https://nuxt.com) 5 (nightly), [Vue](https://vuejs.org) 3.5, [Vue Router](https://router.vuejs.org) 5, and [Nitro](https://nitro.build) 3.
-- [Reka UI](https://reka-ui.com) primitives behind the shared UI components.
-
-<!-- - [VueUse](https://vueuse.org) composables and [@nuxtjs/i18n](https://i18n.nuxtjs.org) with English, Spanish, French, German, and Chinese locales. -->
-<!-- - [material-symbols](https://github.com/marella/material-symbols) icons. -->
-<!-- - Theme tokens shared as CSS variables with the Typst renderer palette, so the app chrome and compiled output stay in step. -->
-
-### Editor
-
-- [CodeMirror](https://codemirror.net) 6 with syntax highlighting, hover, autocomplete, Typst-aware keymaps, and WYSIWYG inline widgets.
-- [Harper](https://writewithharper.com) for optional grammar checking in a worker, alongside the browser's native spellchecker.
-- Five view modes: Write (inline WYSIWYG), Notebook (Jupyter-style), Split, Source, and Read.
-
-### Engine
-
-- [Typst](https://typst.app) 0.15 compiled to WebAssembly with [wasm-bindgen](https://rustwasm.github.io/docs/wasm-bindgen/) and [wasm-pack](https://github.com/rustwasm/wasm-pack).
-- [comemo](https://github.com/typst/comemo) memoization. Each note compiles from several source variants, so error recovery never changes what the IDE and diagnostics read.
-
-<!-- - Plugin views compile through the same engine to HTML, get sanitized, and render into an isolated DOM root with declarative actions. No iframe or messaging bridge. -->
-<!-- - Bundled [Maple Mono](https://github.com/subframe7536/maple-font) and New Computer Modern Math fonts, plus system font discovery on desktop. -->
-
-### Storage and data
-
-- [Loro](https://loro.dev) CRDTs: one document for the workspace, one per page, one per plugin instance.
-- Storage backends for OPFS, the File System Access API, the Tauri filesystem, and memory. Blobs are content-addressed by SHA-256.
-
-### Search and AI
-
-- [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec): SQLite in WebAssembly over OPFS with full-text and vector search, queried hybrid (BM25 plus cosine, reciprocal rank fusion) from a worker.
-- [transformers.js](https://github.com/huggingface/transformers.js) embeddings in a worker with a small default model. Semantic search stays off until enabled and the model is downloaded.
-
-<!-- - Provider-agnostic AI: OpenAI-compatible endpoints, Anthropic, and Ollama behind one interface, with keys kept on the device. -->
-
-### Sync and atproto
-
-- [atproto](https://atproto.com) OAuth with PAR, PKCE, and DPoP; a loopback flow on dev origins and a deep-link flow on desktop.
-- [airspace](https://getair.space) for Spaces. The lexicons cover synced documents and published posts.
-
-<!-- - Documents sync as Loro updates and periodic snapshots in Space records. Publishing renders a page, uploads the artifacts as blobs, and writes a public post record; a public profile page renders published posts from a read-only client. -->
-
-### Desktop and mobile
-
-- [Tauri](https://tauri.app) 3 (alpha): filesystem storage, system font discovery, deep-link sign-in, updater, and single-instance handling. Custom window chrome is opt-in per device.
-
-### Tooling
-
-- [pnpm](https://pnpm.io) workspaces and [moonrepo](https://moonrepo.dev) tasks.
-- [oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs/docs/guide/usage/formatter) for linting and formatting, with [golar](https://golar.dev) for Vue type checking.
+- [Nuxt](https://nuxt.com) 5 (nightly), [Vue](https://vuejs.org) 3, and [CodeMirror](https://codemirror.net) 6 on the front end.
+- [Typst](https://typst.app) 0.15 compiled to WebAssembly for the engine.
+- [Loro](https://loro.dev) CRDTs for collaborative editing.
+- [atproto](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
+- [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) for search.
+- [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile.
+- [pnpm](https://pnpm.io/) and [moonrepo](https://github.com/moonrepo/moonrepo) for monorepo management.
 
 ## Inspirations
 
-- [Typst](https://typst.app) for the language and compiler, and the idea that documents can be queried as data.
-- [Notion](https://www.notion.com) and [Obsidian](https://obsidian.md) for the product shape: daily notes, categories, command palette, backlinks, and files on disk.
-- [Mnemo](https://github.com/lemueldls/mnemo), an earlier Typst WYSIWYG editor whose editor and WebAssembly engine were extracted into Typbase.
-- [Noteworthy](https://github.com/sihooleebd/noteworthy), a Typst framework for educational documents and a reference for Typst-first authoring.
+- [Typst](https://typst.app) for the language and the idea that documents can be queried as data.
+- [Notion](https://www.notion.com) and [Obsidian](https://obsidian.md) for the product shape: daily notes, categories, backlinks, and files on disk.
+- [Mnemo](https://github.com/lemueldls/mnemo), the earlier Typst WYSIWYG editor whose editor and engine were extracted into Typbase.
 - [The LEAST Private Operating System Ever Created](https://www.youtube.com/watch?v=M_720LesVg4) for reflective systems where everything is inspectable.
-- [Dynamic Documents as Personal Software](https://www.youtube.com/watch?v=MccJdr61xnc) for documents that run their own code.
-- [PlayBook: A Programmable Paper Notebook](https://www.youtube.com/watch?v=GurWDZ8ENpA) for programmable notebook pages.
+- [Dynamic Documents as Personal Software](https://www.youtube.com/watch?v=MccJdr61xnc) and [PlayBook: A Programmable Paper Notebook](https://www.youtube.com/watch?v=GurWDZ8ENpA) for documents that run their own code.
 
-<!-- - [Noodle](https://github.com/noodle-run/noodle) and [UNMS research](https://un.ms/research), carried over from Mnemo, for local-first notes and shared-document research. -->
-<!-- - The atproto Spaces ecosystem: [comail.at](https://comail.at), [Tangled](https://tangled.org), and atproto calendar apps. Interop over lock-in is why records stay plain and blobs standard. -->
+## Getting Started
 
-## Development
+### Prerequisites
 
-Prerequisites: Node 26+, pnpm 12+, Rust with the WebAssembly target, and [wasm-pack](https://github.com/rustwasm/wasm-pack).
+- Node 26+
+- pnpm 12+
+- Rust with the `wasm32-unknown-unknown` target.
+
+### Development
 
 ```sh
 pnpm install
 pnpm dev
 ```
-
-- `pnpm build`, `pnpm generate`, and `pnpm preview` handle production output.
-- `pnpm lint` and `pnpm fmt:check` are the CI gates.
-- `pnpm typecheck` checks the app and the shared packages.
 
 ## License
 

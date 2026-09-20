@@ -193,7 +193,7 @@ async function main() {
     await page.mouse.wheel(0, 500);
     await pause(page, 1100);
 
-    // Theme switch.
+    // Theme switch: Catppuccin, then dark mode.
     await clickWithCursor(page, page.locator('[aria-label="Workspace settings"]').first());
     await pause(page, 700);
     await clickWithCursor(
@@ -202,6 +202,10 @@ async function main() {
     );
     await pause(page, 600);
     await clickWithCursor(page, page.getByRole("button", { name: "Catppuccin" }));
+    await pause(page, 900);
+    await clickWithCursor(page, page.getByRole("combobox", { name: "Theme mode" }));
+    await pause(page, 400);
+    await clickWithCursor(page, page.getByRole("option", { name: "Dark" }));
     await pause(page, 1400);
     await page.keyboard.press("Escape");
     await pause(page, 700);
