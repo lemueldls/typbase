@@ -205,6 +205,10 @@ describe("typbase app", async () => {
     await expect(page.locator(".page-view__engine").count()).resolves.toBeGreaterThan(0);
     await expect(page.locator(".ui-toast").count()).resolves.toBeGreaterThan(0);
 
+    // The degraded editor highlights from the static scanner, not wasm.
+    await page.waitForSelector(".cm-content .typ-heading", { timeout: 60_000 });
+    await expect(page.locator(".cm-content .typ-heading").count()).resolves.toBeGreaterThan(0);
+
     // The editor fell back to source and remounted, so focus it again. Edits
     // still work and still save while the engine is down.
     await page.locator(".cm-content").click();

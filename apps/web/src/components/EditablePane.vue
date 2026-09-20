@@ -33,6 +33,7 @@ import {
   typstLinter,
   typstPlugin,
   typstRecompileEffect,
+  typstStaticHighlighting,
   typstSyntaxHighlighting,
 } from "@typbase/codemirror";
 
@@ -234,11 +235,13 @@ function createStateConfig(): EditorStateConfig {
 
   if (props.degraded) {
     // Engine-free editing: keep text sync, keymap, language data, and
-    // spellcheck; drop everything that calls into the wasm state.
+    // spellcheck; drop everything that calls into the wasm state. The static
+    // highlighter keeps the source readable while previews are gone.
     extensions.push(
       EditorView.updateListener.of((update) => {
         if (update.docChanged) props.text.value = update.state.doc.toString();
       }),
+      typstStaticHighlighting,
       typstKeymap,
       typstLanguageData,
       autocompletion(),
