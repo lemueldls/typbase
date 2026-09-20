@@ -1,0 +1,33 @@
+---
+source: packages/wasm/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 21,
+      "end": 22
+    },
+    "severity": "warning",
+    "message": "unclosed content block; inserted a closing `]`",
+    "hints": []
+  },
+  {
+    "range": {
+      "start": 21,
+      "end": 22
+    },
+    "severity": "warning",
+    "message": "unclosed grouping; inserted a closing `)`",
+    "hints": []
+  },
+  {
+    "range": {
+      "start": 10,
+      "end": 11
+    },
+    "severity": "error",
+    "message": "unknown variable: f",
+    "hints": []
+  }
+]

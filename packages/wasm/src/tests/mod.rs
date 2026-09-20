@@ -16,11 +16,13 @@ mod harness;
 
 mod characterize;
 mod ide;
+mod incomplete;
 mod map_props;
 mod mapper;
 mod memory;
 mod packages;
 mod partition;
+mod prefix;
 mod recovery;
 mod synth;
 mod tooltip;

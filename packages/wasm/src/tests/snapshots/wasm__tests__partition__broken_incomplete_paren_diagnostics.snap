@@ -1,0 +1,15 @@
+---
+source: packages/wasm/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 16,
+      "end": 17
+    },
+    "severity": "warning",
+    "message": "unclosed grouping; inserted a closing `)`",
+    "hints": []
+  }
+]

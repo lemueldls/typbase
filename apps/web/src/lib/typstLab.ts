@@ -165,6 +165,26 @@ export const RECOVERY_CASES: RecoveryCase[] = [
     source: '#let pages = typbase.query("',
   },
   {
+    id: "incomplete-fence",
+    label: "unclosed raw fence (mid-typing state)",
+    source: "Before.\n\n```\nlet x = 1\n\nAfter the incomplete block.",
+  },
+  {
+    id: "incomplete-code-block",
+    label: "unclosed code block (mid-typing state)",
+    source: "Before.\n\n#{ let x = 1\n\nAfter the incomplete block.",
+  },
+  {
+    id: "incomplete-call",
+    label: "unclosed call and content block (mid-typing state)",
+    source: "Before.\n\n#f(1, [hello\n\nAfter the incomplete block.",
+  },
+  {
+    id: "incomplete-comment",
+    label: "unclosed block comment (mid-typing state)",
+    source: "Before.\n\n/* comment\n\nAfter the incomplete block.",
+  },
+  {
     id: "block-heavy",
     label: "block-heavy (300 paragraphs)",
     source: Array.from({ length: 300 }, (_, i) => `Paragraph ${i} with *some* text.`).join("\n\n"),

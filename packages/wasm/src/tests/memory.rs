@@ -28,6 +28,25 @@ fn closing_pages_releases_their_files() {
     );
 }
 
+/// An unfinished construct is repaired on every compile; the world and its
+/// maps must not grow across them.
+#[test]
+fn repeated_incomplete_compiles_keep_the_world_stable() {
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "incomplete_stable");
+    let text = "Before.\n\n```\nlet x = 1\n\nAfter the incomplete block.\n";
+
+    let _ = harness::compile(&mut state, &id, text);
+
+    let files = state.world.files.len();
+
+    for _ in 0..25 {
+        let _ = harness::compile(&mut state, &id, text);
+    }
+
+    assert_eq!(state.world.files.len(), files, "compiles grew the file map");
+}
+
 #[test]
 fn repeated_compiles_keep_the_world_stable() {
     let mut state = harness::state();

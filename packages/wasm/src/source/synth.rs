@@ -257,33 +257,61 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
 
     let mut last_kind: Option<SyntaxKind> = None;
 
+    // End of the last top-level node accepted, used to drop parser error
+    // artifacts that point back into text already emitted.
+    let mut accepted_end = 0;
+
     for node in linked.children() {
         let range = node.range();
+
+        if range.start < accepted_end {
+            continue;
+        }
+
+        accepted_end = accepted_end.max(range.end);
 
         if node.kind() == SyntaxKind::Equation {
             equation_ranges.push(range.clone());
         }
 
-        if let Some(until_newline) = node.get().leaf_text().chars().position(|ch| ch == '\n') {
-            in_block = false;
+        let leaf = node.get().leaf_text();
 
-            let leaf = node.get().leaf_text();
-            let newlines = leaf.matches('\n').count();
+        if let Some(until_newline) = leaf.chars().position(|ch| ch == '\n') {
+            if in_block {
+                // This leaf ends the open block at its first newline.
+                in_block = false;
 
-            if let Some(last_block) = blocks.last_mut() {
-                last_block.range.end += until_newline;
-                // The first newline ends the block's last line; every newline
-                // after it is a blank line in the editor. Leading blank lines
-                // are dropped: the first block sits at the top.
-                let blank_lines = newlines.saturating_sub(1);
-                wrap_block(&mut builder, last_block, last_kind);
-                emit_blank_lines(&mut builder, last_block.range.end, blank_lines);
+                let newlines = leaf.matches('\n').count();
+
+                if let Some(last_block) = blocks.last_mut() {
+                    last_block.range.end = (last_block.range.end + until_newline).min(range.end);
+                    // The first newline ends the block's last line; every
+                    // newline after it is a blank line in the editor. Leading
+                    // blank lines are dropped: the first block sits at the top.
+                    let blank_lines = newlines.saturating_sub(1);
+                    wrap_block(&mut builder, last_block, last_kind);
+                    emit_blank_lines(&mut builder, last_block.range.end, blank_lines);
+                }
+            } else if !leaf.trim().is_empty() {
+                // A newline-bearing leaf outside a block is content of its
+                // own. The parser folds an unclosed raw block or comment into
+                // one error leaf whose text still contains newlines; closing
+                // the previous block again here wrapped it twice and produced
+                // an out-of-order map.
+                last_kind = Some(node.kind());
+                in_block = true;
+
+                blocks.push(SynthBlock {
+                    range,
+                    inline: false,
+                });
             }
         } else {
             last_kind = Some(node.kind());
 
             if in_block {
-                blocks.last_mut().unwrap().range.end = range.end;
+                let last_block = blocks.last_mut().unwrap();
+                last_block.range.end = last_block.range.end.max(range.end);
             } else {
                 in_block = true;
 

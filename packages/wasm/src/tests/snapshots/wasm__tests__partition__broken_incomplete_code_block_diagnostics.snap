@@ -1,0 +1,15 @@
+---
+source: packages/wasm/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 21,
+      "end": 22
+    },
+    "severity": "warning",
+    "message": "unclosed code block; inserted a closing `}`",
+    "hints": []
+  }
+]

@@ -81,7 +81,11 @@ fn random_text_repairs_are_sound() {
         let fixups = RawFixups::new(fixes.clone(), text.len());
         let repaired = fixups.repaired(&text);
 
-        let expected = text.len() + fixes.iter().map(|fix| fix.insertion.len()).sum::<usize>();
+        let expected = text.len()
+            + fixes
+                .iter()
+                .map(|fix| fix.kind.insertion_len())
+                .sum::<usize>();
         assert_eq!(repaired.len(), expected, "round {round}: {text:?}");
 
         check_map(fixups.map(), &text, &repaired);
@@ -159,7 +163,7 @@ fn delimiter_fixes_stay_inside_the_text() {
                 "fix at {} outside {text:?}",
                 fix.raw_offset,
             );
-            assert!(!fix.insertion.is_empty());
+            assert!(fix.kind.insertion_len() > 0);
         }
     }
 }
