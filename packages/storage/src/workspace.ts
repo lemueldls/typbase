@@ -12,7 +12,7 @@ import type {
   Section,
   WorkspaceSettings,
 } from "@typbase/typing";
-import type { LoroDoc, LoroList, LoroMap, VersionVector } from "loro-crdt";
+import type { LoroDoc, LoroMap, VersionVector } from "loro-crdt";
 
 import { createId } from "@paralleldrive/cuid2";
 import { DEFAULT_SETTINGS } from "@typbase/typing";

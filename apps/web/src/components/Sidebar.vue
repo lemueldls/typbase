@@ -4,6 +4,7 @@ import type { PageMeta } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
+import { PAGE_KIND_ICONS } from "~/lib/view";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -271,12 +272,7 @@ function onCreated(page: PageMeta) {
                 :aria-current="page.id === currentPageId ? 'page' : undefined"
                 @click="emit('select', page.id)"
               >
-                <MsIcon
-                  v-if="page.kind === 'notebook'"
-                  name="note_stack"
-                  :size="16"
-                  class="sidebar__row-kind"
-                />
+                <MsIcon :name="PAGE_KIND_ICONS[page.kind]" :size="20" class="sidebar__row-kind" />
                 <UiTruncatedText class="sidebar__row-label" :text="page.title" />
                 <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
                   <span class="sidebar__row-home">
@@ -329,12 +325,7 @@ function onCreated(page: PageMeta) {
                 :aria-current="page.id === currentPageId ? 'page' : undefined"
                 @click="emit('select', page.id)"
               >
-                <MsIcon
-                  v-if="page.kind === 'notebook'"
-                  name="note_stack"
-                  :size="16"
-                  class="sidebar__row-kind"
-                />
+                <MsIcon :name="PAGE_KIND_ICONS[page.kind]" :size="20" class="sidebar__row-kind" />
                 <UiTruncatedText class="sidebar__row-label" :text="page.title" />
                 <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
                   <span class="sidebar__row-home">
@@ -627,7 +618,7 @@ function onCreated(page: PageMeta) {
 .sidebar__row-kind {
   flex: none;
   margin-right: var(--space-1);
-  color: var(--color-text-secondary);
+  /* color: var(--color-text-secondary); */
 }
 
 .sidebar__row-home {
