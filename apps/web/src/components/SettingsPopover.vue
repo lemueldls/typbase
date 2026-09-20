@@ -548,7 +548,7 @@ async function renameWorkspace(event: Event) {
         <section v-show="activeTab === 'general'" class="settings__tabpanel">
           <Label class="settings__field">
             <span>{{ $t("settings.name") }}</span>
-            <input class="settings__input" :value="settings.name" @change="renameWorkspace" />
+            <UiTextField :value="settings.name" @change="renameWorkspace" />
           </Label>
 
           <div class="settings__field">
@@ -801,8 +801,7 @@ async function renameWorkspace(event: Event) {
             <h4 class="settings__heading">Publish defaults</h4>
             <Label class="settings__field">
               <span>{{ $t("settings.langs") }}</span>
-              <input
-                class="settings__input"
+              <UiTextField
                 :value="publishLangs"
                 placeholder="en, de"
                 @change="publishLangs = ($event.target as HTMLInputElement).value"
@@ -810,8 +809,7 @@ async function renameWorkspace(event: Event) {
             </Label>
             <Label class="settings__field">
               <span>{{ $t("settings.tags") }}</span>
-              <input
-                class="settings__input"
+              <UiTextField
                 :value="publishTags"
                 :placeholder="$t('settings.tags')"
                 @change="publishTags = ($event.target as HTMLInputElement).value"
@@ -846,8 +844,7 @@ async function renameWorkspace(event: Event) {
               </Label>
               <Label class="settings__field">
                 <span>{{ $t("settings.baseUrl") }}</span>
-                <input
-                  class="settings__input"
+                <UiTextField
                   :value="aiConfig.baseUrl"
                   :placeholder="
                     aiConfig.provider === 'ollama'
@@ -865,8 +862,7 @@ async function renameWorkspace(event: Event) {
               </Label>
               <Label class="settings__field">
                 <span>{{ $t("settings.model") }}</span>
-                <input
-                  class="settings__input"
+                <UiTextField
                   :value="aiConfig.chatModel"
                   @change="
                     updateAiPatching({
@@ -878,8 +874,7 @@ async function renameWorkspace(event: Event) {
               <template v-if="aiConfig.provider !== 'ollama'">
                 <Label class="settings__field">
                   <span>{{ $t("settings.apiKey") }}</span>
-                  <input
-                    class="settings__input"
+                  <UiTextField
                     type="password"
                     :value="aiKeys.openai ?? aiKeys.anthropic ?? ''"
                     :placeholder="aiConfig.provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'"
@@ -929,9 +924,9 @@ async function renameWorkspace(event: Event) {
                   offline; signing in only adds sync between devices.
                 </p>
                 <div class="settings__row">
-                  <input
+                  <UiTextField
                     v-model="signInIdentifier"
-                    class="settings__input settings__input--grow"
+                    class="settings__input--grow"
                     :placeholder="$t('settings.syncSignInPlaceholder')"
                     @keydown.enter="onSignIn"
                   />

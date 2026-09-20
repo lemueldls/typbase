@@ -241,7 +241,7 @@ function formatTime(at: number): string {
       </div>
 
       <div class="lab-plugin__action">
-        <input v-model="actionName" class="lab-plugin__input" placeholder="action name" />
+        <UiTextField v-model="actionName" placeholder="action name" />
         <textarea v-model="actionArgs" rows="3" class="lab-plugin__input" placeholder="args JSON" />
         <textarea
           v-model="actionFields"

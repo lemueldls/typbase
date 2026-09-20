@@ -156,16 +156,20 @@ function formatSize(bytes: number): string {
 
     <div class="picker">
       <div class="picker__toolbar">
-        <input
+        <UiTextField
           ref="search"
           v-model="query"
           class="picker__search"
           type="search"
           :placeholder="$t('assets.search')"
           :aria-label="$t('assets.search')"
-        />
-        <Label class="button button--small picker__upload">
-          <MsIcon name="upload" :size="16" />
+        >
+          <template #leading>
+            <MsIcon name="search" :size="20" />
+          </template>
+        </UiTextField>
+        <Label class="button picker__upload">
+          <MsIcon name="upload" :size="20" />
           {{ $t("assets.upload") }}
           <input type="file" hidden @change="upload" />
         </Label>
@@ -215,19 +219,6 @@ function formatSize(bytes: number): string {
 .picker__search {
   flex: 1;
   min-width: 0;
-  padding: var(--space-1-5) var(--space-2);
-  font: inherit;
-  font-size: var(--text-md);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.picker__search:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .picker__upload {

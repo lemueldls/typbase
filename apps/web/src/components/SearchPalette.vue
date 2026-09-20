@@ -87,19 +87,20 @@ function open(result: SearchResultItem) {
 <template>
   <div class="search-palette" @keydown="onKeydown" @click.self="emit('close')">
     <div class="search-palette__box" role="dialog" aria-label="Search">
-      <div class="search-palette__field">
-        <MsIcon name="search" :size="20" class="search-palette__icon" />
-        <input
-          ref="input"
-          v-model="query"
-          class="search-palette__input"
-          :placeholder="$t('palette.placeholder')"
-          :aria-label="$t('palette.label')"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls="search-results"
-        />
-      </div>
+      <UiTextField
+        ref="input"
+        v-model="query"
+        size="large"
+        :placeholder="$t('palette.placeholder')"
+        :aria-label="$t('palette.label')"
+        role="combobox"
+        aria-expanded="true"
+        aria-controls="search-results"
+      >
+        <template #leading>
+          <MsIcon name="search" :size="20" class="search-palette__icon" />
+        </template>
+      </UiTextField>
       <p v-if="searching" class="search-palette__hint" role="status">
         {{ $t("palette.searching") }}
       </p>
@@ -161,33 +162,8 @@ function open(result: SearchResultItem) {
   padding: var(--space-2);
 }
 
-.search-palette__field {
-  position: relative;
-}
-
 .search-palette__icon {
-  position: absolute;
-  left: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
   color: var(--color-text-secondary);
-  pointer-events: none;
-}
-
-.search-palette__input {
-  width: 100%;
-  padding: var(--space-2-5) var(--space-3) var(--space-2-5) var(--space-10);
-  font-size: var(--text-lg);
-  font-family: inherit;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-2);
-  color: var(--color-text);
-  outline: none;
-}
-
-.search-palette__input:focus {
-  border-color: var(--color-accent);
 }
 
 .search-palette__hint {

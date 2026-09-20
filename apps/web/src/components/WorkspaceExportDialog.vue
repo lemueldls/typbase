@@ -133,7 +133,7 @@ async function run(): Promise<void> {
 
     <div class="workspace-export">
       <div class="workspace-export__toolbar">
-        <input
+        <UiTextField
           v-model="query"
           class="workspace-export__search"
           type="search"
@@ -245,19 +245,6 @@ async function run(): Promise<void> {
 .workspace-export__search {
   flex: 1;
   min-width: 0;
-  padding: var(--space-1-5) var(--space-2);
-  font: inherit;
-  font-size: var(--text-md);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.workspace-export__search:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .workspace-export__filters {

@@ -34,17 +34,17 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
 
 <template>
   <div class="icon-picker">
-    <div class="icon-picker__search">
-      <MsIcon name="search" :size="16" />
-      <input
-        v-model="query"
-        class="icon-picker__input"
-        :placeholder="$t('switcher.iconSearch')"
-        :aria-label="$t('switcher.iconSearch')"
-        type="search"
-        @keydown.enter.prevent
-      />
-    </div>
+    <UiTextField
+      v-model="query"
+      type="search"
+      :placeholder="$t('switcher.iconSearch')"
+      :aria-label="$t('switcher.iconSearch')"
+      @keydown.enter.prevent
+    >
+      <template #leading>
+        <MsIcon name="search" :size="16" class="icon-picker__search-icon" />
+      </template>
+    </UiTextField>
 
     <div ref="grid" class="icon-picker__grid">
       <UiTooltip v-for="entry in result.entries" :key="entry.id" :text="entry.title">
@@ -75,26 +75,8 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   min-width: 0;
 }
 
-.icon-picker__search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  padding: var(--space-1-5) var(--space-2);
+.icon-picker__search-icon {
   color: var(--color-text-secondary);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.icon-picker__input {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--text-md);
-  font-family: inherit;
-  color: var(--color-text);
-  background: transparent;
-  border: none;
-  outline: none;
 }
 
 .icon-picker__grid {

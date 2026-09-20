@@ -259,9 +259,9 @@ function openRepository(entry: PackageEntry) {
     </template>
 
     <div class="package-browser__toolbar">
-      <input
+      <UiTextField
         v-model="query"
-        class="dialog__input package-browser__search"
+        class="package-browser__search"
         type="search"
         :placeholder="$t('packages.search')"
       />
@@ -613,8 +613,6 @@ mark {
 
   .package-browser__search {
     flex: 1 1 100%;
-    padding: var(--space-2-5) var(--space-3);
-    font-size: var(--text-md);
   }
 }
 </style>

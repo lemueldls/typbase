@@ -19,7 +19,7 @@ const name = ref("");
 const icon = ref<MaterialSymbol>(DEFAULT_WORKSPACE_ICON);
 const busy = ref(false);
 const error = ref("");
-const nameInput = useTemplateRef<HTMLInputElement>("nameInput");
+const nameInput = useTemplateRef<{ focus: () => void }>("nameInput");
 
 const canSubmit = computed(() => name.value.trim().length > 0 && !busy.value);
 
@@ -81,10 +81,9 @@ async function submit() {
     <form class="dialog__form" @submit.prevent="submit">
       <Label class="dialog__field">
         {{ $t("switcher.renameName") }}
-        <input
+        <UiTextField
           ref="nameInput"
           v-model="name"
-          class="dialog__input"
           :aria-label="$t('switcher.renameName')"
           :maxlength="80"
         />

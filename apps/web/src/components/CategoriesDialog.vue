@@ -67,7 +67,7 @@ async function remove(id: string) {
 
     <form class="dialog__form" @submit.prevent="add">
       <div class="dialog__field">
-        <input v-model="newName" class="dialog__input" :placeholder="$t('categories.label')" />
+        <UiTextField v-model="newName" :placeholder="$t('categories.label')" />
       </div>
       <button type="submit" class="button button--primary">{{ $t("categories.add") }}</button>
     </form>

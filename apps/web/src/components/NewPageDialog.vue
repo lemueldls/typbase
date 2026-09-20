@@ -83,7 +83,7 @@ async function submit() {
     <form class="dialog__form" @submit.prevent="submit">
       <Label class="dialog__field">
         <span>{{ $t("newPage.titleField") }}</span>
-        <input v-model="title" class="dialog__input" placeholder="Project ideas" autofocus />
+        <UiTextField v-model="title" placeholder="Project ideas" autofocus />
       </Label>
 
       <Label class="dialog__field">

@@ -380,7 +380,7 @@ function onCreated(page: PageMeta) {
       <form class="dialog__form" @submit.prevent="rename">
         <Label class="dialog__field">
           <span>{{ $t("sidebar.title") }}</span>
-          <input v-model="renameTitle" class="dialog__input" autofocus />
+          <UiTextField v-model="renameTitle" autofocus />
         </Label>
         <div class="dialog__actions">
           <button type="button" class="button button--ghost" @click="renameTarget = undefined">
