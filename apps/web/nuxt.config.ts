@@ -30,6 +30,16 @@ export default defineNuxtConfig({
         },
       ],
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+      script: [
+        {
+          // Runs before first paint. The workspace doc is async, so without
+          // this the boot splash paints in the default palette and then
+          // switches; the cache holds the exact vars applyThemeToDom writes.
+          innerHTML:
+            '(function(){try{var raw=localStorage.getItem("typbase:themeCache");if(!raw)return;var vars=JSON.parse(raw).vars;if(!vars)return;var root=document.documentElement;for(var key in vars)root.style.setProperty(key,vars[key]);}catch(e){}})();',
+          tagPosition: "head",
+        },
+      ],
     },
   },
   vite: {

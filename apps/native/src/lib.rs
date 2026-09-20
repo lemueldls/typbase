@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 #[allow(unused_imports)]
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, window::Color};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, webview::PageLoadEvent, window::Color};
 
 mod fonts;
 mod storage;
@@ -58,7 +58,15 @@ pub fn run() {
                 .background_color(Color::from_str("#f5efe6").unwrap());
 
             #[cfg(desktop)]
-            let win_builder = win_builder.title("Typbase").inner_size(896.0, 672.0);
+            let win_builder = win_builder
+                .title("Typbase")
+                // .inner_size(896.0, 672.0)
+                .visible(false)
+                .on_page_load(|window, payload| {
+                    if payload.event() == PageLoadEvent::Finished {
+                        let _ = window.show();
+                    }
+                });
 
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(tauri::TitleBarStyle::Transparent);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SplitterPanel } from "reka-ui";
+import faviconUrl from "~~/public/favicon.svg?url";
 
 import { refreshSections, toSections } from "~/lib/ai/generators";
 import { testApi } from "~/lib/testApi";
@@ -19,6 +20,9 @@ const {
 } = useWorkspace();
 
 const loaded = ref(false);
+const activeBootStep = computed(
+  () => bootProgress.value.find((step) => step.status === "active") ?? bootProgress.value.at(-1),
+);
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const mode = ref<ViewModeId>("write");
@@ -292,34 +296,23 @@ definePageMeta({ ssr: false });
       </span>
     </div>
 
-    <div v-if="!loaded" class="app__loading">
-      <h2 class="app__loading-title">{{ $t("boot.title") }}</h2>
+    <Transition name="splash">
+      <div v-if="!loaded" class="app__splash" role="status" aria-live="polite">
+        <img class="app__splash-mark" :src="faviconUrl" alt="" />
+        <h1 class="app__splash-title">Typbase</h1>
+        <div class="app__splash-bar" aria-hidden="true"><span /></div>
+        <p class="app__splash-step">
+          {{ activeBootStep?.label ?? $t("boot.title") }}
+          <template v-if="activeBootStep?.detail"> · {{ activeBootStep.detail }}</template>
+        </p>
+        <p v-if="bootNote" class="app__splash-note">{{ bootNote }}</p>
+        <p v-if="error" class="app__splash-error">{{ error }}</p>
+      </div>
+    </Transition>
 
-      <ul class="boot-steps">
-        <li
-          v-for="step in bootProgress"
-          :key="step.id"
-          class="boot-step"
-          :class="`boot-step--${step.status}`"
-        >
-          <span class="boot-step__marker" aria-hidden="true">
-            <span v-if="step.status === 'active'" class="boot-step__spinner" />
-            <template v-else-if="step.status === 'done'">✓</template>
-            <template v-else-if="step.status === 'error'">!</template>
-            <template v-else>·</template>
-          </span>
-          <span class="boot-step__label">{{ step.label }}</span>
-          <span v-if="step.detail" class="boot-step__detail">{{ step.detail }}</span>
-        </li>
-      </ul>
+    <StorageSetup v-if="loaded && storageSetup" :setup="storageSetup" />
 
-      <p v-if="bootNote" class="app__note">{{ bootNote }}</p>
-      <p v-if="error" class="app__error">{{ error }}</p>
-    </div>
-
-    <StorageSetup v-else-if="storageSetup" :setup="storageSetup" />
-
-    <template v-else-if="workspace">
+    <template v-if="loaded && !storageSetup && workspace">
       <div
         :key="workspaceGeneration"
         class="app__content"
@@ -446,7 +439,7 @@ definePageMeta({ ssr: false });
       </div>
     </template>
 
-    <div v-else class="app__chooser">
+    <div v-if="loaded && !storageSetup && !workspace" class="app__chooser">
       <WorkspaceSwitcher mode="screen" />
     </div>
   </main>
@@ -633,97 +626,87 @@ definePageMeta({ ssr: false });
   }
 }
 
-.app__loading {
-  flex: 1;
+.app__splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: grid;
   place-content: center;
-  gap: var(--space-2);
-  color: var(--color-text-secondary);
-  text-align: center;
-  align-content: center;
-}
-
-.app__loading-title {
-  margin: 0 0 var(--space-3);
-  font-size: var(--text-lg);
+  justify-items: center;
+  gap: var(--space-4);
+  background: var(--color-surface);
   color: var(--color-text);
+  user-select: none;
 }
 
-.app__error {
-  color: var(--color-danger);
+.app__splash-mark {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: block;
 }
 
-.app__note {
-  max-width: 26rem;
-  margin: var(--space-2) auto 0;
-  font-size: var(--text-sm);
-}
-
-.boot-steps {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1-5);
+.app__splash-title {
   margin: 0;
-  padding: 0;
-  text-align: left;
-  min-width: 18rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-.boot-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-md);
+.app__splash-bar {
+  position: relative;
+  width: 11rem;
+  height: 3px;
+  overflow: hidden;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.app__splash-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: var(--color-accent);
+  border-radius: inherit;
+  animation: app-splash-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes app-splash-slide {
+  0% {
+    left: -40%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}
+
+.app__splash-step {
+  margin: 0;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
-.boot-step--active {
-  color: var(--color-text);
+.app__splash-note {
+  max-width: 26rem;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
 }
 
-.boot-step--done {
-  color: var(--color-ok);
-}
-
-.boot-step--error {
+.app__splash-error {
+  margin: 0;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
-.boot-step__marker {
-  width: 1.1rem;
-  text-align: center;
-  font-weight: 600;
-  flex: none;
+.splash-leave-active {
+  transition: opacity 0.25s ease;
 }
 
-.boot-step__label {
-  flex: none;
-}
-
-.boot-step__detail {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.boot-step__spinner {
-  display: inline-block;
-  width: 0.8em;
-  height: 0.8em;
-  border: 2px solid var(--color-text-secondary);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: boot-spin 0.8s linear infinite;
-  vertical-align: -1px;
-}
-
-@keyframes boot-spin {
-  to {
-    transform: rotate(360deg);
-  }
+.splash-leave-to {
+  opacity: 0;
 }
 
 .app__main {

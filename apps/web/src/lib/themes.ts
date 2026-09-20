@@ -506,36 +506,51 @@ export function themeCssVar(token: string): string {
 }
 
 /** Applies the resolved tokens to <html> (CSS custom properties + data attrs). */
-export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSettings): void {
-  const root = document.documentElement;
-  root.dataset.theme = resolved.mode;
-  root.dataset.themeName = resolved.definition?.id ?? "custom";
-  root.style.colorScheme = resolved.mode;
+/**
+ * The custom properties a resolved theme writes to the document root. Cached
+ * verbatim so the pre-paint script can apply them before the app loads.
+ */
+export function themeCssVars(
+  resolved: ResolvedTheme,
+  settings?: AppChromeSettings,
+): Record<string, string> {
+  const vars: Record<string, string> = {};
+
   // Token keys are camelCase (`surface2`); the stylesheets read kebab-case
   // (`--color-surface-2`). Without the conversion the multiword tokens never
   // reached the DOM and themes fell back to the default palette.
   for (const [token, value] of Object.entries(resolved.palette)) {
-    root.style.setProperty(themeCssVar(token), value);
+    vars[themeCssVar(token)] = value;
   }
 
   // The chrome follows the workspace's text/math/code fonts.
   if (settings?.font) {
     const stacks = fontStacks(settings);
-    root.style.setProperty("--font-sans", stacks.sans);
-    root.style.setProperty("--font-mono", stacks.mono);
-    root.style.setProperty("--font-math", stacks.math);
+    vars["--font-sans"] = stacks.sans;
+    vars["--font-mono"] = stacks.mono;
+    vars["--font-math"] = stacks.math;
   }
 
   // Size presets multiply the token scale; tokens.css carries the fallbacks.
-  root.style.setProperty("--ui-size", String(UI_SIZE_SCALE[settings?.uiSize ?? "default"]));
-  root.style.setProperty(
-    "--ui-density",
-    String(UI_DENSITY_SCALE[settings?.uiDensity ?? "default"]),
-  );
-  root.style.setProperty("--ui-radius", String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]));
+  vars["--ui-size"] = String(UI_SIZE_SCALE[settings?.uiSize ?? "default"]);
+  vars["--ui-density"] = String(UI_DENSITY_SCALE[settings?.uiDensity ?? "default"]);
+  vars["--ui-radius"] = String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]);
   // The editor and the rendered headings follow the document text size; the
   // engine gets the same number for compiled output.
-  root.style.setProperty("--doc-text-size", `${settings?.textSize ?? 16}px`);
+  vars["--doc-text-size"] = `${settings?.textSize ?? 16}px`;
+
+  return vars;
+}
+
+export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSettings): void {
+  const root = document.documentElement;
+  root.dataset.theme = resolved.mode;
+  root.dataset.themeName = resolved.definition?.id ?? "custom";
+  root.style.colorScheme = resolved.mode;
+
+  for (const [key, value] of Object.entries(themeCssVars(resolved, settings))) {
+    root.style.setProperty(key, value);
+  }
 }
 
 // Last-applied settings cache. Workspace theme settings live in a Loro doc,
@@ -545,10 +560,13 @@ export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSet
 
 const THEME_CACHE_KEY = "typbase:themeCache";
 
-type CachedThemeSettings = Parameters<typeof resolveTheme>[0] & AppChromeSettings;
+type CachedThemeSettings = Parameters<typeof resolveTheme>[0] &
+  AppChromeSettings & { vars?: Record<string, string> };
 
 export function cacheThemeSettings(settings: CachedThemeSettings): void {
   try {
+    const resolved = resolveTheme(settings);
+
     localStorage.setItem(
       THEME_CACHE_KEY,
       JSON.stringify({
@@ -562,6 +580,9 @@ export function cacheThemeSettings(settings: CachedThemeSettings): void {
         uiDensity: settings.uiDensity ?? "default",
         uiRadius: settings.uiRadius ?? "default",
         textSize: settings.textSize ?? 16,
+        // The inline head script applies these before first paint, so the
+        // boot splash never flashes the default palette.
+        vars: themeCssVars(resolved, settings),
       } satisfies CachedThemeSettings),
     );
   } catch {

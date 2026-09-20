@@ -104,8 +104,7 @@ async function main() {
   const start = Date.now();
 
   try {
-    // Title, then the home page and its workspace queries.
-    await titleCard(page);
+    // await titleCard(page);
     await show(page, ids.home, "write");
     await pause(page, 900);
     await clickMode(page, "Split");
@@ -194,8 +193,8 @@ async function main() {
     await page.keyboard.press("Home");
     await page.keyboard.press("Enter");
     await page.keyboard.press("ArrowUp");
-    await page.keyboard.type("#show heading: set text(fill: red)", { delay: 55 });
-    await page.keyboard.press("Enter");
+    await page.keyboard.type("#show heading: set text(fill: theme.red)", { delay: 55 });
+    // await page.keyboard.press("Enter");
     await pause(page, 1300);
 
     // Broken math while typing: the document keeps rendering, then heals.
@@ -213,7 +212,10 @@ async function main() {
       delay: 80,
     });
     await pause(page, 1600);
-    await page.keyboard.type("$ as $n$ grows.", { delay: 90 });
+    await page.keyboard.type("$", { delay: 90 });
+    await pause(page, 1100);
+    await page.keyboard.type(" as $n$ grows.", { delay: 90 });
+    await page.keyboard.press("Enter");
     await pause(page, 1200);
 
     // Plain source and read views.

@@ -1,6 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.typbase" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- The webview paints the app's splash; this covers the window until
+             the first frame so the cold start does not flash white. -->
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 </resources>

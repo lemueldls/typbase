@@ -301,7 +301,11 @@ fn marker_kind(comment: &str) -> Option<String> {
         return Some(String::from("markup"));
     }
 
-    let label = rest.strip_prefix('[')?.strip_suffix(']')?.trim().to_ascii_lowercase();
+    let label = rest
+        .strip_prefix('[')?
+        .strip_suffix(']')?
+        .trim()
+        .to_ascii_lowercase();
     match label.as_str() {
         "markup" | "text" => Some(String::from("markup")),
         "code" => Some(String::from("code")),
@@ -374,7 +378,9 @@ pub fn extract_cells(text: &str) -> Vec<CellSpan> {
     }
 
     for (index, (line_start, kind)) in markers.iter().enumerate() {
-        let next_start = markers.get(index + 1).map_or(text.len(), |(start, _)| *start);
+        let next_start = markers
+            .get(index + 1)
+            .map_or(text.len(), |(start, _)| *start);
         let marker_end = line_end(text, *line_start);
         let content_start = after_line(text, marker_end);
         let content_end = trim_trailing_blank(text, content_start, next_start);
@@ -393,7 +399,9 @@ pub fn extract_cells(text: &str) -> Vec<CellSpan> {
 
 /// End of the line starting at `start`, excluding the newline.
 fn line_end(text: &str, start: usize) -> usize {
-    text[start..].find('\n').map_or(text.len(), |offset| start + offset)
+    text[start..]
+        .find('\n')
+        .map_or(text.len(), |offset| start + offset)
 }
 
 /// First byte after the line ending at `end`; the end of the text when the
@@ -528,7 +536,10 @@ mod tests {
         assert_eq!(cells[0].kind, "markup");
         assert_eq!(cells[1].kind, "code");
         assert_eq!(cells[2].kind, "markup");
-        assert_eq!(&text[cells[0].content_start..cells[0].content_end], "= Title");
+        assert_eq!(
+            &text[cells[0].content_start..cells[0].content_end],
+            "= Title"
+        );
         assert_eq!(
             &text[cells[1].content_start..cells[1].content_end],
             "#let x = 1"
@@ -556,7 +567,10 @@ mod tests {
         let text = "= Intro\n\n// %%\nBody\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 2);
-        assert_eq!(&text[cells[0].content_start..cells[0].content_end], "= Intro");
+        assert_eq!(
+            &text[cells[0].content_start..cells[0].content_end],
+            "= Intro"
+        );
         assert_eq!(cells[0].marker_start, cells[0].marker_end);
         assert_eq!(&text[cells[1].content_start..cells[1].content_end], "Body");
     }
