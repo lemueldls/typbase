@@ -1,4 +1,4 @@
-name: Deploy Cloudflare Pages
+name: Deploy Cloudflare Workers
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 
 jobs:
   deploy:
-    name: ☁️ Deploy Pages
-    runs-on: ubuntu-slim
+    name: ☁️ Deploy Workers
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
@@ -57,11 +57,13 @@ jobs:
         env:
           NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
 
-      - name: 🚀 Deploy to Cloudflare Pages
+      - name: 🚀 Deploy to Cloudflare Workers
         if: steps.gate.outputs.deploy == 'true'
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/web/.output/public --project-name typbase
+          workingDirectory: apps/web
+          wranglerVersion: "4"
+          command: deploy
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

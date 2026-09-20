@@ -1262,7 +1262,7 @@ fn style_prelude(
     formatdoc!(
         r#"
             #let theme={theme}
-            #let theme=(..theme,base00:theme.surface,base01:theme.surface-2,base02:theme.surface-3,base03:theme.border,base04:theme.text-secondary,base05:theme.text,base06:theme.border-strong,base07:theme.surface,base08:theme.red,base09:theme.orange,base0a:theme.yellow,base0b:theme.green,base0c:theme.cyan,base0d:theme.blue,base0e:theme.violet,base0f:theme.orange)
+            //#let theme=(..theme,base00:theme.surface,base01:theme.surface-2,base02:theme.surface-3,base03:theme.border,base04:theme.text-secondary,base05:theme.text,base06:theme.border-strong,base07:theme.surface,base08:theme.red,base09:theme.orange,base0a:theme.yellow,base0b:theme.green,base0c:theme.cyan,base0d:theme.blue,base0e:theme.violet,base0f:theme.orange)
             #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
 
             #show heading.where(level:1):set text(fill:theme.accent,size:32pt,weight:400)
@@ -1286,7 +1286,7 @@ fn style_prelude(
 
             #show math.equation:set text(font:"{math_font}")
             #show math.equation.where(block:true):set text(size:18pt)
-            #show math.equation.where(block:true):set par(leading:9pt)
+            //#show math.equation.where(block:true):set par(leading:9pt)
 
             #show raw:set text(font:"{code_font}")
             #show raw:set raw(theme:"/{syntax_theme}")

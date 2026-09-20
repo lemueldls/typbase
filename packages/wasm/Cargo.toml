@@ -52,8 +52,8 @@ walkdir = { version = "2.5.0" }
 wasm-bindgen-test = { version = "0.3" }
 
 [[bench]]
-name = "engine"
 harness = false
+name = "engine"
 
 [lints]
 workspace = true
@@ -62,4 +62,4 @@ workspace = true
 wasm-opt = false
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-O4", "-all"]
+wasm-opt = ["-Oz", "-all"]
