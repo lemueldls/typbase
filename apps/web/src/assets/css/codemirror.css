@@ -66,25 +66,25 @@
 
 .typ-heading-level-1 {
   color: var(--color-accent);
-  font-size: 1.8em;
+  font-size: 2em;
   font-weight: 400;
 }
 
 .typ-heading-level-2 {
   color: var(--color-text);
-  font-size: 1.5em;
+  font-size: 1.75em;
   font-weight: 400;
 }
 
 .typ-heading-level-3 {
   color: var(--color-text-secondary);
-  font-size: 1.25em;
+  font-size: 1.5em;
   font-weight: 400;
 }
 
 .typ-heading-level-4 {
   color: var(--color-accent);
-  font-size: 1.1em;
+  font-size: 1.375em;
   font-weight: 400;
 }
 
@@ -96,7 +96,7 @@
 
 .typ-heading-level-6 {
   color: var(--color-text-secondary);
-  font-size: 0.9em;
+  font-size: 0.875em;
   font-weight: 500;
 }
 

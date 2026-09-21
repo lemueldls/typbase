@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { SplitterPanel } from "reka-ui";
+
 import faviconUrl from "~~/public/favicon.svg?url";
 
 import { refreshSections, toSections } from "~/lib/ai/generators";

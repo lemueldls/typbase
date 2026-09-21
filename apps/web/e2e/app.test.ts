@@ -296,12 +296,13 @@ describe("typbase app", async () => {
     }
 
     await expect(page.evaluate(() => window.__typbase.engineStatus())).resolves.toBe("ok");
-    // The watchdog reacts at the 1 GB watermark and wasm memory never shrinks,
-    // so the peak sits just past it. The point is that the loop does not run
-    // away: with the latch plus the aged eviction, growth stops there.
+    // `memoryBytes()` is the wasm linear memory size, which only grows (V8
+    // doubles it) and never shrinks, so it is a high-water mark, not live
+    // usage. The watchdog evicts at 1 GB to stop the growth there; the loop
+    // must not reach the 4 GB ceiling or OOM.
     const memory = await page.evaluate(() => window.__typbase.engineMemory());
     expect(memory).toBeGreaterThan(0);
-    expect(memory).toBeLessThan(1_500_000_000);
+    expect(memory).toBeLessThan(3_000_000_000);
 
     // The text still saves and the engine still compiles the final source.
     await page.evaluate(() => window.__typbase.store.flush());

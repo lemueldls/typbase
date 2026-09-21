@@ -1259,18 +1259,26 @@ fn style_prelude(
     code_font: &str,
     locale: &str,
 ) -> String {
+    let h1 = text_size * 2.0;
+    let h2 = text_size * 1.75;
+    let h3 = text_size * 1.5;
+    let h4 = text_size * 1.375;
+    let h5 = text_size;
+    let h6 = text_size * 0.875;
+    let block_math = text_size * 1.125;
+
     formatdoc!(
         r#"
             #let theme={theme}
             //#let theme=(..theme,base00:theme.surface,base01:theme.surface-2,base02:theme.surface-3,base03:theme.border,base04:theme.text-secondary,base05:theme.text,base06:theme.border-strong,base07:theme.surface,base08:theme.red,base09:theme.orange,base0a:theme.yellow,base0b:theme.green,base0c:theme.cyan,base0d:theme.blue,base0e:theme.violet,base0f:theme.orange)
             #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
 
-            #show heading.where(level:1):set text(fill:theme.accent,size:32pt,weight:400)
-            #show heading.where(level:2):set text(fill:theme.text,size:28pt,weight:400)
-            #show heading.where(level:3):set text(fill:theme.text-secondary,size:24pt,weight:400)
-            #show heading.where(level:4):set text(fill:theme.accent,size:22pt,weight:400)
-            #show heading.where(level:5):set text(fill:theme.text,size:16pt,weight:500)
-            #show heading.where(level:6):set text(fill:theme.text-secondary,size:14pt,weight:500)
+            #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
+            #show heading.where(level:2):set text(fill:theme.text,size:{h2}pt,weight:400)
+            #show heading.where(level:3):set text(fill:theme.text-secondary,size:{h3}pt,weight:400)
+            #show heading.where(level:4):set text(fill:theme.accent,size:{h4}pt,weight:400)
+            #show heading.where(level:5):set text(fill:theme.text,size:{h5}pt,weight:500)
+            #show heading.where(level:6):set text(fill:theme.text-secondary,size:{h6}pt,weight:500)
 
             #show link:set text(fill:theme.accent)
             #show link:underline
@@ -1285,8 +1293,7 @@ fn style_prelude(
             #set square(stroke:theme.border)
 
             #show math.equation:set text(font:"{math_font}")
-            #show math.equation.where(block:true):set text(size:18pt)
-            //#show math.equation.where(block:true):set par(leading:9pt)
+            #show math.equation.where(block:true):set text(size:{block_math}pt)
 
             #show raw:set text(font:"{code_font}")
             #show raw:set raw(theme:"/{syntax_theme}")
