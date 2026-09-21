@@ -26,7 +26,7 @@ const icon = computed<MaterialSymbol>(() => {
 
 <template>
   <div class="plugin-view">
-    <div class="plugin-view__toolbar">
+    <div class="plugin-view__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
       <MsIcon :name="icon" :size="18" />
       <UiTruncatedText class="plugin-view__title" :text="title" />

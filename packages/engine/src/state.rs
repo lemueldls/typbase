@@ -1294,6 +1294,7 @@ fn style_prelude(
 
             #show math.equation:set text(font:"{math_font}")
             #show math.equation.where(block:true):set text(size:{block_math}pt)
+            #show math.equation.where(block:true):set par(leading:0.5em)
 
             #show raw:set text(font:"{code_font}")
             #show raw:set raw(theme:"/{syntax_theme}")
@@ -1320,7 +1321,7 @@ impl TypstState {
                     r#"
                         #set page(fill:rgb(0,0,0,0),width:{width},height:auto,margin:0pt)
                         #set text(top-edge:"ascender",bottom-edge:"descender")
-                        #set par(leading:0.125em)
+                        #set par(leading:0.25em)
                     "#,
                     width = source_ctx.width,
                 )

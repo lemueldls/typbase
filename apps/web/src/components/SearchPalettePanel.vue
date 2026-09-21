@@ -538,7 +538,6 @@ async function rebuildIndex() {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  /* Stays right-aligned when the key hints are hidden on touch devices. */
   margin-left: auto;
 }
 

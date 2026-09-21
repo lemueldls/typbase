@@ -27,7 +27,7 @@ async function run(choice: StorageSetupChoice): Promise<void> {
 
 <template>
   <div class="storage-setup">
-    <div class="storage-setup__card">
+    <div class="storage-setup__card" data-tauri-drag-region="deep">
       <h1 class="storage-setup__title">
         {{ setup.reason === "reconnect" ? $t("storage.reconnectTitle") : $t("storage.setupTitle") }}
       </h1>
@@ -176,14 +176,20 @@ async function run(choice: StorageSetupChoice): Promise<void> {
   flex: 1;
   display: grid;
   place-content: center;
-  padding: var(--space-4);
+  padding: calc(var(--space-4) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))
+    calc(var(--space-4) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
   overflow: auto;
 }
 
 .storage-setup__card {
   display: grid;
+  /* A path under an option is one long unbreakable token. An auto track sizes
+     to its min-content and pushes the card wider than the viewport, which
+     makes the whole app scroll sideways on Android; a zero-min track pins the
+     card to its width so the path ellipsizes instead. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3-5);
-  width: min(30rem, calc(100vw - var(--space-8)));
+  width: min(30rem, calc(100vw - var(--space-8) - var(--safe-left) - var(--safe-right)));
 }
 
 .storage-setup__title {

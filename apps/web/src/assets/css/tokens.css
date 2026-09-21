@@ -35,6 +35,16 @@
   --space-14: calc(3.5rem * var(--ui-density));
   --space-16: calc(4rem * var(--ui-density));
 
+  /* Safe-area insets for the Android and iOS shells. `viewport-fit=cover`
+     in the viewport meta makes the env() values real; desktop browsers and
+     the web build resolve to 0. Chrome's WebView reports system bars as
+     safe-area insets only from 140 (Chromium 441253216), so older WebViews
+     still draw under the bars. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
   /* Chrome type scale. Document text is settings.textSize and does not use
      these; interface size scales text, controls, and icons together. */
   --text-2xs: calc(0.6875rem * var(--ui-size));

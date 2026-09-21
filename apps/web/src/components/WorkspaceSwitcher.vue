@@ -85,7 +85,7 @@ function statusFor(info: WorkspaceInfo): string {
 
 <template>
   <div v-if="mode === 'screen'" class="ws-screen">
-    <header class="ws-screen__header">
+    <header class="ws-screen__header" data-tauri-drag-region="deep">
       <h1 class="ws-screen__title">{{ $t("switcher.title") }}</h1>
       <!-- <p class="ws-screen__subtitle">{{ $t("switcher.hint") }}</p> -->
     </header>
@@ -173,7 +173,7 @@ function statusFor(info: WorkspaceInfo): string {
   display: grid;
   place-content: center;
   gap: var(--space-4);
-  width: min(480px, calc(100vw - var(--space-8)));
+  width: min(480px, calc(100vw - var(--space-8) - var(--safe-left) - var(--safe-right)));
   margin: 0 auto;
 }
 

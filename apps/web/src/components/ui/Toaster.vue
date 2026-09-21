@@ -117,8 +117,8 @@ function onOpenChange(id: string, open: boolean) {
 
 .ui-toast__viewport {
   position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
+  right: calc(var(--space-4) + var(--safe-right));
+  bottom: calc(var(--space-4) + var(--safe-bottom));
   z-index: 95;
   display: flex;
   flex-direction: column;

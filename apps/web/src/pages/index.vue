@@ -494,7 +494,7 @@ definePageMeta({ ssr: false });
    content area (see .app__content--switching). */
 .app__switching {
   position: fixed;
-  top: var(--space-3-5);
+  top: calc(var(--space-3-5) + var(--safe-top));
   left: 50%;
   z-index: 90;
   display: flex;
@@ -555,6 +555,7 @@ definePageMeta({ ssr: false });
   flex: 1;
   display: grid;
   place-content: center;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
 }
 
 .app__main {
@@ -664,6 +665,7 @@ definePageMeta({ ssr: false });
   place-content: center;
   justify-items: center;
   gap: var(--space-4);
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   background: var(--color-surface);
   color: var(--color-text);
   user-select: none;
@@ -744,6 +746,7 @@ definePageMeta({ ssr: false });
   min-width: 0;
   display: flex;
   flex-direction: column;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   background: var(--color-surface);
 }
 </style>

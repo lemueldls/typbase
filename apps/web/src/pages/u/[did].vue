@@ -131,7 +131,8 @@ definePageMeta({ ssr: false });
 .profile {
   max-width: 760px;
   margin: 0 auto;
-  padding: var(--space-8) var(--space-4) var(--space-16);
+  padding: calc(var(--space-8) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))
+    calc(var(--space-16) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
 }
 
 .profile__header h1 {

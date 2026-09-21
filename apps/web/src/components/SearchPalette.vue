@@ -107,8 +107,7 @@ function onDrawerOpen(open: boolean) {
      the thumb as results stream in. */
   height: 88dvh;
   overflow: hidden;
-  padding: var(--space-1) var(--space-2)
-    calc(env(safe-area-inset-bottom, 0px) + var(--space-2) + var(--bleed));
+  padding: var(--space-1) var(--space-2) calc(var(--safe-bottom) + var(--space-2) + var(--bleed));
   margin-bottom: calc(-1 * var(--bleed));
   background: var(--color-surface);
   border: 1px solid var(--color-border);

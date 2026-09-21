@@ -135,7 +135,7 @@ function onCreated(page: PageMeta) {
 
 <template>
   <aside class="sidebar">
-    <header class="sidebar__header">
+    <header class="sidebar__header" data-tauri-drag-region="deep">
       <WorkspaceSwitcher mode="menu">
         <UiTooltip :text="$t('sidebar.switchWorkspace')">
           <button type="button" class="sidebar__workspace">
@@ -410,6 +410,7 @@ function onCreated(page: PageMeta) {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
 }

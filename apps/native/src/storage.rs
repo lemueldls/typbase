@@ -31,7 +31,6 @@ use tauri::{
     AppHandle, Manager, Runtime, State,
     ipc::{InvokeBody, Request, Response},
 };
-use tauri_plugin_dialog::DialogExt as _;
 
 /// Subdirectory of the app data dir used for `App` mode.
 const STORAGE_DIR: &str = "storage";
@@ -256,6 +255,8 @@ pub fn storage_configure(
 pub async fn storage_pick_directory<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt as _;
+
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
@@ -283,6 +284,8 @@ pub async fn storage_export<R: Runtime>(
     state: State<'_, StorageState>,
     path: String,
 ) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt as _;
+
     let target = state.resolve(&path)?;
     let bytes = fs::read(&target)
         .map_err(|error| format!("failed to read {}: {error}", target.display()))?;
@@ -327,6 +330,8 @@ pub async fn export_save_file<R: Runtime>(
     app: AppHandle<R>,
     request: Request<'_>,
 ) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt as _;
+
     let raw = request
         .headers()
         .get("name")

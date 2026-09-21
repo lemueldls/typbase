@@ -980,7 +980,7 @@ function onModeKeydown(event: KeyboardEvent) {
 
 <template>
   <div class="page-view" ref="pageView">
-    <div class="page-view__toolbar">
+    <div class="page-view__toolbar" data-tauri-drag-region="deep">
       <div class="page-view__toolbar-main">
         <div class="page-view__toolbar-main-left">
           <slot name="nav-toggle" />
