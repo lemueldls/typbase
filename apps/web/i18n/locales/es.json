@@ -7,6 +7,7 @@
     "delete": "Eliminar",
     "rename": "Renombrar",
     "close": "Cerrar",
+    "copied": "Copiado",
     "working": "Trabajando…",
     "today": "Hoy",
     "none": "—"
@@ -75,7 +76,9 @@
     "noPage": "No hay ninguna página llamada {id}",
     "publish": "Publicar",
     "republish": "Volver a publicar",
+    "publishedStatus": "Publicado el {date}",
     "publishToAtproto": "Publicar en atproto público",
+    "copyLink": "Copiar enlace",
     "unpublish": "Despublicar",
     "publishConfirm": "¿Despublicar esta nota? Los registros públicos pueden estar replicados por servicios de firehose y no se pueden retirar.",
     "publishHint": "Los registros públicos son legibles por cualquiera. Despublicar elimina el registro; las réplicas de firehose pueden conservarlo.",

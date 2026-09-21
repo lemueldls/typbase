@@ -490,7 +490,7 @@ function onCreated(page: PageMeta) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 0 var(--space-1-5) var(--space-1);
+  padding: 0 var(--space-1-5);
   font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;

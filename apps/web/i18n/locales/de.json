@@ -7,6 +7,7 @@
     "delete": "Löschen",
     "rename": "Umbenennen",
     "close": "Schließen",
+    "copied": "Kopiert",
     "working": "Arbeite…",
     "today": "Heute",
     "none": "—"
@@ -75,7 +76,9 @@
     "noPage": "Keine Seite mit dem Namen {id}",
     "publish": "Veröffentlichen",
     "republish": "Erneut veröffentlichen",
+    "publishedStatus": "Veröffentlicht am {date}",
     "publishToAtproto": "Öffentlich auf atproto veröffentlichen",
+    "copyLink": "Link kopieren",
     "unpublish": "Veröffentlichung zurückziehen",
     "publishConfirm": "Diese Notiz zurückziehen? Öffentliche Einträge können von Firehose-Diensten gespiegelt werden und sind nicht zurückholbar.",
     "publishHint": "Öffentliche Einträge sind für jeden lesbar. Zurückziehen löscht den Eintrag; Firehose-Spiegel können Kopien behalten.",

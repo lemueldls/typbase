@@ -7,6 +7,7 @@
     "delete": "删除",
     "rename": "重命名",
     "close": "关闭",
+    "copied": "已复制",
     "working": "处理中…",
     "today": "今天",
     "none": "—"
@@ -75,7 +76,9 @@
     "noPage": "没有名为 {id} 的页面",
     "publish": "发布",
     "republish": "重新发布",
+    "publishedStatus": "发布于 {date}",
     "publishToAtproto": "发布到公共 atproto",
+    "copyLink": "复制链接",
     "unpublish": "取消发布",
     "publishConfirm": "取消发布这篇笔记？公开记录可能被 firehose 服务镜像，且无法撤回。",
     "publishHint": "公开记录对任何人可读。取消发布会删除记录；firehose 镜像可能保留副本。",

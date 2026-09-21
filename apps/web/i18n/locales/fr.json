@@ -7,6 +7,7 @@
     "delete": "Supprimer",
     "rename": "Renommer",
     "close": "Fermer",
+    "copied": "Copié",
     "working": "En cours…",
     "today": "Aujourd'hui",
     "none": "—"
@@ -75,7 +76,9 @@
     "noPage": "Aucune page nommée {id}",
     "publish": "Publier",
     "republish": "Republier",
+    "publishedStatus": "Publié le {date}",
     "publishToAtproto": "Publier sur atproto public",
+    "copyLink": "Copier le lien",
     "unpublish": "Dépublier",
     "publishConfirm": "Dépublier cette note ? Les enregistrements publics peuvent être répliqués par des services firehose et ne peuvent pas être rappelés.",
     "publishHint": "Les enregistrements publics sont lisibles par tous. Dépublier supprime l'enregistrement ; les miroirs firehose peuvent en conserver des copies.",
