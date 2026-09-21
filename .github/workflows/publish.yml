@@ -46,8 +46,8 @@ jobs:
       - name: 🔨 Build shared packages
         run: pnpm packages:build
 
-      - name: 📦 Publish @typbase/wasm
-        run: pnpm -C packages/wasm/pkg publish --no-git-checks --provenance
+      - name: 📦 Publish @typbase/engine
+        run: pnpm -C packages/engine/pkg publish --no-git-checks --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -1,5 +1,0 @@
----
-source: packages/wasm/src/tests/partition.rs
-expression: summarize(&render.chunks)
----
-[]

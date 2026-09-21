@@ -1,6 +1,6 @@
-import type { TypstRequest } from "@typbase/wasm";
+import type { TypstRequest } from "@typbase/engine";
 
-import init, { TypstState } from "@typbase/wasm";
+import init, { TypstState } from "@typbase/engine";
 import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
 import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
 import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";

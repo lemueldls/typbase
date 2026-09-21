@@ -1,4 +1,4 @@
-import { takeOomGlobal, takePanicGlobal, type TypstState } from "@typbase/wasm";
+import { takeOomGlobal, takePanicGlobal, type TypstState } from "@typbase/engine";
 
 import { createTypstState, replaceTypstState } from "~/composables/typst";
 

@@ -1,5 +1,5 @@
 import type { Diagnostic } from "@codemirror/lint";
-import type { FileId, TypstDiagnostic, TypstState } from "@typbase/wasm";
+import type { FileId, TypstDiagnostic, TypstState } from "@typbase/engine";
 
 import { linter } from "@codemirror/lint";
 

@@ -1,4 +1,4 @@
-import type { TypstState } from "@typbase/wasm";
+import type { TypstState } from "@typbase/engine";
 
 import { specString } from "~/lib/packages";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";

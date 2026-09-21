@@ -1,0 +1,5 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: render.diagnostics
+---
+[]

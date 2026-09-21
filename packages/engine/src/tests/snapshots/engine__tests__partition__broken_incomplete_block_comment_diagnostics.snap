@@ -1,0 +1,15 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 19,
+      "end": 20
+    },
+    "severity": "warning",
+    "message": "unclosed block comment; inserted `*/`",
+    "hints": []
+  }
+]

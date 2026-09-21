@@ -1,6 +1,6 @@
+import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
-import type { TypstState } from "@typbase/wasm";
 
 import { stripCellMarkers } from "@typbase/codemirror";
 

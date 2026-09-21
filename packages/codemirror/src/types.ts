@@ -8,6 +8,6 @@ export interface TextRef {
 
 /** Resolves the files a compile asked for (query JSON, embedded pages). */
 export type TypstRequestHandler = (
-  requests: import("@typbase/wasm").TypstRequest[],
+  requests: import("@typbase/engine").TypstRequest[],
   spaceId: string,
 ) => Promise<boolean> | boolean;

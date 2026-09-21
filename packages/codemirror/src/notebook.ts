@@ -1,6 +1,6 @@
 import type { EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import type { SvgRangedFrame, TypstDiagnostic } from "@typbase/wasm";
+import type { SvgRangedFrame, TypstDiagnostic } from "@typbase/engine";
 
 import { Facet, Prec, StateEffect } from "@codemirror/state";
 import { keymap } from "@codemirror/view";

@@ -2,7 +2,7 @@ language: "typescript"
 stack: "frontend"
 layer: "application"
 dependsOn:
-  - "wasm"
+  - "engine"
   - "codemirror"
   - "typing"
   - "storage"
@@ -13,7 +13,7 @@ tasks:
     command: "pnpm nuxt dev --host"
     preset: "server"
     deps:
-      - "wasm:build-dev"
+      - "engine:build-dev"
       # - "codemirror:build-dev"
       # - "typing:build-dev"
       # - "storage:build-dev"
@@ -22,7 +22,7 @@ tasks:
   build:
     command: "pnpm nuxt build"
     deps:
-      - "wasm:build"
+      - "engine:build"
       - "codemirror:build"
       - "typing:build"
       - "storage:build"
@@ -42,7 +42,7 @@ tasks:
       - "/pnpm-workspace.yaml"
       - "$NUXT_*"
       - "$TAURI_*"
-      - "project://wasm"
+      - "project://engine"
       - "project://codemirror"
       - "project://typing"
       - "project://storage"
@@ -53,7 +53,7 @@ tasks:
   generate:
     command: "pnpm nuxt generate"
     deps:
-      - "wasm:build"
+      - "engine:build"
       - "codemirror:build"
       - "typing:build"
       - "storage:build"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type { FileId, TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
-import type { FileId, TypstState } from "@typbase/wasm";
 import type { MaterialSymbol } from "material-symbols";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";

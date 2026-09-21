@@ -6,6 +6,6 @@
 // Kept in its own module so the render worker can receive the exact same URL
 // from the main thread instead of re-deriving it in a worker context, where
 // asset resolution differs between bundlers and browsers.
-import wasmUrl from "@typbase/wasm/wasm_bg.wasm?url";
+import wasmUrl from "@typbase/engine/engine_bg.wasm?url";
 
 export const wasmBinaryUrl = `${wasmUrl}${wasmUrl.includes("?") ? "&" : "?"}binary`;

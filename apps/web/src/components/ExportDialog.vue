@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { TypstState } from "@typbase/wasm";
 
 import type { SelectOption } from "~/components/ui/Select.vue";
 

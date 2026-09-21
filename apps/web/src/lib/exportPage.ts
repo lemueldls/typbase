@@ -1,6 +1,6 @@
+import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
-import type { TypstState } from "@typbase/wasm";
 
 import { stripCellMarkers } from "@typbase/codemirror";
 import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";

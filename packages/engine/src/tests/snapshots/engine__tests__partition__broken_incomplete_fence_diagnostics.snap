@@ -1,0 +1,15 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 22,
+      "end": 23
+    },
+    "severity": "warning",
+    "message": "unclosed raw block; inserted a closing fence",
+    "hints": []
+  }
+]

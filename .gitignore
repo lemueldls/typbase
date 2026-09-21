@@ -12,10 +12,10 @@ target
 **/*.rs.bk
 
 # wasm-pack output
-packages/wasm/bin/
-packages/wasm/pkg/*
-!packages/wasm/pkg/package.json
-packages/wasm/wasm-pack.log
+packages/engine/bin/
+packages/engine/pkg/*
+!packages/engine/pkg/package.json
+packages/engine/wasm-pack.log
 
 # Tauri
 apps/native/gen/schemas

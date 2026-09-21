@@ -1,0 +1,20 @@
+{
+  "name": "@typbase/engine",
+  "type": "module",
+  "description": "Local-first knowledge base built around the Typst language.",
+  "version": "0.1.0",
+  "license": "AGPL-3.0",
+  "files": [
+    "engine_bg.wasm",
+    "engine.js",
+    "engine.d.ts"
+  ],
+  "main": "engine.js",
+  "types": "engine.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    ""
+  ]
+}

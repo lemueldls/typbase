@@ -1,6 +1,6 @@
+import type { TypstRequest } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
-import type { TypstRequest } from "@typbase/wasm";
 
 import { pushToast } from "~/composables/toasts";
 import { isWasmTrap } from "~/lib/typstRecovery";

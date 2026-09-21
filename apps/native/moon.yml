@@ -3,7 +3,7 @@ stack: "systems"
 layer: "application"
 dependsOn:
   - "web"
-  - "wasm"
+  - "engine"
 
 tasks:
   build:
@@ -21,7 +21,7 @@ tasks:
       - "/Cargo.toml"
       - "/Cargo.lock"
       - "project://web"
-      - "project://wasm"
+      - "project://engine"
     outputs:
       - "/target/**/release/bundle/**/*"
       - "/target/**/release/typbase*"

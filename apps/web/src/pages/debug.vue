@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TypstState } from "@typbase/wasm";
+import type { TypstState } from "@typbase/engine";
 
 import {
   type CapturedLog,

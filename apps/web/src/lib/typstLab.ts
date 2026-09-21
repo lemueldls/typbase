@@ -1,4 +1,4 @@
-import type { TypstRequest, TypstState } from "@typbase/wasm";
+import type { TypstRequest, TypstState } from "@typbase/engine";
 
 import { createTypstRequestService } from "./typstRequests";
 

@@ -1,6 +1,6 @@
 import type { IndentContext } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
-import type { FileId, TypstState } from "@typbase/wasm";
+import type { FileId, TypstState } from "@typbase/engine";
 
 import { autocompletion } from "@codemirror/autocomplete";
 import { indentService } from "@codemirror/language";

@@ -1,6 +1,6 @@
 import type { EditorView } from "@codemirror/view";
+import type { FileId } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { FileId } from "@typbase/wasm";
 
 /**
  * Dev-only handles for the demo capture script and e2e tests. Components write

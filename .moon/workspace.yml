@@ -1,7 +1,7 @@
 projects:
   web: "apps/web"
   native: "apps/native"
-  wasm: "packages/wasm"
+  engine: "packages/engine"
   codemirror: "packages/codemirror"
   typing: "packages/typing"
   storage: "packages/storage"

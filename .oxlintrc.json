@@ -33,7 +33,7 @@
     "dist/",
     "node_modules/",
     "target",
-    "packages/wasm/pkg",
+    "packages/engine/pkg",
     ".output/",
     ".data/",
     ".nuxt/",

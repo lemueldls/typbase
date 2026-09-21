@@ -33,18 +33,18 @@ published release still works.
 
 Repository secrets:
 
-| Secret                                          | Used by           | Notes                                                                                                                                               |
-| ----------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TAURI_SIGNING_PRIVATE_KEY`                     | Desktop           | Updater signing key. Generate with `pnpm tauri signer generate`; put the public key in `platform/tauri/tauri.conf.json` (`plugins.updater.pubkey`). |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`            | Desktop           | Password for the key above.                                                                                                                         |
-| `ANDROID_KEYSTORE`                              | Android           | Base64 of the `.jks` keystore. Without it the APK is unsigned.                                                                                      |
-| `ANDROID_KEYSTORE_PROPERTIES`                   | Android           | Base64 of a `keystore.properties` with `keyAlias`, `keyPassword`, `storeFile=key.jks`, `storePassword`.                                             |
-| `AUR_DEPLOY_KEY`                                | AUR               | SSH private key registered on your AUR account.                                                                                                     |
-| `XBPS_REPOSITORY_SIGNING_KEY`                   | Void              | RSA private key for `xbps-rindex` signing.                                                                                                          |
-| `SSH_SIGNING_KEY`                               | Bump Version, Nix | SSH key for signed commits and tags.                                                                                                                |
-| `NPM_TOKEN`                                     | npm               | npm automation token with publish rights.                                                                                                           |
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Deploy            | Cloudflare Pages. The deploy job skips when unset.                                                                                                  |
-| `NIXPKGS_TOKEN`                                 | Nix               | Token with `repo` and `workflow` scope on your nixpkgs fork. The PR job skips when unset.                                                           |
+| Secret                                          | Used by           | Notes                                                                                                                                            |
+| ----------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TAURI_SIGNING_PRIVATE_KEY`                     | Desktop           | Updater signing key. Generate with `pnpm tauri signer generate`; put the public key in `apps/native/tauri.conf.json` (`plugins.updater.pubkey`). |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`            | Desktop           | Password for the key above.                                                                                                                      |
+| `ANDROID_KEYSTORE`                              | Android           | Base64 of the `.jks` keystore. Without it the APK is unsigned.                                                                                   |
+| `ANDROID_KEYSTORE_PROPERTIES`                   | Android           | Base64 of a `keystore.properties` with `keyAlias`, `keyPassword`, `storeFile=key.jks`, `storePassword`.                                          |
+| `AUR_DEPLOY_KEY`                                | AUR               | SSH private key registered on your AUR account.                                                                                                  |
+| `XBPS_REPOSITORY_SIGNING_KEY`                   | Void              | RSA private key for `xbps-rindex` signing.                                                                                                       |
+| `SSH_SIGNING_KEY`                               | Bump Version, Nix | SSH key for signed commits and tags.                                                                                                             |
+| `NPM_TOKEN`                                     | npm               | npm automation token with publish rights.                                                                                                        |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Deploy            | Cloudflare Workers. The deploy job skips when unset.                                                                                             |
+| `NIXPKGS_TOKEN`                                 | Nix               | Token with `repo` and `workflow` scope on your nixpkgs fork. The PR job skips when unset.                                                        |
 
 Repository variables:
 
@@ -64,7 +64,7 @@ Repository variables:
   base64 -w0 keystore.properties > keystore.properties.b64
   ```
   `keystore.properties` must point `storeFile` at `key.jks`; the workflow
-  writes it next to `platform/tauri/gen/android/app/build.gradle.kts`.
+  writes it next to `apps/native/gen/android/app/build.gradle.kts`.
 - **nixpkgs**: fork NixOS/nixpkgs, set `NIXPKGS_FORK` to `owner/nixpkgs`, and
   add a `NIXPKGS_TOKEN`. The first submission still needs a maintainer entry
   in nixpkgs (`maintainers/maintainer-list.nix`) and reviewer approval; later
@@ -78,10 +78,10 @@ Repository variables:
 ## Local checks
 
 ```sh
-pnpm tauri build                      # desktop bundle
-pnpm moon run tauri:android-build     # Android APK/AAB
-platform/aur/generate-typbase.sh 0.1.0 <sha256>          # source PKGBUILD
-platform/aur/generate-typbase-bin.sh 0.1.0 <sha256>      # binary PKGBUILD
-platform/void/generate-template.sh 0.1.0 <sha256>        # xbps template
-nix build .#typbase .#typbase-bin                        # flake packages
+moon run native:build                                     # desktop bundle
+moon run native:android-build                             # Android APK/AAB
+scripts/distro/aur/generate-typbase.sh 0.1.0 <sha256>     # source PKGBUILD
+scripts/distro/aur/generate-typbase-bin.sh 0.1.0 <sha256> # binary PKGBUILD
+scripts/distro/void/generate-template.sh 0.1.0 <sha256>   # xbps template
+nix build .#typbase .#typbase-bin                         # flake packages
 ```

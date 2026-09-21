@@ -1,5 +1,5 @@
+import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { TypstState } from "@typbase/wasm";
 
 import { publishPrelude, publishSyntaxTheme } from "~/lib/publishPrelude";
 

@@ -1388,6 +1388,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
+name = "engine"
+version = "0.1.0"
+dependencies = [
+ "comemo",
+ "criterion",
+ "dashmap",
+ "ecow",
+ "flate2",
+ "indoc",
+ "insta",
+ "itertools 0.15.0",
+ "js-sys",
+ "rustc-hash",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_bytes",
+ "tar",
+ "time",
+ "tsify",
+ "typst",
+ "typst-html",
+ "typst-ide",
+ "typst-layout",
+ "typst-macros",
+ "typst-pdf",
+ "typst-svg",
+ "typst-syntax",
+ "typst-timing",
+ "walkdir",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "enum-ordinalize"
 version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6918,40 +6952,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487"
 dependencies = [
  "wit-bindgen",
-]
-
-[[package]]
-name = "wasm"
-version = "0.1.0"
-dependencies = [
- "comemo",
- "criterion",
- "dashmap",
- "ecow",
- "flate2",
- "indoc",
- "insta",
- "itertools 0.15.0",
- "js-sys",
- "rustc-hash",
- "serde",
- "serde-wasm-bindgen",
- "serde_bytes",
- "tar",
- "time",
- "tsify",
- "typst",
- "typst-html",
- "typst-ide",
- "typst-layout",
- "typst-macros",
- "typst-pdf",
- "typst-svg",
- "typst-syntax",
- "typst-timing",
- "walkdir",
- "wasm-bindgen",
- "wasm-bindgen-test",
 ]
 
 [[package]]

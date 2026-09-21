@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TextRef } from "@typbase/codemirror";
-import type { FileId, SvgRangedFrame, TypstState } from "@typbase/wasm";
+import type { FileId, SvgRangedFrame, TypstState } from "@typbase/engine";
 
 const props = defineProps<{
   fileId: FileId;

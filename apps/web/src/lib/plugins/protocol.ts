@@ -1,5 +1,5 @@
+import type { TypstRequest } from "@typbase/engine";
 import type { InstalledPackage, ThemePaletteTokens } from "@typbase/typing";
-import type { TypstRequest } from "@typbase/wasm";
 
 /** Types crossing the host <-> plugin-worker boundary. */
 

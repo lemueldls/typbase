@@ -1,6 +1,6 @@
 import type { ThemePaletteTokens } from "@typbase/typing";
 
-import { Rgb, ThemeColors } from "@typbase/wasm";
+import { Rgb, ThemeColors } from "@typbase/engine";
 
 import { paletteSlots } from "./palette";
 

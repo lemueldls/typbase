@@ -7,7 +7,7 @@ import type {
   UiSize,
 } from "@typbase/typing";
 
-import { ThemeColors } from "@typbase/wasm";
+import { ThemeColors } from "@typbase/engine";
 
 import { expandSeeds, normalizeCssColor } from "./palette";
 import { themeColorsFromPalette } from "./rendererPalette";

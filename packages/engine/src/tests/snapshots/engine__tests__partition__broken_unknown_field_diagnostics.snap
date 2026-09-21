@@ -1,0 +1,18 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 13,
+      "end": 22
+    },
+    "severity": "error",
+    "message": "unknown variable: undefined",
+    "hints": [
+      "if you meant to display multiple letters as is, try adding spaces between each letter: `u n d e f i n e d`",
+      "or if you meant to display this as text, try placing it in quotes: `\"undefined\"`"
+    ]
+  }
+]

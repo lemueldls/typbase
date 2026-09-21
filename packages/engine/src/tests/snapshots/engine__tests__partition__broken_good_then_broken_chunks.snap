@@ -1,0 +1,28 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: summarize(&render.chunks)
+---
+[
+  {
+    "range": [
+      0,
+      13
+    ],
+    "items": 10,
+    "width": 70.52,
+    "height": 13.99,
+    "x": -35.15,
+    "y": 0.0
+  },
+  {
+    "range": [
+      15,
+      22
+    ],
+    "items": 6,
+    "width": 24.26,
+    "height": 34.18,
+    "x": 0.0,
+    "y": 33.19
+  }
+]

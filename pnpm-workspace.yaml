@@ -1,7 +1,7 @@
 packages:
   - apps/web
   - packages/*
-  - packages/wasm/pkg
+  - packages/engine/pkg
 
 cargo:
   enabled: true

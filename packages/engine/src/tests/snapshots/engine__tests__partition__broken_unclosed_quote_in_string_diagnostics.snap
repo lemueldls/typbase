@@ -1,0 +1,15 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 9,
+      "end": 10
+    },
+    "severity": "warning",
+    "message": "unclosed math string; inserted a closing `\"`",
+    "hints": []
+  }
+]

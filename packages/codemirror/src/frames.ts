@@ -1,5 +1,5 @@
 import type { EditorState, Range } from "@codemirror/state";
-import type { FileId, SvgRangedFrame, TypstState } from "@typbase/wasm";
+import type { FileId, SvgRangedFrame, TypstState } from "@typbase/engine";
 
 import { Decoration } from "@codemirror/view";
 import { EditorView, WidgetType } from "@codemirror/view";

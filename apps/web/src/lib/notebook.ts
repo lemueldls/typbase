@@ -5,8 +5,8 @@ import type {
   NotebookLabels,
   NotebookOptions,
 } from "@typbase/codemirror";
+import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { TypstState } from "@typbase/wasm";
 
 import { notebookRefreshEffect, typstRecompileEffect } from "@typbase/codemirror";
 import { reactive } from "vue";

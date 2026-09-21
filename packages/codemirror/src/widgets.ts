@@ -1,6 +1,6 @@
 import type { EditorState, Range } from "@codemirror/state";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
-import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typbase/wasm";
+import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typbase/engine";
 
 import { setDiagnostics } from "@codemirror/lint";
 import { StateEffect, StateField } from "@codemirror/state";

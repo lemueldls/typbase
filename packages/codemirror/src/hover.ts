@@ -1,4 +1,4 @@
-import type { FileId, TypstState } from "@typbase/wasm";
+import type { FileId, TypstState } from "@typbase/engine";
 
 import { hoverTooltip } from "@codemirror/view";
 

@@ -1,6 +1,6 @@
+import type { TypstRequest } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { InstalledPackage, Section } from "@typbase/typing";
-import type { TypstRequest } from "@typbase/wasm";
 
 import { parseQueryPath } from "@typbase/typing";
 

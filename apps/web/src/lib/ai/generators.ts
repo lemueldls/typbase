@@ -1,6 +1,6 @@
+import type { SectionSpan } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { Section } from "@typbase/typing";
-import type { SectionSpan } from "@typbase/wasm";
 
 import { createProvider, type AiProvider, type ChatMessage } from "./providers";
 

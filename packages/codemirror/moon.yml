@@ -2,19 +2,19 @@ language: "typescript"
 stack: "frontend"
 layer: "library"
 dependsOn:
-  - "wasm"
+  - "engine"
 
 tasks:
   build:
     command: "pnpm build"
     deps:
-      - "wasm:build"
+      - "engine:build"
     inputs:
       - "src/**/*"
       - "tsconfig.json"
       - "package.json"
       - "/pnpm-lock.yaml"
-      - "project://wasm"
+      - "project://engine"
     outputs:
       - "dist/**/*"
 
@@ -24,12 +24,12 @@ tasks:
       runInCI: false
       persistent: true
     deps:
-      - "wasm:build-dev"
+      - "engine:build-dev"
     inputs:
       - "src/**/*"
       - "tsconfig.json"
       - "package.json"
       - "/pnpm-lock.yaml"
-      - "project://wasm"
+      - "project://engine"
     outputs:
       - "dist/**/*"

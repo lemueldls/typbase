@@ -1,0 +1,27 @@
+---
+source: packages/engine/src/tests/tooltip.rs
+expression: summarize(&render.tooltips)
+---
+[
+  {
+    "range": [
+      1,
+      23
+    ],
+    "items": 6
+  },
+  {
+    "range": [
+      27,
+      60
+    ],
+    "items": 16
+  },
+  {
+    "range": [
+      64,
+      83
+    ],
+    "items": 6
+  }
+]

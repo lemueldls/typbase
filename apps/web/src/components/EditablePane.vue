@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { NotebookOptions } from "@typbase/codemirror";
+import type { TypstRequest } from "@typbase/engine";
+import type { FileId, TypstState } from "@typbase/engine";
 import type { SpellcheckMode } from "@typbase/typing";
-import type { TypstRequest } from "@typbase/wasm";
-import type { FileId, TypstState } from "@typbase/wasm";
 
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";

@@ -1,8 +1,8 @@
+import type { FileId, ThemeColors } from "@typbase/engine";
 import type { WorkspaceSettings } from "@typbase/typing";
-import type { FileId, ThemeColors } from "@typbase/wasm";
 
+import init, { TypstState } from "@typbase/engine";
 import { isTauri } from "@typbase/storage";
-import init, { TypstState } from "@typbase/wasm";
 
 import { currentThemeColors } from "~/composables/theme";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";

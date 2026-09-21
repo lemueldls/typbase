@@ -1,5 +1,5 @@
 import type { EditorView } from "@codemirror/view";
-import type { FileId, TypstState } from "@typbase/wasm";
+import type { FileId, TypstState } from "@typbase/engine";
 
 import {
   type Completion,

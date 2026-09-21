@@ -1,5 +1,5 @@
 import type { EditorState } from "@codemirror/state";
-import type { FileId, TypstState } from "@typbase/wasm";
+import type { FileId, TypstState } from "@typbase/engine";
 
 import { RangeSetBuilder, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";

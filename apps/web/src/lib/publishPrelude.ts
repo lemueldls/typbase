@@ -1,6 +1,6 @@
 import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
-import { TypstState } from "@typbase/wasm";
+import { TypstState } from "@typbase/engine";
 
 import { useTypst } from "~/composables/typst";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
