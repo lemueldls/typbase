@@ -86,7 +86,7 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-1) var(--space-0-5);
+  padding-left: var(--space-2);
   font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;

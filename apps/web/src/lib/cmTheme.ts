@@ -17,6 +17,7 @@ export const typstEditorTheme = EditorView.theme({
     lineHeight: "1.4",
     overflowX: "hidden",
     overflowY: "scroll",
+    padding: "var(--space-2-5) 0",
   },
   ".cm-content": {
     fontFamily: "var(--font-mono)",
