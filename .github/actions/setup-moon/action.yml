@@ -27,6 +27,6 @@ runs:
         path: |
           .moon/cache/hashes
           .moon/cache/outputs
-        key: ${{ runner.os }}-moon-${{ hashFiles('.moon/**/*.yml', 'apps/**/moon.yml', 'packages/**/moon.yml', 'package.json', 'apps/web/package.json', 'pnpm-lock.yaml', 'apps/web/nuxt.config.ts', 'Cargo.toml', 'Cargo.lock', 'packages/wasm/Cargo.toml', 'apps/native/Cargo.toml') }}
+        key: moon-cache-${{ runner.os }}-${{ hashFiles('.moon/**/*.yml', 'apps/**/moon.yml', 'packages/**/moon.yml', 'package.json', 'apps/web/package.json', 'pnpm-lock.yaml', 'apps/web/nuxt.config.ts', 'Cargo.toml', 'Cargo.lock', 'packages/wasm/Cargo.toml', 'apps/native/Cargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-moon-
+          moon-cache-${{ runner.os }}-
