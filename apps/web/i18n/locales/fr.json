@@ -11,6 +11,10 @@
     "today": "Aujourd'hui",
     "none": "—"
   },
+  "save": {
+    "saved": "Enregistré",
+    "failed": "Échec de l'enregistrement"
+  },
   "boot": {
     "title": "Ouverture de l'espace de travail",
     "switching": "Changement d'espace de travail…",

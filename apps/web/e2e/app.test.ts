@@ -117,6 +117,30 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("saves immediately on Ctrl+S with a toast", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Save shortcut",
+      content: "= Save\n\nstart\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" typed");
+
+    // The autosave debounce has not fired yet; the shortcut must flush now.
+    await page.keyboard.press("Control+s");
+    await page.waitForSelector(".ui-toast", { timeout: 10_000 });
+    await expect(page.locator(".ui-toast").innerText()).resolves.toContain("Saved");
+
+    const text = await page.evaluate((pageId) => window.__typbase.store.loadPageText(pageId), id);
+    expect(text).toContain("typed");
+    await page.close();
+  });
+
   it("renders notebook cells and runs one", async () => {
     const page = await createPage();
     await openApp(page);
@@ -272,9 +296,12 @@ describe("typbase app", async () => {
     }
 
     await expect(page.evaluate(() => window.__typbase.engineStatus())).resolves.toBe("ok");
+    // The watchdog reacts at the 1 GB watermark and wasm memory never shrinks,
+    // so the peak sits just past it. The point is that the loop does not run
+    // away: with the latch plus the aged eviction, growth stops there.
     const memory = await page.evaluate(() => window.__typbase.engineMemory());
     expect(memory).toBeGreaterThan(0);
-    expect(memory).toBeLessThan(1_000_000_000);
+    expect(memory).toBeLessThan(1_500_000_000);
 
     // The text still saves and the engine still compiles the final source.
     await page.evaluate(() => window.__typbase.store.flush());

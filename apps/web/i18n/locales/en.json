@@ -11,6 +11,10 @@
     "today": "Today",
     "none": "—"
   },
+  "save": {
+    "saved": "Saved",
+    "failed": "Could not save"
+  },
   "boot": {
     "title": "Opening workspace",
     "switching": "Switching workspace…",

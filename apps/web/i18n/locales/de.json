@@ -11,6 +11,10 @@
     "today": "Heute",
     "none": "—"
   },
+  "save": {
+    "saved": "Gespeichert",
+    "failed": "Speichern fehlgeschlagen"
+  },
   "boot": {
     "title": "Arbeitsbereich wird geöffnet",
     "switching": "Arbeitsbereich wird gewechselt…",

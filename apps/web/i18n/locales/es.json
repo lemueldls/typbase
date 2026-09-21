@@ -11,6 +11,10 @@
     "today": "Hoy",
     "none": "—"
   },
+  "save": {
+    "saved": "Guardado",
+    "failed": "No se pudo guardar"
+  },
   "boot": {
     "title": "Abriendo espacio de trabajo",
     "switching": "Cambiando de espacio de trabajo…",

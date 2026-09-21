@@ -11,6 +11,10 @@
     "today": "今天",
     "none": "—"
   },
+  "save": {
+    "saved": "已保存",
+    "failed": "保存失败"
+  },
   "boot": {
     "title": "正在打开工作区",
     "switching": "正在切换工作区…",
