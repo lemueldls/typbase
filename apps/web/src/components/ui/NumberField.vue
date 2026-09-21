@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import {
-  NumberFieldDecrement,
-  NumberFieldIncrement,
-  NumberFieldInput,
-  NumberFieldRoot,
-} from "reka-ui";
-
 withDefaults(
   defineProps<{
     /** Accessible name for the input; the step buttons use reka's labels. */

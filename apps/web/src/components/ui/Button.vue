@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import type { Component } from "vue";
-
-import { Primitive } from "reka-ui";
-
 defineOptions({ inheritAttrs: false });
 
 withDefaults(

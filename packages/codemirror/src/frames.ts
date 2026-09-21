@@ -101,7 +101,15 @@ export function attachFrameInteractions(
     const x = event.clientX - left;
     const y = event.clientY - top + frame.render.yOffset;
 
-    const jump = typstState.jumpPaged(fileId, x, y);
+    const jump = (() => {
+      try {
+        return typstState.jumpPaged(fileId, x, y);
+      } catch (error) {
+        console.error("[typst] jump panicked:", error);
+
+        return undefined;
+      }
+    })();
     const position = jump ? jump.position : frame.range.end;
 
     view.focus();

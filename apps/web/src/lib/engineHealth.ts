@@ -3,18 +3,6 @@ import { ref } from "vue";
 import { pushToast } from "~/composables/toasts";
 import { recreateTypstState } from "~/lib/typstRecovery";
 
-/**
- * Engine health for the main-thread Typst state.
- *
- * A wasm trap kills the instance, so the app rebuilds it once and then stops
- * trying: a rebuilt engine that traps before compiling anything is not going
- * to be fixed by another rebuild. `failed` means no wasm calls until the user
- * retries or reloads, which is what keeps a wedged module from freezing the
- * tab. comemo's cache locks do not poison, so an abort that happened while a
- * lock was held would hang the next wasm call and JS cannot time out a
- * synchronous call; that is why only an OOM auto-rebuilds.
- */
-
 export type EngineStatus = "ok" | "recovering" | "failed";
 export type EngineFailure = "oom" | "trap" | "rebuild-failed";
 

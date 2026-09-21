@@ -27,3 +27,21 @@ withDefaults(
     </TooltipPortal>
   </TooltipRoot>
 </template>
+
+<style>
+.ui-tooltip {
+  z-index: 80;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
+}
+
+.ui-tooltip__arrow {
+  fill: var(--color-border);
+}
+</style>

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed, useAttrs, useTemplateRef } from "vue";
-
 defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(

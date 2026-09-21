@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ToastDescription, ToastProvider, ToastRoot, ToastTitle, ToastViewport } from "reka-ui";
-
 import { dismissToast, useToasts } from "~/composables/toasts";
 
 const toasts = useToasts();
@@ -44,14 +42,14 @@ function onOpenChange(id: string, open: boolean) {
           :aria-label="$t('common.close')"
           @click="dismissToast(toast.id)"
         >
-          <MsIcon name="close" :size="16" />
+          <MsIcon name="close" :size="20" />
         </button>
       </ToastRoot>
     </ToastViewport>
   </ToastProvider>
 </template>
 
-<style scoped>
+<style>
 .ui-toast {
   display: flex;
   align-items: flex-start;

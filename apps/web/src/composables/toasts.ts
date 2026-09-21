@@ -1,12 +1,5 @@
 import { ref } from "vue";
 
-/**
- * Module-level toast list. `Toaster.vue` renders it from the app root, so
- * callers anywhere (including non-component modules such as engine health)
- * can raise one. Titles and labels are i18n keys; the toaster translates them,
- * since this module has no component context.
- */
-
 export interface ToastAction {
   /** i18n key for the button label. */
   labelKey: string;

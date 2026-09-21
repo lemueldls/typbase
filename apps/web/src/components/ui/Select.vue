@@ -8,19 +8,6 @@ export interface SelectOption<T extends string = string> {
 </script>
 
 <script setup lang="ts" generic="T extends string">
-import {
-  SelectContent,
-  SelectIcon,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectPortal,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-  SelectViewport,
-} from "reka-ui";
-
 defineOptions({ inheritAttrs: false });
 
 withDefaults(
@@ -74,7 +61,50 @@ const model = defineModel<T>({ required: true });
   </SelectRoot>
 </template>
 
-<style scoped>
+<style>
+.ui-select__content {
+  z-index: 90;
+  min-width: var(--reka-select-trigger-width);
+  max-height: calc(100dvh - var(--space-8));
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+}
+
+.ui-select__viewport {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.ui-select__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  font-size: var(--text-md);
+  border-radius: var(--radius-sm);
+  outline: none;
+  cursor: pointer;
+}
+
+.ui-select__item[data-highlighted] {
+  background: var(--color-accent-soft);
+}
+
+.ui-select__item[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ui-select__indicator {
+  display: inline-flex;
+  color: var(--color-accent);
+}
+
 .ui-select__trigger {
   display: inline-flex;
   align-items: center;

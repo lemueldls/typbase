@@ -442,23 +442,31 @@ export const typstViewPlugin = (
           refresh
         ) {
           queueMicrotask(() => {
-            const result = decorate({
-              fileId,
-              spaceId,
-              path,
-              prelude: prelude.value,
-              locked,
-              update,
-              updateInWidget: false,
-              widthChanged,
-              forced: forced || Boolean(run),
-              typstState,
-              revision: options.revision,
-              onRequests: options.onRequests,
-              onPanic: options.onPanic,
-              onCompile: options.onCompile,
-              notebook: options.notebook,
-            });
+            let result: DecorateResult;
+            try {
+              result = decorate({
+                fileId,
+                spaceId,
+                path,
+                prelude: prelude.value,
+                locked,
+                update,
+                updateInWidget: false,
+                widthChanged,
+                forced: forced || Boolean(run),
+                typstState,
+                revision: options.revision,
+                onRequests: options.onRequests,
+                onPanic: options.onPanic,
+                onCompile: options.onCompile,
+                notebook: options.notebook,
+              });
+            } catch (error) {
+              console.error("[typst] decorate panicked:", error);
+              options.onPanic?.(fileId);
+
+              return;
+            }
 
             if (result) {
               const stateEffects = [

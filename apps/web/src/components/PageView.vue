@@ -39,6 +39,7 @@ import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { mirrorPageProject } from "~/lib/projectMirror";
 import { revealRequests } from "~/lib/reveal";
+import { setSaveHandler } from "~/lib/saveRequest";
 import { testApi } from "~/lib/testApi";
 import { recreateTypstState, takeEngineFailure } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
@@ -68,13 +69,12 @@ const degraded = computed(() => engineHealth.value.status === "failed");
 const HEAP_WATERMARK = 1_000_000_000;
 /** Age out per-keystroke cache entries this often. */
 const EVICT_AGED_EVERY = 50;
-/** Throttle the heap read; every compile would be a needless syscall. */
-const HEAP_CHECK_MS = 2000;
 /** Idle sweep interval for the heap watchdog. */
 const HEAP_IDLE_MS = 30_000;
 
 let compilesSinceEvict = 0;
-let lastHeapCheck = 0;
+/** Wasm memory never shrinks, so the watermark can only fire once. */
+let heapEvicted = false;
 
 const boundState = computed(() => typstState.value as TypstState);
 const boundFileId = computed(() => fileId.value as FileId);
@@ -340,15 +340,16 @@ function onEngineCompile() {
   const state = typstState.value;
   if (!state) return;
 
-  const now = performance.now();
-  if (now - lastHeapCheck >= HEAP_CHECK_MS) {
-    lastHeapCheck = now;
-    if (state.memoryBytes() > HEAP_WATERMARK) {
-      console.warn("[typst] wasm heap over watermark, evicting caches");
-      state.evictCaches();
-      compilesSinceEvict = 0;
-      return;
-    }
+  if (!heapEvicted && state.memoryBytes() > HEAP_WATERMARK) {
+    // Latch it: the linear memory cannot shrink, so an unlatched check would
+    // evict everything on every later compile. The aged eviction below keeps
+    // the cache bounded from here on.
+    heapEvicted = true;
+    console.warn("[typst] wasm heap over watermark, evicting caches");
+    state.evictCaches();
+    compilesSinceEvict = 0;
+
+    return;
   }
 
   if (compilesSinceEvict >= EVICT_AGED_EVERY) {
@@ -451,8 +452,8 @@ function queueTextPush(pageId: string, value: string): void {
   textPushTimer = setTimeout(() => void pushPendingText(), TEXT_PUSH_MS);
 }
 
-/** Writes pending editor text and resolves once the store has it. */
-async function pushPendingText(): Promise<void> {
+/** Writes pending editor text, resolving false when the store write failed. */
+async function pushPendingText(): Promise<boolean> {
   if (textPushTimer) {
     clearTimeout(textPushTimer);
     textPushTimer = undefined;
@@ -460,20 +461,33 @@ async function pushPendingText(): Promise<void> {
 
   const pending = pendingText;
   pendingText = undefined;
-  if (!pending || !store) return;
+  if (!pending || !store) return true;
 
   try {
     await store.setPageText(pending.pageId, pending.text);
+
+    return true;
   } catch (reason) {
     console.warn("[page] text save failed:", reason);
+
+    return false;
   }
 }
 
-async function flushText(): Promise<void> {
-  await pushPendingText();
-  await store?.flush().catch((reason) => {
-    console.warn("[storage] flush failed:", reason);
-  });
+/** Flushes pending text and the store snapshot. False when either failed;
+ *  pagehide and page-switch callers ignore it and let the next flush retry. */
+async function flushText(): Promise<boolean> {
+  let ok = await pushPendingText();
+  if (store) {
+    try {
+      await store.flush();
+    } catch (reason) {
+      console.warn("[storage] flush failed:", reason);
+      ok = false;
+    }
+  }
+
+  return ok;
 }
 
 watch(
@@ -639,6 +653,7 @@ let heapTimer: ReturnType<typeof setInterval> | undefined;
 
 onMounted(() => {
   setEngineRetryHandler(() => handlePanic({ manual: true }));
+  setSaveHandler(() => flushText());
   testApi.mode = () => props.modelValue;
   testApi.engineStatus = () => engineHealth.value.status;
   testApi.engineMemory = () => {
@@ -662,7 +677,8 @@ onMounted(() => {
     const state = typstState.value;
     if (!state || engineHealth.value.status !== "ok") return;
 
-    if (state.memoryBytes() > HEAP_WATERMARK) {
+    if (!heapEvicted && state.memoryBytes() > HEAP_WATERMARK) {
+      heapEvicted = true;
       console.warn("[typst] wasm heap over watermark, evicting caches");
       state.evictCaches();
       compilesSinceEvict = 0;
@@ -674,6 +690,7 @@ onBeforeUnmount(() => {
   pageDisposed = true;
   setupToken += 1;
   setEngineRetryHandler(undefined);
+  setSaveHandler(undefined);
   testApi.mode = null;
   testApi.engineStatus = null;
   testApi.engineMemory = null;
@@ -972,7 +989,11 @@ function onModeKeydown(event: KeyboardEvent) {
           :page-id="pageId"
           :store="store"
           :typst-state="typstState"
-          :before-export="flushText"
+          :before-export="
+            async () => {
+              await flushText();
+            }
+          "
         >
           <UiIconButton icon="download" :label="$t('exportPage.title')" :disabled="!ready" />
         </ExportDialog>
