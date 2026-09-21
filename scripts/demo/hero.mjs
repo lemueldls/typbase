@@ -23,7 +23,8 @@ import {
 /**
  * Records the hero video: one unbroken walk through the app, notebook mode
  * excluded on purpose. Playwright records the whole page session including
- * boot; ffmpeg trims to the staged sequence.
+ * the seed and boot; ffmpeg trims from the first staged frame using the wall
+ * clock captured when the page was created.
  *
  *   pnpm dev
  *   node scripts/demo/hero.mjs
@@ -61,10 +62,15 @@ async function main() {
   await installChromePreferences(context);
   await installCursor(context);
 
+  const ids = await seedBeforeBoot(context);
+
   const page = await context.newPage();
+  // The seed ran in its own page, so this page's video opens on the app
+  // boot. Remember the wall clock at creation: the trim below lands on the
+  // first staged frame instead of a fixed offset.
+  const videoStart = Date.now();
   page.on("pageerror", (error) => console.log("[pageerror]", String(error).slice(0, 300)));
 
-  const ids = await seedBeforeBoot(context);
   await boot(page);
   await applySettings(page, SHOT_SETTINGS["notebook-hero"]);
 
@@ -248,8 +254,8 @@ async function main() {
     await video.saveAs(`${RAW}/hero.webm`);
     await browser.close();
 
-    const ss = 0.4;
-    const t = (end - start) / 1000 + 1.2;
+    const ss = Math.max(0, (start - videoStart) / 1000 - 0.35);
+    const t = (end - start) / 1000 + 0.35 + 1.2;
     await exec("ffmpeg", [
       "-y",
       "-ss",
@@ -270,7 +276,9 @@ async function main() {
     ]);
 
     const size = (await stat(`${VIDEOS}/hero.mp4`)).size / 1024 / 1024;
-    console.log(`captured hero.mp4 (${size.toFixed(1)} MB, ${t.toFixed(0)}s)`);
+    console.log(
+      `captured hero.mp4 (${size.toFixed(1)} MB, ${t.toFixed(0)}s, trimmed ${ss.toFixed(1)}s of seed/boot)`,
+    );
   }
 }
 

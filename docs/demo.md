@@ -98,7 +98,9 @@ Captions:
 
 `scripts/demo/hero.mjs` records one unbroken walkthrough (notebook mode
 excluded on purpose) into `docs/video/hero.mp4`, plus
-`docs/images/hero-poster.png` for the README link. Scenes: title card, home
+`docs/images/hero-poster.png` for the README link. The seed runs in its own
+page and the capture trims the boot using the wall clock at page creation, so
+the video opens on the first staged frame. Scenes: title card, home
 page in split view, sidebar navigation, editing the Fibonacci example, document
 completion, hovering the computed bindings, math tooltips, an inline show rule,
 broken math healing while typing, source and read views, theme switch, daily
