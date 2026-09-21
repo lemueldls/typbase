@@ -54,7 +54,7 @@ jobs:
 
       - name: 🔨 Build web app
         if: steps.gate.outputs.deploy == 'true'
-        run: pnpm build --preset cloudflare-module
+        run: pnpm build -- --preset cloudflare-module
         env:
           NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
 
