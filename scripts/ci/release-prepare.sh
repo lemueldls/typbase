@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Validates the release tag against the Tauri config, creates the draft release
-# if it is missing, and writes the `tag` and `version` step outputs.
+# Validates the release tag against the Tauri config and the tag's changelog,
+# creates the draft release if it is missing, and writes the `tag` and
+# `version` step outputs.
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -20,9 +21,13 @@ config_version=$(jq -r '.version' "$repo_root/apps/native/tauri.conf.json")
 set_output tag "$tag"
 set_output version "$version"
 
+notes_file=$(mktemp)
+trap 'rm -f "$notes_file"' EXIT
+TAG=$tag VERSION=$version bash "$script_dir/extract-changelog.sh" > "$notes_file"
+
 if ! gh release view "$tag" >/dev/null 2>&1; then
     gh release create "$tag" \
         --draft \
         --title "Typbase v$version" \
-        --generate-notes
+        --notes-file "$notes_file"
 fi

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "moon run web:build",
+    "changelog": "git-cliff --unreleased --strip header",
     "dev": "moon run web:dev",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@golar/vue": "^0.1.10",
     "@moonrepo/cli": "^2.3.4",
+    "git-cliff": "^2.14.2",
     "golar": "^0.1.10",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.81.0",

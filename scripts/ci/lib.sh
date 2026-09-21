@@ -25,3 +25,15 @@ set_output() {
         echo "$key=$value"
     fi
 }
+
+# Runs git-cliff from PATH (CI jobs install it with install-git-cliff.sh) or
+# from the workspace devDependency.
+git_cliff() {
+    if command -v git-cliff >/dev/null 2>&1; then
+        git-cliff "$@"
+    elif [[ -x ./node_modules/.bin/git-cliff ]]; then
+        ./node_modules/.bin/git-cliff "$@"
+    else
+        die "git-cliff is not installed; run pnpm install or scripts/ci/install-git-cliff.sh"
+    fi
+}

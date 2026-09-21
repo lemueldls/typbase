@@ -22,12 +22,35 @@ published release still works.
 1. Run the **Bump Version** workflow with `dry-run` checked to see the next
    version, then again with `dry-run` unchecked. It updates every version
    source (Cargo workspace and lockfile, Tauri config, Android version code,
-   `packages/*`, nix derivations), commits, tags `typbase-v<version>`, and
-   pushes. The tag starts the release.
+   `packages/*`, nix derivations), regenerates `CHANGELOG.md`, commits, tags
+   `typbase-v<version>`, and pushes. The tag starts the release.
 2. Watch the **Release** workflow. If a build fails, fix it and re-run the
    failed jobs; the draft release keeps the assets that already uploaded.
-3. Re-running a single packaging workflow is possible from the Actions tab with
+3. Reword the draft release notes on GitHub if the generated text reads badly.
+   The release stays a draft until every build finishes, so that is the window
+   for editing the public copy without touching `CHANGELOG.md`.
+4. Re-running a single packaging workflow is possible from the Actions tab with
    the tag as input.
+
+## Changelog
+
+`CHANGELOG.md` is generated from conventional commit subjects with
+[git-cliff](https://git-cliff.org), one section per release, and it is not
+edited by hand. The **Bump Version** workflow runs `scripts/ci/bump-version.sh`,
+which regenerates the whole file from the tags before it commits, so the tag
+points at a commit that already contains its entry. A missing file is written
+in full, which covers the first release.
+
+- Groups are **Breaking changes**, **New**, **Fixed**, and **Improved**.
+  `chore`, `ci`, `docs`, `test`, `build`, `style`, and `refactor` commits are
+  skipped, and scopes are not rendered. The rules live in `.cliff.toml`.
+- `pnpm changelog` previews the next section from the commits since the last
+  tag.
+- Commit subjects are release copy. `fix: crash when opening a notebook` lands
+  in the notes as written; `fix: null deref in cell splitter` does not.
+- The GitHub release body is that same section, read back from the tag's
+  `CHANGELOG.md` by `scripts/ci/extract-changelog.sh`. A tag without a section
+  for its version fails the **Prepare** job before any build starts.
 
 ## Secrets and variables
 

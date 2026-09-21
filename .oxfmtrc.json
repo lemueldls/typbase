@@ -38,6 +38,7 @@
     ".vercel/",
     ".netlify/",
     "apps/web/src/assets/symbols.json",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "CHANGELOG.md"
   ]
 }
