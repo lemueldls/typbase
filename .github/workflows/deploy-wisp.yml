@@ -18,7 +18,7 @@ jobs:
         shell: bash
         env:
           WISPCTL_APP_PASSWORD: ${{ secrets.WISPCTL_APP_PASSWORD }}
-          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_HANDLE: ${{ secrets.WISP_HANDLE }}
         run: |
           if [[ -n "$WISPCTL_APP_PASSWORD" && -n "$WISP_HANDLE" ]]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
@@ -68,7 +68,7 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         env:
           WISPCTL_APP_PASSWORD: ${{ secrets.WISPCTL_APP_PASSWORD }}
-          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_HANDLE: ${{ secrets.WISP_HANDLE }}
           WISP_SITE: ${{ vars.WISP_SITE || 'typbase' }}
         run: |
           pnpm dlx wispctl deploy "$WISP_HANDLE" --path apps/web/.output/public --site "$WISP_SITE" --yes
@@ -77,6 +77,6 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         env:
           WISPCTL_APP_PASSWORD: ${{ secrets.WISPCTL_APP_PASSWORD }}
-          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_HANDLE: ${{ secrets.WISP_HANDLE }}
           WISP_SITE: ${{ vars.WISP_SITE || 'typbase' }}
         run: node scripts/ci/wisp-settings.mjs "$WISP_HANDLE" "$WISP_SITE"
