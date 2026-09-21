@@ -1,10 +1,6 @@
 # Typbase
 
-Local-first knowledge base built around the [Typst](https://typst.app) language.
-
-[![Typbase demo: writing, querying, and rendering Typst](docs/images/hero-poster.png)](docs/video/hero.mp4)
-
-<!-- _A one-minute walkthrough: inline editing, workspace queries, math, themes, and export._ -->
+https://github.com/user-attachments/assets/7d278d95-e4ab-4928-b832-aa15b4c6bee8
 
 ## Features
 
