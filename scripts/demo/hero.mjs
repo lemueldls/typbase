@@ -223,8 +223,6 @@ async function main() {
     await page.keyboard.press("Escape");
     await pause(page, 700);
 
-    await page.screenshot({ path: `${IMAGES}/hero-poster.png` });
-
     // Daily note and export dialog.
     await clickSidebar(page, "Today");
     await pause(page, 800);
@@ -239,6 +237,8 @@ async function main() {
     // Back home to close the loop.
     await clickSidebar(page, "Home");
     await pause(page, 1500);
+
+    await page.screenshot({ path: `${IMAGES}/hero-poster.png` });
   } finally {
     const end = Date.now();
     const video = page.video();
