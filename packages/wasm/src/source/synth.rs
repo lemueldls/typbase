@@ -173,32 +173,6 @@ struct SynthBuild {
     map: SourceMap,
 }
 
-/// Vertical space emitted for one blank line, in ems. The editor's line
-/// height is 1.4, so a blank source line occupies 1.4em there too.
-const BLANK_LINE_EM: f64 = 1.4;
-
-/// Emits `#v(...)` for the blank lines that sat between two blocks. One blank
-/// line in the editor is one line height; the compiled output adds that on top
-/// of Typst's normal block spacing, so the PDF and read view keep the
-/// paragraph gaps the source shows.
-///
-/// Runs of blank lines collapse into one, the same way the editor treats them
-/// as a single visual break, and leading blank lines add nothing.
-fn emit_blank_lines(builder: &mut SourceBuilder, at: usize, blank_lines: usize) {
-    if blank_lines == 0 {
-        return;
-    }
-
-    // The trailing newline matters: the next block must start at the beginning
-    // of a line, or a list marker, heading, or code fence glued to `#v(...)`
-    // parses as plain text.
-    builder.generated(
-        at,
-        &format!("#v({BLANK_LINE_EM}em)\n"),
-        SegmentKind::Spacing,
-    );
-}
-
 /// Builds a synth from a plain text source.
 ///
 /// Walks the text's top-level syntax nodes and produces an intermediate
@@ -211,6 +185,10 @@ fn emit_blank_lines(builder: &mut SourceBuilder, at: usize, blank_lines: usize) 
 ///    through unmodified.
 /// 3. Records a [`SourceMap`] segment at every copy and insertion, so offsets
 ///    translate between the two texts exactly.
+///
+/// Blank lines between blocks are not copied and add no generated spacing.
+/// The wrappers give every top-level block the same `above`/`below` spacing,
+/// so a compiled gap does not change with the block's contents.
 ///
 /// ## Block wrapping
 ///
@@ -281,16 +259,9 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
                 // This leaf ends the open block at its first newline.
                 in_block = false;
 
-                let newlines = leaf.matches('\n').count();
-
                 if let Some(last_block) = blocks.last_mut() {
                     last_block.range.end = (last_block.range.end + until_newline).min(range.end);
-                    // The first newline ends the block's last line; every
-                    // newline after it is a blank line in the editor. Leading
-                    // blank lines are dropped: the first block sits at the top.
-                    let blank_lines = newlines.saturating_sub(1);
                     wrap_block(&mut builder, last_block, last_kind);
-                    emit_blank_lines(&mut builder, last_block.range.end, blank_lines);
                 }
             } else if !leaf.trim().is_empty() {
                 // A newline-bearing leaf outside a block is content of its

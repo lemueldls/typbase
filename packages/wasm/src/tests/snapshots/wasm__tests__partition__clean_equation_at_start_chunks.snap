@@ -23,6 +23,6 @@ expression: summarize(&render.chunks)
     "width": 84.88,
     "height": 136.72,
     "x": 0.0,
-    "y": 126.96
+    "y": 104.56
   }
 ]

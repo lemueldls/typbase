@@ -209,11 +209,11 @@ fn prelude_changes_rebuild_the_synth() {
     );
 }
 
-/// Blank source lines become explicit vertical space, so the PDF and read
-/// view keep the paragraph gaps the editor shows. A single line break is not
-/// a blank line and adds nothing, and runs of blank lines collapse into one.
+/// Blank source lines open a paragraph break through the block wrappers, not
+/// through generated vertical space: every top-level block gets the wrapper's
+/// own `above`/`below`, so gaps do not change with what a block contains.
 #[test]
-fn blank_lines_become_vertical_space() {
+fn blank_lines_add_no_generated_spacing() {
     let mut state = harness::state();
     let id = harness::page(&mut state, "synth_blank_lines");
 
@@ -227,17 +227,17 @@ fn blank_lines_become_vertical_space() {
     let result = harness::render_text(&state, &id);
 
     assert!(
-        result.contains("#v(1.4em)"),
-        "blank line missing from synth:\n{result}",
-    );
-    assert!(
-        !result.contains("#v(2.8em)"),
-        "run of blank lines did not collapse:\n{result}",
+        !result.contains("#v("),
+        "blank lines generated vertical space:\n{result}",
     );
     assert_eq!(
-        result.matches("#v(1.4em)").count(),
-        2,
-        "expected one gap per block boundary:\n{result}",
+        result.matches("#block(stroke:0pt,width:100%)[").count(),
+        3,
+        "blank lines merged blocks instead of separating them:\n{result}",
+    );
+    assert!(
+        result.contains("]\n#block(stroke:0pt,width:100%)["),
+        "blocks are not separated by newlines:\n{result}",
     );
 
     let _ = sync_source_state(

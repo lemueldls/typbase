@@ -106,6 +106,10 @@ function onPreviewClick(event: MouseEvent) {
 
 const scroller = useTemplateRef("scroller");
 const frames = ref<SvgRangedFrame[]>([]);
+/** Raw text the current frames were compiled from. The layout maps frame
+ *  ranges against this, not the live text, so a keystroke cannot move frames
+ *  before the next compile lands. */
+const framesText = ref("");
 const rendering = ref(false);
 
 const renderNow = async () => {
@@ -132,6 +136,7 @@ const renderNow = async () => {
     }
 
     frames.value = result.frames;
+    framesText.value = props.text.value;
     props.onCompile?.();
   } finally {
     rendering.value = false;
@@ -206,13 +211,16 @@ watch(
   () => scheduleRender(),
 );
 
-/** Editor line height in px. The editor scroller uses 1.4 with a 1rem font. */
+/** Editor line height in px. The editor scroller uses 1.4 with the document
+ *  text size, which `--doc-text-size` carries. */
 function editorLineHeight(): number {
   if (typeof document === "undefined") return 22.4;
 
-  const rootSize = parseFloat(getComputedStyle(document.documentElement).fontSize || "16");
+  const size = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--doc-text-size"),
+  );
 
-  return rootSize * 1.4;
+  return (Number.isFinite(size) && size > 0 ? size : 16) * 1.4;
 }
 
 /** UTF-16 offsets where each source line starts. */
@@ -252,14 +260,15 @@ interface PlacedFrame {
 
 /**
  * Source-aligned layout. The first frame sits at the top; each later frame
- * follows the source lines that separate it from the previous one, pushed
- * down only when the previous frame would overlap it. A run of blank lines
- * collapses into one line height, matching the compiled output.
+ * follows the source lines that separate it from the previous one. A frame is
+ * pushed below the previous one when the render is taller than its source
+ * lines, but a blank source line keeps at least one line of space, so a tall
+ * frame cannot swallow the gap the editor shows.
  */
 const layout = computed<{ placed: PlacedFrame[]; height: number }>(() => {
   if (frames.value.length === 0) return { placed: [], height: 0 };
 
-  const starts = lineStarts(props.text.value);
+  const starts = lineStarts(framesText.value);
   const lineHeight = editorLineHeight();
 
   let bottom = 0;
@@ -273,14 +282,16 @@ const layout = computed<{ placed: PlacedFrame[]; height: number }>(() => {
 
     const currentLine = lineOf(starts, frame.range.start);
     const first = previousLine === undefined;
+    let spacing = 0;
 
     if (previousLine !== undefined) {
       const gap = Math.max(1, currentLine - previousLine);
       // One line break is one line; a run of blank lines adds one more.
       effectiveLine += gap > 1 ? 2 : 1;
+      spacing = gap > 1 ? lineHeight : 0;
     }
 
-    const top = first ? 0 : Math.max(effectiveLine * lineHeight, bottom);
+    const top = first ? 0 : Math.max(effectiveLine * lineHeight, bottom + spacing);
 
     bottom = top + height;
     previousLine = lineOf(starts, frame.range.end);

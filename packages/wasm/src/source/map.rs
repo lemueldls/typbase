@@ -51,8 +51,6 @@ pub enum SegmentKind {
     Wrapper,
     /// A generated block separator newline.
     Separator,
-    /// Generated vertical space for blank source lines.
-    Spacing,
     /// An inserted delimiter repair.
     Fixup,
     /// A generated error mark or recovery placeholder.
@@ -69,7 +67,6 @@ impl SegmentKind {
             Self::Prelude => "prelude",
             Self::Wrapper => "wrapper",
             Self::Separator => "separator",
-            Self::Spacing => "spacing",
             Self::Fixup => "fixup",
             Self::ErrorMark => "error-mark",
             Self::Unknown => "unknown",

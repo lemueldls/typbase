@@ -41,21 +41,21 @@ expression: summarize(&render.chunks)
       39,
       83
     ],
-    "items": 18,
+    "items": 10,
     "width": 277.04,
     "height": 55.04,
     "x": 17.6,
-    "y": 113.6
+    "y": 74.0
   },
   {
     "range": [
       85,
       96
     ],
-    "items": 14,
+    "items": 18,
     "width": 83.84,
     "height": 11.84,
     "x": 18.96,
-    "y": 216.64
+    "y": 137.44
   }
 ]

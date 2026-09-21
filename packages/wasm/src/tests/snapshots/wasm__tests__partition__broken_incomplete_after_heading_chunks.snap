@@ -23,7 +23,7 @@ expression: summarize(&render.chunks)
     "width": 36.88,
     "height": 21.12,
     "x": 0.0,
-    "y": 83.84
+    "y": 61.44
   },
   {
     "range": [
@@ -34,6 +34,6 @@ expression: summarize(&render.chunks)
     "width": 94.64,
     "height": 90.48,
     "x": 0.0,
-    "y": 146.56
+    "y": 101.76
   }
 ]
