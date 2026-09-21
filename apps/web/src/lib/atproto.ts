@@ -64,13 +64,23 @@ export class AtprotoService {
   private constructor(
     private readonly store: WorkspaceStore,
     private readonly local: LocalState,
-    private readonly opts: { appUrl: string; oauthOrigin: string; handleResolver?: string },
+    private readonly opts: {
+      appUrl: string;
+      oauthOrigin: string;
+      handleResolver?: string;
+      relayUrl?: string;
+    },
   ) {}
 
   static async init(
     store: WorkspaceStore,
     local: LocalState,
-    opts: { appUrl: string; oauthOrigin: string; handleResolver?: string },
+    opts: {
+      appUrl: string;
+      oauthOrigin: string;
+      handleResolver?: string;
+      relayUrl?: string;
+    },
   ): Promise<AtprotoService> {
     const service = new AtprotoService(store, local, opts);
     await service.restore();
@@ -274,8 +284,11 @@ export class AtprotoService {
   private startRelay(): void {
     if (this.relay) return;
 
-    const origin = this.opts.appUrl.replace(/\/$/, "");
-    const url = `${origin}/relay?workspace=${encodeURIComponent(this.store.workspaceId)}`;
+    // Static deploys have no Nitro relay; `relayUrl` lets a hosted one take
+    // over. Without it the relay targets the app origin and just never opens,
+    // which leaves the polling sync loop as the only path.
+    const base = (this.opts.relayUrl?.trim() || this.opts.appUrl).replace(/\/$/, "");
+    const url = `${base}/relay?workspace=${encodeURIComponent(this.store.workspaceId)}`;
     this.relay = new RelayClient(url, this.store.workspaceId, {
       onOpen: () => this.emit(),
       onClose: () => this.emit(),

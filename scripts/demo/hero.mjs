@@ -175,11 +175,14 @@ async function main() {
     await numbering.scrollIntoViewIfNeeded();
     await clickWithCursor(page, numbering, { pause: 300 });
     await page.keyboard.press("Home");
+    await pause(page, 900);
     await page.keyboard.press("Enter");
+    await pause(page, 900);
     await page.keyboard.press("ArrowUp");
+    await pause(page, 900);
     await page.keyboard.type("#show heading: set text(fill: theme.", { delay: 55 });
-    await pause(page, 1100);
-    await page.keyboard.type("yellow)", { delay: 90 });
+    await pause(page, 900);
+    await page.keyboard.type("yellow)", { delay: 140 });
     // await page.keyboard.press("Enter");
     await pause(page, 1300);
 
