@@ -18,7 +18,8 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const open = ref(false);
+/** Dialog state; the app bar opens it from the overflow menu or a trigger. */
+const open = defineModel<boolean>("open", { default: false });
 const busy = ref(false);
 const error = ref("");
 
@@ -91,7 +92,7 @@ async function run(): Promise<void> {
     :title="$t('exportPage.title')"
     :description="$t('exportPage.description')"
   >
-    <template #trigger>
+    <template v-if="$slots.default" #trigger>
       <slot />
     </template>
 

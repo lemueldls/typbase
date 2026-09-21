@@ -87,6 +87,19 @@ const ready = ref(false);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
 const packagesOpen = ref(false);
+const assetsOpen = ref(false);
+const exportOpen = ref(false);
+
+// The toolbar drops its action buttons into the overflow menu when the pane is
+// narrow. Observed on the pane, not a viewport media query: expanding the
+// sidebar narrows the pane without changing the window.
+const pageView = useTemplateRef("pageView");
+const paneWidth = ref(typeof window === "undefined" ? 1024 : window.innerWidth);
+useResizeObserver(pageView, (entries) => {
+  const entry = entries[0];
+  if (entry) paneWidth.value = entry.contentRect.width;
+});
+const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
 
 // ---- Notebook mode -------------------------------------------------------
 
@@ -959,7 +972,7 @@ function onModeKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="page-view">
+  <div class="page-view" ref="pageView">
     <div class="page-view__toolbar">
       <div class="page-view__toolbar-main">
         <div class="page-view__toolbar-main-left">
@@ -967,7 +980,12 @@ function onModeKeydown(event: KeyboardEvent) {
           <UiTruncatedText class="page-view__title" :text="meta?.title ?? pageId" />
         </div>
 
-        <AssetPicker v-if="modelValue !== 'read' && store" :store="store" @select="insertAsset">
+        <AssetPicker
+          v-if="!compact && modelValue !== 'read' && store"
+          v-model:open="assetsOpen"
+          :store="store"
+          @select="insertAsset"
+        >
           <UiIconButton
             icon="add_photo_alternate"
             :label="$t('assets.title')"
@@ -977,21 +995,13 @@ function onModeKeydown(event: KeyboardEvent) {
         </AssetPicker>
 
         <UiIconButton
-          v-if="modelValue !== 'read'"
+          v-if="!compact && modelValue !== 'read'"
           icon="text_format"
           :label="$t('formatting.title')"
           :pressed="formatOpen"
           class="page-view__format-toggle"
           @click="formatOpen = !formatOpen"
         />
-
-        <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store">
-          <UiIconButton
-            icon="package_2"
-            :label="$t('packages.title')"
-            :disabled="!ready || degraded"
-          />
-        </PackageBrowser>
 
         <AIMenu
           v-if="store && aiEnabled"
@@ -1002,8 +1012,11 @@ function onModeKeydown(event: KeyboardEvent) {
           @open-page="emit('openPage', $event)"
         />
 
+        <PublishButton v-if="store" :page-id="pageId" :store="store" />
+
         <ExportDialog
           v-if="store"
+          v-model:open="exportOpen"
           :page-id="pageId"
           :store="store"
           :typst-state="typstState"
@@ -1012,11 +1025,16 @@ function onModeKeydown(event: KeyboardEvent) {
               await flushText();
             }
           "
-        >
-          <UiIconButton icon="download" :label="$t('exportPage.title')" :disabled="!ready" />
-        </ExportDialog>
+        />
 
-        <PublishButton v-if="store" :page-id="pageId" :store="store" />
+        <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store" />
+
+        <AssetPicker
+          v-if="compact && modelValue !== 'read' && store"
+          v-model:open="assetsOpen"
+          :store="store"
+          @select="insertAsset"
+        />
 
         <div
           class="page-view__modes"
@@ -1081,6 +1099,37 @@ function onModeKeydown(event: KeyboardEvent) {
             </DropdownMenuRadioGroup>
           </UiMenu>
         </span>
+
+        <UiMenu align="end">
+          <template #trigger>
+            <UiIconButton icon="more_vert" :label="$t('pageView.moreActions')" :disabled="!ready" />
+          </template>
+
+          <UiMenuItem
+            v-if="compact && modelValue !== 'read'"
+            icon="text_format"
+            @select="formatOpen = !formatOpen"
+          >
+            {{ $t("formatting.title") }}
+            <MsIcon v-if="formatOpen" name="check" :size="16" class="page-view__menu-check" />
+          </UiMenuItem>
+
+          <UiMenuItem
+            v-if="compact && modelValue !== 'read'"
+            icon="add_photo_alternate"
+            @select="assetsOpen = true"
+          >
+            {{ $t("assets.title") }}
+          </UiMenuItem>
+
+          <UiMenuItem icon="package_2" :disabled="degraded" @select="packagesOpen = true">
+            {{ $t("packages.title") }}
+          </UiMenuItem>
+
+          <UiMenuItem icon="download" @select="exportOpen = true">
+            {{ $t("exportPage.title") }}
+          </UiMenuItem>
+        </UiMenu>
       </div>
     </div>
 
@@ -1208,7 +1257,7 @@ function onModeKeydown(event: KeyboardEvent) {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 1 1 0;
 }
 
 .page-view__title {
@@ -1346,7 +1395,8 @@ function onModeKeydown(event: KeyboardEvent) {
   gap: var(--space-2);
 }
 
-.page-view__mode-check {
+.page-view__mode-check,
+.page-view__menu-check {
   margin-left: auto;
   color: var(--color-accent);
 }

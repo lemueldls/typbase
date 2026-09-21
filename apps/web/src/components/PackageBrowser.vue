@@ -267,7 +267,7 @@ function openRepository(entry: PackageEntry) {
     :title="$t('packages.title')"
     :description="$t('packages.description')"
   >
-    <template #trigger>
+    <template v-if="$slots.default" #trigger>
       <slot />
     </template>
 

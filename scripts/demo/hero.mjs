@@ -227,7 +227,9 @@ async function main() {
     // Daily note and export dialog.
     await clickSidebar(page, "Today");
     await pause(page, 800);
-    await clickWithCursor(page, page.locator('[aria-label="Export page"]').first());
+    await clickWithCursor(page, page.locator('[aria-label="More actions"]').first());
+    await pause(page, 400);
+    await clickWithCursor(page, page.getByRole("menuitem", { name: "Export page" }));
     await page.waitForSelector(".export", { timeout: 15_000 }).catch(() => {});
     await pause(page, 1500);
     await page.keyboard.press("Escape");

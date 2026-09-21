@@ -26,12 +26,14 @@ function formatPublished(timestamp: number): string {
   return new Intl.DateTimeFormat(locale.value).format(new Date(timestamp));
 }
 
-/** Chip tooltip: the exact date plus the public URL when the page has one. */
-const publishedTooltip = computed(() => {
+/** Tooltip: the action, plus the date once the page is published. */
+const label = computed(() => {
+  if (busy.value) return t("pageView.publishWorking");
+
   const page = meta.value;
-  if (!page?.publishedAt) return "";
-  const date = formatPublished(page.publishedAt);
-  return page.publishUri ? `${date} · ${page.publishUri}` : date;
+  if (!page?.publishedAt) return t("pageView.publish");
+
+  return `${t("pageView.republish")} · ${formatPublished(page.publishedAt)}`;
 });
 
 async function onPublish() {
@@ -68,24 +70,13 @@ async function onUnpublish() {
 
 <template>
   <div class="publish" v-if="atprotoStatus.signedIn">
-    <UiTooltip v-if="meta?.publishedAt" :text="publishedTooltip">
-      <span class="publish__status" role="status">
-        <MsIcon name="public" :size="14" />
-        {{ t("pageView.publishedShort") }}
-      </span>
-    </UiTooltip>
-
     <PopoverRoot v-model:open="menuOpen">
       <PopoverTrigger as-child>
-        <UiButton size="small" class="publish__trigger" :disabled="busy">
-          {{
-            busy
-              ? t("pageView.publishWorking")
-              : meta?.publishedAt
-                ? t("pageView.republish")
-                : t("pageView.publish")
-          }}
-        </UiButton>
+        <UiIconButton
+          :icon="busy ? 'progress_activity' : meta?.publishedAt ? 'cloud_done' : 'cloud_upload'"
+          :label="label"
+          :disabled="busy"
+        />
       </PopoverTrigger>
       <PopoverPortal>
         <PopoverContent class="menu publish__menu" :side-offset="6" align="end">
@@ -115,17 +106,6 @@ async function onUnpublish() {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-/* One width for Publish / Working… / Republish, so publishing does not resize
-   the button and shove the rest of the toolbar around. */
-.publish__trigger {
-  min-width: calc(6.5rem * var(--ui-size));
-}
-
-.publish__status {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
 }
 
 .publish__menu {

@@ -15,7 +15,8 @@ interface Asset extends BlobEntry {
   url?: string;
 }
 
-const open = ref(false);
+/** Dialog state; the app bar opens it from the overflow menu or a trigger. */
+const open = defineModel<boolean>("open", { default: false });
 const assets = ref<Asset[]>([]);
 const loading = ref(false);
 const error = ref("");
@@ -150,7 +151,7 @@ function formatSize(bytes: number): string {
     :title="$t('assets.title')"
     @open-auto-focus="onOpenAutoFocus"
   >
-    <template #trigger>
+    <template v-if="$slots.default" #trigger>
       <slot />
     </template>
 
