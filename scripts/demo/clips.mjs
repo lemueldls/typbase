@@ -229,7 +229,6 @@ const clips = {
         api.view.focus();
       });
       await page.keyboard.press("Enter");
-      await page.keyboard.press("Enter");
       await page.keyboard.type("The tenth number is #fib", { delay: 100 });
       await page.waitForTimeout(400);
       await acceptCompletion(page, "fib");

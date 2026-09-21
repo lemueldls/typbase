@@ -105,7 +105,6 @@ async function main() {
       api.view.focus();
     });
     await page.keyboard.press("Enter");
-    await page.keyboard.press("Enter");
     await page.keyboard.type("The tenth number is #fib", { delay: 100 });
     await pause(page, 400);
     await acceptCompletion(page, "fib");
@@ -118,7 +117,7 @@ async function main() {
 
     // Hover info: the computed bindings, not just function docs.
     await hoverToken(page, "nums");
-    // await hoverToken(page, "count");
+    await hoverToken(page, "fib");
     // Reveal the paragraph so its reference can be hovered too; the tooltip
     // resolves it to the current value.
     await page.evaluate(() => {
@@ -160,7 +159,9 @@ async function main() {
     await page.keyboard.press("Home");
     await page.keyboard.press("Enter");
     await page.keyboard.press("ArrowUp");
-    await page.keyboard.type("#show heading: set text(fill: theme.red)", { delay: 55 });
+    await page.keyboard.type("#show heading: set text(fill: theme.", { delay: 55 });
+    await pause(page, 1100);
+    await page.keyboard.type("red)", { delay: 90 });
     // await page.keyboard.press("Enter");
     await pause(page, 1300);
 

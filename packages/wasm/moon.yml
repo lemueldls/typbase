@@ -4,7 +4,10 @@ layer: "library"
 
 tasks:
   build-dev:
-    script: "wasm-pack build --dev --target web --scope typbase ."
+    # wasm-pack 0.15 parses an existing pkg/package.json as a string map, so
+    # the npm arrays it writes itself (files, sideEffects, keywords) make a
+    # real rebuild fail. Reset the file first; wasm-pack rewrites it in full.
+    script: "printf '{}' > pkg/package.json && wasm-pack build --dev --target web --scope typbase ."
     inputs:
       - "Cargo.toml"
       - "pkg/package.json"
@@ -17,7 +20,8 @@ tasks:
       - "pkg/**/*"
 
   build:
-    script: "wasm-pack build --release --target web --scope typbase ."
+    # Same reset as build-dev, see above.
+    script: "printf '{}' > pkg/package.json && wasm-pack build --release --target web --scope typbase ."
     inputs:
       - "Cargo.toml"
       - "pkg/package.json"

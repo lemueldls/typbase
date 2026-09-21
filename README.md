@@ -25,7 +25,7 @@ Local-first knowledge base built around the [Typst](https://typst.app) language.
 - [atproto](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
 - [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) for search.
 - [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile.
-- [pnpm](https://pnpm.io/) and [moonrepo](https://github.com/moonrepo/moonrepo) for monorepo management.
+- [pnpm](https://pnpm.io) and [moonrepo](https://moonrepo.dev) for monorepo management.
 
 ## Inspirations
 
