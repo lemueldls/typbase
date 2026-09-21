@@ -1,141 +1,44 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 
-import type { SearchQueryMode, SearchResultItem } from "~/lib/search";
-
-import { requestReveal } from "~/lib/reveal";
-import { searchQueryMode } from "~/lib/search";
-
-const props = defineProps<{
+defineProps<{
   store: WorkspaceStore;
 }>();
 
-const emit = defineEmits<{ (e: "close"): void }>();
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "open", payload: { pageId: string; from?: number; to?: number }): void;
+}>();
 
-const { search, status } = useSearch();
+/** Touch devices get a drawer they can swipe or tap away; desktop gets the box. */
+const isTouch = useMediaQuery("(hover: none) and (pointer: coarse)");
 
-const query = ref("");
-const results = ref<SearchResultItem[]>([]);
-const active = ref(0);
-const searching = ref(false);
-
-const modeKey = computed(() => {
-  const keys: Record<SearchQueryMode, string> = {
-    text: "palette.modeText",
-    hybrid: "palette.modeHybrid",
-    loading: "palette.modeLoading",
-    unavailable: "palette.modeUnavailable",
-  };
-
-  return keys[searchQueryMode(status.value)];
-});
-
-const input = useTemplateRef("input");
-
-const runSearch = useDebounceFn(async (value: string) => {
-  const s = search.value!;
-  if (s) {
-    searching.value = true;
-    try {
-      results.value = await s.query(value);
-      active.value = 0;
-    } finally {
-      searching.value = false;
-    }
-  } else {
-    results.value = [];
-    searching.value = false;
-  }
-}, 220);
-
-watch(query, (value) => {
-  if (!value.trim()) {
-    results.value = [];
-    return;
-  }
-
-  void runSearch(value);
-});
-
-onMounted(() => {
-  input.value?.focus();
-});
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === "ArrowDown") {
-    event.preventDefault();
-    active.value = Math.min(results.value.length - 1, active.value + 1);
-  } else if (event.key === "ArrowUp") {
-    event.preventDefault();
-    active.value = Math.max(0, active.value - 1);
-  } else if (event.key === "Enter") {
-    const result = results.value[active.value];
-    if (result) open(result);
-  } else if (event.key === "Escape") {
-    emit("close");
-  }
-}
-
-function open(result: SearchResultItem) {
-  if (result.rawRange) {
-    requestReveal(result.docId, result.rawRange.from, result.rawRange.to);
-  }
-  emit("close");
+/** The drawer is always mounted open; any close reason surfaces as one event. */
+function onDrawerOpen(open: boolean) {
+  if (!open) emit("close");
 }
 </script>
 
 <template>
-  <div class="search-palette" @keydown="onKeydown" @click.self="emit('close')">
-    <div class="search-palette__box" role="dialog" aria-label="Search">
-      <UiTextField
-        ref="input"
-        v-model="query"
-        size="large"
-        :placeholder="$t('palette.placeholder')"
-        :aria-label="$t('palette.label')"
-        role="combobox"
-        aria-expanded="true"
-        aria-controls="search-results"
-      >
-        <template #leading>
-          <MsIcon name="search" :size="20" class="search-palette__icon" />
-        </template>
-      </UiTextField>
-      <p v-if="searching" class="search-palette__hint" role="status">
-        {{ $t("palette.searching") }}
-      </p>
-      <ul
-        v-else-if="results.length"
-        class="search-palette__results"
-        role="listbox"
-        id="search-results"
-      >
-        <li
-          v-for="(result, index) in results"
-          :key="`${result.docId}:${result.blockIndex}`"
-          role="option"
-          :aria-selected="index === active"
-          class="search-palette__result"
-          :class="{ 'search-palette__result--active': index === active }"
-          @mousemove="active = index"
-          @click="open(result)"
-        >
-          <div class="search-palette__title">
-            <span>{{ result.title || result.path }}</span>
-            <span class="search-palette__kind">{{ result.kind }}</span>
-          </div>
-          <div class="search-palette__snippet">{{ result.snippet }}</div>
-        </li>
-      </ul>
-      <p
-        v-else-if="query.trim() && status?.indexError"
-        class="search-palette__hint search-palette__hint--error"
-      >
-        {{ $t("palette.indexError", { error: status.indexError }) }}
-      </p>
-      <p v-else-if="query.trim()" class="search-palette__hint">{{ $t("palette.noMatches") }}</p>
-      <p v-else class="search-palette__hint">{{ $t("palette.prompt") }}</p>
-      <p class="search-palette__mode">{{ $t(modeKey) }}</p>
+  <DrawerRoot v-if="isTouch" :open="true" @update:open="onDrawerOpen">
+    <DrawerPortal>
+      <DrawerOverlay class="search-palette__backdrop" />
+      <DrawerContent class="search-palette__sheet">
+        <VisuallyHidden as-child>
+          <DrawerTitle>{{ $t("palette.label") }}</DrawerTitle>
+        </VisuallyHidden>
+        <VisuallyHidden as-child>
+          <DrawerDescription>{{ $t("palette.prompt") }}</DrawerDescription>
+        </VisuallyHidden>
+        <DrawerHandle class="search-palette__handle" />
+        <SearchPalettePanel :store="store" @close="emit('close')" @open="emit('open', $event)" />
+      </DrawerContent>
+    </DrawerPortal>
+  </DrawerRoot>
+
+  <div v-else class="search-palette" @click.self="emit('close')">
+    <div class="search-palette__box">
+      <SearchPalettePanel :store="store" @close="emit('close')" @open="emit('open', $event)" />
     </div>
   </div>
 </template>
@@ -146,77 +49,93 @@ function open(result: SearchResultItem) {
   inset: 0;
   z-index: 90;
   display: flex;
+  align-items: flex-start;
   justify-content: center;
   padding-top: 10dvh;
   background: var(--color-overlay);
+  animation: search-palette-fade 120ms ease-out;
 }
 
 .search-palette__box {
+  display: flex;
+  flex-direction: column;
   width: min(560px, calc(100vw - var(--space-8)));
-  max-height: 62dvh;
-  overflow-y: auto;
+  /* One height, so results do not resize the box under the pointer. */
+  height: min(62dvh, 520px);
+  /* The input and footer stay put; only the results scroll. */
+  overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: 0 24px 70px rgb(0 0 0 / 0.3);
   padding: var(--space-2);
+  animation: search-palette-rise 140ms ease-out;
 }
 
-.search-palette__icon {
-  color: var(--color-text-secondary);
+@keyframes search-palette-fade {
+  from {
+    opacity: 0;
+  }
 }
 
-.search-palette__hint {
-  margin: var(--space-2-5);
-  font-size: var(--text-md);
-  color: var(--color-text-secondary);
+@keyframes search-palette-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
-.search-palette__hint--error {
-  color: var(--color-danger);
+.search-palette__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--color-overlay);
+  animation: search-palette-fade 150ms ease-out;
 }
 
-.search-palette__mode {
-  margin: var(--space-2) var(--space-2-5) var(--space-0-5);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.search-palette__results {
-  list-style: none;
-  margin: var(--space-2) 0 0;
-  padding: 0;
-}
-
-.search-palette__result {
-  padding: var(--space-2) var(--space-2-5);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.search-palette__result--active {
-  background: var(--color-accent-soft);
-}
-
-.search-palette__title {
+.search-palette__sheet {
+  /* Extra room past the bottom edge so an upward drag shows the sheet, not the
+     page; the negative margin parks it below the viewport. */
+  --bleed: 40px;
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 91;
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  font-size: var(--text-md);
-  font-weight: 600;
+  flex-direction: column;
+  /* Same reasoning as the desktop box: a stable height beats resizing under
+     the thumb as results stream in. */
+  height: 88dvh;
+  overflow: hidden;
+  padding: var(--space-1) var(--space-2)
+    calc(env(safe-area-inset-bottom, 0px) + var(--space-2) + var(--bleed));
+  margin-bottom: calc(-1 * var(--bleed));
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -18px 50px rgb(0 0 0 / 0.3);
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: search-palette-sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-.search-palette__kind {
-  font-weight: 400;
-  font-size: var(--text-2xs);
-  color: var(--color-text-secondary);
+.search-palette__sheet[data-swiping] {
+  transition-duration: 0ms;
 }
 
-.search-palette__snippet {
-  margin-top: var(--space-0-5);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+@keyframes search-palette-sheet-in {
+  from {
+    translate: 0 100%;
+  }
+}
+
+.search-palette__handle {
+  flex: none;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto var(--space-1-5);
+  border-radius: 2px;
+  background: var(--color-border-strong);
 }
 </style>

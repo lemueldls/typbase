@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const open = defineModel<boolean>("open", { default: false });
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title: string;
     description?: string;
@@ -15,13 +15,17 @@ withDefaults(
 );
 
 const emit = defineEmits<{ (e: "confirm"): void }>();
+
+// Same reka-ui escape hatch as UiDialog: an empty description leaves the
+// internal aria-describedby id pointing at nothing.
+const describedBy = computed(() => (props.description ? {} : { "aria-describedby": undefined }));
 </script>
 
 <template>
   <AlertDialogRoot v-model:open="open">
     <AlertDialogPortal>
       <AlertDialogOverlay class="dialog-overlay" />
-      <AlertDialogContent class="dialog">
+      <AlertDialogContent v-bind="describedBy" class="dialog">
         <AlertDialogTitle class="dialog__title">{{ title }}</AlertDialogTitle>
         <AlertDialogDescription v-if="description" class="dialog__description">
           {{ description }}

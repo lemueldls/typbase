@@ -12,14 +12,20 @@ import { useTypst } from "~/composables/typst";
  * store's commit batches, debounced, one transaction per page.
  */
 
+/** A snippet split into plain and matched runs for the palette to render. */
+export interface SnippetSegment {
+  text: string;
+  match: boolean;
+}
+
 export interface SearchResultItem {
   docId: string;
   path: string;
   title: string;
   blockIndex: number;
   kind: string;
-  /** Snippet with [[ ]] highlights from FTS. */
-  snippet: string;
+  /** Snippet text split at the FTS match spans. */
+  snippet: SnippetSegment[];
   /** Raw source range for the best hit in the block. */
   rawRange: { from: number; to: number } | null;
   bm25: number | null;
@@ -35,6 +41,8 @@ export interface SearchStatus {
   /** sqlite-vec is present in this build; semantic queries need it. */
   vecReady: boolean;
   model: "idle" | "downloading" | "ready" | "error";
+  /** Download percentage while `model` is "downloading"; null when unknown. */
+  modelProgress: number | null;
   error: string | null;
   /** Last index worker failure; indexing is broken while this is set. */
   indexError: string | null;
@@ -43,6 +51,10 @@ export interface SearchStatus {
 const INDEX_DEBOUNCE_MS = 2000;
 const QUERY_TIMEOUT_MS = 8000;
 const MAX_HITS = 24;
+/** Ceiling for one embedding call; the first one downloads the model. */
+const EMBED_TIMEOUT_MS = 120_000;
+/** Backoff between index worker load attempts; Vite's optimizer needs a moment. */
+const WORKER_RETRY_DELAYS = [1000, 3000, 8000];
 
 export type SearchQueryMode = "text" | "hybrid" | "loading" | "unavailable";
 
@@ -81,6 +93,7 @@ export class SearchManager {
     semantic: false,
     vecReady: false,
     model: "idle",
+    modelProgress: null,
     error: null,
     indexError: null,
   };
@@ -99,15 +112,7 @@ export class SearchManager {
   }
 
   async start(): Promise<void> {
-    this.worker = new Worker(new URL("../workers/index.worker.ts", import.meta.url), {
-      type: "module",
-    });
-    this.worker.addEventListener("message", (event: MessageEvent) =>
-      this.handleWorkerMessage(event.data),
-    );
-
-    this.worker.postMessage({ type: "init", dbName: this.store.workspaceId });
-
+    this.startWorker();
     this.refreshSettings();
 
     this.store.onLocalCommit((docId) => {
@@ -136,9 +141,55 @@ export class SearchManager {
     // Initial sweep: index every doc the first time, cursors live in the
     // store's local state? No: search freshness is per-device honest by
     // re-indexing anything that changed since the last local build.
-    for (const docId of await this.store.listDocIds()) {
-      this.markDirty(docId);
+    await this.markAllDirty();
+  }
+
+  /** Creates the index worker and hands it the database name. */
+  private startWorker(attempt = 0): void {
+    this.worker?.terminate();
+
+    const worker = new Worker(new URL("../workers/index.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    this.worker = worker;
+    worker.addEventListener("message", (event: MessageEvent) =>
+      this.handleWorkerMessage(event.data),
+    );
+    worker.addEventListener("error", () => void this.restartWorker(attempt));
+    worker.postMessage({ type: "init", dbName: this.store.workspaceId });
+  }
+
+  /**
+   * The dev server's dependency optimizer can invalidate the worker module
+   * while it loads (a 504 for the stale URL). The worker owns the index, so a
+   * restart starts empty: drop what was indexed and rebuild it.
+   */
+  private async restartWorker(attempt: number): Promise<void> {
+    this.indexedAt.clear();
+    this.blockIds.clear();
+    this.blocksByDoc.clear();
+    this.indexMaps.clear();
+    this.indexErrors.clear();
+    this.syncIndexError();
+    this.statusValue.ready = false;
+    this.emit();
+
+    const delay = WORKER_RETRY_DELAYS[attempt];
+    if (delay === undefined) {
+      this.indexErrors.set("", "Search worker failed to load");
+      this.syncIndexError();
+      this.emit();
+
+      return;
     }
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    this.startWorker(attempt + 1);
+    await this.markAllDirty();
+  }
+
+  private async markAllDirty(): Promise<void> {
+    for (const docId of await this.store.listDocIds()) this.markDirty(docId);
   }
 
   private markDirty(docId: string): void {
@@ -170,6 +221,7 @@ export class SearchManager {
     this.embedWorker?.terminate();
     this.embedWorker = undefined;
     this.statusValue.model = "idle";
+    this.statusValue.modelProgress = null;
     this.statusValue.error = null;
   }
 
@@ -278,26 +330,53 @@ export class SearchManager {
     if (!settings.semantic) return false;
 
     if (!this.embedWorker) {
-      this.embedWorker = new Worker(new URL("../workers/embed.worker.ts", import.meta.url), {
+      const worker = new Worker(new URL("../workers/embed.worker.ts", import.meta.url), {
         type: "module",
       });
-      this.embedWorker.addEventListener("message", (event: MessageEvent) => {
+      this.embedWorker = worker;
+      worker.addEventListener("message", (event: MessageEvent) => {
         const message = event.data as {
           id: number;
           type: string;
           vectors?: number[][];
           error?: string;
+          progress?: number;
         };
-        const entry = this.embedPending.get(message.id);
-        if (!entry) return;
-
-        this.embedPending.delete(message.id);
+        // Progress is not tied to a request; it keeps the panel's bar moving
+        // while the first download runs.
+        if (message.type === "progress") {
+          this.statusValue.model = "downloading";
+          if (typeof message.progress === "number") {
+            this.statusValue.modelProgress = message.progress;
+          }
+          this.emit();
+          return;
+        }
+        // Update the model state even when the caller stopped waiting, so a
+        // slow first load still leaves the palette out of "loading".
         this.statusValue.model = message.type === "result" ? "ready" : "error";
+        this.statusValue.modelProgress = null;
         this.statusValue.error = message.error ?? null;
-        entry(message.vectors ?? null);
+
+        const entry = this.embedPending.get(message.id);
+        if (entry) {
+          this.embedPending.delete(message.id);
+          entry(message.vectors ?? null);
+        }
+        this.emit();
+      });
+      worker.addEventListener("error", () => {
+        // A worker that never loads would leave every embed call pending.
+        for (const resolve of this.embedPending.values()) resolve(null);
+        this.embedPending.clear();
+        worker.terminate();
+        if (this.embedWorker === worker) this.embedWorker = undefined;
+        this.statusValue.model = "error";
+        this.statusValue.error = "Embedding worker failed to load";
         this.emit();
       });
       this.statusValue.model = "downloading";
+      this.statusValue.modelProgress = null;
       this.emit();
     }
 
@@ -310,7 +389,16 @@ export class SearchManager {
     const id = ++this.embedSeq;
 
     return new Promise((resolve) => {
-      this.embedPending.set(id, resolve);
+      const timer = setTimeout(() => {
+        // The first call downloads the model, so give it room; a wedged load
+        // would otherwise hold the indexing pass open forever.
+        this.embedPending.delete(id);
+        resolve(null);
+      }, EMBED_TIMEOUT_MS);
+      this.embedPending.set(id, (vectors) => {
+        clearTimeout(timer);
+        resolve(vectors);
+      });
       this.embedWorker!.postMessage({
         id,
         type: "embed",
@@ -396,8 +484,8 @@ export class SearchManager {
     fts: SearchHit[],
     semantic: SearchHit[],
     limit: number,
-  ): Array<SearchHit & { combined: number; snippet: string }> {
-    type Fused = SearchHit & { combined: number; snippet: string };
+  ): Array<SearchHit & { combined: number; snippet: SnippetSegment[] }> {
+    type Fused = SearchHit & { combined: number; snippet: SnippetSegment[] };
     const map = new Map<string, Fused>();
 
     const add = (hit: SearchHit, rank: number, kind: "fts" | "sem") => {
@@ -423,21 +511,44 @@ export class SearchManager {
     return [...map.values()].sort((a, b) => b.combined - a.combined).slice(0, limit);
   }
 
-  private snippetFor(hit: SearchHit): string {
+  private snippetFor(hit: SearchHit): SnippetSegment[] {
     // FTS offsets count UTF-8 bytes, so slice the encoded text and decode.
     const bytes = this.encoder.encode(hit.plain);
     const [first] = hit.offsets;
-    if (!first) return this.decoder.decode(bytes.subarray(0, 120));
+    const from = first ? Math.max(0, first[0] - 24) : 0;
+    const to = first ? Math.min(bytes.length, first[1] + 60) : Math.min(bytes.length, 120);
 
-    const from = Math.max(0, first[0] - 24);
-    const to = Math.min(bytes.length, first[1] + 60);
+    const segments: SnippetSegment[] = [];
+    if (from > 0) segments.push({ text: "...", match: false });
 
-    return `${from > 0 ? "..." : ""}${this.decoder.decode(bytes.subarray(from, to))}${
-      to < bytes.length ? "..." : ""
-    }`;
+    let cursor = from;
+    for (const [start, end] of hit.offsets) {
+      const matchStart = Math.max(start, from);
+      const matchEnd = Math.min(end, to);
+      if (matchEnd <= matchStart) continue;
+
+      if (matchStart > cursor) {
+        segments.push({
+          text: this.decoder.decode(bytes.subarray(cursor, matchStart)),
+          match: false,
+        });
+      }
+      segments.push({
+        text: this.decoder.decode(bytes.subarray(matchStart, matchEnd)),
+        match: true,
+      });
+      cursor = matchEnd;
+    }
+
+    if (cursor < to) {
+      segments.push({ text: this.decoder.decode(bytes.subarray(cursor, to)), match: false });
+    }
+    if (to < bytes.length) segments.push({ text: "...", match: false });
+
+    return segments;
   }
 
-  private toItem(hit: SearchHit & { snippet: string }): SearchResultItem {
+  private toItem(hit: SearchHit & { snippet: SnippetSegment[] }): SearchResultItem {
     let rawRange: SearchResultItem["rawRange"] = null;
     const [first] = hit.offsets;
     const maps = this.indexMaps.get(hit.docId);

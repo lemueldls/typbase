@@ -170,26 +170,17 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
 }
 
 /** Settings tab ids; each one maps to a panel below. */
-type SettingsTab =
-  | "general"
-  | "content"
-  | "appearance"
-  | "publish"
-  | "ai"
-  | "search"
-  | "sync"
-  | "export";
+type SettingsTab = "general" | "content" | "appearance" | "publish" | "ai" | "sync" | "export";
 
 /** Section rail. Icons carry the scan on phones, where labels can truncate. */
 const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string }> = [
   { id: "general", icon: "settings", label: "settings.tabGeneral" },
   { id: "content", icon: "description", label: "settings.tabContent" },
   { id: "appearance", icon: "palette", label: "settings.tabAppearance" },
+  // { id: "ai", icon: "psychology", label: "settings.tabAi" },
   { id: "publish", icon: "public", label: "settings.tabPublish" },
-  { id: "ai", icon: "psychology", label: "settings.tabAi" },
-  { id: "search", icon: "manage_search", label: "settings.tabSearch" },
-  { id: "sync", icon: "sync", label: "settings.tabSync" },
   { id: "export", icon: "folder_zip", label: "settings.tabExport" },
+  { id: "sync", icon: "sync", label: "settings.tabSync" },
 ];
 
 const activeTab = ref<SettingsTab>("general");
@@ -364,33 +355,8 @@ const textSize = computed<number | null>({
 });
 
 // Search status.
-const { ensure: ensureSearch, search, status: searchStatus } = useSearch();
-const searchModelLabel = computed(() => {
-  const status = searchStatus.value;
-  if (!status) return "";
-  if (status.model === "downloading") return t("settings.searchModelDownloading");
-  if (status.model === "ready") return t("settings.searchModelReady");
-  if (status.model === "error") {
-    return t("settings.searchModelError", { error: status.error ?? "" });
-  }
-
-  return t("settings.searchModelIdle");
-});
-async function onRebuildIndex() {
-  await (search.value ?? (await ensureSearch(props.store))).rebuild();
-}
 function setAiEnabled(value: boolean) {
   updateAiPatching({ enabled: value });
-}
-
-async function toggleSemantic(semantic: boolean) {
-  props.store.updateSettings({
-    search: { ...props.store.getSearchSettings(), semantic },
-  });
-  if (semantic) {
-    const manager = search.value ?? (await ensureSearch(props.store));
-    await manager.reembedAll();
-  }
 }
 
 function onAiKeyChange(event: Event) {
@@ -435,8 +401,6 @@ async function onSignOut() {
 }
 
 onMounted(() => {
-  // The index worker boots on first settings open; harmless if already up.
-  void ensureSearch(props.store);
   applyTheme(props.store.getSettings());
 });
 
@@ -839,31 +803,6 @@ async function renameWorkspace(event: Event) {
             </template>
           </section>
         </section>
-        <section v-show="activeTab === 'search'" class="settings__tabpanel">
-          <section class="settings__section">
-            <h4 class="settings__heading">Search</h4>
-            <UiSwitch
-              :model-value="props.store.getSearchSettings().semantic"
-              :label="$t('settings.semantic')"
-              @update:model-value="toggleSemantic"
-            />
-            <p class="settings__hint">
-              <template v-if="searchStatus">
-                Index: {{ searchStatus.docs }} pages · {{ searchStatus.blocks }} blocks ·
-                {{ searchStatus.mode === "opfs" ? "persistent" : "in-memory (no OPFS/isolation)" }}
-                <template v-if="searchStatus.semantic"> · {{ searchModelLabel }}</template>
-              </template>
-              <template v-else>Index is starting...</template>
-            </p>
-            <p v-if="searchStatus?.semantic && !searchStatus.vecReady" class="settings__error">
-              {{ $t("settings.searchNoVec") }}
-            </p>
-            <p v-if="searchStatus?.indexError" class="settings__error">
-              {{ $t("settings.searchIndexError", { error: searchStatus.indexError }) }}
-            </p>
-            <UiButton size="small" @click="onRebuildIndex"> Rebuild </UiButton>
-          </section>
-        </section>
         <section v-show="activeTab === 'sync'" class="settings__tabpanel">
           <section class="settings__section">
             <h4 class="settings__heading">Sync</h4>
@@ -962,7 +901,7 @@ async function renameWorkspace(event: Event) {
 .settings {
   display: grid;
   grid-template-columns: 13rem minmax(0, 1fr);
-  gap: var(--space-5);
+  gap: var(--space-4);
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -1029,7 +968,6 @@ async function renameWorkspace(event: Event) {
   .settings {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
-    gap: var(--space-4);
   }
 
   .settings__nav {
@@ -1037,7 +975,9 @@ async function renameWorkspace(event: Event) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-1);
     padding-right: 0;
+    padding-bottom: var(--space-4);
     border-right: none;
+    border-bottom: 1px solid var(--color-border);
     overflow: visible;
   }
 

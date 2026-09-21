@@ -74,7 +74,7 @@ async function submit() {
   <UiDialog
     v-model:open="open"
     :title="$t('newPage.title')"
-    description="Pages are Typst sources. The path comes from the title."
+    :description="$t('newPage.description')"
   >
     <template #trigger>
       <slot />

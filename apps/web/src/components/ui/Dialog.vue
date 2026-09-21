@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false });
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title?: string;
     description?: string;
@@ -9,9 +9,22 @@ withDefaults(
   { title: undefined, description: undefined },
 );
 
+const attrs = useAttrs();
+
 const open = defineModel<boolean>("open", { default: false });
 
 const emit = defineEmits<{ (e: "openAutoFocus", event: Event): void }>();
+
+// reka-ui always puts an internal aria-describedby id on DialogContent. With no
+// DialogDescription rendered that id points at nothing and reka warns in dev,
+// so drop the attribute when the description is empty. A caller-supplied
+// description reference still wins.
+const contentAttrs = computed(() => ({
+  ...attrs,
+  ...(!props.description && attrs["aria-describedby"] === undefined
+    ? { "aria-describedby": undefined }
+    : {}),
+}));
 </script>
 
 <template>
@@ -23,7 +36,7 @@ const emit = defineEmits<{ (e: "openAutoFocus", event: Event): void }>();
     <DialogPortal>
       <DialogOverlay class="dialog-overlay" />
       <DialogContent
-        v-bind="$attrs"
+        v-bind="contentAttrs"
         class="dialog"
         @open-auto-focus="emit('openAutoFocus', $event)"
       >

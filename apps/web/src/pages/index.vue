@@ -5,6 +5,7 @@ import faviconUrl from "~~/public/favicon.svg?url";
 
 import { refreshSections, toSections } from "~/lib/ai/generators";
 import { engineAvailable } from "~/lib/engineHealth";
+import { requestReveal } from "~/lib/reveal";
 import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
@@ -28,7 +29,12 @@ const activeBootStep = computed(
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const mode = ref<ViewModeId>("write");
-const paletteOpen = ref(false);
+const {
+  open: paletteOpen,
+  show: showPalette,
+  hide: hidePalette,
+  toggle: togglePalette,
+} = useSearchPalette();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter; mobile keeps the drawer. */
@@ -73,7 +79,7 @@ const { ensure: ensureSearch } = useSearch();
 onKeyStroke((event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
-    paletteOpen.value = !paletteOpen.value;
+    togglePalette();
   }
 });
 
@@ -255,6 +261,25 @@ function openPage(id: string) {
   syncModeToPage(currentPageId.value);
 }
 
+/** Sidebar and toolbar search buttons: close the drawer, open the palette. */
+function openSearch() {
+  navOpen.value = false;
+  showPalette();
+}
+
+/**
+ * A palette row was picked: open its page, then ask the page to scroll to the
+ * hit. The request outlives the page switch; the new PageView consumes it once
+ * it is bound.
+ */
+function openSearchResult(payload: { pageId: string; from?: number; to?: number }) {
+  hidePalette();
+  openPage(payload.pageId);
+  if (payload.from !== undefined && payload.to !== undefined) {
+    requestReveal(payload.pageId, payload.from, payload.to);
+  }
+}
+
 /**
  * Notebook pages open in notebook mode instead of the default write mode, and
  * documents do not stay in notebook mode. A deliberately chosen
@@ -346,6 +371,7 @@ definePageMeta({ ssr: false });
               :current-page-id="currentPageId"
               @select="openPage"
               @open-plugin="openPlugin"
+              @search="openSearch"
               @collapse-request="toggleSidebar"
             />
           </SplitterPanel>
@@ -395,6 +421,7 @@ definePageMeta({ ssr: false });
               :current-page-id="currentPageId"
               @select="openPage"
               @open-plugin="openPlugin"
+              @search="openSearch"
               @collapse-request="navOpen = false"
             />
           </div>
@@ -436,7 +463,8 @@ definePageMeta({ ssr: false });
         <SearchPalette
           v-if="paletteOpen && workspace"
           :store="workspace"
-          @close="paletteOpen = false"
+          @open="openSearchResult"
+          @close="hidePalette"
         />
       </div>
     </template>

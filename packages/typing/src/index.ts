@@ -303,7 +303,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   },
   search: {
     semantic: false,
-    embeddingModel: "BAAI/bge-small-en-v1.5",
+    embeddingModel: "Xenova/bge-small-en-v1.5",
   },
   notebook: {
     showCounters: true,

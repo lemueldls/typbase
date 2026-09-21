@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "select", pageId: string): void;
   (e: "openPlugin", instanceId: string): void;
+  (e: "search"): void;
   /** Collapses the desktop panel / closes the mobile drawer. */
   (e: "collapseRequest"): void;
 }>();
@@ -145,6 +146,7 @@ function onCreated(page: PageMeta) {
         </UiTooltip>
       </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
+        <UiIconButton icon="search" :label="$t('palette.title')" @click="emit('search')" />
         <SettingsDialog :store="store">
           <UiIconButton icon="settings" :label="$t('sidebar.workspaceSettings')" />
         </SettingsDialog>
@@ -418,7 +420,7 @@ function onCreated(page: PageMeta) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3-5);
+  padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -430,7 +432,6 @@ function onCreated(page: PageMeta) {
   min-width: 0;
   height: var(--control-md);
   padding: var(--space-1) var(--space-1-5);
-  margin-left: calc(var(--space-1-5) * -1);
   font-family: inherit;
   font-size: var(--text-lg);
   color: var(--color-text);

@@ -30,7 +30,8 @@ withDefaults(
 
 <style>
 .ui-tooltip {
-  z-index: 80;
+  /* Above every other layer: selects (90), the palette (90/91), toasts (95). */
+  z-index: 100;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-sm);
   line-height: var(--leading-tight);

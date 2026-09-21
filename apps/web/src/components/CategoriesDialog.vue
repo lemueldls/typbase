@@ -43,7 +43,7 @@ async function remove(id: string) {
   <UiDialog
     v-model:open="open"
     :title="$t('categories.title')"
-    description="Pages group under categories; the sidebar lists them by category."
+    :description="$t('categories.description')"
   >
     <template #trigger>
       <slot />

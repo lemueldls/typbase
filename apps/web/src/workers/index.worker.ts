@@ -1,4 +1,5 @@
 import sqlite3InitModule from "sqlite-wasm-vec";
+import sqliteWasmUrl from "sqlite-wasm-vec/sqlite3.wasm?url";
 
 /**
  * Search index worker. Owns `index.sqlite` (OPFS when cross-origin isolation
@@ -80,10 +81,18 @@ let db: SqliteDb | undefined;
 let mode: "opfs" | "memory" = "memory";
 let vecReady = false;
 
+/** bge-small embedding width; the vec table is declared with it. */
+const VECTOR_DIM = 384;
+
 async function ensureDb(dbName: string): Promise<void> {
   if (db) return;
 
-  sqlite3 = await sqlite3InitModule();
+  // Ask Vite for the wasm asset URL instead of letting the package resolve it.
+  // Vite's wasm plugin serves `.wasm` module ids as wasm-bindgen glue, which
+  // the Emscripten loader cannot instantiate; the query makes the dev server
+  // return the raw binary.
+  const binary = `${sqliteWasmUrl}${sqliteWasmUrl.includes("?") ? "&" : "?"}binary`;
+  sqlite3 = await sqlite3InitModule({ locateFile: () => binary });
   // OpfsDb is installed only when the OPFS VFS is available (see the
   // package docs); `"opfs" in sqlite3` never matches because the property
   // lives on sqlite3.oo1.
@@ -301,6 +310,13 @@ async function handle(request: WorkerRequest): Promise<void> {
     }
     case "put-vector": {
       if (!vecReady) break;
+      if (request.vector.length !== VECTOR_DIM) {
+        // Without this the insert fails deep in sqlite-vec and the palette
+        // shows the raw SQLITE_ERROR instead of what went wrong.
+        throw new Error(
+          `Embedding model returned ${request.vector.length} dimensions; the index expects ${VECTOR_DIM}.`,
+        );
+      }
       db.exec("DELETE FROM vec WHERE rowid = ?", { bind: [request.blockId] });
       db.exec("INSERT INTO vec(rowid, embedding) VALUES(?, ?)", {
         bind: [request.blockId, JSON.stringify(request.vector)],
@@ -345,22 +361,30 @@ function status(): IndexStatus {
   return { mode, docs: Number(pages), blocks: Number(blocks), vecReady };
 }
 
-/** First match span in `plain`, recovered from `highlight()` markers. */
+/** Match spans in `plain`, recovered from `highlight()` markers. */
 function offsetsFromHighlight(marked: string): Array<[number, number]> {
   const open = "\u0002";
   const close = "\u0003";
-  const start = marked.indexOf(open);
-  if (start < 0) return [];
+  const offsets: Array<[number, number]> = [];
+  let cursor = 0;
 
-  // Marker characters are not in the source, so subtract them from the
-  // prefix to get the offset in `plain`. FTS offsets and the wasm byte map
-  // both count UTF-8 bytes, so encode before measuring.
-  const before = marked.slice(0, start).split(open).join("").split(close).join("");
-  const end = marked.indexOf(close, start + 1);
-  const term = end < 0 ? marked.slice(start + 1) : marked.slice(start + 1, end);
+  while (true) {
+    const start = marked.indexOf(open, cursor);
+    if (start < 0) break;
 
-  const from = utf8Length(before);
-  return [[from, from + utf8Length(term)]];
+    // Marker characters are not in the source, so subtract them from the
+    // prefix to get the offset in `plain`. FTS offsets and the wasm byte map
+    // both count UTF-8 bytes, so encode before measuring.
+    const before = marked.slice(0, start).split(open).join("").split(close).join("");
+    const end = marked.indexOf(close, start + 1);
+    const term = end < 0 ? marked.slice(start + 1) : marked.slice(start + 1, end);
+    const from = utf8Length(before);
+
+    offsets.push([from, from + utf8Length(term)]);
+    cursor = end < 0 ? marked.length : end + 1;
+  }
+
+  return offsets;
 }
 
 const utf8 = new TextEncoder();
@@ -379,13 +403,19 @@ function post(response: WorkerResponse): void {
   (self as unknown as Worker).postMessage(response);
 }
 
+// Requests run in order: a query that lands while `init` is still loading
+// sqlite waits its turn instead of failing with "not initialized".
+let queue: Promise<void> = Promise.resolve();
+
 self.addEventListener("message", (event: MessageEvent<WorkerRequest>) => {
-  void handle(event.data).catch((error: unknown) => {
-    post({
-      type: "error",
-      docId: (event.data as { docId?: string }).docId,
-      requestType: event.data.type,
-      error: error instanceof Error ? error.message : String(error),
+  queue = queue
+    .then(() => handle(event.data))
+    .catch((error: unknown) => {
+      post({
+        type: "error",
+        docId: (event.data as { docId?: string }).docId,
+        requestType: event.data.type,
+        error: error instanceof Error ? error.message : String(error),
+      });
     });
-  });
 });

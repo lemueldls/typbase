@@ -57,6 +57,7 @@ const emit = defineEmits<{
 }>();
 
 const { workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
+const { show: showSearch } = useSearchPalette();
 const { t } = useI18n();
 
 const typstState = shallowRef<TypstState>();
@@ -746,11 +747,17 @@ function onPreviewJump(range: { from: number; to: number }) {
   editorPane.value?.revealRange(range.from, range.to);
 }
 
-// Search palette / generated-content reveal requests for this page.
+// Search palette / generated-content reveal requests for this page. The
+// palette can navigate here, so a request may arrive before the page is bound;
+// wait for `ready` and check once on mount for requests that got here first.
 watch(
-  revealRequests,
-  (requests) => {
-    const mine = requests.find((request) => request.pageId === props.pageId && !request.consumed);
+  [revealRequests, ready],
+  () => {
+    if (!ready.value) return;
+
+    const mine = revealRequests.value.find(
+      (request) => request.pageId === props.pageId && !request.consumed,
+    );
     if (!mine) return;
 
     mine.consumed = true;
@@ -758,7 +765,7 @@ watch(
       editorPane.value?.revealRange(mine.from, mine.to);
     });
   },
-  { deep: false },
+  { immediate: true },
 );
 
 function getSelection(): { from: number; to: number; text: string } | null {
@@ -1104,6 +1111,8 @@ function onModeKeydown(event: KeyboardEvent) {
           <template #trigger>
             <UiIconButton icon="more_vert" :label="$t('pageView.moreActions')" :disabled="!ready" />
           </template>
+
+          <UiMenuItem icon="search" @select="showSearch">{{ $t("palette.title") }}</UiMenuItem>
 
           <UiMenuItem
             v-if="compact && modelValue !== 'read'"

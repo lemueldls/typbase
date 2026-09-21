@@ -43,6 +43,32 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    plugins: [
+      {
+        name: "typbase:dev-coep",
+        apply: "serve",
+        configureServer(server) {
+          // Vite serves worker scripts itself and bypasses Nitro's routeRules,
+          // so they miss the COOP/COEP the document has. Chromium refuses to
+          // create a worker under COEP unless the worker response carries them
+          // too, which silently blocked every worker in dev.
+          server.middlewares.use((_request, response, next) => {
+            response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+            response.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+            next();
+          });
+        },
+      },
+    ],
+    resolve: {
+      alias: {
+        // Loro's exports map sends the production client build to its
+        // `browser` entry, which loads the wasm with a synchronous XHR. The
+        // `bundler` entry imports the wasm as a module (the path dev already
+        // resolves), so Vite handles it and nothing blocks the main thread.
+        "loro-crdt": "loro-crdt/bundler",
+      },
+    },
     // experimental: { bundledDev: true },
     optimizeDeps: {
       exclude: ["loro-crdt", "sqlite-wasm-vec", "harper.js", "harper.js/binaryInlined"],
