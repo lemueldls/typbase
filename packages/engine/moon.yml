@@ -13,6 +13,7 @@ tasks:
       - "build.rs"
       - "/Cargo.toml"
       - "/Cargo.lock"
+      - "/rust-toolchain.toml"
     outputs:
       - "pkg/**/*"
 
@@ -26,6 +27,7 @@ tasks:
       - "build.rs"
       - "/Cargo.toml"
       - "/Cargo.lock"
+      - "/rust-toolchain.toml"
     outputs:
       - "pkg/**/*"
 
