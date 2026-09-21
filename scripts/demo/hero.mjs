@@ -113,7 +113,6 @@ async function main() {
     // Make sure no completion popup lingers into the next scene.
     await page.keyboard.press("Escape");
     await pause(page, 400);
-    await page.screenshot({ path: `${IMAGES}/hero-poster.png` });
 
     // Hover info: the computed bindings, not just function docs.
     await hoverToken(page, "nums");
@@ -223,6 +222,8 @@ async function main() {
     await pause(page, 1400);
     await page.keyboard.press("Escape");
     await pause(page, 700);
+
+    await page.screenshot({ path: `${IMAGES}/hero-poster.png` });
 
     // Daily note and export dialog.
     await clickSidebar(page, "Today");
