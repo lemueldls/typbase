@@ -12,7 +12,6 @@ const props = defineProps<{ store: WorkspaceStore }>();
 
 const { t } = useI18n();
 
-const open = ref(false);
 const busy = ref(false);
 const error = ref("");
 const query = ref("");
@@ -83,15 +82,10 @@ function setSelected(id: string, value: boolean): void {
   selected.value = next;
 }
 
-// Opening resets to "all pages selected": the common case for a workspace
-// export, and the dialog makes narrowing down easy.
-watch(open, (isOpen) => {
-  if (!isOpen) return;
-
+// The settings dialog mounts its panels on open, so this is the old "select
+// everything when export opens" reset, minus the dialog.
+onMounted(() => {
   selected.value = new Set(pages.value.map((page) => page.id));
-  query.value = "";
-  dailyOnly.value = false;
-  error.value = "";
 });
 
 function formatDate(timestamp: number): string {
@@ -120,7 +114,6 @@ async function run(): Promise<void> {
       typstState,
     );
     await saveExport(name, files);
-    open.value = false;
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -130,107 +123,98 @@ async function run(): Promise<void> {
 </script>
 
 <template>
-  <UiDialog
-    v-model:open="open"
-    class="workspace-export-dialog"
-    :title="$t('exportWorkspace.title')"
-    :description="$t('exportWorkspace.description')"
-  >
-    <template #trigger>
-      <slot />
-    </template>
+  <div class="workspace-export">
+    <p class="workspace-export__hint">{{ $t("exportWorkspace.description") }}</p>
 
-    <div class="workspace-export">
-      <div class="workspace-export__toolbar">
-        <UiTextField
-          v-model="query"
-          class="workspace-export__search"
-          type="search"
-          :placeholder="$t('exportWorkspace.search')"
-          :aria-label="$t('exportWorkspace.search')"
-        />
-        <UiButton size="small" @click="setAll(!allSelected)">
-          {{ allSelected ? $t("exportWorkspace.none") : $t("exportWorkspace.all") }}
-        </UiButton>
-      </div>
-
-      <div class="workspace-export__filters">
-        <UiCheckbox v-model="dailyOnly" :label="$t('exportWorkspace.daily')" />
-        <span class="workspace-export__count">
-          {{ $t("exportWorkspace.selectedCount", { count: selected.size }) }}
-        </span>
-      </div>
-
-      <p v-if="!filtered.length" class="workspace-export__hint">
-        {{ $t("exportWorkspace.empty") }}
-      </p>
-      <ul v-else class="workspace-export__pages">
-        <li v-for="page in filtered" :key="page.id">
-          <UiCheckbox
-            :model-value="selected.has(page.id)"
-            @update:model-value="(value) => setSelected(page.id, value)"
-          >
-            <span class="workspace-export__page-title">{{ page.title }}</span>
-            <span class="workspace-export__page-meta">
-              {{ page.path }} · {{ formatDate(page.updatedAt) }}
-            </span>
-          </UiCheckbox>
-        </li>
-      </ul>
-
-      <div class="workspace-export__formats">
-        <UiCheckbox v-model="options.html" :label="$t('exportPage.html')" />
-        <UiCheckbox v-model="options.pdf" :label="$t('exportPage.pdf')" />
-        <UiCheckbox v-model="options.svg" :label="$t('exportPage.svg')" />
-        <UiCheckbox v-model="options.project" :label="$t('exportPage.project')" />
-        <UiCheckbox
-          v-model="options.stripMarkers"
-          :label="$t('exportPage.stripMarkers')"
-          :disabled="!options.project"
-        />
-        <UiCheckbox
-          v-model="options.fonts"
-          :label="$t('exportPage.fonts')"
-          :disabled="!options.project"
-        />
-      </div>
-
-      <div class="workspace-export__formats">
-        <UiCheckbox v-model="options.separate" :label="$t('exportWorkspace.separate')" />
-        <UiCheckbox v-model="options.combined" :label="$t('exportWorkspace.combined')" />
-      </div>
-
-      <div class="workspace-export__options">
-        <label class="workspace-export__field">
-          {{ $t("exportPage.theme") }}
-          <UiSelect
-            v-model="options.theme"
-            :options="themeOptions"
-            :label="$t('exportPage.theme')"
-            size="small"
-          />
-        </label>
-        <label class="workspace-export__field">
-          {{ $t("exportPage.pageSize") }}
-          <UiSelect
-            v-model="options.pageSize"
-            :options="pageSizeOptions"
-            :label="$t('exportPage.pageSize')"
-            size="small"
-          />
-        </label>
-      </div>
-
-      <p class="workspace-export__hint">{{ $t("exportWorkspace.hint") }}</p>
-      <p v-if="error" class="workspace-export__error" role="alert">{{ error }}</p>
-
-      <div class="workspace-export__actions">
-        <UiButton variant="primary" :disabled="busy || !selected.size" @click="run">
-          {{ busy ? $t("exportPage.working") : $t("exportPage.export") }}
-        </UiButton>
-      </div>
+    <div class="workspace-export__toolbar">
+      <UiTextField
+        v-model="query"
+        class="workspace-export__search"
+        type="search"
+        :placeholder="$t('exportWorkspace.search')"
+        :aria-label="$t('exportWorkspace.search')"
+      />
+      <UiButton size="small" @click="setAll(!allSelected)">
+        {{ allSelected ? $t("exportWorkspace.none") : $t("exportWorkspace.all") }}
+      </UiButton>
     </div>
-  </UiDialog>
+
+    <div class="workspace-export__filters">
+      <UiCheckbox v-model="dailyOnly" :label="$t('exportWorkspace.daily')" />
+      <span class="workspace-export__count">
+        {{ $t("exportWorkspace.selectedCount", { count: selected.size }) }}
+      </span>
+    </div>
+
+    <p v-if="!filtered.length" class="workspace-export__hint">
+      {{ $t("exportWorkspace.empty") }}
+    </p>
+    <ul v-else class="workspace-export__pages">
+      <li v-for="page in filtered" :key="page.id">
+        <UiCheckbox
+          :model-value="selected.has(page.id)"
+          @update:model-value="(value) => setSelected(page.id, value)"
+        >
+          <span class="workspace-export__page-title">{{ page.title }}</span>
+          <span class="workspace-export__page-meta">
+            {{ page.path }} · {{ formatDate(page.updatedAt) }}
+          </span>
+        </UiCheckbox>
+      </li>
+    </ul>
+
+    <div class="workspace-export__formats">
+      <UiCheckbox v-model="options.html" :label="$t('exportPage.html')" />
+      <UiCheckbox v-model="options.pdf" :label="$t('exportPage.pdf')" />
+      <UiCheckbox v-model="options.svg" :label="$t('exportPage.svg')" />
+      <UiCheckbox v-model="options.project" :label="$t('exportPage.project')" />
+      <UiCheckbox
+        v-model="options.stripMarkers"
+        :label="$t('exportPage.stripMarkers')"
+        :disabled="!options.project"
+      />
+      <UiCheckbox
+        v-model="options.fonts"
+        :label="$t('exportPage.fonts')"
+        :disabled="!options.project"
+      />
+    </div>
+
+    <div class="workspace-export__formats">
+      <UiCheckbox v-model="options.separate" :label="$t('exportWorkspace.separate')" />
+      <UiCheckbox v-model="options.combined" :label="$t('exportWorkspace.combined')" />
+    </div>
+
+    <div class="workspace-export__options">
+      <label class="workspace-export__field">
+        {{ $t("exportPage.theme") }}
+        <UiSelect
+          v-model="options.theme"
+          :options="themeOptions"
+          :label="$t('exportPage.theme')"
+          size="small"
+        />
+      </label>
+      <label class="workspace-export__field">
+        {{ $t("exportPage.pageSize") }}
+        <UiSelect
+          v-model="options.pageSize"
+          :options="pageSizeOptions"
+          :label="$t('exportPage.pageSize')"
+          size="small"
+        />
+      </label>
+    </div>
+
+    <p class="workspace-export__hint">{{ $t("exportWorkspace.hint") }}</p>
+    <p v-if="error" class="workspace-export__error" role="alert">{{ error }}</p>
+
+    <div class="workspace-export__actions">
+      <UiButton variant="primary" :disabled="busy || !selected.size" @click="run">
+        {{ busy ? $t("exportPage.working") : $t("exportPage.export") }}
+      </UiButton>
+    </div>
+  </div>
 </template>
 
 <style scoped>

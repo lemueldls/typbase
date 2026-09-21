@@ -26,6 +26,14 @@ function formatPublished(timestamp: number): string {
   return new Intl.DateTimeFormat(locale.value).format(new Date(timestamp));
 }
 
+/** Chip tooltip: the exact date plus the public URL when the page has one. */
+const publishedTooltip = computed(() => {
+  const page = meta.value;
+  if (!page?.publishedAt) return "";
+  const date = formatPublished(page.publishedAt);
+  return page.publishUri ? `${date} · ${page.publishUri}` : date;
+});
+
 async function onPublish() {
   if (!atproto.value || busy.value) return;
 
@@ -60,16 +68,16 @@ async function onUnpublish() {
 
 <template>
   <div class="publish" v-if="atprotoStatus.signedIn">
-    <UiTooltip v-if="meta?.publishedAt" :text="meta.publishUri ?? ''">
+    <UiTooltip v-if="meta?.publishedAt" :text="publishedTooltip">
       <span class="publish__status" role="status">
         <MsIcon name="public" :size="14" />
-        {{ t("pageView.published", { date: formatPublished(meta.publishedAt) }) }}
+        {{ t("pageView.publishedShort") }}
       </span>
     </UiTooltip>
 
     <PopoverRoot v-model:open="menuOpen">
       <PopoverTrigger as-child>
-        <UiButton size="small" :disabled="busy">
+        <UiButton size="small" class="publish__trigger" :disabled="busy">
           {{
             busy
               ? t("pageView.publishWorking")
@@ -107,6 +115,12 @@ async function onUnpublish() {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* One width for Publish / Working… / Republish, so publishing does not resize
+   the button and shove the rest of the toolbar around. */
+.publish__trigger {
+  min-width: calc(6.5rem * var(--ui-size));
 }
 
 .publish__status {

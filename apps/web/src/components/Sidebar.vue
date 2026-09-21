@@ -88,7 +88,6 @@ async function openToday() {
 }
 
 const renameTarget = ref<PageMeta>();
-const packagesOpen = ref(false);
 const renameTitle = ref("");
 /** Page queued for deletion. The target survives the dialog's close event:
  *  reka's action closes the dialog before the confirm handler runs. */
@@ -146,9 +145,9 @@ function onCreated(page: PageMeta) {
         </UiTooltip>
       </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
-        <SettingsPopover :store="store">
+        <SettingsDialog :store="store">
           <UiIconButton icon="settings" :label="$t('sidebar.workspaceSettings')" />
-        </SettingsPopover>
+        </SettingsDialog>
         <!-- <UiIconButton
           icon="chevron_left"
           :label="$t('sidebar.hideSidebar')"
@@ -400,25 +399,6 @@ function onCreated(page: PageMeta) {
       @update:open="(value) => !value && (confirmOpen = false)"
       @confirm="confirmRemove"
     />
-
-    <footer class="sidebar__footer">
-      <!-- <NuxtLink to="/debug" class="button button--ghost button--small">
-        <MsIcon name="science" :size="16" />
-        {{ $t("sidebar.debugLab") }}
-      </NuxtLink> -->
-      <!-- <PackageBrowser v-model:open="packagesOpen" :store="store">
-        <UiButton variant="ghost" size="tiny">
-          <MsIcon name="package_2" :size="16" />
-          {{ $t("packages.title") }}
-        </UiButton>
-      </PackageBrowser> -->
-      <!-- <WorkspaceExportDialog :store="store">
-        <UiButton variant="ghost" size="tiny">
-          <MsIcon name="download" :size="16" />
-          {{ $t("exportWorkspace.title") }}
-        </UiButton>
-      </WorkspaceExportDialog> -->
-    </footer>
   </aside>
 </template>
 
@@ -642,19 +622,5 @@ function onCreated(page: PageMeta) {
   padding: var(--space-2);
   font-size: var(--text-md);
   color: var(--color-text-secondary);
-}
-
-.sidebar__footer {
-  padding: var(--space-2);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  justify-content: flex-end;
-}
-
-/* The two footer actions share one row at text-xs; longer locales wrap. */
-.sidebar__footer .button {
-  font-size: var(--text-xs);
 }
 </style>

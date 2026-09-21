@@ -169,10 +169,31 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
   bumpRenderRevision();
 }
 
-/** Settings tab; keeps the popover from becoming a scroll marathon. */
-const activeTab = ref<"general" | "content" | "appearance" | "publish" | "ai" | "search" | "sync">(
-  "general",
-);
+/** Settings tab ids; each one maps to a panel below. */
+type SettingsTab =
+  | "general"
+  | "content"
+  | "appearance"
+  | "publish"
+  | "ai"
+  | "search"
+  | "sync"
+  | "export";
+
+/** Section rail. Icons carry the scan on phones, where labels can truncate. */
+const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string }> = [
+  { id: "general", icon: "settings", label: "settings.tabGeneral" },
+  { id: "content", icon: "description", label: "settings.tabContent" },
+  { id: "appearance", icon: "palette", label: "settings.tabAppearance" },
+  { id: "publish", icon: "public", label: "settings.tabPublish" },
+  { id: "ai", icon: "psychology", label: "settings.tabAi" },
+  { id: "search", icon: "manage_search", label: "settings.tabSearch" },
+  { id: "sync", icon: "sync", label: "settings.tabSync" },
+  { id: "export", icon: "folder_zip", label: "settings.tabExport" },
+];
+
+const activeTab = ref<SettingsTab>("general");
+const open = ref(false);
 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
@@ -463,80 +484,29 @@ async function renameWorkspace(event: Event) {
 </script>
 
 <template>
-  <PopoverRoot>
-    <PopoverTrigger as-child>
+  <UiDialog v-model:open="open" class="settings-dialog" :title="$t('settings.title')">
+    <template v-if="$slots.default" #trigger>
       <slot />
-    </PopoverTrigger>
+    </template>
 
-    <PopoverPortal>
-      <PopoverContent class="popover" :side-offset="8" align="start">
-        <h3 class="popover__title">{{ $t("settings.title") }}</h3>
-        <div class="settings__tabs">
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="general"
-            :class="{ 'settings__tab--active': activeTab === 'general' }"
-            @click="activeTab = 'general'"
-          >
-            {{ $t("settings.tabGeneral") }}
-          </button>
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="content"
-            :class="{ 'settings__tab--active': activeTab === 'content' }"
-            @click="activeTab = 'content'"
-          >
-            {{ $t("settings.tabContent") }}
-          </button>
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="appearance"
-            :class="{ 'settings__tab--active': activeTab === 'appearance' }"
-            @click="activeTab = 'appearance'"
-          >
-            {{ $t("settings.tabAppearance") }}
-          </button>
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="publish"
-            :class="{ 'settings__tab--active': activeTab === 'publish' }"
-            @click="activeTab = 'publish'"
-          >
-            {{ $t("settings.tabPublish") }}
-          </button>
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="ai"
-            :class="{ 'settings__tab--active': activeTab === 'ai' }"
-            @click="activeTab = 'ai'"
-          >
-            {{ $t("settings.tabAi") }}
-          </button>
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="search"
-            :class="{ 'settings__tab--active': activeTab === 'search' }"
-            @click="activeTab = 'search'"
-          >
-            {{ $t("settings.tabSearch") }}
-          </button>
-          <button
-            type="button"
-            class="settings__tab"
-            data-tab="sync"
-            :class="{ 'settings__tab--active': activeTab === 'sync' }"
-            @click="activeTab = 'sync'"
-          >
-            {{ $t("settings.tabSync") }}
-          </button>
-        </div>
+    <div class="settings">
+      <nav class="settings__nav" :aria-label="$t('settings.title')">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="settings__tab"
+          :data-tab="tab.id"
+          :class="{ 'settings__tab--active': activeTab === tab.id }"
+          :aria-current="activeTab === tab.id ? 'true' : undefined"
+          @click="activeTab = tab.id"
+        >
+          <MsIcon :name="tab.icon" :size="18" />
+          <span class="settings__tab-label">{{ $t(tab.label) }}</span>
+        </button>
+      </nav>
 
+      <div class="settings__panels">
         <section v-show="activeTab === 'general'" class="settings__tabpanel">
           <Label class="settings__field">
             <span>{{ $t("settings.name") }}</span>
@@ -970,26 +940,52 @@ async function renameWorkspace(event: Event) {
             </p>
           </section>
         </section>
-      </PopoverContent>
-    </PopoverPortal>
-  </PopoverRoot>
+
+        <section v-show="activeTab === 'export'" class="settings__tabpanel">
+          <WorkspaceExportPanel v-if="store" :store="store" />
+        </section>
+      </div>
+    </div>
+
+    <div class="settings__close">
+      <UiIconButton
+        icon="close"
+        variant="ghost"
+        :label="$t('common.close')"
+        @click="open = false"
+      />
+    </div>
+  </UiDialog>
 </template>
 
 <style scoped>
-.settings__tabs {
+.settings {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: var(--space-5);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.settings__nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-0-5);
-  padding: var(--space-0-5);
-  margin-bottom: var(--space-3);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  min-height: 0;
+  padding-right: var(--space-3);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
 }
 
 .settings__tab {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  font-family: inherit;
+  font-size: var(--text-md);
+  text-align: left;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
@@ -999,12 +995,59 @@ async function renameWorkspace(event: Event) {
 
 .settings__tab:hover {
   color: var(--color-text);
+  background: var(--color-surface-2);
 }
 
 .settings__tab--active {
   color: var(--color-text);
-  background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  background: var(--color-surface-2);
+  font-weight: 600;
+}
+
+.settings__tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings__panels {
+  min-height: 0;
+  padding-right: var(--space-1);
+  overflow-y: auto;
+}
+
+.settings__close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+/* Narrow windows and phones: the rail becomes an even two-column grid, and
+   the odd last section spans the row. */
+@media (max-width: 48rem) {
+  .settings {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .settings__nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-1);
+    padding-right: 0;
+    border-right: none;
+    overflow: visible;
+  }
+
+  .settings__nav > .settings__tab {
+    justify-content: center;
+  }
+
+  .settings__nav > .settings__tab:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 .settings__tabpanel {

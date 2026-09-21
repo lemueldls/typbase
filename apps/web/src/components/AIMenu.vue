@@ -221,17 +221,12 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
 <template>
   <PopoverRoot v-model:open="menuOpen">
     <PopoverTrigger as-child>
-      <UiTooltip :text="$t('aiMenu.title')">
-        <UiButton
-          size="small"
-          :class="{ 'button--muted': !aiEnabled }"
-          :disabled="busy"
-          @click="onTrigger"
-        >
-          <MsIcon name="psychology" :size="16" />
-          {{ busy ? $t("common.working") : aiEnabled ? "AI" : $t("aiMenu.off") }}
-        </UiButton>
-      </UiTooltip>
+      <UiIconButton
+        :icon="busy ? 'progress_activity' : 'psychology'"
+        :label="busy ? $t('common.working') : aiEnabled ? $t('aiMenu.title') : $t('aiMenu.off')"
+        :disabled="busy"
+        @click="onTrigger"
+      />
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent class="menu ai-menu" :side-offset="6" align="end">
@@ -290,10 +285,6 @@ const emit = defineEmits<{ (e: "openPage", id: string): void }>();
 <style scoped>
 .ai-menu {
   min-width: 13rem;
-}
-
-.button--muted {
-  opacity: 0.7;
 }
 
 .ai-menu__error {

@@ -15,7 +15,7 @@ const NOTEBOOK_ICON: MaterialSymbol = "view_agenda";
 
 /** View modes in tab order. The shell validates `?mode=` against this list. */
 export const VIEW_MODES: ViewMode[] = [
-  { id: "write", icon: "edit_note" },
+  { id: "write", icon: "edit_square" },
   { id: "notebook", icon: NOTEBOOK_ICON },
   { id: "split", icon: "split_scene" },
   { id: "source", icon: "frame_source" },

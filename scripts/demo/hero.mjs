@@ -149,6 +149,19 @@ async function main() {
     });
     await pause(page, 1200);
 
+    // Inline math at the end of the heading, so the rule just typed styles it.
+    await page.evaluate(() => {
+      const api = window.__typbase;
+      const doc = api.view.state.doc.toString();
+      const heading = "= Fibonacci sequence";
+
+      api.view.dispatch({ selection: { anchor: doc.indexOf(heading) + heading.length } });
+      api.view.focus();
+    });
+    await pause(page, 400);
+    await page.keyboard.type(" $F_n$", { delay: 90 });
+    await pause(page, 1300);
+
     // An inline show rule restyles the document as it is typed.
     const numbering = page
       .locator(".cm-line")
@@ -161,7 +174,7 @@ async function main() {
     await page.keyboard.press("ArrowUp");
     await page.keyboard.type("#show heading: set text(fill: theme.", { delay: 55 });
     await pause(page, 1100);
-    await page.keyboard.type("red)", { delay: 90 });
+    await page.keyboard.type("yellow)", { delay: 90 });
     // await page.keyboard.press("Enter");
     await pause(page, 1300);
 
@@ -186,13 +199,13 @@ async function main() {
     await page.keyboard.press("Enter");
     await pause(page, 1200);
 
-    // Plain source and read views.
-    await clickMode(page, "Source");
-    await pause(page, 1100);
-    await clickMode(page, "Read");
-    await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2);
-    await page.mouse.wheel(0, 500);
-    await pause(page, 1100);
+    // // Plain source and read views.
+    // await clickMode(page, "Source");
+    // await pause(page, 1100);
+    // await clickMode(page, "Read");
+    // await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2);
+    // await page.mouse.wheel(0, 500);
+    // await pause(page, 1100);
 
     // Theme switch: Catppuccin, then dark mode.
     await clickWithCursor(page, page.locator('[aria-label="Workspace settings"]').first());

@@ -86,6 +86,7 @@ const pageError = ref<string>();
 const ready = ref(false);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
+const packagesOpen = ref(false);
 
 // ---- Notebook mode -------------------------------------------------------
 
@@ -975,6 +976,23 @@ function onModeKeydown(event: KeyboardEvent) {
           />
         </AssetPicker>
 
+        <UiIconButton
+          v-if="modelValue !== 'read'"
+          icon="text_format"
+          :label="$t('formatting.title')"
+          :pressed="formatOpen"
+          class="page-view__format-toggle"
+          @click="formatOpen = !formatOpen"
+        />
+
+        <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store">
+          <UiIconButton
+            icon="package_2"
+            :label="$t('packages.title')"
+            :disabled="!ready || degraded"
+          />
+        </PackageBrowser>
+
         <AIMenu
           v-if="store && aiEnabled"
           :page-id="pageId"
@@ -1000,15 +1018,6 @@ function onModeKeydown(event: KeyboardEvent) {
 
         <PublishButton v-if="store" :page-id="pageId" :store="store" />
 
-        <UiIconButton
-          v-if="modelValue !== 'read' && !formatOpen"
-          icon="text_format"
-          :label="$t('formatting.title')"
-          :pressed="false"
-          class="page-view__format-toggle"
-          @click="formatOpen = true"
-        />
-
         <div
           class="page-view__modes"
           role="tablist"
@@ -1016,21 +1025,28 @@ function onModeKeydown(event: KeyboardEvent) {
           aria-orientation="horizontal"
           @keydown="onModeKeydown"
         >
-          <button
+          <UiTooltip
             v-for="mode in modes"
             :key="mode.id"
-            type="button"
-            role="tab"
-            :aria-selected="modelValue === mode.id"
-            :tabindex="modelValue === mode.id ? 0 : -1"
-            class="page-view__mode"
-            :class="{ 'page-view__mode--active': modelValue === mode.id }"
-            :disabled="!ready"
-            @click="emit('update:modelValue', mode.id)"
+            :text="modelValue === mode.id ? '' : $t(mode.key)"
           >
-            <MsIcon :name="mode.icon" :size="18" />
-            <span class="page-view__mode-label">{{ $t(mode.key) }}</span>
-          </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="modelValue === mode.id"
+              :tabindex="modelValue === mode.id ? 0 : -1"
+              :aria-label="$t(mode.key)"
+              class="page-view__mode"
+              :class="{ 'page-view__mode--active': modelValue === mode.id }"
+              :disabled="!ready"
+              @click="emit('update:modelValue', mode.id)"
+            >
+              <MsIcon :name="mode.icon" :size="18" />
+              <span v-if="modelValue === mode.id" class="page-view__mode-label">
+                {{ $t(mode.key) }}
+              </span>
+            </button>
+          </UiTooltip>
         </div>
 
         <span class="page-view__modes-menu">
@@ -1270,6 +1286,7 @@ function onModeKeydown(event: KeyboardEvent) {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  height: var(--control-md);
   padding: var(--space-0-5);
   flex: none;
   background: var(--color-surface-2);
@@ -1280,10 +1297,10 @@ function onModeKeydown(event: KeyboardEvent) {
 .page-view__mode {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: var(--space-1);
   min-width: calc(2.1rem * var(--ui-size));
-  height: var(--control-sm);
+  height: 100%;
   padding: 0 var(--space-2);
   font-size: var(--text-md);
   line-height: var(--leading-none);
@@ -1315,6 +1332,10 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 .page-view__mode-label {
+  /* Fixed slot: the strip keeps one width across modes, so switching view
+     modes never shifts the action buttons to its left. */
+  flex: none;
+  min-width: calc(4.75rem * var(--ui-size));
   white-space: nowrap;
 }
 
