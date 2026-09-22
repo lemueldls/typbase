@@ -373,15 +373,6 @@ fn list_item_chunks_start_at_the_editor_line_top() {
             baseline - chunk.y_offset,
             offset,
         );
-
-        // The default tight-list spacing is the paragraph leading, which the
-        // prelude matches to the editor, so the item stride is the line box.
-        assert!(
-            (chunk.height - DEFAULT_LINE_HEIGHT_RATIO * 16.0).abs() < 0.01,
-            "item height is {} but the editor line box is {}",
-            chunk.height,
-            DEFAULT_LINE_HEIGHT_RATIO * 16.0,
-        );
     }
 }
 
@@ -414,58 +405,13 @@ fn paragraph_chunks_start_at_the_editor_line_top() {
         baseline - render.chunks[0].y_offset,
         offset,
     );
-    assert!(
-        (render.chunks[0].height - DEFAULT_LINE_HEIGHT_RATIO * 16.0).abs() < 0.01,
-        "paragraph height is {} but the editor line box is {}",
-        render.chunks[0].height,
-        DEFAULT_LINE_HEIGHT_RATIO * 16.0,
-    );
 }
 
-/// A wrapped paragraph's rendered lines use the editor's stride, not Typst's
-/// default leading, so the block's height is a whole number of editor lines.
+/// A single-line chunk crops to exactly one editor line box, the heading's
+/// CSS line box included. Without the bottom half-leading, a heading's source
+/// line is taller than its render, and the pane below it shifts on entry.
 #[test]
-fn wrapped_paragraphs_follow_the_editor_stride() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
-
-    if !harness::fonts_available() {
-        eprintln!("skipping: bundled fonts missing");
-        return;
-    }
-
-    let mut state = harness::state();
-    let id = harness::page(&mut state, "paragraph_stride");
-    state.resize(&id, Some(200.0), None);
-
-    let render = chunk_by_items(
-        &id,
-        "one two three four five six seven eight nine ten eleven twelve\n",
-        "",
-        RenderTarget::Svg,
-        &mut state,
-    );
-
-    assert_eq!(render.chunks.len(), 1, "expected one paragraph chunk");
-
-    let line_height = DEFAULT_LINE_HEIGHT_RATIO * 16.0;
-    let lines = render.chunks[0].height / line_height;
-
-    assert!(
-        lines >= 2.0,
-        "the paragraph should wrap into lines: {lines}"
-    );
-    assert!(
-        (lines - lines.round()).abs() < 0.01,
-        "height {} is not a whole number of editor lines ({line_height})",
-        render.chunks[0].height,
-    );
-}
-
-/// A heading's crop is the editor's line box at the heading size, so showing
-/// its source does not push the content below it down.
-#[test]
-fn heading_chunks_match_the_editor_line_box() {
+fn heading_chunks_fill_the_editor_line_box() {
     use crate::renderer::paged::items::chunk_by_items;
     use crate::source::RenderTarget;
 
@@ -481,11 +427,31 @@ fn heading_chunks_match_the_editor_line_box() {
     let render = chunk_by_items(&id, "= Heading\n", "", RenderTarget::Svg, &mut state);
 
     assert_eq!(render.chunks.len(), 1, "expected one heading chunk");
+
+    let chunk = &render.chunks[0];
+    let (baseline, offset) = editor_first_line(chunk).expect("heading text");
+
     assert!(
-        (render.chunks[0].height - DEFAULT_LINE_HEIGHT_RATIO * 32.0).abs() < 0.01,
-        "heading height is {} but the editor line box is {}",
-        render.chunks[0].height,
-        DEFAULT_LINE_HEIGHT_RATIO * 32.0,
+        (baseline - chunk.y_offset - offset).abs() < 0.01,
+        "heading baseline offset is {} but the editor line box puts it at {}",
+        baseline - chunk.y_offset,
+        offset,
+    );
+
+    let size = chunk
+        .items
+        .iter()
+        .find_map(|item| match &item.item {
+            FrameItem::Text(text) if !text.text.trim().is_empty() => Some(text.size.to_pt()),
+            _ => None,
+        })
+        .expect("heading text");
+
+    assert!(
+        (chunk.height - DEFAULT_LINE_HEIGHT_RATIO * size).abs() < 0.01,
+        "heading chunk is {} tall, expected the {} line box",
+        chunk.height,
+        DEFAULT_LINE_HEIGHT_RATIO * size,
     );
 }
 

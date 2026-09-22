@@ -10,7 +10,7 @@ expression: summarize(&render.chunks)
     ],
     "items": 17,
     "width": 63.76,
-    "height": 119.04,
+    "height": 132.64,
     "x": 0.0,
     "y": -0.64
   },
@@ -23,6 +23,6 @@ expression: summarize(&render.chunks)
     "width": 96.56,
     "height": 47.71,
     "x": -48.67,
-    "y": 136.96
+    "y": 150.56
   }
 ]

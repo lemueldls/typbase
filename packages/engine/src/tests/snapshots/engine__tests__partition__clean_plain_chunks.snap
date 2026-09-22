@@ -10,7 +10,7 @@ expression: summarize(&render.chunks)
     ],
     "items": 8,
     "width": 57.6,
-    "height": 44.8,
+    "height": 47.52,
     "x": 0.0,
     "y": -0.64
   },
@@ -21,9 +21,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 13,
     "width": 84.88,
-    "height": 152.58,
+    "height": 168.9,
     "x": 0.0,
-    "y": 62.08
+    "y": 64.8
   },
   {
     "range": [
@@ -32,8 +32,8 @@ expression: summarize(&render.chunks)
     ],
     "items": 5,
     "width": 56.24,
-    "height": 89.6,
+    "height": 97.76,
     "x": 0.0,
-    "y": 232.58
+    "y": 251.62
   }
 ]

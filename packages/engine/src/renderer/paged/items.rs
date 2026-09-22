@@ -3,7 +3,6 @@ use std::{cmp, collections::VecDeque, ops::Range};
 use typst::{
     compile,
     layout::{Abs, FrameItem},
-    text::TextItem,
 };
 use typst_layout::PagedDocument;
 
@@ -202,43 +201,53 @@ pub fn chunk_by_items_with_blocks(
                     }
 
                     // The editor draws the source text on its line baseline.
-                    // Extend the crop to the editor's line box (the text
-                    // ascender plus the half-leading at the top, the rest of
-                    // the line below), clamped so it never cuts into painted
-                    // content: the synth's 0pt-stroke wrapper and tag
+                    // Crop to the editor's line box: the first line's top (the
+                    // text ascender plus the half-leading) down to the last
+                    // line's bottom. That keeps a single-line chunk exactly as
+                    // tall as its source line, so a heading (whose CSS line box
+                    // is larger than its Typst box) does not grow the pane when
+                    // its source appears. The top is clamped to what is
+                    // actually painted: the synth's 0pt-stroke wrapper and tag
                     // positions do not count, but text, math, images, and
-                    // visible shapes do. Math chunks keep their own box so
-                    // equation spacing does not change.
+                    // visible shapes do, so tall content never clips. Math
+                    // chunks keep their own box so equation spacing does not
+                    // change.
                     if !block.math {
-                        let mut line_top = None;
-                        let mut line_bottom = None;
+                        let mut desired_top: Option<Abs> = None;
+                        let mut desired_bottom: Option<Abs> = None;
 
                         for item in &chunk_items {
                             if let FrameItem::Text(text) = &item.item {
-                                let (top, bottom) = editor_line_box(item, text, line_height_ratio);
+                                let metrics = text.font.metrics();
+                                let ascender = metrics.ascender.at(text.size);
+                                let descender = metrics.descender.at(text.size);
+                                let half = (Abs::pt(line_height_ratio * text.size.to_pt())
+                                    - (ascender - descender))
+                                    / 2.0;
 
-                                line_top =
-                                    Some(line_top.map_or(top, |current: Abs| current.min(top)));
-                                line_bottom = Some(
-                                    line_bottom.map_or(bottom, |current: Abs| current.max(bottom)),
-                                );
+                                let top = item.point.y - ascender - half;
+                                let bottom = item.point.y - descender + half;
+
+                                desired_top = Some(desired_top.map_or(top, |it| it.min(top)));
+                                desired_bottom =
+                                    Some(desired_bottom.map_or(bottom, |it| it.max(bottom)));
                             }
                         }
 
-                        if let Some(top) = line_top {
+                        if let Some(desired) = desired_top {
                             let painted_top = chunk_items
                                 .iter()
                                 .filter(|item| clamps_crop_top(&item.item))
                                 .map(|item| item.bounds.min.y)
                                 .min();
-                            let start = painted_top.map_or(top, |painted| painted.min(top));
+                            let start = painted_top.map_or(desired, |top| top.min(desired));
 
                             bounds.start_height = Some(start);
                         }
 
-                        if let Some(bottom) = line_bottom {
+                        if let Some(bottom) = desired_bottom {
                             bounds.end_height =
-                                Some(bounds.end_height.unwrap_or(bottom).max(bottom));
+                                Some(bounds.end_height.map_or(bottom, |it| it.max(bottom)));
                         }
                     }
 
@@ -519,22 +528,6 @@ pub fn chunk_by_items_with_blocks(
         diagnostics,
         document,
     }
-}
-
-/// The editor's line box for a text item, as top and bottom page coordinates:
-/// the baseline plus the half-leading on one side, and the line-height minus
-/// the ascender and half-leading on the other.
-fn editor_line_box(item: &BoundFrameItem, text: &TextItem, line_height_ratio: f64) -> (Abs, Abs) {
-    let metrics = text.font.metrics();
-    let ascender = metrics.ascender.at(text.size);
-    let descender = metrics.descender.at(text.size);
-    let line_height = Abs::pt(line_height_ratio * text.size.to_pt());
-    let half = (line_height - (ascender - descender)) / 2.0;
-
-    (
-        item.point.y - ascender - half,
-        item.point.y + line_height - ascender - half,
-    )
 }
 
 /// Whether a frame item paints anything, and so has to stay inside its

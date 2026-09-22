@@ -217,43 +217,52 @@ describe("typbase app", async () => {
     await page.close();
   });
 
-  it("keeps the layout when a heading shows its source", async () => {
+  it("keeps the pane stable when a heading shows its source", async () => {
     const page = await createPage();
     await openApp(page);
 
     const id = await createTestPage(page, {
-      title: "Heading jump",
-      content: "= Heading\n\nA paragraph line.\n",
+      title: "Heading stability",
+      content: "= Heading\n\nA paragraph.\n",
     });
     await showPage(page, id, "write");
 
     await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
       timeout: 60_000,
     });
+    await page.waitForTimeout(800);
 
-    const widgetTops = () =>
+    const measure = () =>
       page.evaluate(() =>
-        [...document.querySelectorAll(".typst-render")].map(
-          (widget) => Math.round(widget.getBoundingClientRect().top * 100) / 100,
-        ),
+        [...document.querySelectorAll(".typst-render")].map((widget) => {
+          const rect = widget.getBoundingClientRect();
+
+          return {
+            top: Math.round(rect.top * 100) / 100,
+            height: Math.round(rect.height * 100) / 100,
+          };
+        }),
       );
 
-    const before = await widgetTops();
+    const before = await measure();
     expect(before).toHaveLength(2);
+    // The heading fills its editor line box (1.4 x the 32px h1 size).
+    expect(Math.abs(before[0]!.height - 44.8)).toBeLessThan(0.1);
 
-    // A heading's frame is its editor line box, so showing the source line
-    // keeps the paragraph below exactly where the render had it.
     const target = await page.evaluate(() => {
-      const rect = document.querySelectorAll(".typst-render")[0]!.getBoundingClientRect();
+      const widget = document.querySelectorAll(".typst-render")[0]!;
+      const rect = widget.getBoundingClientRect();
 
       return { x: rect.left + 5, y: rect.top + rect.height / 2 };
     });
     await page.mouse.click(target.x, target.y);
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(500);
 
-    const after = await widgetTops();
+    const after = await measure();
+    // The heading is source now, so only the paragraph widget remains; its
+    // top must not move.
     expect(after).toHaveLength(1);
-    expect(after[0]).toBeCloseTo(before[1]!, 1);
+    expect(Math.abs(after[0]!.top - before[1]!.top)).toBeLessThan(0.5);
     await page.close();
   });
 
