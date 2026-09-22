@@ -174,6 +174,37 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("anchors rendered frames at their widget top", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Frame anchor",
+      content: "- one\n- two\n- three\n- four\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 4, null, {
+      timeout: 60_000,
+    });
+
+    // An inline SVG sits on the container's text baseline, so a frame shorter
+    // than the editor line box (the last list item, typically) would be pushed
+    // down and inflate the gap before it. The SVG must be block-level.
+    const offsets = await page.evaluate(() =>
+      [...document.querySelectorAll(".typst-render")].map((widget) => {
+        const container = widget.getBoundingClientRect();
+        const svg = widget.querySelector("svg")!.getBoundingClientRect();
+
+        return Math.round((svg.top - container.top) * 100) / 100;
+      }),
+    );
+
+    expect(offsets).toHaveLength(4);
+    expect(offsets.every((offset) => offset === 0)).toBe(true);
+    await page.close();
+  });
+
   it("reports diagnostics for broken Typst", async () => {
     const page = await createPage();
     await openApp(page);

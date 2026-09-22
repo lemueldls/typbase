@@ -113,7 +113,7 @@ pub fn chunk_by_items_with_blocks(
 
                 let mut bound_frame_items = bound_frame_items.into_iter().peekable();
 
-                let mut chunks = Vec::with_capacity(blocks.len());
+                let mut chunks: Vec<FrameItemsChunk> = Vec::with_capacity(blocks.len());
                 let mut remaining_items = Vec::<BoundFrameItem>::new();
 
                 for block in blocks.iter() {
@@ -230,6 +230,22 @@ pub fn chunk_by_items_with_blocks(
                         continue;
                     }
 
+                    // The compiled spacing between two list items is not ink,
+                    // so neither chunk's bounds contain it, and the editor
+                    // stacks chunks by height with no page offsets. Hand the
+                    // gap to the upper item's widget: it is the only place it
+                    // can live, and it is what makes `list(spacing:)` visible.
+                    // Only between items: the space below the last item is the
+                    // boundary with the following block, and folding it in
+                    // stretches the item's widget past its text.
+                    if let Some(previous) = chunks.last_mut()
+                        && previous.list_item
+                        && block.list_item
+                        && block_start_height > previous.y_offset + previous.height
+                    {
+                        previous.height = block_start_height - previous.y_offset;
+                    }
+
                     chunks.push(FrameItemsChunk {
                         items: chunk_items,
                         range: raw_range_utf16,
@@ -237,6 +253,7 @@ pub fn chunk_by_items_with_blocks(
                         height: block_height,
                         x_offset: block_start_width,
                         y_offset: block_start_height,
+                        list_item: block.list_item,
                     });
                 }
 
@@ -431,6 +448,8 @@ pub fn chunk_by_items_with_blocks(
                 height,
                 x_offset: block_start_width,
                 y_offset: block_start_height,
+                // Tooltip chunks are overlays, not stacked content.
+                list_item: false,
             })
         })
         .collect();

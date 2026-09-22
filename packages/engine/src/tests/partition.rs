@@ -236,6 +236,77 @@ fn list_markers_stay_with_their_items() {
     );
 }
 
+/// The editor stacks chunk widgets by height and never reads their page
+/// offsets, so the compiled spacing between two items only reaches the screen
+/// when the upper item's chunk includes it. Without that, `list(spacing:)`
+/// changes nothing visible.
+#[test]
+fn list_items_own_the_compiled_gap() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let source = "- one\n- two\n- three\n";
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "list_gap");
+    state.resize(&id, Some(600.0), None);
+
+    let tight = chunk_by_items(&id, source, "", RenderTarget::Svg, &mut state);
+    assert_eq!(tight.chunks.len(), 3, "expected one chunk per item");
+
+    for (chunk, next) in tight.chunks.iter().zip(tight.chunks.iter().skip(1)) {
+        assert!(chunk.list_item, "item chunk lost its list flag");
+        assert!(
+            (chunk.y_offset + chunk.height - next.y_offset).abs() < 0.01,
+            "chunk {:?} ends at {} but the next starts at {}",
+            chunk.range,
+            chunk.y_offset + chunk.height,
+            next.y_offset,
+        );
+    }
+
+    // The prelude takes the rule instead of the page source so the first
+    // item's chunk is not the one a leading structural block receives.
+    let loose = chunk_by_items(
+        &id,
+        source,
+        "#set list(spacing: 1.5em)\n",
+        RenderTarget::Svg,
+        &mut state,
+    );
+
+    assert_eq!(loose.chunks.len(), 3, "expected one chunk per item");
+    assert!(
+        loose.chunks[0].height > tight.chunks[0].height + 1.0,
+        "list(spacing:) did not grow the item chunk: {} vs {}",
+        loose.chunks[0].height,
+        tight.chunks[0].height,
+    );
+
+    // Content after the list must not stretch the last item: the trailing gap
+    // belongs to the boundary, and a taller item widget would cover the space
+    // before the next block.
+    let followed = chunk_by_items(
+        &id,
+        "- one\n- two\n- three\ntext\n",
+        "",
+        RenderTarget::Svg,
+        &mut state,
+    );
+
+    assert_eq!(followed.chunks.len(), 4, "expected the trailing paragraph");
+    assert!(
+        (followed.chunks[2].height - tight.chunks[2].height).abs() < 0.01,
+        "the last item grew over the gap to the paragraph: {} vs {}",
+        followed.chunks[2].height,
+        tight.chunks[2].height,
+    );
+}
+
 /// The editor's syntax-highlight field rewrites the world's raw source in the
 /// transaction, before the plugin's compile microtask. That must not make the
 /// sync reuse the previous text: the stale blocks carry the old ranges, and a

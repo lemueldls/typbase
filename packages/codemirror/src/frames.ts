@@ -41,11 +41,14 @@ export function frameSize(frame: SvgRangedFrame): { width: number; height: numbe
  */
 export function syncFrameContainer(container: HTMLElement, frame: SvgRangedFrame): void {
   const size = frameSize(frame);
-  const widthKey = Math.round(size.width).toString();
+  // Both dimensions are in the key. A list item's chunk height changes with
+  // the compiled spacing while the item's ink (and so the render hash) stays
+  // the same, so a width-only key would keep the old height on screen.
+  const sizeKey = `${Math.round(size.width)}x${Math.round(size.height)}`;
 
-  if (container.dataset.renderWidth === widthKey) return;
+  if (container.dataset.renderSize === sizeKey) return;
 
-  container.dataset.renderWidth = widthKey;
+  container.dataset.renderSize = sizeKey;
   container.style.setProperty("--render-w", size.width + "px");
   container.style.setProperty("--render-h", size.height + "px");
   container.style.height = size.height + "px";

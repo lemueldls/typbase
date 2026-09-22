@@ -38,6 +38,10 @@ pub struct FrameItemsChunk {
     pub x_offset: f64,
     /// Offset from the top of the page in points.
     pub y_offset: f64,
+    /// True for a list, enum, or term item. `height` includes the compiled
+    /// spacing down to the next item, so the editor's stack of widgets
+    /// reproduces the item stride instead of squeezing the spacing out.
+    pub list_item: bool,
 }
 
 /// A single frame item with bounds and range.

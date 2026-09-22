@@ -195,7 +195,16 @@ class NotebookOutputWidget extends WidgetType {
 
   /** Hash of everything the DOM depends on; DOM identity is expensive. */
   private get key(): string {
-    const frames = this.args.frames.map((frame) => frame.render.hash).join(",");
+    // Frame height is not in the render hash: a list item's chunk grows with
+    // the compiled spacing while its ink stays the same. Keep the size in the
+    // key or a spacing change reuses the old DOM.
+    const frames = this.args.frames
+      .map((frame) => {
+        const size = frameSize(frame);
+
+        return `${frame.render.hash}:${Math.round(size.width)}x${Math.round(size.height)}`;
+      })
+      .join(",");
     const diagnostics = this.args.diagnostics.map((diagnostic) => diagnostic.message).join("|");
 
     return `${this.args.index}:${this.args.cleared}:${this.args.hasRun}:${frames}:${diagnostics}`;

@@ -40,6 +40,13 @@ pub struct SynthBlock {
     /// or nodes that share a line with their neighbours). Inline blocks
     /// are not wrapped in `#block(...)`.
     pub inline: bool,
+
+    /// True for a list, enum, or term item. Typst lays out the `spacing`
+    /// between these items outside the item's ink, so neither item's chunk
+    /// bounds contain it. The partition hands the gap to the upper item's
+    /// chunk, which is what makes `list(spacing:)` visible in the editor.
+    /// The space below the last item stays out of its chunk.
+    pub list_item: bool,
 }
 
 /// Output target for rendering.
@@ -210,9 +217,10 @@ struct SynthBuild {
 /// contribution from a single compiled document, without recompiling once
 /// per paragraph.
 ///
-/// List items, enum items, term items, and labels are marked inline rather than
-/// block-wrapped, because boxing them changes how they sit relative to
-/// their siblings.
+/// List items, enum items, term items, and labels are copied unwrapped rather
+/// than block-wrapped, because boxing them changes how they sit relative to
+/// their siblings. The three item kinds also own the compiled spacing down to
+/// the next item (see `SynthBlock::list_item`).
 ///
 /// ## Inline items
 ///
@@ -275,6 +283,7 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
                 blocks.push(SynthBlock {
                     range,
                     inline: false,
+                    list_item: false,
                 });
             }
         } else {
@@ -289,6 +298,7 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
                 blocks.push(SynthBlock {
                     range,
                     inline: false,
+                    list_item: false,
                 });
             }
         }
@@ -333,9 +343,12 @@ fn wrap_block(
         ) => {
             builder.copy(last_block.range.clone());
         }
-        Some(
-            SyntaxKind::ListItem | SyntaxKind::EnumItem | SyntaxKind::TermItem | SyntaxKind::Label,
-        ) => {
+        Some(SyntaxKind::ListItem | SyntaxKind::EnumItem | SyntaxKind::TermItem) => {
+            builder.copy(last_block.range.clone());
+            last_block.inline = true;
+            last_block.list_item = true;
+        }
+        Some(SyntaxKind::Label) => {
             builder.copy(last_block.range.clone());
             last_block.inline = true;
         }

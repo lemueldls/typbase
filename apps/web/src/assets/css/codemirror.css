@@ -148,7 +148,11 @@
   -webkit-user-drag: none;
 }
 
+/* A block-level SVG anchors at the container's top. Inline, it sits on the
+   container's text baseline, so a frame shorter than the editor's 22.4px line
+   box is pushed down and overflows the bottom. */
 .typst-render svg {
+  display: block;
   width: var(--render-w) !important;
   height: var(--render-h) !important;
 }
