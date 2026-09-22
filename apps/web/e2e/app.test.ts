@@ -217,6 +217,46 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("keeps the layout when a heading shows its source", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Heading jump",
+      content: "= Heading\n\nA paragraph line.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
+      timeout: 60_000,
+    });
+
+    const widgetTops = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll(".typst-render")].map(
+          (widget) => Math.round(widget.getBoundingClientRect().top * 100) / 100,
+        ),
+      );
+
+    const before = await widgetTops();
+    expect(before).toHaveLength(2);
+
+    // A heading's frame is its editor line box, so showing the source line
+    // keeps the paragraph below exactly where the render had it.
+    const target = await page.evaluate(() => {
+      const rect = document.querySelectorAll(".typst-render")[0]!.getBoundingClientRect();
+
+      return { x: rect.left + 5, y: rect.top + rect.height / 2 };
+    });
+    await page.mouse.click(target.x, target.y);
+    await page.waitForTimeout(600);
+
+    const after = await widgetTops();
+    expect(after).toHaveLength(1);
+    expect(after[0]).toBeCloseTo(before[1]!, 1);
+    await page.close();
+  });
+
   it("reports diagnostics for broken Typst", async () => {
     const page = await createPage();
     await openApp(page);
