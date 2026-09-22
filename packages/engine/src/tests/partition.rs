@@ -307,6 +307,52 @@ fn list_items_own_the_compiled_gap() {
     );
 }
 
+/// A list item is copied unwrapped, so without the line-box crop its chunk
+/// starts at the glyph ink. The editor draws the source text on the line
+/// baseline, so the crop has to start at the text's ascender line or the
+/// render sits above the source and jumps when the item is edited.
+#[test]
+fn list_item_chunks_start_at_the_text_line_box() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+    use typst::layout::FrameItem;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "list_line_box");
+    state.resize(&id, Some(600.0), None);
+
+    let render = chunk_by_items(&id, "- one\n- two\n- three\n", "", RenderTarget::Svg, &mut state);
+
+    for chunk in &render.chunks {
+        assert!(chunk.list_item);
+
+        let line_top = chunk
+            .items
+            .iter()
+            .filter_map(|item| match &item.item {
+                FrameItem::Text(text) if !text.text.trim().is_empty() => {
+                    Some(item.point.y - text.font.metrics().ascender.at(text.size))
+                }
+                _ => None,
+            })
+            .min()
+            .expect("item text");
+
+        assert!(
+            (chunk.y_offset - line_top.to_pt()).abs() < 0.01,
+            "chunk {:?} starts at {} but its text line box starts at {}",
+            chunk.range,
+            chunk.y_offset,
+            line_top.to_pt(),
+        );
+    }
+}
+
 /// The editor's syntax-highlight field rewrites the world's raw source in the
 /// transaction, before the plugin's compile microtask. That must not make the
 /// sync reuse the previous text: the stale blocks carry the old ranges, and a

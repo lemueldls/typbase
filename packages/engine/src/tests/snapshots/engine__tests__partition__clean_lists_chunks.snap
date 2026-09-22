@@ -10,7 +10,7 @@ expression: summarize(&render.chunks)
     ],
     "items": 10,
     "width": 112.24,
-    "height": 29.6,
+    "height": 25.12,
     "x": 0.0,
     "y": 0.0
   },
@@ -23,7 +23,7 @@ expression: summarize(&render.chunks)
     "width": 148.96,
     "height": 90.56,
     "x": 17.6,
-    "y": 29.6
+    "y": 25.12
   },
   {
     "range": [
@@ -34,7 +34,7 @@ expression: summarize(&render.chunks)
     "width": 112.32,
     "height": 25.12,
     "x": 28.72,
-    "y": 120.16
+    "y": 115.68
   },
   {
     "range": [
@@ -43,9 +43,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 6,
     "width": 112.48,
-    "height": 40.05,
+    "height": 40.32,
     "x": 28.72,
-    "y": 145.28
+    "y": 140.8
   },
   {
     "range": [
@@ -56,7 +56,7 @@ expression: summarize(&render.chunks)
     "width": 151.38,
     "height": 25.12,
     "x": 0.7,
-    "y": 185.33
+    "y": 181.12
   },
   {
     "range": [
@@ -67,7 +67,7 @@ expression: summarize(&render.chunks)
     "width": 564.24,
     "height": 40.32,
     "x": 0.8,
-    "y": 210.45
+    "y": 206.24
   },
   {
     "range": [
@@ -78,7 +78,7 @@ expression: summarize(&render.chunks)
     "width": 219.28,
     "height": 65.44,
     "x": 17.6,
-    "y": 250.77
+    "y": 246.56
   },
   {
     "range": [
@@ -87,8 +87,8 @@ expression: summarize(&render.chunks)
     ],
     "items": 12,
     "width": 161.02,
-    "height": 12.27,
+    "height": 16.48,
     "x": 18.9,
-    "y": 316.21
+    "y": 312.0
   }
 ]

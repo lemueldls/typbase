@@ -197,6 +197,33 @@ pub fn chunk_by_items_with_blocks(
                         }
                     }
 
+                    // A list item is copied unwrapped, so its chunk would crop
+                    // to the glyph ink while a wrapped block crops to its block
+                    // box. The editor anchors the widget at the source line top
+                    // and draws the source text on the line baseline, so crop
+                    // to the text's ascender line instead: the rendered text
+                    // then lands where the source text sits. Taking the union
+                    // keeps ink that reaches above the ascender (tall math),
+                    // and the bottom stays put so the last item does not grow
+                    // into the gap below it.
+                    if block.list_item {
+                        let line_top = chunk_items
+                            .iter()
+                            .filter_map(|item| match &item.item {
+                                FrameItem::Text(text) => Some(
+                                    item.point.y - text.font.metrics().ascender.at(text.size),
+                                ),
+                                _ => None,
+                            })
+                            .min();
+
+                        if let Some(line_top) = line_top {
+                            bounds.start_height = Some(
+                                bounds.start_height.map_or(line_top, |top| top.min(line_top)),
+                            );
+                        }
+                    }
+
                     let block_start_width = bounds.start_width.unwrap_or_default().to_pt();
                     let block_start_height = bounds.start_height.unwrap_or_default().to_pt();
                     let block_end_width = bounds.end_width.unwrap_or_default().to_pt();
