@@ -1330,7 +1330,7 @@ impl TypstState {
                     r#"
                         #set page(fill:rgb(0,0,0,0),width:{width},height:auto,margin:0pt)
                         #set text(top-edge:"ascender",bottom-edge:"descender")
-                        #set par(leading:0.25em)
+                        #set par(leading:0.08em)
                     "#,
                     width = source_ctx.width,
                 )
