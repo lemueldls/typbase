@@ -21,8 +21,8 @@ expression: summarize(&render.chunks)
     ],
     "items": 2,
     "width": 54.16,
-    "height": 21.12,
+    "height": 22.4,
     "x": 0.0,
-    "y": 35.2
+    "y": 34.56
   }
 ]

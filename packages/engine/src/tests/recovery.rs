@@ -3,7 +3,7 @@
 
 use crate::{
     renderer::paged::{items::chunk_by_items_with_blocks, svg::render_svgs_by_items},
-    source::{RenderTarget, sync_source_state},
+    source::{DEFAULT_LINE_HEIGHT_RATIO, RenderTarget, sync_source_state},
     tests::{fixtures, harness},
 };
 
@@ -89,6 +89,7 @@ fn recovery_keeps_pristine_synth_and_mapper() {
             &mut blocks,
             &synth.equation_ranges,
             &mut divergence,
+            DEFAULT_LINE_HEIGHT_RATIO,
             context,
             &mut state.world,
         );

@@ -10,6 +10,12 @@ use crate::{
     world::TypstWorld,
 };
 
+/// The editor's line-height as a multiple of the text size. Frame crops use
+/// it to move their top to the editor's line box (the ascender plus the
+/// half-leading), so the rendered text sits on the same baseline as the
+/// editor's source text. `cmTheme` sets `line-height: 1.4`.
+pub const DEFAULT_LINE_HEIGHT_RATIO: f64 = 1.4;
+
 /// Per-space configuration for rendering (fonts, theme, locale).
 #[derive(Debug)]
 pub struct SpaceContext {
@@ -27,6 +33,9 @@ pub struct SpaceContext {
     /// generated prelude. One app pt is one screen px, so the default 16pt
     /// matches the editor's 16px source text.
     pub text_size: f64,
+    /// The editor's line-height as a multiple of the text size. See
+    /// [`DEFAULT_LINE_HEIGHT_RATIO`].
+    pub line_height_ratio: f64,
 }
 
 impl SpaceContext {
@@ -39,6 +48,7 @@ impl SpaceContext {
             theme: ThemeColors::default(),
             locale: String::from("en"),
             text_size: 16.0,
+            line_height_ratio: DEFAULT_LINE_HEIGHT_RATIO,
         }
     }
 }

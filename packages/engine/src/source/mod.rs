@@ -38,7 +38,7 @@ mod delimiters;
 mod map;
 mod synth;
 
-pub use context::{SourceContext, SpaceContext};
+pub use context::{DEFAULT_LINE_HEIGHT_RATIO, SourceContext, SpaceContext};
 pub use delimiters::{DelimiterFix, RawFixups, delimiter_diagnostics, find_fixes};
 pub use map::{Segment, SegmentKind, Side, SourceBuilder, SourceMap};
 pub use synth::{RenderTarget, SynthBlock, SynthResult, sync_source_context, sync_source_state};

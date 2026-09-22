@@ -47,6 +47,11 @@ pub struct SynthBlock {
     /// chunk, which is what makes `list(spacing:)` visible in the editor.
     /// The space below the last item stays out of its chunk.
     pub list_item: bool,
+
+    /// True for a block whose content is a math equation. The editor's line
+    /// box does not apply to these: the equation's own box is the crop, and
+    /// extending it would change math spacing.
+    pub math: bool,
 }
 
 /// Output target for rendering.
@@ -284,6 +289,7 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
                     range,
                     inline: false,
                     list_item: false,
+                    math: false,
                 });
             }
         } else {
@@ -299,6 +305,7 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
                     range,
                     inline: false,
                     list_item: false,
+                    math: false,
                 });
             }
         }
@@ -361,6 +368,7 @@ fn wrap_block(
             builder.copy(last_block.range.clone());
             builder.generated(last_block.range.end, "\n]", SegmentKind::Wrapper);
             last_block.inline = true;
+            last_block.math = matches!(last_kind, Some(SyntaxKind::Equation | SyntaxKind::Math));
         }
     }
 

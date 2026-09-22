@@ -1,5 +1,12 @@
 import { EditorView } from "@codemirror/view";
 
+/**
+ * Editor line-height. The engine uses it to place frame crops on the editor's
+ * line box, so a rendered block and the same source text share a baseline
+ * (`TypstState.setLineHeightRatio`).
+ */
+export const EDITOR_LINE_HEIGHT = 1.4;
+
 export const typstEditorTheme = EditorView.theme({
   "&.cm-editor": {
     height: "100%",
@@ -14,7 +21,7 @@ export const typstEditorTheme = EditorView.theme({
 
   ".cm-scroller": {
     fontFamily: "var(--font-mono)",
-    lineHeight: "1.4",
+    lineHeight: `${EDITOR_LINE_HEIGHT}`,
     overflowX: "hidden",
     overflowY: "scroll",
     padding: "var(--space-2-5) 0",
@@ -77,7 +84,7 @@ export const typstEditorTheme = EditorView.theme({
     border: "none",
     fontSize: "var(--doc-text-size, 1rem)",
     // Same as the content so numbers share the raw text baseline.
-    lineHeight: "1.4",
+    lineHeight: `${EDITOR_LINE_HEIGHT}`,
   },
   ".cm-lineNumbers .cm-gutterElement": {
     padding: "0 var(--space-3) 0 var(--space-2)",

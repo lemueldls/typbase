@@ -4,9 +4,11 @@
 //! ranges and geometry of every fixture, clean and recovered.
 
 use serde::Serialize;
+use typst::layout::{Abs, FrameItem};
 
 use crate::{
     renderer::paged::{FrameItemsChunk, svg::render_svgs_by_items},
+    source::DEFAULT_LINE_HEIGHT_RATIO,
     tests::{fixtures, harness},
 };
 
@@ -22,6 +24,33 @@ struct ChunkSummary {
 
 fn round(value: f64) -> f64 {
     (value * 100.0).round() / 100.0
+}
+
+/// The first text line's baseline and the editor's baseline offset for it
+/// (the text ascender plus the editor's half-leading), both in points.
+fn editor_first_line(chunk: &FrameItemsChunk) -> Option<(f64, f64)> {
+    chunk
+        .items
+        .iter()
+        .filter_map(|item| match &item.item {
+            FrameItem::Text(text) if !text.text.trim().is_empty() => {
+                let metrics = text.font.metrics();
+                let ascender = metrics.ascender.at(text.size);
+                let descender = metrics.descender.at(text.size);
+                let half = (Abs::pt(DEFAULT_LINE_HEIGHT_RATIO * text.size.to_pt())
+                    - (ascender - descender))
+                    / 2.0;
+
+                Some((
+                    item.point.y - ascender - half,
+                    item.point.y,
+                    ascender + half,
+                ))
+            }
+            _ => None,
+        })
+        .min_by(|left, right| left.0.cmp(&right.0))
+        .map(|(_, baseline, offset)| (baseline.to_pt(), offset.to_pt()))
 }
 
 fn summarize(chunks: &[FrameItemsChunk]) -> Vec<ChunkSummary> {
@@ -309,13 +338,11 @@ fn list_items_own_the_compiled_gap() {
 
 /// A list item is copied unwrapped, so without the line-box crop its chunk
 /// starts at the glyph ink. The editor draws the source text on the line
-/// baseline, so the crop has to start at the text's ascender line or the
-/// render sits above the source and jumps when the item is edited.
+/// baseline, so the crop starts at the editor's line top instead.
 #[test]
-fn list_item_chunks_start_at_the_text_line_box() {
+fn list_item_chunks_start_at_the_editor_line_top() {
     use crate::renderer::paged::items::chunk_by_items;
     use crate::source::RenderTarget;
-    use typst::layout::FrameItem;
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -326,31 +353,166 @@ fn list_item_chunks_start_at_the_text_line_box() {
     let id = harness::page(&mut state, "list_line_box");
     state.resize(&id, Some(600.0), None);
 
-    let render = chunk_by_items(&id, "- one\n- two\n- three\n", "", RenderTarget::Svg, &mut state);
+    let render = chunk_by_items(
+        &id,
+        "- one\n- two\n- three\n",
+        "",
+        RenderTarget::Svg,
+        &mut state,
+    );
 
     for chunk in &render.chunks {
         assert!(chunk.list_item);
 
-        let line_top = chunk
-            .items
-            .iter()
-            .filter_map(|item| match &item.item {
-                FrameItem::Text(text) if !text.text.trim().is_empty() => {
-                    Some(item.point.y - text.font.metrics().ascender.at(text.size))
-                }
-                _ => None,
-            })
-            .min()
-            .expect("item text");
+        let (baseline, offset) = editor_first_line(chunk).expect("item text");
 
         assert!(
-            (chunk.y_offset - line_top.to_pt()).abs() < 0.01,
-            "chunk {:?} starts at {} but its text line box starts at {}",
+            (baseline - chunk.y_offset - offset).abs() < 0.01,
+            "chunk {:?} puts its baseline at {} but the editor line box puts it at {}",
             chunk.range,
-            chunk.y_offset,
-            line_top.to_pt(),
+            baseline - chunk.y_offset,
+            offset,
+        );
+
+        // The default tight-list spacing is the paragraph leading, which the
+        // prelude matches to the editor, so the item stride is the line box.
+        assert!(
+            (chunk.height - DEFAULT_LINE_HEIGHT_RATIO * 16.0).abs() < 0.01,
+            "item height is {} but the editor line box is {}",
+            chunk.height,
+            DEFAULT_LINE_HEIGHT_RATIO * 16.0,
         );
     }
+}
+
+/// A wrapped text block crops to its block box, the invisible 0pt-stroke
+/// wrapper. The editor's line box (ascender plus half-leading) is above that,
+/// so the crop moves up and the rendered text lands on the source baseline.
+#[test]
+fn paragraph_chunks_start_at_the_editor_line_top() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "paragraph_line_box");
+    state.resize(&id, Some(600.0), None);
+
+    let render = chunk_by_items(&id, "hello\n", "", RenderTarget::Svg, &mut state);
+
+    assert_eq!(render.chunks.len(), 1, "expected one paragraph chunk");
+
+    let (baseline, offset) = editor_first_line(&render.chunks[0]).expect("paragraph text");
+
+    assert!(
+        (baseline - render.chunks[0].y_offset - offset).abs() < 0.01,
+        "paragraph baseline offset is {} but the editor line box puts it at {}",
+        baseline - render.chunks[0].y_offset,
+        offset,
+    );
+    assert!(
+        (render.chunks[0].height - DEFAULT_LINE_HEIGHT_RATIO * 16.0).abs() < 0.01,
+        "paragraph height is {} but the editor line box is {}",
+        render.chunks[0].height,
+        DEFAULT_LINE_HEIGHT_RATIO * 16.0,
+    );
+}
+
+/// A wrapped paragraph's rendered lines use the editor's stride, not Typst's
+/// default leading, so the block's height is a whole number of editor lines.
+#[test]
+fn wrapped_paragraphs_follow_the_editor_stride() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "paragraph_stride");
+    state.resize(&id, Some(200.0), None);
+
+    let render = chunk_by_items(
+        &id,
+        "one two three four five six seven eight nine ten eleven twelve\n",
+        "",
+        RenderTarget::Svg,
+        &mut state,
+    );
+
+    assert_eq!(render.chunks.len(), 1, "expected one paragraph chunk");
+
+    let line_height = DEFAULT_LINE_HEIGHT_RATIO * 16.0;
+    let lines = render.chunks[0].height / line_height;
+
+    assert!(
+        lines >= 2.0,
+        "the paragraph should wrap into lines: {lines}"
+    );
+    assert!(
+        (lines - lines.round()).abs() < 0.01,
+        "height {} is not a whole number of editor lines ({line_height})",
+        render.chunks[0].height,
+    );
+}
+
+/// A heading's crop is the editor's line box at the heading size, so showing
+/// its source does not push the content below it down.
+#[test]
+fn heading_chunks_match_the_editor_line_box() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "heading_line_box");
+    state.resize(&id, Some(600.0), None);
+
+    let render = chunk_by_items(&id, "= Heading\n", "", RenderTarget::Svg, &mut state);
+
+    assert_eq!(render.chunks.len(), 1, "expected one heading chunk");
+    assert!(
+        (render.chunks[0].height - DEFAULT_LINE_HEIGHT_RATIO * 32.0).abs() < 0.01,
+        "heading height is {} but the editor line box is {}",
+        render.chunks[0].height,
+        DEFAULT_LINE_HEIGHT_RATIO * 32.0,
+    );
+}
+
+/// The editor line box does not apply to a block equation: its crop stays on
+/// the equation's own box so math spacing does not change.
+#[test]
+fn equation_chunks_keep_their_own_box() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "equation_box");
+    state.resize(&id, Some(600.0), None);
+
+    let render = chunk_by_items(&id, "$ a + b = c $\n", "", RenderTarget::Svg, &mut state);
+
+    assert_eq!(render.chunks.len(), 1, "expected one equation chunk");
+    assert!(
+        render.chunks[0].y_offset.abs() < 0.01,
+        "equation crop moved to the editor line top: {}",
+        render.chunks[0].y_offset,
+    );
 }
 
 /// The editor's syntax-highlight field rewrites the world's raw source in the

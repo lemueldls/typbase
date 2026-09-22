@@ -12,12 +12,13 @@ use serde::{Deserialize, Serialize};
 use tar::Archive;
 use tsify::{Ts, Tsify};
 use typst::{
-    compile,
+    World, compile,
     ecow::EcoString,
     foundations::Bytes,
     introspection::{HtmlPosition, PagedPosition},
     layout::{Abs, Point},
     syntax::{FileId, VirtualPath, package::PackageSpec},
+    text::{FontStretch, FontStyle, FontVariant, FontVariations, FontWeight},
 };
 use typst_html::{HtmlDocument, HtmlOptions};
 use typst_ide::Tooltip;
@@ -117,6 +118,15 @@ impl TypstState {
     #[wasm_bindgen(js_name = "setTextSize")]
     pub fn set_text_size(&mut self, id: &TypstFileId, text_size: f64) {
         self.get_space_context_mut(id).text_size = text_size;
+        self.revision += 1;
+    }
+
+    /// The editor's line-height as a multiple of the text size. Frame crops
+    /// move their top to the editor's line box so the rendered text sits on
+    /// the same baseline as the source text.
+    #[wasm_bindgen(js_name = "setLineHeightRatio")]
+    pub fn set_line_height_ratio(&mut self, id: &TypstFileId, ratio: f64) {
+        self.get_space_context_mut(id).line_height_ratio = ratio;
         self.revision += 1;
     }
 
@@ -1309,11 +1319,41 @@ fn style_prelude(
     )
 }
 
+/// Paragraph leading in em that matches the editor's line-height. The editor
+/// line box is `line_height_ratio * size`; Typst adds the leading to the
+/// font's ascender..descender box, so the leading is the difference. Falls
+/// back to 0.25em when the text font is not installed.
+fn paragraph_leading(world: &TypstWorld, font: &str, line_height_ratio: f64) -> f64 {
+    const FALLBACK: f64 = 0.25;
+
+    let variant = FontVariant::new(FontStyle::Normal, FontWeight::REGULAR, FontStretch::NORMAL);
+    // `FontBook` keys families lowercased.
+    let Some(index) = world.book().select(&font.to_lowercase(), variant) else {
+        return FALLBACK;
+    };
+    let Some(face) = world.font(index) else {
+        return FALLBACK;
+    };
+
+    let instance = face.instantiate(variant, Abs::pt(16.0), &FontVariations::default());
+    let metrics = instance.metrics();
+
+    (line_height_ratio - (metrics.ascender - metrics.descender).get()).max(0.0)
+}
+
 #[comemo::track]
 impl TypstState {
     pub fn prelude(&self, id: &TypstFileId, render_target: RenderTarget) -> String {
         let source_ctx = self.source_context_map.get(id).unwrap();
         let space_ctx = self.space_context_map.get(&source_ctx.space_id).unwrap();
+
+        // The SVG target compiles as the editor lays out: paragraph lines use
+        // the editor's line-height, so a block's lines do not drift from the
+        // source lines when the block is edited.
+        let leading = format!(
+            "{:.4}",
+            paragraph_leading(&self.world, &space_ctx.font, space_ctx.line_height_ratio)
+        );
 
         let page_config = match render_target {
             RenderTarget::Svg => {
@@ -1321,7 +1361,7 @@ impl TypstState {
                     r#"
                         #set page(fill:rgb(0,0,0,0),width:{width},height:auto,margin:0pt)
                         #set text(top-edge:"ascender",bottom-edge:"descender")
-                        #set par(leading:0.25em)
+                        #set par(leading:{leading}em)
                     "#,
                     width = source_ctx.width,
                 )

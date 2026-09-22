@@ -190,18 +190,30 @@ describe("typbase app", async () => {
 
     // An inline SVG sits on the container's text baseline, so a frame shorter
     // than the editor line box (the last list item, typically) would be pushed
-    // down and inflate the gap before it. The SVG must be block-level.
-    const offsets = await page.evaluate(() =>
+    // down and inflate the gap before it. The SVG must be block-level. Each
+    // frame also puts its text on the editor's source baseline: the 16.32pt
+    // ascender plus the (22.4 - 21.12) / 2 half-leading.
+    const data = await page.evaluate(() =>
       [...document.querySelectorAll(".typst-render")].map((widget) => {
         const container = widget.getBoundingClientRect();
-        const svg = widget.querySelector("svg")!.getBoundingClientRect();
+        const svg = widget.querySelector("svg")!;
+        const group = svg.querySelector("g")?.getAttribute("transform") ?? "";
+        const match = group.match(/matrix\(1 0 0 -1 [\d.]+ ([\d.]+)\)/);
 
-        return Math.round((svg.top - container.top) * 100) / 100;
+        return {
+          offset: Math.round((svg.getBoundingClientRect().top - container.top) * 100) / 100,
+          baseline: match ? Number(match[1]) : null,
+        };
       }),
     );
 
-    expect(offsets).toHaveLength(4);
-    expect(offsets.every((offset) => offset === 0)).toBe(true);
+    expect(data).toHaveLength(4);
+    expect(data.every((entry) => entry.offset === 0)).toBe(true);
+    for (const entry of data) {
+      expect(entry.baseline).not.toBeNull();
+      expect(Math.abs(entry.baseline! - 16.96)).toBeLessThan(0.01);
+    }
+
     await page.close();
   });
 
