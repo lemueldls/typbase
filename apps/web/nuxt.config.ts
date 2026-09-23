@@ -26,7 +26,7 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         {
           name: "description",
-          content: "Local-first knowledge base built around the Typst language.",
+          content: "Local-first knowledge base made for Typst and the Atmosphere.",
         },
       ],
       link: [{ rel: "icon", type: "image/x-icon", href: "favicon.ico" }],

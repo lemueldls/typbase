@@ -46,7 +46,7 @@
   },
   "plugins": {
     "cli": {
-      "description": "Local-first note-taking app leveraging the Typst ecosystem.",
+      "description": "Local-first knowledge base made for Typst and the Atmosphere.",
       "args": [
         {
           "name": "disable-wayland",

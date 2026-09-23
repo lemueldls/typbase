@@ -13,7 +13,7 @@ cat <<EOF
 pkgname=typbase
 pkgver=$version
 pkgrel=1
-pkgdesc="Local-first knowledge base built around the Typst language."
+pkgdesc="Local-first knowledge base made for Typst and the Atmosphere."
 arch=('x86_64')
 url="https://github.com/lemueldls/typbase"
 license=('AGPL-3.0')
