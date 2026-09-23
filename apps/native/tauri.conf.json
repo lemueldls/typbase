@@ -21,13 +21,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "targets": [
-      "dmg",
-      "nsis",
-      "deb",
-      "rpm",
-      "appimage"
-    ],
+    "targets": ["dmg", "nsis", "deb", "rpm", "appimage"],
     "linux": {
       "deb": {
         "files": {
@@ -64,36 +58,24 @@
     "deep-link": {
       "mobile": [
         {
-          "scheme": [
-            "at.typbase.app",
-            "typbase"
-          ],
+          "scheme": ["at.typbase.app", "typbase"],
           "appLink": false
         },
         {
-          "scheme": [
-            "https"
-          ],
+          "scheme": ["https"],
           "host": "typbase.at",
-          "pathPrefix": [
-            "/auth/confirm"
-          ],
+          "pathPrefix": ["/auth/confirm"],
           "appLink": true
         }
       ],
       "desktop": {
-        "schemes": [
-          "at.typbase.app",
-          "typbase"
-        ]
+        "schemes": ["at.typbase.app", "typbase"]
       }
     },
     "updater": {
       "createUpdaterArtifacts": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM3ODM0Q0ZGRTFDNEI4OEUKUldTT3VNVGgvMHlEeDF4cmNtditPY3JUand6QWRjZjJVTmEyYjk1QVdZRzdvcTNwTVZnS1hTQ1UK",
-      "endpoints": [
-        "https://github.com/lemueldls/typbase/releases/latest/download/latest.json"
-      ]
+      "endpoints": ["https://github.com/lemueldls/typbase/releases/latest/download/latest.json"]
     }
   }
 }

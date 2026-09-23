@@ -73,9 +73,11 @@ const version = nextVersion(tauri.version, bump);
 }
 
 // apps/native/tauri.conf.json
+// Patch the version line instead of re-serializing: JSON.stringify expands
+// arrays that oxfmt collapses, which fails fmt:check after every bump.
 {
-  tauri.version = version;
-  write(tauriPath, `${JSON.stringify(tauri, null, 2)}\n`);
+  const text = read(tauriPath).replace(/^  "version": "[^"]+"/m, `  "version": "${version}"`);
+  write(tauriPath, text);
 }
 
 // packages/*/package.json

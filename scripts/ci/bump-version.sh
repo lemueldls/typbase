@@ -28,11 +28,23 @@ fi
 
 tag="typbase-v$version"
 
-# The changelog is generated, not maintained by hand: one section per release
-# from conventional commits (.cliff.toml). Regenerating the whole file from the
-# tags keeps the run idempotent; --prepend duplicates the header when the
-# existing text drifts from the template.
-git_cliff --config .cliff.toml --tag "$tag" -o CHANGELOG.md
+# One generated section per release from conventional commits (.cliff.toml).
+# Older sections are kept verbatim, so hand edits (and the first release's
+# curated list) survive. The intro above the first `## [` belongs to the file,
+# so the section is composed under it instead of using --prepend, which would
+# insert above the intro when the config has no header.
+if [[ -f CHANGELOG.md ]]; then
+    section=$(mktemp)
+    merged=$(mktemp)
+    git_cliff --config .cliff.toml --unreleased --tag "$tag" --strip header -o "$section"
+    awk '/^## \[/ { exit } { print }' CHANGELOG.md > "$merged"
+    cat "$section" >> "$merged"
+    awk '/^## \[/ { found = 1 } found' CHANGELOG.md >> "$merged"
+    mv "$merged" CHANGELOG.md
+    rm -f "$section"
+else
+    git_cliff --config .cliff.toml --tag "$tag" -o CHANGELOG.md
+fi
 
 # A release can legitimately be chore-only, so this warns instead of failing.
 if ! awk '

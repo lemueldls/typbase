@@ -1,12 +1,4 @@
 [changelog]
-header = """
-# Changelog
-
-Notable changes to Typbase, newest first. Releases are tagged
-`typbase-v<version>`, and a release's section here is also its GitHub release
-body.
-
-"""
 body = """
 {% if version %}\
     ## [{{ version | trim_start_matches(pat="typbase-v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
