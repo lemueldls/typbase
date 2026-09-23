@@ -1,9 +1,5 @@
 # Changelog
 
-Notable changes to Typbase, newest first. Releases are tagged
-`typbase-v<version>`, and a release's section here is also its GitHub release
-body.
-
 ## [0.1.1] - 2026-09-23
 
 First release. Typbase keeps a workspace of Typst files on your device, edits
