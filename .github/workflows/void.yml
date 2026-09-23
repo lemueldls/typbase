@@ -38,7 +38,9 @@ jobs:
       - name: 🛠️ Install tools
         run: |
           xbps-install -Syu xbps
-          xbps-install -y base-devel curl git nodejs pnpm rustup
+          # The image ships sh only; the steps and scripts below use bash.
+          # xtools provides xlint, which void-package.sh runs.
+          xbps-install -y base-devel bash curl git nodejs pnpm rustup xtools
 
       - name: 🦀 Install Rust and wasm-pack
         run: |
