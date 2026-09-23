@@ -240,6 +240,20 @@ export interface InstalledPackage {
   version: string;
 }
 
+/**
+ * A lint the user silenced with "Ignore". Harper's context hash is a u64, so
+ * it does not fit a JS number; `hash` carries the exact decimal digits.
+ */
+export interface IgnoredSpellcheckLint {
+  hash: string;
+  /** Lint kind ("Repetition", "Grammar", ...), for the settings list. */
+  kind: string;
+  /** Harper's message for the lint, for the settings list. */
+  message: string;
+  /** The flagged text, for the settings list. */
+  text: string;
+}
+
 export interface WorkspaceSettings {
   name: string;
   /** Page id shown when the app opens, and the page that "Home" points to. */
@@ -268,6 +282,17 @@ export interface WorkspaceSettings {
   textSize: number;
   /** Editor spellcheck provider; synced with the workspace like fonts. */
   spellcheck: SpellcheckMode;
+  /**
+   * Harper's user dictionary: words the checker should not flag. Synced with
+   * the workspace. The browser's own checker keeps a separate dictionary and
+   * ignores this list.
+   */
+  spellcheckWords: string[];
+  /**
+   * Lints silenced with "Ignore". Harper hashes the lint plus a couple of
+   * neighboring tokens, so editing around one can bring it back.
+   */
+  spellcheckIgnoredLints: IgnoredSpellcheckLint[];
   /** Theme mode; "auto" follows the OS preference. Synced like everything else. */
   theme: ThemeMode;
   /** Named theme from the registry ("default", "catppuccin", "custom", ...). */
@@ -308,6 +333,8 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   codeFont: null,
   textSize: 16,
   spellcheck: "off",
+  spellcheckWords: [],
+  spellcheckIgnoredLints: [],
   theme: "auto",
   themeName: "default",
   themeCustom: null,

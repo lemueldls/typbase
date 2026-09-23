@@ -20,6 +20,7 @@ import { THEME_PALETTE_TOKEN_KEYS } from "@typbase/typing";
 import type { SelectOption } from "~/components/ui/Select.vue";
 
 import { getAiKeys, setAiKey } from "~/lib/ai/keys";
+import { normalizeDictionaryWords } from "~/lib/spellcheckSettings";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 import { CUSTOM_THEME_ID, resolveTheme, THEMES } from "~/lib/themes";
 
@@ -220,6 +221,26 @@ const spellcheck = computed({
   get: () => settings.value.spellcheck ?? "off",
   set: (value: string) => props.store.updateSettings({ spellcheck: value as SpellcheckMode }),
 });
+
+// The dictionary textarea is one word per line and commits on change, like the
+// template and prelude fields. `normalizeDictionaryWords` dedupes what it
+// writes, so the textarea echo settles on the stored list.
+function onDictionaryChange(event: Event) {
+  const words = normalizeDictionaryWords((event.target as HTMLTextAreaElement).value.split("\n"));
+  props.store.updateSettings({ spellcheckWords: words });
+}
+
+function removeIgnoredLint(hash: string) {
+  props.store.updateSettings({
+    spellcheckIgnoredLints: settings.value.spellcheckIgnoredLints.filter(
+      (entry) => entry.hash !== hash,
+    ),
+  });
+}
+
+function clearIgnoredLints() {
+  props.store.updateSettings({ spellcheckIgnoredLints: [] });
+}
 
 const notebookCounters = computed({
   get: () => settings.value.notebook?.showCounters ?? true,
@@ -567,6 +588,58 @@ async function renameWorkspace(event: Event) {
             />
             <span class="settings__hint">{{ $t("settings.spellcheckHint") }}</span>
           </Label>
+
+          <Label v-if="spellcheck === 'harper'" class="settings__field">
+            <span>{{ $t("settings.spellcheckDictionary") }}</span>
+            <textarea
+              class="settings__input settings__textarea settings__textarea--dictionary"
+              :value="settings.spellcheckWords.join('\n')"
+              rows="4"
+              spellcheck="false"
+              :placeholder="$t('settings.spellcheckDictionaryPlaceholder')"
+              @change="onDictionaryChange"
+            />
+            <span class="settings__hint">{{ $t("settings.spellcheckDictionaryHint") }}</span>
+          </Label>
+          <span v-else-if="spellcheck === 'native'" class="settings__hint">
+            {{ $t("settings.spellcheckDictionaryNative") }}
+          </span>
+
+          <div
+            v-if="spellcheck === 'harper' && settings.spellcheckIgnoredLints.length"
+            class="settings__field"
+          >
+            <span>
+              {{
+                $t("settings.spellcheckIgnored", {
+                  count: settings.spellcheckIgnoredLints.length,
+                })
+              }}
+            </span>
+            <ul class="settings__ignored">
+              <li
+                v-for="entry in settings.spellcheckIgnoredLints"
+                :key="entry.hash"
+                class="settings__ignored-row"
+              >
+                <span class="settings__ignored-text">
+                  <span class="settings__ignored-quote">“{{ entry.text }}”</span>
+                  <span class="settings__ignored-message">{{ entry.message }}</span>
+                </span>
+                <UiIconButton
+                  icon="close"
+                  :label="$t('settings.spellcheckIgnoredRemove')"
+                  variant="ghost"
+                  :size="16"
+                  @click="removeIgnoredLint(entry.hash)"
+                />
+              </li>
+            </ul>
+            <UiButton size="small" @click="clearIgnoredLints">
+              {{ $t("settings.spellcheckIgnoredClear") }}
+            </UiButton>
+            <span class="settings__hint">{{ $t("settings.spellcheckIgnoredHint") }}</span>
+          </div>
 
           <section class="settings__section">
             <h4 class="settings__heading">{{ $t("settings.notebook") }}</h4>
@@ -924,7 +997,7 @@ async function renameWorkspace(event: Event) {
 .settings {
   display: grid;
   grid-template-columns: 13rem minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-2);
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -1017,6 +1090,7 @@ async function renameWorkspace(event: Event) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding: 0 var(--space-2);
 }
 
 .settings__section {
@@ -1037,6 +1111,49 @@ async function renameWorkspace(event: Event) {
   min-height: 8rem;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+}
+
+/* Word lists do not need the daily template's height. */
+.settings__textarea--dictionary {
+  min-height: 5rem;
+}
+
+/* Ignored lints: one row per silenced lint, removable individually. */
+.settings__ignored {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings__ignored-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.settings__ignored-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.settings__ignored-quote {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.settings__ignored-message {
+  color: var(--color-text-secondary);
 }
 
 .settings__field {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FileId, TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { PageMeta } from "@typbase/typing";
+import type { IgnoredSpellcheckLint, PageMeta } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
@@ -40,6 +40,7 @@ import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/prese
 import { mirrorPageProject } from "~/lib/projectMirror";
 import { revealRequests } from "~/lib/reveal";
 import { setSaveHandler } from "~/lib/saveRequest";
+import { addDictionaryWord, addIgnoredLint } from "~/lib/spellcheckSettings";
 import { testApi } from "~/lib/testApi";
 import { recreateTypstState, takeEngineFailure } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
@@ -451,6 +452,34 @@ const spellcheckMode = computed(() => {
 
   return store?.getSettings().spellcheck ?? "off";
 });
+
+/** Harper's dictionary and silenced lints; dataRevision re-reads both. */
+const spellcheckWords = computed(() => {
+  void dataRevision.value;
+
+  return store?.getSettings().spellcheckWords ?? [];
+});
+
+const spellcheckIgnoredLints = computed(() => {
+  void dataRevision.value;
+
+  return store?.getSettings().spellcheckIgnoredLints ?? [];
+});
+
+/** The lint tooltip's "Add to dictionary" action writes through here. */
+function addSpellcheckWord(word: string): void {
+  const next = addDictionaryWord(store.getSettings().spellcheckWords, word);
+  store.updateSettings({ spellcheckWords: next });
+}
+
+/** The lint tooltip's "Ignore" action writes through here. */
+function ignoreSpellcheckLint(lint: IgnoredSpellcheckLint): void {
+  const current = store.getSettings().spellcheckIgnoredLints;
+  const next = addIgnoredLint(current, lint);
+  if (next === current) return;
+
+  store.updateSettings({ spellcheckIgnoredLints: next });
+}
 
 const aiEnabled = computed(() => {
   void dataRevision.value;
@@ -1212,6 +1241,10 @@ function onModeKeydown(event: KeyboardEvent) {
         :notebook="modelValue === 'notebook' ? notebookController?.options : undefined"
         :degraded="degraded"
         :spellcheck="spellcheckMode"
+        :spellcheck-words="spellcheckWords"
+        :spellcheck-ignored-lints="spellcheckIgnoredLints"
+        :on-add-spellcheck-word="addSpellcheckWord"
+        :on-ignore-spellcheck-lint="ignoreSpellcheckLint"
         :typst-state="boundState"
         :on-requests="onRequests"
         :revision="editorRevision"

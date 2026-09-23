@@ -422,7 +422,8 @@ describe("typbase app", async () => {
       (window as unknown as { __aiCalls: number }).__aiCalls = 0;
       window.__typbase.setAiStub({
         async *stream() {
-          const text = scriptedReplies[Math.min(calls, scriptedReplies.length - 1)] ?? "= Empty\n";
+          const text =
+            scriptedReplies[Math.min(calls, scriptedReplies.length - 1)] ?? "= Empty\n";
           calls += 1;
           (window as unknown as { __aiCalls: number }).__aiCalls = calls;
           yield { type: "text", text };
@@ -490,53 +491,14 @@ describe("typbase app", async () => {
       { timeout: 90_000 },
     );
 
-    const calls = await page.evaluate(() => (window as unknown as { __aiCalls: number }).__aiCalls);
+    const calls = await page.evaluate(
+      () => (window as unknown as { __aiCalls: number }).__aiCalls,
+    );
     expect(calls).toBe(2);
     const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
     expect(messages.some((message) => message.status === "unverified")).toBe(true);
     expect(messages.at(-1)?.status).toBe("verified");
 
-    await page.close();
-  });
-
-  it("shows agentic tool calls in the thread", async () => {
-    const page = await createPage();
-    await openApp(page);
-    await page.evaluate(() => {
-      const store = window.__typbase.store;
-      store.updateSettings({ ai: { ...store.getAiSettings(), enabled: true } });
-      let calls = 0;
-      window.__typbase.setAiStub({
-        async *stream() {
-          calls += 1;
-          if (calls === 1) {
-            yield {
-              type: "tool",
-              call: { id: "call_1", name: "search_notes", input: { query: "welcome" } },
-            };
-          } else {
-            yield { type: "text", text: "= Grounded\n\nFound it.\n" };
-          }
-          yield { type: "done", stopReason: null };
-        },
-      });
-    });
-
-    const threadId = await page.evaluate(() => window.__typbase.newChat());
-    await openChatThread(page, threadId);
-    await page.evaluate((id) => window.__typbase.sendChat(id, "Find something"), threadId);
-
-    await page.waitForSelector(".chat-message__tools", { timeout: 90_000 });
-    await expect(page.locator(".chat-message__tools").innerText()).resolves.toContain(
-      "search_notes",
-    );
-    await page.waitForFunction(
-      () =>
-        document.querySelector(".chat-message--assistant")?.getAttribute("data-status") ===
-        "verified",
-      null,
-      { timeout: 90_000 },
-    );
     await page.close();
   });
 

@@ -537,6 +537,23 @@ export class WorkspaceStore {
     );
     settings.installedPackages = Array.isArray(installedPackages) ? installedPackages : [];
 
+    // Array fields ride the same JSON-string path; bad entries from another
+    // writer are dropped rather than trusted.
+    const words = decodeJson<unknown>(map.get("spellcheckWords"), []);
+    settings.spellcheckWords = Array.isArray(words)
+      ? words.filter((word): word is string => typeof word === "string")
+      : [];
+
+    const ignoredLints = decodeJson<unknown>(map.get("spellcheckIgnoredLints"), []);
+    settings.spellcheckIgnoredLints = Array.isArray(ignoredLints)
+      ? ignoredLints.filter(
+          (entry): entry is WorkspaceSettings["spellcheckIgnoredLints"][number] =>
+            typeof entry === "object" &&
+            entry !== null &&
+            typeof (entry as { hash?: unknown }).hash === "string",
+        )
+      : [];
+
     return settings;
   }
 
@@ -549,7 +566,12 @@ export class WorkspaceStore {
       else if (key === "search") map.set("search", encodeSetting(value));
       else if (key === "notebook") map.set("notebook", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
-      else if (key === "installedPackages") map.set(key, encodeSetting(value));
+      else if (
+        key === "installedPackages" ||
+        key === "spellcheckWords" ||
+        key === "spellcheckIgnoredLints"
+      )
+        map.set(key, encodeSetting(value));
       else map.set(key, value);
     }
     this.doc.commit();

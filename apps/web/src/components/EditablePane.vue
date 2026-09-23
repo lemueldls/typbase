@@ -2,7 +2,7 @@
 import type { NotebookOptions } from "@typbase/codemirror";
 import type { TypstRequest } from "@typbase/engine";
 import type { FileId, TypstState } from "@typbase/engine";
-import type { SpellcheckMode } from "@typbase/typing";
+import type { IgnoredSpellcheckLint, SpellcheckMode } from "@typbase/typing";
 
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";
@@ -38,7 +38,11 @@ import {
 } from "@typbase/codemirror";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
-import { spellcheckCompartment, spellcheckExtension } from "~/lib/spellcheck";
+import {
+  spellcheckCompartment,
+  spellcheckExtension,
+  type SpellcheckOptions,
+} from "~/lib/spellcheck";
 import { testApi } from "~/lib/testApi";
 
 const props = defineProps<{
@@ -59,6 +63,14 @@ const props = defineProps<{
   degraded?: boolean;
   /** Spellcheck provider; reconfigured in place when it changes. */
   spellcheck?: SpellcheckMode;
+  /** Harper's user dictionary; the native checker keeps its own. */
+  spellcheckWords?: string[];
+  /** Lints silenced with "Ignore". */
+  spellcheckIgnoredLints?: IgnoredSpellcheckLint[];
+  /** Adds a word to the workspace dictionary (the lint tooltip action). */
+  onAddSpellcheckWord?: (word: string) => void;
+  /** Silences one lint in the workspace (the lint tooltip action). */
+  onIgnoreSpellcheckLint?: (lint: IgnoredSpellcheckLint) => void;
   typstState: TypstState;
   onRequests?: (requests: TypstRequest[], spaceId: string) => Promise<boolean> | boolean;
   revision?: () => string | number | undefined;
@@ -215,16 +227,34 @@ watch(
   },
 );
 
-// The spellcheck provider is swapped in place; the Harper source only loads
-// its worker once something selects it.
-watch(
-  () => props.spellcheck,
-  (mode) => {
-    view.value?.dispatch({
-      effects: spellcheckCompartment.reconfigure(spellcheckExtension(mode)),
-    });
-  },
+/** The options a reconfigure captures; props are read at call time. */
+function spellcheckOptions(): SpellcheckOptions {
+  return {
+    words: props.spellcheckWords,
+    ignoredLints: props.spellcheckIgnoredLints,
+    onAddWord: props.onAddSpellcheckWord,
+    onIgnoreLint: props.onIgnoreSpellcheckLint,
+  };
+}
+
+// The spellcheck provider and its dictionary are swapped in place; the Harper
+// source only loads its worker once something selects it. `getSettings()`
+// hands out fresh arrays, so compare a signature instead of identities.
+const spellcheckSignature = computed(() =>
+  JSON.stringify([
+    props.spellcheck ?? "off",
+    props.spellcheckWords ?? [],
+    (props.spellcheckIgnoredLints ?? []).map((entry) => entry.hash),
+  ]),
 );
+
+watch(spellcheckSignature, () => {
+  view.value?.dispatch({
+    effects: spellcheckCompartment.reconfigure(
+      spellcheckExtension(props.spellcheck, spellcheckOptions()),
+    ),
+  });
+});
 
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
@@ -298,7 +328,7 @@ function createStateConfig(): EditorStateConfig {
             onCompile: props.onCompile,
           }),
         ]),
-    spellcheckCompartment.of(spellcheckExtension(props.spellcheck)),
+    spellcheckCompartment.of(spellcheckExtension(props.spellcheck, spellcheckOptions())),
     EditorView.exceptionSink.of((error) => {
       console.error(error);
     }),
