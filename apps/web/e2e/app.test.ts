@@ -21,6 +21,7 @@ declare global {
         }): Promise<{ id: string; title: string }>;
         loadPageText(id: string): Promise<string>;
         flush(): Promise<void>;
+        updatePageKind(id: string, kind: "document" | "notebook"): Promise<void>;
         updateSettings(patch: Record<string, unknown>): void;
         getAiSettings(): Record<string, unknown>;
         readChatMessages(id: string): Promise<Array<{ id: string; status: string }>>;
@@ -180,6 +181,37 @@ describe("typbase app", async () => {
     await page.locator(".tb-cell-btn--run").nth(1).click();
     await page.waitForSelector(".tb-cell-counter", { timeout: 60_000 });
     await expect(page.locator(".tb-cell-counter").nth(1).innerText()).resolves.toContain("1");
+    await page.close();
+  });
+
+  it("offers notebook mode only for notebook pages and converts both ways", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Kind conversion",
+      content: "= Document\n",
+    });
+    await showPage(page, id, "write");
+
+    const notebookTab = page.locator('.page-view__modes button[aria-label="Notebook"]');
+    await expect(notebookTab.count()).resolves.toBe(0);
+
+    // Converting the open page adds the tab and carries the mode with it.
+    await page.evaluate((pageId) => window.__typbase.store.updatePageKind(pageId, "notebook"), id);
+    await page.waitForSelector('.page-view__modes button[aria-label="Notebook"]', {
+      timeout: 15_000,
+    });
+    await page.waitForFunction(() => window.__typbase.mode?.() === "notebook", null, {
+      timeout: 15_000,
+    });
+
+    // Converting back removes it and returns to write.
+    await page.evaluate((pageId) => window.__typbase.store.updatePageKind(pageId, "document"), id);
+    await page.waitForFunction(() => window.__typbase.mode?.() === "write", null, {
+      timeout: 15_000,
+    });
+    await expect(notebookTab.count()).resolves.toBe(0);
     await page.close();
   });
 
@@ -422,8 +454,7 @@ describe("typbase app", async () => {
       (window as unknown as { __aiCalls: number }).__aiCalls = 0;
       window.__typbase.setAiStub({
         async *stream() {
-          const text =
-            scriptedReplies[Math.min(calls, scriptedReplies.length - 1)] ?? "= Empty\n";
+          const text = scriptedReplies[Math.min(calls, scriptedReplies.length - 1)] ?? "= Empty\n";
           calls += 1;
           (window as unknown as { __aiCalls: number }).__aiCalls = calls;
           yield { type: "text", text };
@@ -491,9 +522,7 @@ describe("typbase app", async () => {
       { timeout: 90_000 },
     );
 
-    const calls = await page.evaluate(
-      () => (window as unknown as { __aiCalls: number }).__aiCalls,
-    );
+    const calls = await page.evaluate(() => (window as unknown as { __aiCalls: number }).__aiCalls);
     expect(calls).toBe(2);
     const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
     expect(messages.some((message) => message.status === "unverified")).toBe(true);

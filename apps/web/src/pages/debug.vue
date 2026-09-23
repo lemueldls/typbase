@@ -17,7 +17,7 @@ import {
 const REPRO_SOURCE = [
   "= Welcome to typbase",
   "",
-  "This is a *Typst* document. The whole app is Typst:",
+  "This is a *Typst* document, and the app reads it as data:",
   "",
   '- `#typbase.query("pages")` reads app data as JSON',
   '- `#typbase.embed("<page-id>")` includes another page',

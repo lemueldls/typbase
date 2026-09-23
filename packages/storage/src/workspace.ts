@@ -679,6 +679,20 @@ export class WorkspaceStore {
     this.writePageMeta(meta);
   }
 
+  /**
+   * Flips a page between document and notebook. The source is untouched:
+   * `// %%` markers are plain comments in a document, so nothing is deleted
+   * behind the editor's back.
+   */
+  async updatePageKind(id: string, kind: PageKind): Promise<void> {
+    const meta = this.getPage(id);
+    if (!meta || meta.kind === kind) return;
+
+    meta.kind = kind;
+    meta.updatedAt = Date.now();
+    this.writePageMeta(meta);
+  }
+
   /** Sets the publish state after a successful publish/unpublish. */
   async setPagePublished(
     id: string,
@@ -1615,24 +1629,28 @@ export class WorkspaceStore {
     const welcome = [
       "= Welcome to typbase",
       "",
-      "This is a *Typst* document. The whole app is Typst:",
+      "Every page here is a Typst document, and the app reads them as data.",
+      "The list below is live: this page asked the workspace for its pages.",
       "",
-      '- `#typbase.query("pages")` reads app data as JSON',
-      '- `#typbase.embed("<page-id>")` includes another page',
-      "",
-      "Every page in this workspace:",
-      "",
-      '#let pages = typbase.query("pages")',
-      "",
-      "#for page in pages [",
-      "  - #page.title (#page.path)",
+      '#for (index, page) in typbase.query("pages").rev().enumerate() [',
+      "  #if index < 8 [",
+      "    - #page.title (#page.path)",
+      "  ]",
       "]",
       "",
-      "== Your turn",
+      "== Try this",
       "",
-      "Create a page from the sidebar, or open today's daily note. The page",
-      "list above came from the app: Typst asked for data through the request",
-      "channel and the app answered with JSON.",
+      "- Create a page with *+* next to Pages; choose *Notebook* to get cells.",
+      "- Open today's note from the sidebar.",
+      '- Pull app data into a document: `#typbase.query("pages")` returns JSON.',
+      '- Link or inline another page: `#typbase.page-link("<id>")` and',
+      '  `#typbase.embed("<id>")`.',
+      "",
+      "== Around the app",
+      "",
+      "- *Sidebar*: daily notes, pages, plugins.",
+      "- *Toolbar*: view modes, formatting, export; Ctrl/Cmd+K searches.",
+      "- *Settings*: appearance, content, storage.",
     ].join("\n");
 
     const home = await this.createPage({

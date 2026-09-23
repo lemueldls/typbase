@@ -6,6 +6,8 @@
     "open": "Öffnen",
     "delete": "Löschen",
     "rename": "Umbenennen",
+    "convertToNotebook": "In Notizbuch umwandeln",
+    "convertToDocument": "In Dokument umwandeln",
     "close": "Schließen",
     "copied": "Kopiert",
     "working": "Arbeite…",

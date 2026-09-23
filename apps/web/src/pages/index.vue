@@ -187,7 +187,7 @@ onMounted(async () => {
   else currentPageId.value = fallbackPageId();
 
   if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
-  else syncModeToPage(currentPageId.value);
+  syncModeToPage(currentPageId.value);
 
   // A ?view=plugin:<instance> or ?view=chat:<thread> link reopens that pane.
   const linkedView = queryString(viewQuery.value);
@@ -329,6 +329,21 @@ function syncModeToPage(pageId: string) {
   if (page.kind === "notebook" && mode.value === "write") mode.value = "notebook";
   else if (page.kind === "document" && mode.value === "notebook") mode.value = "write";
 }
+
+/** The open page's kind, refreshed whenever workspace data changes. */
+const currentPageKind = computed(() => {
+  void dataRevision.value;
+
+  return currentPageId.value ? workspace.value?.getPage(currentPageId.value)?.kind : undefined;
+});
+
+// Converting the open page carries the mode with it. A deliberate mode change
+// does not bump the kind, so switching a notebook page to write by hand stays
+// put until the next page open.
+watch(currentPageKind, (kind, previous) => {
+  if (kind === previous) return;
+  syncModeToPage(currentPageId.value);
+});
 
 function openPlugin(instanceId: string) {
   navOpen.value = false;

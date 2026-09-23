@@ -6,6 +6,8 @@
     "open": "打开",
     "delete": "删除",
     "rename": "重命名",
+    "convertToNotebook": "转换为笔记本",
+    "convertToDocument": "转换为文档",
     "close": "关闭",
     "copied": "已复制",
     "working": "处理中…",

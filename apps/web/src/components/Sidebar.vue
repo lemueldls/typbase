@@ -111,6 +111,11 @@ async function setHome(page: PageMeta) {
   await props.store.updateSettings({ homePageId: page.id });
 }
 
+/** Flips a page between document and notebook; the source is untouched. */
+function convertPage(page: PageMeta, kind: PageMeta["kind"]): void {
+  void props.store.updatePageKind(page.id, kind);
+}
+
 function askRemove(page: PageMeta) {
   pendingDelete.value = page;
   confirmOpen.value = true;
@@ -305,6 +310,12 @@ function onCreated(page: PageMeta) {
                   {{ $t("common.rename") }}
                 </UiMenuItem>
                 <UiMenuItem @select="setHome(page)">{{ $t("sidebar.setHome") }}</UiMenuItem>
+                <UiMenuItem v-if="page.kind === 'notebook'" @select="convertPage(page, 'document')">
+                  {{ $t("common.convertToDocument") }}
+                </UiMenuItem>
+                <UiMenuItem v-else @select="convertPage(page, 'notebook')">
+                  {{ $t("common.convertToNotebook") }}
+                </UiMenuItem>
                 <UiMenuSeparator />
                 <UiMenuItem danger @select="askRemove(page)">
                   {{ $t("sidebar.delete") }}
@@ -358,6 +369,12 @@ function onCreated(page: PageMeta) {
                   {{ $t("common.rename") }}
                 </UiMenuItem>
                 <UiMenuItem @select="setHome(page)">{{ $t("sidebar.setHome") }}</UiMenuItem>
+                <UiMenuItem v-if="page.kind === 'notebook'" @select="convertPage(page, 'document')">
+                  {{ $t("common.convertToDocument") }}
+                </UiMenuItem>
+                <UiMenuItem v-else @select="convertPage(page, 'notebook')">
+                  {{ $t("common.convertToNotebook") }}
+                </UiMenuItem>
                 <UiMenuSeparator />
                 <UiMenuItem danger @select="askRemove(page)">
                   {{ $t("sidebar.delete") }}

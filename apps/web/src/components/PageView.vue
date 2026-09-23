@@ -1002,24 +1002,37 @@ function startSplitDrag(event: PointerEvent) {
   target.addEventListener("pointerup", onUp);
 }
 
-const modes: Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }> = VIEW_MODES.map(
-  (mode) => ({
-    id: mode.id,
-    icon: mode.icon,
-    key: `pageView.${mode.id}`,
-  }),
+const modes = computed<Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }>>(() =>
+  // Notebook mode belongs to notebook pages; `meta` refreshes on dataRevision,
+  // so converting the open page updates the tabs in place.
+  VIEW_MODES.filter((mode) => mode.id !== "notebook" || meta.value?.kind === "notebook").map(
+    (mode) => ({
+      id: mode.id,
+      icon: mode.icon,
+      key: `pageView.${mode.id}`,
+    }),
+  ),
 );
 
-const activeMode = computed(() => modes.find((mode) => mode.id === props.modelValue) ?? modes[0]!);
+const activeMode = computed(
+  () => modes.value.find((mode) => mode.id === props.modelValue) ?? modes.value[0]!,
+);
 
 // Arrow keys move between view modes, per the tabs pattern.
 function onModeKeydown(event: KeyboardEvent) {
   if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
   event.preventDefault();
-  const index = modes.findIndex((mode) => mode.id === props.modelValue);
+  const list = modes.value;
+  const index = list.findIndex((mode) => mode.id === props.modelValue);
   const delta = event.key === "ArrowRight" ? 1 : -1;
-  const next = modes[(index + delta + modes.length) % modes.length];
+  const next = list[(index + delta + list.length) % list.length];
   if (next) emit("update:modelValue", next.id);
+}
+
+/** The open page's kind flip; index.vue syncs the view mode to it. */
+function convertPageKind(): void {
+  const kind = meta.value?.kind === "notebook" ? "document" : "notebook";
+  void store.updatePageKind(props.pageId, kind);
 }
 </script>
 
@@ -1174,6 +1187,18 @@ function onModeKeydown(event: KeyboardEvent) {
             @select="assetsOpen = true"
           >
             {{ $t("assets.title") }}
+          </UiMenuItem>
+
+          <UiMenuItem
+            :icon="meta?.kind === 'notebook' ? 'description' : 'view_agenda'"
+            :disabled="!ready"
+            @select="convertPageKind"
+          >
+            {{
+              meta?.kind === "notebook"
+                ? $t("common.convertToDocument")
+                : $t("common.convertToNotebook")
+            }}
           </UiMenuItem>
 
           <UiMenuItem icon="package_2" :disabled="degraded" @select="packagesOpen = true">
