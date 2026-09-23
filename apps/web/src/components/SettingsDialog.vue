@@ -28,9 +28,6 @@ const props = defineProps<{
 const {
   dataRevision,
   workspaceId,
-  atproto,
-  atprotoStatus,
-  atprotoReady,
   workspaces,
   activeWorkspaceId,
   setWorkspaceIcon,
@@ -369,52 +366,9 @@ function onAiKeyChange(event: Event) {
   aiKeys.value = getAiKeys();
 }
 
-const signInIdentifier = ref("");
-const signInBusy = ref(false);
-const signInError = ref("");
-
-// Redirecting away on success; clear the busy flag in case the user comes back.
-const { start: resetSignInBusy } = useTimeoutFn(
-  () => {
-    signInBusy.value = false;
-  },
-  10_000,
-  { immediate: false },
-);
-
-async function onSignIn() {
-  const identifier = signInIdentifier.value.trim();
-  if (!identifier || !atproto.value) return;
-
-  signInBusy.value = true;
-  signInError.value = "";
-  // Redirect flow: the page navigates to the PDS; login returns only when
-  // the redirect was intercepted, so surface a failure without awaiting.
-  void atproto.value.signIn(identifier).catch((cause) => {
-    signInError.value = cause instanceof Error ? cause.message : String(cause);
-  });
-  resetSignInBusy();
-}
-
-async function onSignOut() {
-  await atproto.value?.signOut();
-}
-
 onMounted(() => {
   applyTheme(props.store.getSettings());
 });
-
-function formatAgo(timestamp: number): string {
-  if (!timestamp) return t("settings.syncNever");
-
-  return appLocale.formatAgo(timestamp);
-}
-
-function shortDid(did: string | null): string {
-  if (!did) return "";
-
-  return did.length > 18 ? `${did.slice(0, 10)}...${did.slice(-6)}` : did;
-}
 
 function supportsLocalFonts() {
   if (isTauri()) return true;
@@ -804,80 +758,7 @@ async function renameWorkspace(event: Event) {
           </section>
         </section>
         <section v-show="activeTab === 'sync'" class="settings__tabpanel">
-          <section class="settings__section">
-            <h4 class="settings__heading">Sync</h4>
-
-            <template v-if="atprotoReady && atproto">
-              <template v-if="!atprotoStatus.signedIn">
-                <p class="settings__hint">
-                  Sign in with an atproto account to attach a space. The workspace keeps working
-                  offline; signing in only adds sync between devices.
-                </p>
-                <div class="settings__row">
-                  <UiTextField
-                    v-model="signInIdentifier"
-                    class="settings__input--grow"
-                    :placeholder="$t('settings.syncSignInPlaceholder')"
-                    @keydown.enter="onSignIn"
-                  />
-                  <UiButton
-                    variant="primary"
-                    :disabled="signInBusy || !signInIdentifier.trim()"
-                    @click="onSignIn"
-                  >
-                    Sign in
-                  </UiButton>
-                </div>
-              </template>
-
-              <template v-else>
-                <p class="settings__ok">
-                  {{
-                    $t("settings.signedInAs", {
-                      did: shortDid(atprotoStatus.did),
-                    })
-                  }}
-                </p>
-                <p class="settings__hint">
-                  {{
-                    $t("settings.syncStatus", {
-                      pending: atprotoStatus.pendingUpdates
-                        ? $t("settings.syncExporting")
-                        : atprotoStatus.pendingUpdates,
-                      exported: appLocale.formatAgo(atprotoStatus.lastExportAt),
-                      imported: appLocale.formatAgo(atprotoStatus.lastImportAt),
-                    })
-                  }}
-                </p>
-                <p class="settings__hint" :class="{ settings__error: atprotoStatus.error }">
-                  {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
-                </p>
-
-                <div v-if="atprotoStatus.members.length" class="settings__members">
-                  <p class="settings__hint">{{ $t("settings.syncMembers") }}</p>
-                  <ul>
-                    <li v-for="member in atprotoStatus.members" :key="member.did">
-                      {{ shortDid(member.did) }}
-                    </li>
-                  </ul>
-                </div>
-
-                <UiButton :disabled="!atprotoReady" @click="onSignOut">
-                  {{ $t("settings.syncSignOut") }}
-                </UiButton>
-              </template>
-
-              <p v-if="signInError" class="settings__error">
-                {{ signInError }}
-              </p>
-              <!-- <p v-if="!atprotoStatus.relayConnected" class="settings__hint">
-                {{ $t("settings.syncRelayOff") }}
-              </p> -->
-            </template>
-            <p v-else class="settings__hint">
-              {{ $t("settings.syncRequiresServer") }}
-            </p>
-          </section>
+          <SyncPanel />
         </section>
 
         <section v-show="activeTab === 'export'" class="settings__tabpanel">
@@ -1014,27 +895,6 @@ async function renameWorkspace(event: Event) {
   min-height: 8rem;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-}
-
-.settings__row {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.settings__input--grow {
-  flex: 1;
-  min-width: 0;
-}
-
-.settings__members {
-  margin: 0;
-}
-
-.settings__members ul {
-  margin: var(--space-1) 0 0;
-  padding-left: var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
 .settings__field {

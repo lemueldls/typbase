@@ -135,6 +135,7 @@ function useWorkspaceState() {
   const atproto = shallowRef<AtprotoService>();
   const atprotoStatus = ref<AtprotoStatus>({
     signedIn: false,
+    syncing: false,
     did: null,
     spaceUri: null,
     pendingUpdates: 0,
@@ -490,6 +491,7 @@ function useWorkspaceState() {
     atprotoReady.value = false;
     atprotoStatus.value = {
       signedIn: false,
+      syncing: false,
       did: null,
       spaceUri: null,
       pendingUpdates: 0,

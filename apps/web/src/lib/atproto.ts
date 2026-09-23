@@ -35,6 +35,11 @@ type PresenceData = {
 
 export interface AtprotoStatus {
   signedIn: boolean;
+  /**
+   * True once a workspace space is attached. A signed-in account whose PDS
+   * does not support Spaces stays false, so the UI can say sync is off.
+   */
+  syncing: boolean;
   did: string | null;
   spaceUri: string | null;
   pendingUpdates: number;
@@ -141,6 +146,7 @@ export class AtprotoService {
 
     return {
       signedIn: this.statusDid !== null,
+      syncing: this.sync !== null,
       did: this.statusDid,
       spaceUri:
         this.sync && this.statusDid
@@ -156,6 +162,10 @@ export class AtprotoService {
   }
 
   async signIn(identifier: string): Promise<void> {
+    // A failure from an earlier attempt should not linger in the status line
+    // once the user retries.
+    this.setError(null);
+
     let session: OAuthSession;
     try {
       session = await this.sessions.login(identifier);
@@ -182,6 +192,7 @@ export class AtprotoService {
     this.sessionRef = null;
     this.statusDid = null;
     this.detach();
+    this.setError(null);
     this.emit();
   }
 

@@ -52,7 +52,7 @@ function onOpenChange(id: string, open: boolean) {
 <style>
 .ui-toast {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-2);
   width: min(22rem, calc(100vw - var(--space-8)));
   padding: var(--space-3);
@@ -98,6 +98,7 @@ function onOpenChange(id: string, open: boolean) {
 .ui-toast__close {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   justify-content: center;
   width: var(--control-xs);
   height: var(--control-xs);
