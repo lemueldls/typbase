@@ -1243,7 +1243,7 @@ const TYPBASE_LIB: &str = r#"
   }
 }
 
-// A semantic block for app-side consumers (AI generation, flashcard decks).
+// A semantic block for app-side consumers (AI context, plugins).
 // The body renders where it sits; the app reads kind and range off the AST.
 #let section(kind: none, body) = body
 "#;

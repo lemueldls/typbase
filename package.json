@@ -17,6 +17,7 @@
     "preview": "moon run web:preview",
     "symbols": "node scripts/symbols/transform.mjs",
     "test:e2e": "pnpm --filter @typbase/web test:e2e",
+    "test:unit": "pnpm --filter @typbase/web test:unit",
     "typecheck": "pnpm --filter @typbase/web typecheck && pnpm --filter @typbase/typing --filter @typbase/storage --filter @typbase/spaces --filter @typbase/codemirror typecheck"
   },
   "dependencies": {

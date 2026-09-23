@@ -9,6 +9,7 @@
     "postinstall": "nuxt prepare",
     "preview": "nuxt preview",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {

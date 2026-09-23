@@ -1,18 +1,10 @@
 import type { TypstRequest } from "@typbase/engine";
-
-import init, { TypstState } from "@typbase/engine";
-import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
-import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
-import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";
-import mapleMono from "~~/public/fonts/maple/MapleMono-Regular.ttf?url";
-import newcmMathBold from "~~/public/fonts/math/NewCMMath-Bold.otf?url";
-import newcmMath from "~~/public/fonts/math/NewCMMath-Regular.otf?url";
+import type { TypstState } from "@typbase/engine";
 
 import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWorker";
-import type { RequestPayload } from "~/lib/typstRequests";
 
-import { specString } from "~/lib/packages";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
+import { initTypstState, installPayload, payloadKey, requestKey } from "~/workers/typstWorkerCore";
 
 /**
  * Worker entry: owns one TypstState for publish and export renders. The page
@@ -32,20 +24,7 @@ async function ensureState(): Promise<TypstState> {
   if (state) return state;
   if (!wasmModuleUrl) throw new Error("Render worker was not configured with a wasm URL");
 
-  await init({ module_or_path: wasmModuleUrl });
-  const typstState = new TypstState();
-  for (const url of [
-    mapleMono,
-    mapleMonoItalic,
-    mapleMonoBold,
-    mapleMonoBoldItalic,
-    newcmMath,
-    newcmMathBold,
-  ]) {
-    const response = await fetch(url);
-    typstState.installFont(new Uint8Array(await response.arrayBuffer()));
-  }
-  state = typstState;
+  state = await initTypstState(wasmModuleUrl);
 
   return state;
 }
@@ -55,15 +34,6 @@ let releaseAnswer: ((inserted: number) => void) | undefined;
 /** Request keys already inserted for the current render. A pass that asks
  *  only for these has made no progress and must not loop. */
 let insertedKeys = new Set<string>();
-
-/** A request and a payload key for the same file or package must match. */
-function requestKey(request: TypstRequest): string {
-  return typeof request.value === "string" ? request.value : specString(request.value);
-}
-
-function payloadKey(payload: RequestPayload): string {
-  return payload.type === "package" ? specString(payload.spec) : payload.path;
-}
 
 self.addEventListener(
   "message",
@@ -78,13 +48,7 @@ self.addEventListener(
 
     if (message.type === "insert" && state) {
       const payload = message.payload;
-      if (payload?.type === "source") {
-        state.insertSource(state.createFileId(payload.path), payload.text);
-      } else if (payload?.type === "file") {
-        state.insertFile(state.createFileId(payload.path), payload.bytes);
-      } else if (payload?.type === "package") {
-        state.installPackage(specString(payload.spec), payload.bytes);
-      }
+      if (payload) installPayload(state, payload);
       if (payload) insertedKeys.add(payloadKey(payload));
 
       return;

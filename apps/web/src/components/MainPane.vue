@@ -4,6 +4,7 @@ import type { ViewModeId } from "~/lib/view";
 defineProps<{
   pageId: string | null;
   pluginInstanceId?: string | null;
+  chatThreadId?: string | null;
   modelValue: ViewModeId;
 }>();
 
@@ -12,12 +13,27 @@ const emit = defineEmits<{
   (e: "openPage", id: string): void;
   (e: "openPlugin", id: string): void;
   (e: "closePlugin"): void;
+  (e: "openThread", id: string): void;
+  (e: "closeChat"): void;
 }>();
 </script>
 
 <template>
+  <ChatPane
+    v-if="chatThreadId"
+    :key="chatThreadId"
+    :thread-id="chatThreadId"
+    @close="emit('closeChat')"
+    @open-page="emit('openPage', $event)"
+    @open-thread="emit('openThread', $event)"
+  >
+    <template #nav-toggle>
+      <slot name="nav-toggle" />
+    </template>
+  </ChatPane>
+
   <PluginView
-    v-if="pluginInstanceId"
+    v-else-if="pluginInstanceId"
     :key="pluginInstanceId"
     :instance-id="pluginInstanceId"
     @close="emit('closePlugin')"

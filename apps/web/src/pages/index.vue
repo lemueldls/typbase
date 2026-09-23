@@ -3,9 +3,11 @@ import type { SplitterPanel } from "reka-ui";
 
 import faviconUrl from "~~/public/favicon.svg?url";
 
-import { refreshSections, toSections } from "~/lib/ai/generators";
+import { setChatNavigation, useChat } from "~/composables/chat";
+import { setProviderOverride } from "~/lib/ai/engine";
 import { engineAvailable } from "~/lib/engineHealth";
 import { requestReveal } from "~/lib/reveal";
+import { refreshSections, toSections } from "~/lib/sections";
 import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
@@ -28,6 +30,7 @@ const activeBootStep = computed(
 );
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
+const currentChatId = ref<string | null>(null);
 const mode = ref<ViewModeId>("write");
 const {
   open: paletteOpen,
@@ -74,6 +77,7 @@ function toggleSidebar() {
 }
 
 const { ensure: ensureSearch } = useSearch();
+const chat = useChat();
 
 // Cmd-K / Ctrl-K opens the search palette.
 onKeyStroke((event) => {
@@ -109,6 +113,7 @@ function fallbackPageId(): string {
 watch(workspaceGeneration, () => {
   currentPageId.value = fallbackPageId();
   currentPluginId.value = null;
+  currentChatId.value = null;
 });
 
 // Demo capture and e2e tests reach the active store through this handle.
@@ -122,6 +127,13 @@ watch(
 
 testApi.openPage = (id) => openPage(id);
 testApi.setMode = (value) => void setMode(value as ViewModeId);
+testApi.openChat = (threadId) => openChat(threadId ?? undefined);
+testApi.newChat = async (pageId) => (await chat.startThread({ pageId: pageId ?? null })).id;
+testApi.sendChat = (threadId, text) => chat.send(threadId, text);
+testApi.chatMessages = (threadId) => chat.readMessages(threadId);
+testApi.setAiStub = (provider) => {
+  setProviderOverride(provider);
+};
 
 // Section metadata should stay fresh even without the editor being open:
 // the store's page changes drive a re-extract on every page switch.
@@ -177,12 +189,15 @@ onMounted(async () => {
   if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
   else syncModeToPage(currentPageId.value);
 
-  // A ?view=plugin:<instance> link reopens the plugin pane when it exists.
+  // A ?view=plugin:<instance> or ?view=chat:<thread> link reopens that pane.
   const linkedView = queryString(viewQuery.value);
   const instanceId = linkedView.startsWith("plugin:") ? linkedView.slice("plugin:".length) : "";
   if (instanceId && store.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
+  const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
+  if (threadId && store.getChat(threadId)) currentChatId.value = threadId;
 
   setPluginNavigation({ openPage, openPlugin });
+  setChatNavigation({ openChat, openPage });
 });
 
 watch(currentPageId, (id) => {
@@ -221,13 +236,17 @@ watch(modeQuery, (value) => {
   if (loaded.value && value !== mode.value && isViewMode(value)) mode.value = value;
 });
 
-function pluginViewValue(instanceId: string | null): string {
-  return instanceId ? `plugin:${instanceId}` : "";
+/** One `?view=` value, so only one of the chat/plugin panes is open. */
+function paneViewValue(): string {
+  if (currentChatId.value) return `chat:${currentChatId.value}`;
+  if (currentPluginId.value) return `plugin:${currentPluginId.value}`;
+
+  return "";
 }
 
-watch(currentPluginId, (id) => {
+watch([currentPluginId, currentChatId], () => {
   if (!loaded.value) return;
-  const value = pluginViewValue(id);
+  const value = paneViewValue();
   if (queryString(viewQuery.value) !== value) viewQuery.value = value;
 });
 
@@ -236,26 +255,44 @@ watch(viewQuery, (raw) => {
   if (!loaded.value) return;
 
   const value = queryString(raw);
-  const instanceId = value.startsWith("plugin:") ? value.slice("plugin:".length) : "";
-  if (!instanceId) {
-    currentPluginId.value = null;
+  if (value.startsWith("chat:")) {
+    const id = value.slice("chat:".length);
+    if (workspace.value?.getChat(id)) {
+      currentChatId.value = id;
+      currentPluginId.value = null;
+    } else if (queryString(viewQuery.value) === value) {
+      viewQuery.value = "";
+    }
+
     return;
   }
 
-  if (workspace.value?.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
-  else if (queryString(viewQuery.value) === value) viewQuery.value = "";
+  if (value.startsWith("plugin:")) {
+    const id = value.slice("plugin:".length);
+    currentChatId.value = null;
+    if (workspace.value?.getPluginInstance(id)) currentPluginId.value = id;
+    else if (queryString(viewQuery.value) === value) viewQuery.value = "";
+    return;
+  }
+
+  currentChatId.value = null;
+  currentPluginId.value = null;
 });
 
-// A deleted instance must not leave the shell on an empty plugin pane.
+// A deleted instance or thread must not leave the shell on an empty pane.
 watch(dataRevision, () => {
   if (currentPluginId.value && !workspace.value?.getPluginInstance(currentPluginId.value)) {
     currentPluginId.value = null;
+  }
+  if (currentChatId.value && !workspace.value?.getChat(currentChatId.value)) {
+    currentChatId.value = null;
   }
 });
 
 function openPage(id: string) {
   navOpen.value = false; // drawer interactions close after selection
-  currentPluginId.value = null; // opening a page leaves the plugin pane
+  currentPluginId.value = null; // opening a page leaves the other panes
+  currentChatId.value = null;
   // An empty id means the open page was deleted; fall back to home/first.
   currentPageId.value = id || fallbackPageId();
   syncModeToPage(currentPageId.value);
@@ -295,11 +332,47 @@ function syncModeToPage(pageId: string) {
 
 function openPlugin(instanceId: string) {
   navOpen.value = false;
-  if (instanceId) currentPluginId.value = instanceId;
+  if (instanceId) {
+    currentChatId.value = null;
+    currentPluginId.value = instanceId;
+  }
 }
 
 function closePlugin() {
   currentPluginId.value = null;
+}
+
+/** Opens a thread by id, the most recent one, or a fresh one. */
+function openChat(threadId?: string | null) {
+  navOpen.value = false;
+  if (threadId) {
+    currentPluginId.value = null;
+    currentChatId.value = threadId;
+
+    return;
+  }
+
+  const latest = workspace.value?.listChats()[0];
+  if (latest) {
+    currentPluginId.value = null;
+    currentChatId.value = latest.id;
+
+    return;
+  }
+
+  void chat
+    .startThread({ pageId: currentPageId.value || null })
+    .then((created) => {
+      currentPluginId.value = null;
+      currentChatId.value = created.id;
+    })
+    .catch((cause) => {
+      console.error("[chat] could not create a thread:", cause);
+    });
+}
+
+function closeChat() {
+  currentChatId.value = null;
 }
 
 // Persist pending snapshot writes when the tab goes away.
@@ -372,6 +445,7 @@ definePageMeta({ ssr: false });
               @select="openPage"
               @open-plugin="openPlugin"
               @search="openSearch"
+              @chat="openChat"
               @collapse-request="toggleSidebar"
             />
           </SplitterPanel>
@@ -387,11 +461,14 @@ definePageMeta({ ssr: false });
               <MainPane
                 :page-id="currentPageId"
                 :plugin-instance-id="currentPluginId"
+                :chat-thread-id="currentChatId"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
                 @open-plugin="openPlugin"
                 @close-plugin="closePlugin"
+                @open-thread="openChat"
+                @close-chat="closeChat"
               >
                 <template #nav-toggle>
                   <UiIconButton
@@ -422,6 +499,7 @@ definePageMeta({ ssr: false });
               @select="openPage"
               @open-plugin="openPlugin"
               @search="openSearch"
+              @chat="openChat"
               @collapse-request="navOpen = false"
             />
           </div>
@@ -438,11 +516,14 @@ definePageMeta({ ssr: false });
             <MainPane
               :page-id="currentPageId"
               :plugin-instance-id="currentPluginId"
+              :chat-thread-id="currentChatId"
               :model-value="mode"
               @update:model-value="setMode"
               @open-page="openPage"
               @open-plugin="openPlugin"
               @close-plugin="closePlugin"
+              @open-thread="openChat"
+              @close-chat="closeChat"
             >
               <template #nav-toggle>
                 <UiIconButton

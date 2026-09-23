@@ -1,6 +1,9 @@
 import type { EditorView } from "@codemirror/view";
 import type { FileId } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
+import type { ChatMessage } from "@typbase/typing";
+
+import type { AiProvider } from "~/lib/ai/providers";
 
 /**
  * Dev-only handles for the demo capture script and e2e tests. Components write
@@ -28,6 +31,16 @@ export interface TypbaseTestApi {
   engineMemory: (() => number) | null;
   /** Crash the wasm engine on purpose. Debug wasm builds only. */
   crashEngine: (() => void) | null;
+  /** Open the chat pane, on a thread id or the most recent thread. */
+  openChat: ((threadId?: string | null) => void) | null;
+  /** Create a chat thread and return its id. */
+  newChat: ((pageId?: string | null) => Promise<string>) | null;
+  /** Send a chat message and wait for the reply flow to settle. */
+  sendChat: ((threadId: string, text: string) => Promise<void>) | null;
+  /** Read a thread's messages. */
+  chatMessages: ((threadId: string) => Promise<ChatMessage[]>) | null;
+  /** Stream from this provider instead of the configured one. */
+  setAiStub: ((provider: AiProvider | null) => void) | null;
 }
 
 export const testApi: TypbaseTestApi = {
@@ -41,6 +54,11 @@ export const testApi: TypbaseTestApi = {
   engineStatus: null,
   engineMemory: null,
   crashEngine: null,
+  openChat: null,
+  newChat: null,
+  sendChat: null,
+  chatMessages: null,
+  setAiStub: null,
 };
 
 if (import.meta.dev && typeof window !== "undefined") {

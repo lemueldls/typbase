@@ -193,19 +193,6 @@
     "changeStorage": "Modifier",
     "storageHint": "Où cet appareil garde les espaces de travail. Le changer affiche la liste propre à cet emplacement."
   },
-  "aiMenu": {
-    "off": "IA (désactivée)",
-    "enableConfirm": "La génération IA est désactivée. L'activer et configurer un fournisseur dans les paramètres ?",
-    "summarize": "Résumer la page",
-    "outline": "Plan de la page",
-    "explain": "Expliquer la sélection",
-    "simplify": "Simplifier la sélection",
-    "quiz": "Quiz de la page",
-    "flashcards": "Cartes mémoire de la catégorie",
-    "studyGuide": "Guide d'étude de la catégorie",
-    "hint": "Les appels vont directement au fournisseur configuré. Les clés vivent dans local.json.",
-    "title": "Générateurs IA"
-  },
   "switcher": {
     "title": "Ouvrir un espace de travail",
     "current": "actuel",

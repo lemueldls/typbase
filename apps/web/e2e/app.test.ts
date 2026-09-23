@@ -21,6 +21,10 @@ declare global {
         }): Promise<{ id: string; title: string }>;
         loadPageText(id: string): Promise<string>;
         flush(): Promise<void>;
+        updateSettings(patch: Record<string, unknown>): void;
+        getAiSettings(): Record<string, unknown>;
+        readChatMessages(id: string): Promise<Array<{ id: string; status: string }>>;
+        deleteChat(id: string): Promise<void>;
       };
       openPage(id: string): void;
       setMode(mode: string): void;
@@ -28,6 +32,11 @@ declare global {
       engineStatus(): string;
       engineMemory(): number;
       crashEngine(): void;
+      openChat(threadId?: string | null): void;
+      newChat(pageId?: string | null): Promise<string>;
+      sendChat(threadId: string, text: string): Promise<void>;
+      chatMessages(threadId: string): Promise<Array<{ id: string; status: string }>>;
+      setAiStub(provider: unknown): void;
     };
   }
 }
@@ -400,6 +409,159 @@ describe("typbase app", async () => {
     await page.evaluate(() => window.__typbase.store.flush());
     const text = await page.evaluate((pageId) => window.__typbase.store.loadPageText(pageId), id);
     expect(text).toContain("#let doomed = 11");
+
+    await page.close();
+  });
+
+  /** Enables AI and installs a scripted streaming provider. */
+  async function installAiStub(page: NuxtPage, replies: string[]): Promise<void> {
+    await page.evaluate((scriptedReplies) => {
+      const store = window.__typbase.store;
+      store.updateSettings({ ai: { ...store.getAiSettings(), enabled: true } });
+      let calls = 0;
+      (window as unknown as { __aiCalls: number }).__aiCalls = 0;
+      window.__typbase.setAiStub({
+        async *stream() {
+          const text = scriptedReplies[Math.min(calls, scriptedReplies.length - 1)] ?? "= Empty\n";
+          calls += 1;
+          (window as unknown as { __aiCalls: number }).__aiCalls = calls;
+          yield { type: "text", text };
+          yield { type: "done", stopReason: null };
+        },
+      });
+    }, replies);
+  }
+
+  async function openChatThread(page: NuxtPage, threadId: string): Promise<void> {
+    await page.evaluate((id) => window.__typbase.openChat(id), threadId);
+    await page.waitForSelector(".chat-pane", { timeout: 60_000 });
+  }
+
+  it("streams a chat reply and renders it as Typst", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await installAiStub(page, ["= Chat answer\n\nHello from the *model*.\n"]);
+
+    const threadId = await page.evaluate(() => window.__typbase.newChat());
+    await openChatThread(page, threadId);
+    await page.evaluate((id) => window.__typbase.sendChat(id, "Say hi"), threadId);
+
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".chat-message--assistant")?.getAttribute("data-status") ===
+        "verified",
+      null,
+      { timeout: 90_000 },
+    );
+
+    const rendered = await page.locator(".chat-message__render").first().innerText();
+    expect(rendered).toContain("Chat answer");
+    const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
+    expect(messages.at(-1)?.status).toBe("verified");
+
+    await page.close();
+  });
+
+  it("repairs a reply that does not compile", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await installAiStub(page, ["= Broken\n\n#nope()\n", "= Fixed\n\nAll good.\n"]);
+
+    const threadId = await page.evaluate(() => window.__typbase.newChat());
+    await openChatThread(page, threadId);
+    await page.evaluate((id) => window.__typbase.sendChat(id, "Write something"), threadId);
+
+    await page.waitForFunction(
+      () => {
+        const rows = [...document.querySelectorAll(".chat-message--assistant")];
+
+        return rows.some((row) => row.querySelector(".chat-message__badge"));
+      },
+      null,
+      { timeout: 90_000 },
+    );
+    await page.waitForFunction(
+      () => {
+        const rows = [...document.querySelectorAll(".chat-message--assistant")];
+
+        return rows.at(-1)?.getAttribute("data-status") === "verified";
+      },
+      null,
+      { timeout: 90_000 },
+    );
+
+    const calls = await page.evaluate(() => (window as unknown as { __aiCalls: number }).__aiCalls);
+    expect(calls).toBe(2);
+    const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
+    expect(messages.some((message) => message.status === "unverified")).toBe(true);
+    expect(messages.at(-1)?.status).toBe("verified");
+
+    await page.close();
+  });
+
+  it("shows agentic tool calls in the thread", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({ ai: { ...store.getAiSettings(), enabled: true } });
+      let calls = 0;
+      window.__typbase.setAiStub({
+        async *stream() {
+          calls += 1;
+          if (calls === 1) {
+            yield {
+              type: "tool",
+              call: { id: "call_1", name: "search_notes", input: { query: "welcome" } },
+            };
+          } else {
+            yield { type: "text", text: "= Grounded\n\nFound it.\n" };
+          }
+          yield { type: "done", stopReason: null };
+        },
+      });
+    });
+
+    const threadId = await page.evaluate(() => window.__typbase.newChat());
+    await openChatThread(page, threadId);
+    await page.evaluate((id) => window.__typbase.sendChat(id, "Find something"), threadId);
+
+    await page.waitForSelector(".chat-message__tools", { timeout: 90_000 });
+    await expect(page.locator(".chat-message__tools").innerText()).resolves.toContain(
+      "search_notes",
+    );
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".chat-message--assistant")?.getAttribute("data-status") ===
+        "verified",
+      null,
+      { timeout: 90_000 },
+    );
+    await page.close();
+  });
+
+  it("persists chat threads across a reload", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await installAiStub(page, ["= Persisted\n\nThis survives.\n"]);
+
+    const threadId = await page.evaluate(() => window.__typbase.newChat());
+    await page.evaluate((id) => window.__typbase.sendChat(id, "Remember this"), threadId);
+    await page.evaluate(() => window.__typbase.store.flush());
+
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(".sidebar", { timeout: 180_000 });
+    await openChatThread(page, threadId);
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".chat-message--assistant")?.getAttribute("data-status") ===
+        "verified",
+      null,
+      { timeout: 60_000 },
+    );
+
+    const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
+    expect(messages.length).toBeGreaterThanOrEqual(2);
 
     await page.close();
   });

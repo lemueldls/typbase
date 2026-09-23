@@ -15,6 +15,8 @@ const emit = defineEmits<{
   (e: "select", pageId: string): void;
   (e: "openPlugin", instanceId: string): void;
   (e: "search"): void;
+  /** Opens the chat pane (last thread or a new one). */
+  (e: "chat"): void;
   /** Collapses the desktop panel / closes the mobile drawer. */
   (e: "collapseRequest"): void;
 }>();
@@ -146,7 +148,8 @@ function onCreated(page: PageMeta) {
         </UiTooltip>
       </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
-        <UiIconButton icon="search" :label="$t('palette.title')" @click="emit('search')" />
+        <!-- <UiIconButton icon="forum" :label="$t('chat.title')" @click="emit('chat')" /> -->
+        <!-- <UiIconButton icon="search" :label="$t('palette.title')" @click="emit('search')" /> -->
         <SettingsDialog :store="store">
           <UiIconButton icon="settings" :label="$t('sidebar.workspaceSettings')" />
         </SettingsDialog>

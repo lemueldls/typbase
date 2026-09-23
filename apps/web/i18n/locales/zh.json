@@ -193,19 +193,6 @@
     "changeStorage": "更改",
     "storageHint": "此设备保存工作区的位置。更改后会显示该位置自己的工作区列表。"
   },
-  "aiMenu": {
-    "off": "AI（关闭）",
-    "enableConfirm": "AI 生成已关闭。是否启用并在设置中配置提供商？",
-    "summarize": "总结页面",
-    "outline": "页面大纲",
-    "explain": "解释所选内容",
-    "simplify": "简化所选内容",
-    "quiz": "页面测验",
-    "flashcards": "分类抽认卡",
-    "studyGuide": "分类学习指南",
-    "hint": "调用直接发往配置的提供商。密钥存于 local.json。",
-    "title": "AI 生成器"
-  },
   "switcher": {
     "title": "打开工作区",
     "current": "当前",

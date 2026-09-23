@@ -288,3 +288,41 @@
   attrs: (class: "tb-form", "data-tb-form": "form"),
   stack(body: body),
 )
+
+// ------------------------------------------------------------------- ai ----
+//
+// AI calls arrive back at the plugin as a render whose `ctx.action` is
+// `ai.result` with `text`, `diagnostics`, and `error` in its args. A surface
+// that wants to keep the answer stores it through its patch; a surface that
+// only displays it can branch on the action name.
+//
+// `format: "typst"` runs the app's dialect prompt and the compile check, so
+// the text is validated Typst (and repaired first when it does not compile).
+
+// One-shot call; the answer arrives as an `ai.result` action.
+#let ai-complete(prompt, format: "text", args: (:), kind: "default", label: "Ask AI") = button(
+  label,
+  "ai.complete",
+  args: (prompt: prompt, format: format) + args,
+  kind: kind,
+)
+
+// Streaming call: the host writes the growing text into record `id`'s `field`
+// (and `<field>Status` = streaming/done/error) while the model answers, so the
+// surface re-renders live. The final `field` holds the validated text for
+// `format: "typst"`.
+#let ai-stream(
+  label,
+  prompt,
+  collection,
+  id,
+  field: "text",
+  format: "text",
+  args: (:),
+  kind: "default",
+) = button(
+  label,
+  "ai.stream",
+  args: (prompt: prompt, collection: collection, id: id, field: field, format: format) + args,
+  kind: kind,
+)

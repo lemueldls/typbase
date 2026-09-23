@@ -52,7 +52,7 @@ export interface WorkspaceInfo {
 export interface Section {
   /** Stable-ish id: `${kind}:${rangeStart}`. */
   id: string;
-  /** Section kind, e.g. "flashcards", "quiz", "summary", "agenda", "code". */
+  /** Section kind, e.g. "summary", "agenda", "code". */
   kind: string;
   /** Byte range of the block content in the raw page source. */
   rangeStart: number;
@@ -81,17 +81,42 @@ export interface PublishSettings {
   includePdf: boolean;
 }
 
-/** Provider config for AI features. Keys never live here: they are in local.json. */
-export interface AiConfig {
-  /**
-   * AI features are opt-in: generators run nothing until a user turns this
-   * on. Keys alone do not enable anything either.
-   */
-  enabled: boolean;
-  provider: "openai-compatible" | "anthropic" | "ollama";
-  /** Base URL. Empty for the well-known host of the chosen provider. */
+/**
+ * A configured model endpoint. The API key never lives here; it is stored in
+ * device-local state keyed by `id`. Provider lists sync with the workspace,
+ * keys do not.
+ */
+export interface AiProviderSettings {
+  /** Stable id, generated when the provider is added. */
+  id: string;
+  /** Display name in the model picker. */
+  name: string;
+  kind: AiProviderKind;
+  /** Base URL. Empty uses the provider's well-known host. */
   baseUrl: string;
-  chatModel: string;
+  /** Default model id for this provider. */
+  model: string;
+}
+
+export type AiProviderKind = "openai-compatible" | "anthropic" | "ollama";
+
+/**
+ * Model configuration and chat behavior for the workspace. Chat is opt-in:
+ * nothing is sent anywhere until `enabled` is on. Keys live in local.json.
+ */
+export interface AiSettings {
+  enabled: boolean;
+  providers: AiProviderSettings[];
+  /** Provider the composer starts on; null follows the first entry. */
+  defaultProviderId: string | null;
+  /** Automatic repair turns after a reply fails to compile; 0 disables. */
+  repairAttempts: number;
+  /** Render the Typst reply progressively while it streams. */
+  liveRender: boolean;
+  /** Include the open page (or the editor selection) in the prompt context. */
+  pageContext: boolean;
+  /** Let the model call read-only workspace tools (search, read page). */
+  tools: boolean;
 }
 
 export interface SearchSettings {
@@ -260,7 +285,7 @@ export interface WorkspaceSettings {
    */
   installedPackages: InstalledPackage[];
   publish: PublishSettings;
-  ai: AiConfig;
+  ai: AiSettings;
   search: SearchSettings;
   notebook: NotebookSettings;
 }
@@ -297,9 +322,20 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   },
   ai: {
     enabled: false,
-    provider: "ollama",
-    baseUrl: "",
-    chatModel: "qwen2.5:7b",
+    providers: [
+      {
+        id: "ollama",
+        name: "Ollama",
+        kind: "ollama",
+        baseUrl: "http://localhost:11434",
+        model: "qwen2.5:7b",
+      },
+    ],
+    defaultProviderId: "ollama",
+    repairAttempts: 2,
+    liveRender: true,
+    pageContext: true,
+    tools: true,
   },
   search: {
     semantic: false,
@@ -339,6 +375,7 @@ export {
   OAUTH_REDIRECT_PATH,
   OAUTH_SCOPES,
 } from "./atproto";
+export * from "./chat";
 export * from "./plugins";
 
 /** Kinds `#typbase.query` supports. */

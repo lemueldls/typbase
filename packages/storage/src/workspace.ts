@@ -1,6 +1,8 @@
 import type {
   AssetMeta,
   Category,
+  ChatMessage,
+  ChatThread,
   PageKind,
   PageMeta,
   PluginInstall,
@@ -36,6 +38,17 @@ function decodeSetting<T>(value: unknown): T {
     return JSON.parse(value) as T;
   } catch {
     return JSON.parse("{}") as T;
+  }
+}
+
+/** Like `decodeSetting`, but with a caller-chosen fallback for array fields. */
+function decodeJson<T>(value: unknown, fallback: T): T {
+  if (typeof value !== "string") return fallback;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
   }
 }
 
@@ -143,6 +156,20 @@ export function pluginInstanceOf(docId: string): string | null {
   return docId.startsWith("plugin:") ? docId.slice("plugin:".length) : null;
 }
 
+export function chatPath(workspaceId: string, threadId: string): string {
+  return `workspaces/${workspaceId}/chats/${threadId}.loro`;
+}
+
+/** Doc id space for chat threads; sync treats them like page docs. */
+export function chatDocId(threadId: string): string {
+  return `chat:${threadId}`;
+}
+
+/** Thread id behind a `chat:<id>` doc id, or null for other docs. */
+export function chatIdOf(docId: string): string | null {
+  return docId.startsWith("chat:") ? docId.slice("chat:".length) : null;
+}
+
 export interface WorkspaceStoreOptions {
   /** Snapshot writes are debounced by this much; a crash loses at most this window. */
   snapshotDebounceMs?: number;
@@ -168,6 +195,7 @@ export interface CreatePageInput {
 export class WorkspaceStore {
   private pageDocs = new Map<string, LoroDoc>();
   private pluginDocs = new Map<string, LoroDoc>();
+  private chatDocs = new Map<string, LoroDoc>();
   private readonly pathForDoc = new Map<LoroDoc, string>();
   private readonly pageIdForDoc = new Map<LoroDoc, string>();
   private dirtyDocs = new Set<LoroDoc>();
@@ -175,6 +203,7 @@ export class WorkspaceStore {
   private structureListeners = new Set<() => void>();
   private pageListeners = new Map<string, Set<() => void>>();
   private pluginListeners = new Map<string, Set<() => void>>();
+  private chatListeners = new Map<string, Set<() => void>>();
   private commitListeners = new Set<(docId: string) => void>();
   private commitTimer: ReturnType<typeof setTimeout> | undefined;
   private pendingCommits = new Set<string>();
@@ -530,7 +559,7 @@ export class WorkspaceStore {
     return this.getSettings().publish;
   }
 
-  getAiConfig() {
+  getAiSettings() {
     return this.getSettings().ai;
   }
 
@@ -847,6 +876,25 @@ export class WorkspaceStore {
     return doc;
   }
 
+  private async openChatDoc(threadId: string): Promise<LoroDoc> {
+    const cached = this.chatDocs.get(threadId);
+    if (cached) return cached;
+
+    const path = chatPath(this.workspaceId, threadId);
+    const doc = await this.readDoc(path);
+
+    this.chatDocs.set(threadId, doc);
+    this.pathForDoc.set(doc, path);
+
+    doc.subscribe(() => {
+      this.scheduleSave(doc);
+      this.emitChat(threadId);
+      this.scheduleCommit(chatDocId(threadId));
+    });
+
+    return doc;
+  }
+
   getPageText(pageId: string): string {
     const doc = this.pageDocs.get(pageId);
     if (!doc) return "";
@@ -895,7 +943,7 @@ export class WorkspaceStore {
     return () => this.commitListeners.delete(listener);
   }
 
-  /** docId space: workspace id, page ids, and `plugin:<instanceId>` docs. */
+  /** docId space: workspace id, page ids, `plugin:<id>` and `chat:<id>` docs. */
   async getDocById(docId: string): Promise<LoroDoc | null> {
     if (docId === this.workspaceId) return this.doc;
 
@@ -904,6 +952,13 @@ export class WorkspaceStore {
       if (!this.getPluginInstance(instanceId)) return null;
 
       return this.openPluginDoc(instanceId);
+    }
+
+    const threadId = chatIdOf(docId);
+    if (threadId !== null) {
+      if (!this.getChat(threadId)) return null;
+
+      return this.openChatDoc(threadId);
     }
 
     if (!this.getPage(docId)) return null;
@@ -915,6 +970,7 @@ export class WorkspaceStore {
     const ids = [this.workspaceId];
     for (const page of this.listPages()) ids.push(page.id);
     for (const instance of this.listPluginInstances()) ids.push(pluginDocId(instance.id));
+    for (const thread of this.listChats()) ids.push(chatDocId(thread.id));
 
     return ids;
   }
@@ -1257,6 +1313,213 @@ export class WorkspaceStore {
     return () => listeners.delete(listener);
   }
 
+  // ---- Chats -------------------------------------------------------------
+  //
+  // Thread metadata is a record in the workspace doc's `chats` map; messages
+  // live in the thread's own doc (`chat:<threadId>`). The sync engine already
+  // walks listDocIds/getDocById, so threads sync like page and plugin docs.
+
+  listChats(): ChatThread[] {
+    const chats = this.doc.getMap("chats");
+    const list: ChatThread[] = [];
+
+    for (const id of chats.keys() as string[]) {
+      const chat = this.readChat(id);
+      if (chat) list.push(chat);
+    }
+
+    return list.sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  getChat(id: string): ChatThread | undefined {
+    return this.readChat(id);
+  }
+
+  private readChat(id: string): ChatThread | undefined {
+    const map = this.doc.getMap("chats").get(id) as LoroMap | undefined;
+    if (!map || map.isDeleted()) return undefined;
+
+    return map.toJSON() as ChatThread;
+  }
+
+  private writeChat(thread: ChatThread): void {
+    const chats = this.doc.getMap("chats");
+    const map = chats.ensureMergeableMap(thread.id);
+    map.set("id", thread.id);
+    map.set("title", thread.title);
+    map.set("providerId", thread.providerId);
+    map.set("model", thread.model);
+    map.set("pageId", thread.pageId);
+    map.set("createdAt", thread.createdAt);
+    map.set("updatedAt", thread.updatedAt);
+    this.doc.commit();
+  }
+
+  async createChat(input: {
+    title?: string;
+    providerId?: string | null;
+    model?: string | null;
+    pageId?: string | null;
+  }): Promise<ChatThread> {
+    const now = Date.now();
+    const thread: ChatThread = {
+      id: createId(),
+      title: input.title?.trim() || "New chat",
+      providerId: input.providerId ?? null,
+      model: input.model ?? null,
+      pageId: input.pageId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.writeChat(thread);
+    await this.openChatDoc(thread.id);
+
+    return thread;
+  }
+
+  updateChat(
+    id: string,
+    patch: Partial<Pick<ChatThread, "title" | "providerId" | "model" | "pageId">>,
+  ): void {
+    const thread = this.getChat(id);
+    if (!thread) return;
+
+    this.writeChat({ ...thread, ...patch, updatedAt: Date.now() });
+  }
+
+  async deleteChat(id: string): Promise<void> {
+    this.doc.getMap("chats").delete(id);
+    this.doc.commit();
+
+    const doc = this.chatDocs.get(id);
+    if (doc) this.dirtyDocs.delete(doc);
+    this.chatDocs.delete(id);
+    await this.backend.delete(chatPath(this.workspaceId, id));
+  }
+
+  private readChatMessage(id: string, map: LoroMap): ChatMessage {
+    const plain = map.toJSON() as Record<string, unknown>;
+
+    return {
+      id,
+      role: plain.role === "user" ? "user" : "assistant",
+      seq: typeof plain.seq === "number" ? plain.seq : 0,
+      source: typeof plain.source === "string" ? plain.source : "",
+      status:
+        typeof plain.status === "string" ? (plain.status as ChatMessage["status"]) : "streaming",
+      providerId: typeof plain.providerId === "string" ? plain.providerId : null,
+      model: typeof plain.model === "string" ? plain.model : null,
+      createdAt: typeof plain.createdAt === "number" ? plain.createdAt : 0,
+      updatedAt: typeof plain.updatedAt === "number" ? plain.updatedAt : 0,
+      repairOf: typeof plain.repairOf === "string" ? plain.repairOf : null,
+      diagnostics: decodeJson<ChatMessage["diagnostics"]>(plain.diagnostics, []),
+      tools: decodeJson<ChatMessage["tools"]>(plain.tools, []),
+      error: typeof plain.error === "string" ? plain.error : null,
+    };
+  }
+
+  private writeChatMessage(threadId: string, message: ChatMessage): void {
+    const messages = this.getChatDocMessages(threadId);
+    const map = messages.ensureMergeableMap(message.id);
+    map.set("id", message.id);
+    map.set("role", message.role);
+    map.set("seq", message.seq);
+    map.set("source", message.source);
+    map.set("status", message.status);
+    map.set("providerId", message.providerId);
+    map.set("model", message.model);
+    map.set("createdAt", message.createdAt);
+    map.set("updatedAt", message.updatedAt);
+    map.set("repairOf", message.repairOf);
+    map.set("diagnostics", encodeSetting(message.diagnostics));
+    map.set("tools", encodeSetting(message.tools));
+    map.set("error", message.error);
+  }
+
+  private getChatDocMessages(threadId: string): LoroMap {
+    const doc = this.chatDocs.get(threadId);
+    if (!doc) throw new Error(`Chat doc ${threadId} is not open`);
+
+    return doc.getMap("messages");
+  }
+
+  async readChatMessages(threadId: string): Promise<ChatMessage[]> {
+    const doc = await this.openChatDoc(threadId);
+    const messages = doc.getMap("messages");
+    const list: ChatMessage[] = [];
+
+    for (const id of messages.keys() as string[]) {
+      const map = messages.get(id) as LoroMap | undefined;
+      if (!map || map.isDeleted()) continue;
+      list.push(this.readChatMessage(id, map));
+    }
+
+    return list.sort((a, b) => a.seq - b.seq);
+  }
+
+  async appendChatMessage(threadId: string, message: ChatMessage): Promise<void> {
+    const doc = await this.openChatDoc(threadId);
+    this.writeChatMessage(threadId, message);
+    doc.commit();
+
+    const thread = this.getChat(threadId);
+    if (thread) {
+      this.writeChat({
+        ...thread,
+        updatedAt: Date.now(),
+        // The first user turn names the thread after its first line.
+        title:
+          thread.title === "New chat" && message.role === "user" && message.source.trim()
+            ? message.source.trim().split("\n")[0]!.slice(0, 80)
+            : thread.title,
+      });
+    }
+  }
+
+  async updateChatMessage(
+    threadId: string,
+    messageId: string,
+    patch: Partial<
+      Pick<
+        ChatMessage,
+        | "source"
+        | "status"
+        | "providerId"
+        | "model"
+        | "diagnostics"
+        | "tools"
+        | "error"
+        | "repairOf"
+      >
+    >,
+  ): Promise<void> {
+    const doc = await this.openChatDoc(threadId);
+    const messages = doc.getMap("messages");
+    const map = messages.get(messageId) as LoroMap | undefined;
+    if (!map || map.isDeleted()) return;
+
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined) continue;
+      if (key === "diagnostics" || key === "tools") map.set(key, encodeSetting(value));
+      else map.set(key, value);
+    }
+    map.set("updatedAt", Date.now());
+    doc.commit();
+  }
+
+  async onChatDocChange(threadId: string, listener: () => void): Promise<() => void> {
+    await this.openChatDoc(threadId);
+    let listeners = this.chatListeners.get(threadId);
+    if (!listeners) {
+      listeners = new Set();
+      this.chatListeners.set(threadId, listeners);
+    }
+    listeners.add(listener);
+
+    return () => listeners.delete(listener);
+  }
+
   // ---- Blobs -------------------------------------------------------------
 
   /**
@@ -1375,6 +1638,10 @@ export class WorkspaceStore {
 
   private emitPlugin(instanceId: string): void {
     for (const listener of this.pluginListeners.get(instanceId) ?? []) listener();
+  }
+
+  private emitChat(threadId: string): void {
+    for (const listener of this.chatListeners.get(threadId) ?? []) listener();
   }
 
   /** Called on any workspace-level change (pages, categories, settings). */

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 import type {
+  AiProviderSettings,
+  AiSettings,
   SpellcheckMode,
   ThemeMode,
   ThemePaletteToken,
@@ -17,7 +19,7 @@ import { THEME_PALETTE_TOKEN_KEYS } from "@typbase/typing";
 
 import type { SelectOption } from "~/components/ui/Select.vue";
 
-import { getAiKeys, setAiKeys } from "~/lib/ai/keys";
+import { getAiKeys, setAiKey } from "~/lib/ai/keys";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 import { CUSTOM_THEME_ID, resolveTheme, THEMES } from "~/lib/themes";
 
@@ -95,13 +97,7 @@ function togglePdf(value: boolean) {
   });
 }
 
-// AI config (syncs; keys do not). Features are opt-in: nothing runs until
-// the user flips `enabled`, and the provider details gate the menu too.
-const aiConfig = computed(() => props.store.getAiConfig());
-function updateAiPatching(patch: Record<string, unknown>) {
-  props.store.updateSettings({ ai: { ...aiConfig.value, ...patch } });
-}
-const aiKeys = ref(getAiKeys());
+// AI providers and behavior (see the AI panel below); keys stay device-local.
 
 // Theme picker: named themes from the registry plus a custom palette. The
 // custom editor seeds from the resolved palette, so selecting it starts from
@@ -326,16 +322,101 @@ const codeFont = computed({
   set: (value: string) => void updateFont({ codeFont: value === "same" ? null : value }),
 });
 
-const providerOptions: SelectOption[] = [
+const aiKindOptions: SelectOption[] = [
   { value: "ollama", label: "Ollama (local)" },
   { value: "openai-compatible", label: "OpenAI-compatible" },
   { value: "anthropic", label: "Anthropic" },
 ];
 
-const aiProvider = computed({
-  get: () => aiConfig.value.provider,
-  set: (provider: string) => updateAiPatching({ provider }),
+const aiSettings = computed(() => {
+  void dataRevision.value;
+
+  return props.store.getAiSettings();
 });
+const aiProviders = computed(() => {
+  void dataRevision.value;
+
+  return aiSettings.value.providers;
+});
+
+/** Provider being edited in the panel; follows the list when it changes. */
+const activeProviderId = ref("");
+watch(
+  aiProviders,
+  (list) => {
+    if (!list.some((provider) => provider.id === activeProviderId.value)) {
+      activeProviderId.value = list[0]?.id ?? "";
+    }
+  },
+  { immediate: true },
+);
+
+const activeProvider = computed(
+  () => aiProviders.value.find((provider) => provider.id === activeProviderId.value) ?? null,
+);
+
+const aiKeys = ref(getAiKeys());
+const activeKey = computed(() =>
+  activeProvider.value ? (aiKeys.value[activeProvider.value.id] ?? "") : "",
+);
+
+function updateAiSettings(patch: Partial<AiSettings>): void {
+  props.store.updateSettings({ ai: { ...aiSettings.value, ...patch } });
+}
+
+function updateAiProvider(patch: Partial<AiProviderSettings>): void {
+  const provider = activeProvider.value;
+  if (!provider) return;
+
+  updateAiSettings({
+    providers: aiProviders.value.map((entry) =>
+      entry.id === provider.id ? { ...entry, ...patch } : entry,
+    ),
+  });
+}
+
+function addAiProvider(): void {
+  const provider: AiProviderSettings = {
+    id: `provider-${Date.now().toString(36)}`,
+    name: "New provider",
+    kind: "openai-compatible",
+    baseUrl: "",
+    model: "gpt-4o-mini",
+  };
+  updateAiSettings({
+    providers: [...aiProviders.value, provider],
+    defaultProviderId: aiSettings.value.defaultProviderId ?? provider.id,
+  });
+  activeProviderId.value = provider.id;
+}
+
+function removeAiProvider(): void {
+  const provider = activeProvider.value;
+  if (!provider) return;
+
+  const providers = aiProviders.value.filter((entry) => entry.id !== provider.id);
+  updateAiSettings({
+    providers,
+    defaultProviderId:
+      aiSettings.value.defaultProviderId === provider.id
+        ? (providers[0]?.id ?? null)
+        : aiSettings.value.defaultProviderId,
+  });
+}
+
+function onAiKeyChange(event: Event): void {
+  if (!activeProvider.value) return;
+
+  setAiKey(activeProvider.value.id, (event.target as HTMLInputElement).value);
+  aiKeys.value = getAiKeys();
+}
+
+function baseUrlPlaceholder(kind: string): string {
+  if (kind === "ollama") return "http://localhost:11434";
+  if (kind === "anthropic") return "https://api.anthropic.com";
+
+  return "https://api.openai.com/v1";
+}
 
 const textSize = computed<number | null>({
   get: () => settings.value.textSize,
@@ -350,21 +431,6 @@ const textSize = computed<number | null>({
     });
   },
 });
-
-// Search status.
-function setAiEnabled(value: boolean) {
-  updateAiPatching({ enabled: value });
-}
-
-function onAiKeyChange(event: Event) {
-  const value = (event.target as HTMLInputElement).value;
-  setAiKeys(
-    aiConfig.value.provider === "anthropic"
-      ? { ...aiKeys.value, anthropic: value }
-      : { ...aiKeys.value, openai: value },
-  );
-  aiKeys.value = getAiKeys();
-}
 
 onMounted(() => {
   applyTheme(props.store.getSettings());
@@ -695,65 +761,141 @@ async function renameWorkspace(event: Event) {
         </section>
         <section v-show="activeTab === 'ai'" class="settings__tabpanel">
           <section class="settings__section">
-            <h4 class="settings__heading">AI</h4>
+            <h4 class="settings__heading">{{ $t("settings.tabAi") }}</h4>
             <UiSwitch
-              :model-value="aiConfig.enabled"
+              :model-value="aiSettings.enabled"
               :label="$t('settings.aiEnable')"
-              @update:model-value="setAiEnabled"
+              @update:model-value="(value) => updateAiSettings({ enabled: value })"
             />
-            <p class="settings__hint">
-              Off by default: nothing is generated or sent to a provider until you enable this.
-            </p>
-            <template v-if="aiConfig.enabled">
+            <p class="settings__hint">{{ $t("settings.aiHint") }}</p>
+
+            <template v-if="aiSettings.enabled">
               <Label class="settings__field">
                 <span>{{ $t("settings.provider") }}</span>
-                <UiSelect
-                  v-model="aiProvider"
-                  :options="providerOptions"
-                  :label="$t('settings.provider')"
-                />
+                <div class="settings__row">
+                  <UiSelect
+                    v-if="aiProviders.length"
+                    v-model="activeProviderId"
+                    :options="
+                      aiProviders.map((provider) => ({
+                        value: provider.id,
+                        label: provider.name,
+                      }))
+                    "
+                    :label="$t('settings.provider')"
+                  />
+                  <UiButton size="small" @click="addAiProvider">
+                    {{ $t("settings.addProvider") }}
+                  </UiButton>
+                  <UiButton
+                    v-if="aiProviders.length > 1"
+                    size="small"
+                    variant="danger"
+                    @click="removeAiProvider"
+                  >
+                    {{ $t("settings.removeProvider") }}
+                  </UiButton>
+                </div>
               </Label>
-              <Label class="settings__field">
-                <span>{{ $t("settings.baseUrl") }}</span>
-                <UiTextField
-                  :value="aiConfig.baseUrl"
-                  :placeholder="
-                    aiConfig.provider === 'ollama'
-                      ? 'http://localhost:11434'
-                      : aiConfig.provider === 'anthropic'
-                        ? 'https://api.anthropic.com'
-                        : 'https://api.openai.com/v1'
-                  "
-                  @change="
-                    updateAiPatching({
-                      baseUrl: ($event.target as HTMLInputElement).value.trim(),
-                    })
-                  "
-                />
-              </Label>
-              <Label class="settings__field">
-                <span>{{ $t("settings.model") }}</span>
-                <UiTextField
-                  :value="aiConfig.chatModel"
-                  @change="
-                    updateAiPatching({
-                      chatModel: ($event.target as HTMLInputElement).value.trim(),
-                    })
-                  "
-                />
-              </Label>
-              <template v-if="aiConfig.provider !== 'ollama'">
+
+              <template v-if="activeProvider">
                 <Label class="settings__field">
+                  <span>{{ $t("settings.providerName") }}</span>
+                  <UiTextField
+                    :value="activeProvider.name"
+                    @change="
+                      updateAiProvider({
+                        name: ($event.target as HTMLInputElement).value.trim() || 'Provider',
+                      })
+                    "
+                  />
+                </Label>
+                <Label class="settings__field">
+                  <span>{{ $t("settings.providerKind") }}</span>
+                  <UiSelect
+                    :model-value="activeProvider.kind"
+                    :options="aiKindOptions"
+                    :label="$t('settings.providerKind')"
+                    @update:model-value="
+                      (value) => updateAiProvider({ kind: value as AiProviderSettings['kind'] })
+                    "
+                  />
+                </Label>
+                <Label class="settings__field">
+                  <span>{{ $t("settings.baseUrl") }}</span>
+                  <UiTextField
+                    :value="activeProvider.baseUrl"
+                    :placeholder="baseUrlPlaceholder(activeProvider.kind)"
+                    @change="
+                      updateAiProvider({
+                        baseUrl: ($event.target as HTMLInputElement).value.trim(),
+                      })
+                    "
+                  />
+                </Label>
+                <Label class="settings__field">
+                  <span>{{ $t("settings.model") }}</span>
+                  <UiTextField
+                    :value="activeProvider.model"
+                    @change="
+                      updateAiProvider({
+                        model: ($event.target as HTMLInputElement).value.trim(),
+                      })
+                    "
+                  />
+                </Label>
+                <Label v-if="activeProvider.kind !== 'ollama'" class="settings__field">
                   <span>{{ $t("settings.apiKey") }}</span>
                   <UiTextField
                     type="password"
-                    :value="aiKeys.openai ?? aiKeys.anthropic ?? ''"
-                    :placeholder="aiConfig.provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'"
+                    :value="activeKey"
+                    :placeholder="activeProvider.kind === 'anthropic' ? 'sk-ant-...' : 'sk-...'"
                     @change="onAiKeyChange"
                   />
                 </Label>
+                <p class="settings__hint">{{ $t("settings.keysHint") }}</p>
               </template>
-              <p class="settings__hint">{{ $t("settings.keysHint") }}</p>
+
+              <Label class="settings__field">
+                <span>{{ $t("settings.defaultProvider") }}</span>
+                <UiSelect
+                  :model-value="aiSettings.defaultProviderId ?? ''"
+                  :options="
+                    aiProviders.map((provider) => ({
+                      value: provider.id,
+                      label: provider.name,
+                    }))
+                  "
+                  :label="$t('settings.defaultProvider')"
+                  @update:model-value="(value) => updateAiSettings({ defaultProviderId: value })"
+                />
+              </Label>
+
+              <UiSwitch
+                :model-value="aiSettings.liveRender"
+                :label="$t('settings.aiLiveRender')"
+                @update:model-value="(value) => updateAiSettings({ liveRender: value })"
+              />
+              <UiSwitch
+                :model-value="aiSettings.pageContext"
+                :label="$t('settings.aiPageContext')"
+                @update:model-value="(value) => updateAiSettings({ pageContext: value })"
+              />
+              <UiSwitch
+                :model-value="aiSettings.tools"
+                :label="$t('settings.aiTools')"
+                @update:model-value="(value) => updateAiSettings({ tools: value })"
+              />
+              <Label class="settings__field">
+                <span>{{ $t("settings.aiRepairAttempts") }}</span>
+                <UiNumberField
+                  :model-value="aiSettings.repairAttempts"
+                  :label="$t('settings.aiRepairAttempts')"
+                  :min="0"
+                  :max="5"
+                  @update:model-value="(value) => updateAiSettings({ repairAttempts: value ?? 0 })"
+                />
+              </Label>
             </template>
           </section>
         </section>

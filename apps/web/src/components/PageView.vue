@@ -452,7 +452,28 @@ const spellcheckMode = computed(() => {
   return store?.getSettings().spellcheck ?? "off";
 });
 
-const aiEnabled = computed(() => store.getAiConfig().enabled);
+const aiEnabled = computed(() => {
+  void dataRevision.value;
+
+  return store.getAiSettings().enabled;
+});
+
+const chat = useChat();
+
+/** Opens the chat pane seeded with this page (or the selection). */
+async function askAi(): Promise<void> {
+  if (!aiEnabled.value) {
+    if (!window.confirm(t("chat.enableConfirm"))) return;
+
+    store.updateSettings({ ai: { ...store.getAiSettings(), enabled: true } });
+  }
+
+  const selection = getSelection();
+  await chat.seedChat({
+    pageId: props.pageId,
+    selection: selection?.text ?? null,
+  });
+}
 
 const TEXT_PUSH_MS = 300;
 let pendingText: { pageId: string; text: string } | undefined;
@@ -778,11 +799,6 @@ function getSelection(): { from: number; to: number; text: string } | null {
   return { from, to, text: view.state.sliceDoc(from, to) };
 }
 
-function insertBelowSelection(from: number, to: number, output: string): void {
-  const at = Math.max(from, to);
-  editorPane.value?.insertAt(at, `\n\n${output}\n`);
-}
-
 /**
  * Media dropped on the editor: store the bytes as a blob, then insert the
  * Typst reference at the drop position. Known blobs (asset drags) skip the
@@ -1010,13 +1026,13 @@ function onModeKeydown(event: KeyboardEvent) {
           @click="formatOpen = !formatOpen"
         />
 
-        <AIMenu
+        <UiIconButton
           v-if="store && aiEnabled"
-          :page-id="pageId"
-          :store="store"
-          :get-selection="getSelection"
-          :insert-below-selection="insertBelowSelection"
-          @open-page="emit('openPage', $event)"
+          icon="forum"
+          :label="$t('chat.ask')"
+          :disabled="!ready"
+          class="page-view__ai-toggle"
+          @click="askAi"
         />
 
         <PublishButton v-if="store" :page-id="pageId" :store="store" />

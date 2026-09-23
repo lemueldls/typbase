@@ -33,6 +33,9 @@ export type {
 } from "./workspace";
 export {
   WorkspaceStore,
+  chatDocId,
+  chatIdOf,
+  chatPath,
   pagePath,
   pluginDocId,
   pluginInstanceOf,

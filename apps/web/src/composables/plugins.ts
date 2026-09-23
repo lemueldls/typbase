@@ -10,11 +10,11 @@ import type {
 
 import type { PluginSurfacePackage } from "~/lib/plugins/protocol";
 
+import { useChat } from "~/composables/chat";
 import { resolveAppTheme } from "~/composables/theme";
 import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
-import { createProviderFor, refreshSections, toSections } from "~/lib/ai/generators";
-import { getAiKeys } from "~/lib/ai/keys";
+import { completeForPlugin } from "~/lib/ai/engine";
 import { engineAvailable } from "~/lib/engineHealth";
 import { specString } from "~/lib/packages";
 import {
@@ -32,7 +32,8 @@ import {
   pluginsRevision,
   registerPluginSources,
 } from "~/lib/plugins/registry";
-import { sanitizePluginHtml } from "~/lib/plugins/sanitize";
+import { sanitizeHtml } from "~/lib/plugins/sanitize";
+import { refreshSections, toSections } from "~/lib/sections";
 import { resolveRequestPayloads } from "~/lib/typstRequests";
 
 export interface PluginError {
@@ -87,6 +88,9 @@ function parseConfig(instance: PluginInstance): Record<string, unknown> {
 function usePluginHost() {
   const { workspace, backend, localState, dataRevision } = useWorkspace();
   const { locale } = useI18n();
+  // Plugin AI actions go through the chat runtime; instantiate it so the
+  // engine deps exist even when no chat pane is open (for example /debug).
+  useChat();
 
   const catalog = shallowRef<CatalogPlugin[]>(loadBundledCatalog());
   const errors = ref<PluginError[]>([]);
@@ -95,6 +99,8 @@ function usePluginHost() {
   const subscriptions = new Map<string, Set<(html: string) => void>>();
   const docUnsubscribes = new Map<string, () => void>();
   const renderQueues = new Map<string, Promise<void>>();
+  /** One in-flight `ai.stream` per plugin instance; a new one aborts the old. */
+  const aiStreams = new Map<string, AbortController>();
   const views = shallowRef<Record<string, Record<string, unknown>>>({});
   let viewsLoaded = false;
   let fallbackLogged = false;
@@ -507,7 +513,7 @@ function usePluginHost() {
         });
       }
 
-      const sanitized = sanitizePluginHtml(result.html);
+      const sanitized = sanitizeHtml(result.html);
       for (const error of sanitized.errors) {
         pushError({ instanceId, pluginId: manifest.id, message: error });
       }
@@ -564,7 +570,7 @@ function usePluginHost() {
       message: `${action.name} ${JSON.stringify(action.args ?? {})}`.slice(0, 240),
     });
 
-    if (action.name.startsWith("app.")) {
+    if (action.name.startsWith("app.") || action.name.startsWith("ai.")) {
       await handleBuiltin(instanceId, action);
       return;
     }
@@ -668,7 +674,7 @@ function usePluginHost() {
         const next = `${current}${separator}${text}\n`;
         await store.setPageText(page.id, next);
 
-        // Sections feed flashcards and the note index; refresh them now so
+        // Sections feed the note index and plugin data; refresh them now so
         // plugins see fresh content without a page switch.
         const typstState = await useTypst().catch(() => null);
         if (typstState) {
@@ -692,7 +698,8 @@ function usePluginHost() {
         return;
       }
 
-      case "app.ai": {
+      case "ai.complete":
+      case "ai.stream": {
         if (!capabilityOf(instanceId, "plugin.ai")) return deny(instanceId, "plugin.ai");
         await runAi(instanceId, action);
         return;
@@ -707,6 +714,7 @@ function usePluginHost() {
     pushError({ instanceId, message: `action denied: missing capability "${capability}"` });
   }
 
+  /** Maps a resolved AI call back into the plugin as an `ai.result` render. */
   async function runAi(instanceId: string, action: PluginAction): Promise<void> {
     const store = workspace.value;
     if (!store) return;
@@ -719,31 +727,175 @@ function usePluginHost() {
         fields: {},
       });
 
-    if (!store.getAiConfig().enabled) {
+    if (!store.getAiSettings().enabled) {
       await followUp({ error: "AI features are disabled in settings." });
       return;
     }
 
-    try {
-      const provider = createProviderFor(store, getAiKeys());
-      let prompt = String(action.args.prompt ?? action.fields?.prompt ?? "");
-      const pageId = String(action.fields?.pageId ?? action.args.pageId ?? "");
-      if (pageId && capabilityOf(instanceId, "pages.read")) {
-        const text = await store.loadPageText(pageId);
-        prompt = `${prompt}\n\n---\n${text}`;
-      }
+    const args = action.args;
+    const fields = action.fields ?? {};
+    const prompt = String(args.prompt ?? fields.prompt ?? "").trim();
+    if (!prompt) {
+      await followUp({ error: "ai: prompt is required" });
+      return;
+    }
 
-      const text = await provider.chat([
-        {
-          role: "system",
-          content:
-            "You are a typbase plugin assistant. Answer with plain text or JSON exactly as the prompt requests.",
-        },
-        { role: "user", content: prompt },
-      ]);
-      await followUp({ text });
+    const format = args.format === "typst" ? "typst" : "text";
+    const canReadPages = capabilityOf(instanceId, "pages.read");
+    const pageId =
+      canReadPages && typeof (fields.pageId ?? args.pageId) === "string"
+        ? String(fields.pageId ?? args.pageId)
+        : null;
+    const selection = typeof args.selection === "string" ? args.selection : null;
+    const providerId = typeof args.providerId === "string" ? args.providerId : null;
+    const model = typeof args.model === "string" ? args.model : null;
+
+    if (action.name === "ai.stream") {
+      await runAiStream(instanceId, {
+        followUp,
+        prompt,
+        format,
+        pageId,
+        selection,
+        providerId,
+        model,
+        collection: String(args.collection ?? fields.collection ?? ""),
+        recordId: String(args.id ?? fields.id ?? ""),
+        field: String(args.field ?? fields.field ?? "text"),
+      });
+      return;
+    }
+
+    try {
+      const result = await completeForPlugin({
+        store,
+        prompt,
+        format,
+        pageId,
+        selection,
+        providerId,
+        model,
+      });
+      await followUp({ text: result.text, diagnostics: result.diagnostics });
     } catch (error) {
       await followUp({ error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  /**
+   * Streaming AI calls write the growing text into one plugin record, so a
+   * surface can render its own live chat without new protocol. The field is
+   * patched on a debounce; `<field>Status` tracks streaming/done/error.
+   */
+  async function runAiStream(
+    instanceId: string,
+    input: {
+      followUp: (args: Record<string, unknown>) => Promise<void>;
+      prompt: string;
+      format: "text" | "typst";
+      pageId: string | null;
+      selection: string | null;
+      providerId: string | null;
+      model: string | null;
+      collection: string;
+      recordId: string;
+      field: string;
+    },
+  ): Promise<void> {
+    const store = workspace.value;
+    if (!store) return;
+    if (!input.collection || !input.recordId) {
+      await input.followUp({ error: "ai.stream: collection and id are required" });
+      return;
+    }
+
+    aiStreams.get(instanceId)?.abort();
+    const controller = new AbortController();
+    aiStreams.set(instanceId, controller);
+
+    const statusField = `${input.field}Status`;
+    let passText = "";
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const patch = async (): Promise<void> => {
+      await store.applyPluginPatch(instanceId, [
+        {
+          op: "merge",
+          collection: input.collection,
+          id: input.recordId,
+          record: { [input.field]: passText },
+        },
+      ]);
+    };
+    const schedule = (): void => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        void patch().catch(() => {
+          // A deleted record stops the stream from the plugin's side; the
+          // completion patch below will recreate nothing.
+        });
+      }, 150);
+    };
+
+    await store.applyPluginPatch(instanceId, [
+      {
+        op: "merge",
+        collection: input.collection,
+        id: input.recordId,
+        record: { [input.field]: "", [statusField]: "streaming" },
+      },
+    ]);
+
+    try {
+      const result = await completeForPlugin({
+        store,
+        prompt: input.prompt,
+        format: input.format,
+        pageId: input.pageId,
+        selection: input.selection,
+        providerId: input.providerId,
+        model: input.model,
+        signal: controller.signal,
+        onDelta: (delta) => {
+          passText += delta;
+          schedule();
+        },
+        onReset: () => {
+          passText = "";
+          void patch();
+        },
+      });
+
+      if (timer) clearTimeout(timer);
+      await store.applyPluginPatch(instanceId, [
+        {
+          op: "merge",
+          collection: input.collection,
+          id: input.recordId,
+          record: {
+            [input.field]: result.text,
+            [statusField]: "done",
+            [`${input.field}Diagnostics`]: JSON.stringify(result.diagnostics),
+          },
+        },
+      ]);
+      await input.followUp({ text: result.text, diagnostics: result.diagnostics });
+    } catch (error) {
+      if (timer) clearTimeout(timer);
+      const message = error instanceof Error ? error.message : String(error);
+      await store
+        .applyPluginPatch(instanceId, [
+          {
+            op: "merge",
+            collection: input.collection,
+            id: input.recordId,
+            record: { [statusField]: "error", [`${input.field}Error`]: message },
+          },
+        ])
+        .catch(() => undefined);
+      await input.followUp({ error: message });
+    } finally {
+      if (aiStreams.get(instanceId) === controller) aiStreams.delete(instanceId);
     }
   }
 

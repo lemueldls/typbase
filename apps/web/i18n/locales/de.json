@@ -193,19 +193,6 @@
     "changeStorage": "Ändern",
     "storageHint": "Wo dieses Gerät Arbeitsbereiche ablegt. Beim Wechsel erscheint die eigene Liste des Speicherorts."
   },
-  "aiMenu": {
-    "off": "KI (aus)",
-    "enableConfirm": "KI-Generierung ist aus. Aktivieren und einen Anbieter in den Einstellungen konfigurieren?",
-    "summarize": "Seite zusammenfassen",
-    "outline": "Seitengliederung",
-    "explain": "Auswahl erklären",
-    "simplify": "Auswahl vereinfachen",
-    "quiz": "Quiz zur Seite",
-    "flashcards": "Karteikarten für Kategorie",
-    "studyGuide": "Lernleitfaden für Kategorie",
-    "hint": "Aufrufe gehen direkt an den konfigurierten Anbieter. Schlüssel liegen in local.json.",
-    "title": "KI-Generatoren"
-  },
   "switcher": {
     "title": "Arbeitsbereich öffnen",
     "current": "aktuell",
