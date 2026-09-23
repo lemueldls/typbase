@@ -37,7 +37,6 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         uses: moonrepo/setup-rust@abb2d32350334249b178c401e5ec5836e0cd88d3 # v1.3.0
         with:
-          channel: nightly-2026-09-05
           bins: wasm-pack@0.15.0
           targets: wasm32-unknown-unknown
 
