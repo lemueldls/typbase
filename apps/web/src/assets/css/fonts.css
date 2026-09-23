@@ -5,6 +5,16 @@
   --md-icon-weight: 400;
 }
 
+/* The icon woff2 is ~5 MB, so the browser's 3 s block period (the package
+   sets `font-display: block`) can expire mid-download and the fallback spells
+   out the glyph name ("arrow_back"). Keep the ligature hidden until the face
+   is loaded; plugins/icons.client.ts opens the gate. `visibility` keeps both
+   boxes, so nothing shifts when the icons appear. */
+html:not(.icons-ready) .material-symbols-rounded,
+html:not(.icons-ready) .cm-completionIcon::after {
+  visibility: hidden;
+}
+
 @font-face {
   font-family: "Maple Mono";
   src: url("~~/public/fonts/maple/MapleMono-Regular.ttf") format("truetype");
