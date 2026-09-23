@@ -60,4 +60,4 @@ git config user.name "${AUR_GIT_NAME:-lemueldls}"
 git config user.email "${AUR_GIT_EMAIL:-aur@lemueldls.dev}"
 git add PKGBUILD .SRCINFO
 git commit -m "New upstream release $version"
-git push origin master
+git push origin HEAD:master

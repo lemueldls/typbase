@@ -40,6 +40,9 @@ build() {
     export CFLAGS="\${CFLAGS//-flto=auto//}"
     export NUXT_PUBLIC_APP_URL="https://typbase.at"
     cd apps/native || exit 1
+    # tauri.package.conf.json points beforeBuildCommand at
+    # \`pnpm -w run generate:direct\`, so the frontend builds without moon and
+    # the tarball's missing git metadata is fine.
     pnpm tauri build -b deb -c tauri.package.conf.json
 }
 
