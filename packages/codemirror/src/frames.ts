@@ -12,6 +12,17 @@ import { LRUCache } from "lru-cache";
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
 /**
+ * Opens an external link for the host. Browsers get a new tab; the app passes
+ * its `openExternal`, which hands the URL to the system browser in Tauri
+ * (a webview has no tab strip, so `window.open` is dropped there).
+ */
+export type ExternalLinkOpener = (url: string) => void;
+
+const openInNewTab: ExternalLinkOpener = (url) => {
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
+/**
  * The compiled size of an SVG frame, from the markup's viewBox. The viewBox
  * is the page width the engine laid out at (pt), and the app renders one
  * Typst point per CSS pixel, so the numbers map to px directly.
@@ -68,9 +79,10 @@ export function createFrameContainer(frame: SvgRangedFrame): HTMLElement {
 
 /**
  * Click handling shared by inline widgets and notebook outputs: typbase://
- * links are left for the host's anchor router, external links confirm first,
- * anything else maps back into the compiled document and moves the cursor.
- * Alt-click edits the link instead of following it.
+ * links are left for the host's anchor router, external links confirm first
+ * and go through `openExternal`, anything else maps back into the compiled
+ * document and moves the cursor. Alt-click edits the link instead of
+ * following it.
  */
 export function attachFrameInteractions(
   container: HTMLElement,
@@ -78,6 +90,7 @@ export function attachFrameInteractions(
   frame: SvgRangedFrame,
   fileId: FileId,
   typstState: TypstState,
+  openExternal: ExternalLinkOpener = openInNewTab,
 ): void {
   const handle = (event: MouseEvent) => {
     event.preventDefault();
@@ -92,7 +105,7 @@ export function attachFrameInteractions(
       if (href.startsWith("typbase://")) return;
 
       if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
-        window.open(href, "_blank", "noopener,noreferrer");
+        openExternal(href);
       }
 
       return;
@@ -196,6 +209,7 @@ export class TypstWidget extends WidgetType {
     private readonly locked: boolean,
     private readonly fileId: FileId,
     private readonly typstState: TypstState,
+    private readonly openExternal?: ExternalLinkOpener,
   ) {
     super();
 
@@ -214,7 +228,8 @@ export class TypstWidget extends WidgetType {
 
       container.dataset.hash = frame.render.hash.toString();
       container.classList.add("typst-render");
-      if (!locked) attachFrameInteractions(container, view, frame, fileId, typstState);
+      if (!locked)
+        attachFrameInteractions(container, view, frame, fileId, typstState, this.openExternal);
 
       containerCache.set(frame.render.hash, container);
       this.container = container;

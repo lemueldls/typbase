@@ -2,6 +2,8 @@
 import type { TextRef } from "@typbase/codemirror";
 import type { FileId, SvgRangedFrame, TypstState } from "@typbase/engine";
 
+import { openExternal } from "~/lib/openExternal";
+
 const props = defineProps<{
   fileId: FileId;
   spaceId: string;
@@ -77,7 +79,7 @@ function onPreviewClick(event: MouseEvent) {
     if (/^(https?|mailto):/.test(href)) {
       event.preventDefault();
       if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
-        window.open(href, "_blank", "noopener,noreferrer");
+        openExternal(href);
       }
     }
 

@@ -4,6 +4,7 @@ import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typba
 
 import { Decoration, WidgetType } from "@codemirror/view";
 
+import type { ExternalLinkOpener } from "./frames";
 import type { NotebookCell, NotebookCellState, NotebookLabels, NotebookOptions } from "./notebook";
 
 import {
@@ -189,6 +190,7 @@ class NotebookOutputWidget extends WidgetType {
     private readonly fileId: FileId,
     private readonly typstState: TypstState,
     private readonly args: OutputArgs,
+    private readonly openExternal?: ExternalLinkOpener,
   ) {
     super();
   }
@@ -257,7 +259,14 @@ class NotebookOutputWidget extends WidgetType {
       holder.className = "tb-cell-frame";
 
       const container = createFrameContainer(frame);
-      attachFrameInteractions(container, this.view, frame, this.fileId, this.typstState);
+      attachFrameInteractions(
+        container,
+        this.view,
+        frame,
+        this.fileId,
+        this.typstState,
+        this.openExternal,
+      );
       holder.append(container);
       body.append(holder);
     }
@@ -291,11 +300,23 @@ export interface NotebookDecorateArgs {
   fileId: FileId;
   typstState: TypstState;
   locked: boolean;
+  onExternalLink?: ExternalLinkOpener;
   options: NotebookOptions;
 }
 
 export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[] {
-  const { view, state, cells, frames, diagnostics, fileId, typstState, locked, options } = args;
+  const {
+    view,
+    state,
+    cells,
+    frames,
+    diagnostics,
+    fileId,
+    typstState,
+    locked,
+    onExternalLink,
+    options,
+  } = args;
   const decorations: Range<Decoration>[] = [];
 
   const byCell: SvgRangedFrame[][] = cells.map(() => []);
@@ -351,7 +372,7 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
         if (frameIsInactive(view, state, start, end)) {
           decorations.push(
             Decoration.replace({
-              widget: new TypstWidget(view, frame, locked, fileId, typstState),
+              widget: new TypstWidget(view, frame, locked, fileId, typstState, onExternalLink),
             }).range(start, end),
           );
         } else {
@@ -374,14 +395,20 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
 
     decorations.push(
       Decoration.widget({
-        widget: new NotebookOutputWidget(view, fileId, typstState, {
-          index,
-          frames: byCell[index] ?? [],
-          diagnostics: cellDiagnostics,
-          cleared: cellState.cleared ?? false,
-          hasRun: cellState.count !== undefined,
-          labels: options.labels ?? FALLBACK_LABELS,
-        }),
+        widget: new NotebookOutputWidget(
+          view,
+          fileId,
+          typstState,
+          {
+            index,
+            frames: byCell[index] ?? [],
+            diagnostics: cellDiagnostics,
+            cleared: cellState.cleared ?? false,
+            hasRun: cellState.count !== undefined,
+            labels: options.labels ?? FALLBACK_LABELS,
+          },
+          onExternalLink,
+        ),
         block: true,
         side: 1,
       }).range(outputPos),

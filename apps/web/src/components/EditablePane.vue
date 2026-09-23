@@ -38,6 +38,7 @@ import {
 } from "@typbase/codemirror";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
+import { openExternal } from "~/lib/openExternal";
 import {
   spellcheckCompartment,
   spellcheckExtension,
@@ -291,6 +292,7 @@ function createStateConfig(): EditorStateConfig {
           revision: props.revision,
           onPanic: props.onPanic,
           onCompile: props.onCompile,
+          onExternalLink: openExternal,
           notebook: props.notebook,
         },
       ),

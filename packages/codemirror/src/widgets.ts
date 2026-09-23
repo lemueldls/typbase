@@ -7,6 +7,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
+import type { ExternalLinkOpener } from "./frames";
 import type { NotebookCell, NotebookOptions } from "./notebook";
 import type { TextRef, TypstRequestHandler } from "./types";
 
@@ -78,6 +79,7 @@ interface BuildDecorationsArgs {
   locked: boolean;
   fileId: FileId;
   typstState: TypstState;
+  openExternal?: ExternalLinkOpener;
   /**
    * Measured source heights for the active blocks, keyed by line start. The
    * first pass runs while the blocks' widgets are still mounted, so the view
@@ -100,6 +102,7 @@ function buildDecorations({
   locked,
   fileId,
   typstState,
+  openExternal,
   lineHeights,
 }: BuildDecorationsArgs): { decorations: DecorationSet; active: SvgRangedFrame[] } {
   const decorations: Range<Decoration>[] = [];
@@ -111,7 +114,7 @@ function buildDecorations({
     if (!frame.render) continue;
 
     if (frameIsInactive(view, state, start, end)) {
-      const widget = new TypstWidget(view, frame, locked, fileId, typstState);
+      const widget = new TypstWidget(view, frame, locked, fileId, typstState, openExternal);
       decorations.push(Decoration.replace({ widget }).range(start, end));
 
       continue;
@@ -171,6 +174,8 @@ interface DecorateArgs {
   onRequests?: TypstRequestHandler;
   onPanic?: (fileId: FileId) => void;
   onCompile?: () => void;
+  /** Opens a link clicked inside a rendered frame; see ExternalLinkOpener. */
+  onExternalLink?: ExternalLinkOpener;
   notebook?: NotebookOptions;
 }
 
@@ -189,6 +194,7 @@ function decorate({
   onRequests,
   onPanic,
   onCompile,
+  onExternalLink,
   notebook,
 }: DecorateArgs): DecorateResult {
   const text = update.state.doc.toString();
@@ -272,6 +278,7 @@ function decorate({
           fileId,
           typstState,
           locked,
+          onExternalLink,
           options: notebook,
         }),
         true,
@@ -284,7 +291,15 @@ function decorate({
     };
   }
 
-  const built = buildDecorations({ state, view, frames, locked, fileId, typstState });
+  const built = buildDecorations({
+    state,
+    view,
+    frames,
+    locked,
+    fileId,
+    typstState,
+    openExternal: onExternalLink,
+  });
 
   return { decorations: built.decorations, tooltips, frames, active: built.active };
 }
@@ -314,6 +329,8 @@ export interface TypstViewPluginOptions {
   /** Called after a compile pass succeeds; the host resets its health and
    *  heap watchdog on it. */
   onCompile?: () => void;
+  /** See TypstPluginOptions#onExternalLink. */
+  onExternalLink?: ExternalLinkOpener;
   /** Cell rendering, run effects, and cell commands for notebook mode. */
   notebook?: NotebookOptions;
 }
@@ -376,6 +393,7 @@ export const typstViewPlugin = (
               locked,
               fileId,
               typstState,
+              openExternal: options.onExternalLink,
               lineHeights: heights,
             });
 
@@ -459,6 +477,7 @@ export const typstViewPlugin = (
                 onRequests: options.onRequests,
                 onPanic: options.onPanic,
                 onCompile: options.onCompile,
+                onExternalLink: options.onExternalLink,
                 notebook: options.notebook,
               });
             } catch (error) {

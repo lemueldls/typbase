@@ -16,6 +16,8 @@ import {
   type PackageEntry,
 } from "~/lib/packages";
 
+import { openExternal } from "../lib/openExternal";
+
 const props = defineProps<{
   store: WorkspaceStore;
 }>();
@@ -256,7 +258,7 @@ async function copySpec(entry: PackageEntry) {
 
 function openRepository(entry: PackageEntry) {
   const url = latestVersion(entry)?.repository;
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
+  if (url) openExternal(url);
 }
 </script>
 

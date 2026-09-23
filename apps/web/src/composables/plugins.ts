@@ -16,6 +16,7 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { completeForPlugin } from "~/lib/ai/engine";
 import { engineAvailable } from "~/lib/engineHealth";
+import { openExternal } from "~/lib/openExternal";
 import { specString } from "~/lib/packages";
 import {
   loadBundledCatalog,
@@ -646,7 +647,7 @@ function usePluginHost() {
         if (/^(https?:|mailto:|tel:)/i.test(href)) {
           if (!capabilityOf(instanceId, "ui.external")) return deny(instanceId, "ui.external");
           if (window.confirm(`Open external link?\n\n${href}`)) {
-            window.open(href, "_blank", "noopener,noreferrer");
+            openExternal(href);
           }
         }
         return;
@@ -693,7 +694,7 @@ function usePluginHost() {
           /^(https?:|mailto:|tel:)/i.test(url) &&
           window.confirm(`Open external link?\n\n${url}`)
         ) {
-          window.open(url, "_blank", "noopener,noreferrer");
+          openExternal(url);
         }
         return;
       }

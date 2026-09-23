@@ -37,6 +37,11 @@ export interface TypstPluginOptions {
    *  heap watchdog on it. */
   onCompile?: () => void;
   /**
+   * Opens a link clicked inside a rendered frame. Defaults to a new browser
+   * tab; the app passes its Tauri-aware `openExternal`.
+   */
+  onExternalLink?: (url: string) => void;
+  /**
    * Cell rendering and cell commands. When set, the editor behaves like a
    * notebook: markup cells render inline, code cells render below, and the
    * notebook keymap takes precedence over the line editing bindings.
