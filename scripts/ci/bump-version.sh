@@ -45,13 +45,16 @@ fi
 
 bash "$script_dir/git-ssh-signing.sh"
 
-sign=()
+sign_commit=()
+sign_tag=()
 if [[ -n "${SSH_SIGNING_KEY:-}" ]]; then
-    sign=(-S)
+    sign_commit=(-S)
+    # `git tag` signs with -s; -S is only a `git commit` flag.
+    sign_tag=(-s)
 fi
 
 git add -A
-git commit "${sign[@]}" -m "chore: bump version to $version" || echo "No changes to commit"
-git tag "${sign[@]}" -a "$tag" -m "Typbase Release v$version"
+git commit "${sign_commit[@]}" -m "chore: bump version to $version" || echo "No changes to commit"
+git tag "${sign_tag[@]}" -a "$tag" -m "Typbase Release v$version"
 git push
 git push origin "$tag"
