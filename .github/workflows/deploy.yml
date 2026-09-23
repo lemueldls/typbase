@@ -1,4 +1,4 @@
-name: Deploy Cloudflare Workers
+name: Deploy
 
 on:
   push:
@@ -8,23 +8,22 @@ on:
 
 jobs:
   deploy:
-    name: ☁️ Deploy Workers
+    name: 🪶 Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      deployments: write
     steps:
       - name: 🔍 Check configuration
         id: gate
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WISPCTL_APP_PASSWORD: ${{ secrets.WISPCTL_APP_PASSWORD }}
+          WISP_HANDLE: ${{ secrets.WISP_HANDLE }}
         run: |
-          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+          if [[ -n "$WISPCTL_APP_PASSWORD" && -n "$WISP_HANDLE" ]]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Cloudflare secrets are not set; skipping the deploy."
+            echo "Wisp credentials are not set; skipping the deploy."
             echo "deploy=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -52,19 +51,32 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: 🔨 Build web app
+      - name: 🔨 Generate the static site
         if: steps.gate.outputs.deploy == 'true'
-        run: pnpm build -- --preset cloudflare-module
+        run: pnpm generate
         env:
           NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+          NUXT_PUBLIC_RELAY_URL: ${{ vars.NUXT_PUBLIC_RELAY_URL }}
 
-      - name: 🚀 Deploy to Cloudflare Workers
+      - name: 🛡️ Check the OAuth metadata
         if: steps.gate.outputs.deploy == 'true'
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/web
-          packageManager: pnpm
-          command: deploy --name typbase
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+        run: bash scripts/ci/check-wisp-metadata.sh
+
+      - name: 🚀 Deploy to wisp.place
+        if: steps.gate.outputs.deploy == 'true'
+        env:
+          WISPCTL_APP_PASSWORD: ${{ secrets.WISPCTL_APP_PASSWORD }}
+          WISP_HANDLE: ${{ secrets.WISP_HANDLE }}
+          WISP_SITE: ${{ vars.WISP_SITE || 'typbase' }}
+        run: |
+          pnpm dlx wispctl deploy "$WISP_HANDLE" --path apps/web/.output/public --site "$WISP_SITE" --yes
+
+      - name: ⚙️ Apply site settings
+        if: steps.gate.outputs.deploy == 'true'
+        env:
+          WISPCTL_APP_PASSWORD: ${{ secrets.WISPCTL_APP_PASSWORD }}
+          WISP_HANDLE: ${{ secrets.WISP_HANDLE }}
+          WISP_SITE: ${{ vars.WISP_SITE || 'typbase' }}
+        run: node scripts/ci/wisp-settings.mjs "$WISP_HANDLE" "$WISP_SITE"
