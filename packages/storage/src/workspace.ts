@@ -1710,7 +1710,7 @@ export class WorkspaceStore {
 
   private async seed(name = "My workspace"): Promise<void> {
     const welcome = [
-      "= Welcome to typbase",
+      "= Welcome to Typbase",
       "",
       "Every page here is a Typst document, and the app reads them as data.",
       "The list below is live: this page asked the workspace for its pages.",
