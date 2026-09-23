@@ -2,8 +2,11 @@
 
 // Bumps every version source in the repo to the same value:
 //   Cargo.toml, Cargo.lock, apps/native/tauri.conf.json,
-//   apps/native/gen/android/app/tauri.properties, packages/*/package.json,
-//   and the nix derivations.
+//   packages/*/package.json, and the nix derivations.
+//
+// Android versionName/versionCode are not here: `tauri android build` writes
+// gen/android/app/tauri.properties from tauri.conf.json on every build (the
+// file is generated and gitignored).
 //
 // Usage: node scripts/release/bump-version.mjs <patch|minor|major|x.y.z> [--dry-run]
 // Prints the new version to stdout.
@@ -73,17 +76,6 @@ const version = nextVersion(tauri.version, bump);
 {
   tauri.version = version;
   write(tauriPath, `${JSON.stringify(tauri, null, 2)}\n`);
-}
-
-// apps/native/gen/android/app/tauri.properties
-{
-  const path = "apps/native/gen/android/app/tauri.properties";
-  const [major, minor, patch] = parseVersion(version);
-  const code = major * 1000 + minor * 100 + patch;
-  const text = read(path)
-    .replace(/^tauri\.android\.versionName=.*$/m, `tauri.android.versionName=${version}`)
-    .replace(/^tauri\.android\.versionCode=.*$/m, `tauri.android.versionCode=${code}`);
-  write(path, text);
 }
 
 // packages/*/package.json
