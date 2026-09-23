@@ -19,7 +19,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "https://github.com/lemueldls/typbase/releases/download/typbase-v${finalAttrs.version}/Typbase_${finalAttrs.version}_amd64.deb";
-    sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    sha256 = "sha256-KBWS3EOB3hmmN0G/Az8EZeHggNI+M8IHxu+hAVME/O4=";
   };
 
   dontConfigure = true;
@@ -52,7 +52,7 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   meta = {
-    description = "Local-first knowledge base built around the Typst language.";
+    description = "Local-first knowledge base made for Typst and the Atmosphere.";
     homepage = "https://github.com/lemueldls/typbase";
     changelog = "https://github.com/lemueldls/typbase/releases/tag/typbase-v${finalAttrs.version}";
     license = lib.licenses.agpl3Only;

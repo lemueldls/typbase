@@ -2,9 +2,12 @@
   lib,
   stdenv,
 
+  binaryen,
+  buildWasmBindgenCli,
   cargo-tauri,
   cmake,
   curl,
+  fetchCrate,
   fetchFromGitHub,
   glib-networking,
   nodejs,
@@ -18,6 +21,27 @@
   webkitgtk_4_1,
   wrapGAppsHook4,
 }:
+
+let
+  # The wasm-bindgen CLI must match the wasm-bindgen crate in Cargo.lock
+  # exactly; a patch version off and the CLI refuses the module. Build 0.2.127
+  # with nixpkgs' helper and the hashes master uses for it, rather than
+  # following the versioned attr. Bump both when Cargo.lock moves.
+  wasmBindgenSrc = fetchCrate {
+    pname = "wasm-bindgen-cli";
+    version = "0.2.127";
+    hash = "sha256-di+qBAdd7pENLiIB9CoZoab+W5xeDoByMREcCGTSzWo=";
+  };
+
+  wasm-bindgen-cli = buildWasmBindgenCli {
+    src = wasmBindgenSrc;
+    cargoDeps = rustPlatform.fetchCargoVendor {
+      inherit (wasmBindgenSrc) pname version;
+      src = wasmBindgenSrc;
+      hash = "sha256-FTv2GZIAQs0ePdIZXIXil7JbZ6kIT05VG6vqC1qNFxQ=";
+    };
+  };
+in
 
 # Nixpkgs-ready derivation. The release workflow copies this file into a
 # nixpkgs fork at pkgs/by-name/ty/typbase/package.nix, fills the hashes with
@@ -44,12 +68,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
   };
 
   nativeBuildInputs = [
+    binaryen
     cargo-tauri.hook
     cmake
     nodejs
     pkg-config
     pnpmConfigHook
     pnpm
+    wasm-bindgen-cli
     wasm-pack
     wrapGAppsHook4
   ];
@@ -66,7 +92,30 @@ rustPlatform.buildRustPackage (finalAttrs: {
   tauriBuildFlags = [
     "--config"
     "tauri.package.conf.json"
+    # The release tarball has no git metadata and moon's platform binary is not
+    # in the pnpm store, so preBuild builds the frontend and Tauri's own
+    # beforeBuildCommand is a no-op.
+    "--config"
+    ''{"build":{"beforeBuildCommand":"true"}}''
   ];
+
+  # wasm-pack downloads wasm-bindgen and wasm-opt, which the sandbox cannot do.
+  # It prefers an installed wasm-bindgen whose version matches Cargo.lock, and
+  # that CLI is on PATH, so nothing is fetched for it; --no-opt skips the
+  # wasm-opt install and nixpkgs' wasm-opt optimizes the output instead.
+  preBuild = ''
+    (cd packages/engine && printf '{}' > pkg/package.json \
+      && wasm-pack build --release --target web --scope typbase --no-opt .)
+    wasm-opt -O4 -all packages/engine/pkg/engine_bg.wasm \
+      -o packages/engine/pkg/engine_bg.opt.wasm
+    mv packages/engine/pkg/engine_bg.opt.wasm packages/engine/pkg/engine_bg.wasm
+
+    pnpm --filter @typbase/typing build
+    pnpm --filter @typbase/storage build
+    pnpm --filter @typbase/spaces build
+    pnpm --filter @typbase/codemirror build
+    pnpm --filter @typbase/web generate
+  '';
 
   env = {
     COREPACK_ENABLE_STRICT = 0;
@@ -78,7 +127,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
   };
 
   meta = {
-    description = "Local-first knowledge base built around the Typst language.";
+    description = "Local-first knowledge base made for Typst and the Atmosphere.";
     homepage = "https://github.com/lemueldls/typbase";
     changelog = "https://github.com/lemueldls/typbase/releases/tag/typbase-v${finalAttrs.version}";
     license = lib.licenses.agpl3Only;
