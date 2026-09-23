@@ -1,3 +1,41 @@
+/*
+ * Overlay fade. reka-ui's Presence waits for `animationend` on the element
+ * before unmounting, so the exit has to be a keyframe (it never waits on a
+ * transition). One duration for every portaled layer keeps dialogs, menus,
+ * selects, tooltips, and toasts feeling like the same surface.
+ */
+@keyframes ui-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-overlay-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.dialog-overlay,
+.dialog,
+.menu,
+.popover,
+.ui-select__content,
+.ui-tooltip,
+.ui-toast {
+  animation: ui-overlay-fade-in 100ms ease-out;
+}
+
+.dialog-overlay[data-state="closed"],
+.dialog[data-state="closed"],
+.menu[data-state="closed"],
+.popover[data-state="closed"],
+.ui-select__content[data-state="closed"],
+.ui-tooltip[data-state="closed"],
+.ui-toast[data-state="closed"] {
+  animation: ui-overlay-fade-out 80ms ease-in;
+}
+
 .dialog-overlay {
   position: fixed;
   inset: 0;

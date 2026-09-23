@@ -115,46 +115,43 @@ function statusFor(info: WorkspaceInfo): string {
   </div>
 
   <template v-else>
-    <PopoverRoot v-model:open="newOpen">
-      <PopoverTrigger as-child>
+    <UiPopover v-model:open="newOpen" class="menu ws-menu" align="start" :side-offset="6">
+      <template #trigger>
         <slot>
           <UiIconButton icon="swap_horiz" :label="$t('switcher.switchAria')" />
         </slot>
-      </PopoverTrigger>
-      <PopoverPortal>
-        <PopoverContent class="menu ws-menu" :side-offset="6" align="start">
-          <div class="ws-menu__header">
-            <span>{{ $t("switcher.heading") }}</span>
-            <span class="ws-menu__count">{{ workspaces.length }}</span>
-          </div>
+      </template>
 
-          <ul class="ws-menu__list">
-            <li v-for="info in workspaces" :key="info.id">
-              <WorkspaceRow
-                :info="info"
-                :active="active(info.id)"
-                :switching="switching === info.id"
-                :disabled="busy"
-                :status="statusFor(info)"
-                @select="onSwitch(info.id)"
-                @rename="openRename(info)"
-                @remove="askDelete(info)"
-              />
-            </li>
-          </ul>
+      <div class="ws-menu__header">
+        <span>{{ $t("switcher.heading") }}</span>
+        <span class="ws-menu__count">{{ workspaces.length }}</span>
+      </div>
 
-          <div class="menu__separator" />
+      <ul class="ws-menu__list">
+        <li v-for="info in workspaces" :key="info.id">
+          <WorkspaceRow
+            :info="info"
+            :active="active(info.id)"
+            :switching="switching === info.id"
+            :disabled="busy"
+            :status="statusFor(info)"
+            @select="onSwitch(info.id)"
+            @rename="openRename(info)"
+            @remove="askDelete(info)"
+          />
+        </li>
+      </ul>
 
-          <button type="button" class="menu__item ws-menu__add" @click="openCreate">
-            <MsIcon name="add" :size="20" />
-            {{ $t("switcher.add") }}
-          </button>
+      <div class="menu__separator" />
 
-          <p v-if="error" class="ws-menu__error" role="alert">{{ error }}</p>
-          <!-- <p class="ws-menu__hint">{{ $t("switcher.hint") }}</p> -->
-        </PopoverContent>
-      </PopoverPortal>
-    </PopoverRoot>
+      <button type="button" class="menu__item ws-menu__add" @click="openCreate">
+        <MsIcon name="add" :size="20" />
+        {{ $t("switcher.add") }}
+      </button>
+
+      <p v-if="error" class="ws-menu__error" role="alert">{{ error }}</p>
+      <!-- <p class="ws-menu__hint">{{ $t("switcher.hint") }}</p> -->
+    </UiPopover>
   </template>
 
   <WorkspaceDialog v-model:open="dialogOpen" :mode="dialogMode" :workspace="editing" />

@@ -140,7 +140,10 @@ describe("typbase app", async () => {
 
     const paths = await page.evaluate(async () => {
       const found: string[] = [];
-      const root = await navigator.storage.getDirectory();
+      // The OPFS backend roots at a `typbase` directory under the origin's
+      // OPFS root; the paths below are storage-relative, as the registry sees
+      // them.
+      const root = await (await navigator.storage.getDirectory()).getDirectoryHandle("typbase");
 
       const walk = async (dir: FileSystemDirectoryHandle, prefix: string): Promise<void> => {
         const entries = (

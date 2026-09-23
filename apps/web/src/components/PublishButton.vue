@@ -113,58 +113,55 @@ watch(
 
 <template>
   <div class="publish" v-if="atprotoStatus.signedIn">
-    <PopoverRoot v-model:open="menuOpen">
-      <PopoverTrigger as-child>
+    <UiPopover v-model:open="menuOpen" class="menu publish__menu" align="end" :side-offset="6">
+      <template #trigger>
         <UiIconButton
           :icon="busy ? 'progress_activity' : meta?.publishedAt ? 'cloud_done' : 'cloud_upload'"
           :label="label"
           :disabled="busy"
           :danger="failed"
         />
-      </PopoverTrigger>
-      <PopoverPortal>
-        <PopoverContent class="menu publish__menu" :side-offset="6" align="end">
-          <template v-if="meta?.publishedAt">
-            <div class="publish__status">
-              <MsIcon name="public" :size="16" />
-              <span>
-                {{ t("pageView.publishedStatus", { date: formatPublished(meta.publishedAt) }) }}
-              </span>
-            </div>
-            <div class="menu__separator" />
-          </template>
+      </template>
 
-          <button type="button" class="menu__item" :disabled="busy || !atproto" @click="onPublish">
-            <MsIcon name="cloud_upload" :size="20" />
-            {{ meta?.publishedAt ? t("pageView.republish") : t("pageView.publishToAtproto") }}
-          </button>
+      <template v-if="meta?.publishedAt">
+        <div class="publish__status">
+          <MsIcon name="public" :size="16" />
+          <span>
+            {{ t("pageView.publishedStatus", { date: formatPublished(meta.publishedAt) }) }}
+          </span>
+        </div>
+        <div class="menu__separator" />
+      </template>
 
-          <button v-if="meta?.publishedAt" type="button" class="menu__item" @click="copyLink">
-            <MsIcon :name="copied ? 'check' : 'content_copy'" :size="20" />
-            {{ copied ? t("common.copied") : t("pageView.copyLink") }}
-          </button>
+      <button type="button" class="menu__item" :disabled="busy || !atproto" @click="onPublish">
+        <MsIcon name="cloud_upload" :size="20" />
+        {{ meta?.publishedAt ? t("pageView.republish") : t("pageView.publishToAtproto") }}
+      </button>
 
-          <template v-if="meta?.publishedAt">
-            <div class="menu__separator" />
-            <button
-              type="button"
-              class="menu__item menu__danger"
-              :disabled="busy || !atproto"
-              @click="askUnpublish"
-            >
-              <MsIcon name="delete" :size="20" />
-              {{ t("pageView.unpublish") }}
-            </button>
-          </template>
+      <button v-if="meta?.publishedAt" type="button" class="menu__item" @click="copyLink">
+        <MsIcon :name="copied ? 'check' : 'content_copy'" :size="20" />
+        {{ copied ? t("common.copied") : t("pageView.copyLink") }}
+      </button>
 
-          <p v-if="error" class="publish__error" role="alert">
-            <MsIcon name="error" :size="16" />
-            <span>{{ error }}</span>
-          </p>
-          <p class="publish__hint">{{ t("pageView.publishHint") }}</p>
-        </PopoverContent>
-      </PopoverPortal>
-    </PopoverRoot>
+      <template v-if="meta?.publishedAt">
+        <div class="menu__separator" />
+        <button
+          type="button"
+          class="menu__item menu__danger"
+          :disabled="busy || !atproto"
+          @click="askUnpublish"
+        >
+          <MsIcon name="delete" :size="20" />
+          {{ t("pageView.unpublish") }}
+        </button>
+      </template>
+
+      <p v-if="error" class="publish__error" role="alert">
+        <MsIcon name="error" :size="16" />
+        <span>{{ error }}</span>
+      </p>
+      <p class="publish__hint">{{ t("pageView.publishHint") }}</p>
+    </UiPopover>
 
     <UiConfirmDialog
       v-model:open="confirmOpen"
