@@ -43,6 +43,10 @@ logs
 .fleet
 .idea
 
+# Nix build output symlinks
+/result
+/result-*
+
 # Local env files
 .env
 .env.*
