@@ -81,7 +81,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🔨 Build bundles
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -90,9 +90,11 @@ jobs:
           projectPath: apps/native
           tauriScript: pnpm tauri
           tagName: ${{ inputs.tagName }}
+          # v1.0.0 fails when this is true and the release is not a draft, so
+          # the prepare job has to create the draft first.
           releaseDraft: true
           prerelease: false
-          assetNamePattern: "[name]_[version]_[arch][ext]"
+          releaseAssetNamePattern: "[name]_[version]_[arch][ext]"
           updaterJsonPreferNsis: true
           uploadPlainBinary: true
           retryAttempts: 2

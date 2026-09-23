@@ -4,7 +4,7 @@
   "productName": "Typbase",
   "identifier": "at.typbase.app",
   "build": {
-    "beforeBuildCommand": "pnpm -w run build",
+    "beforeBuildCommand": "pnpm -w run generate",
     "beforeDevCommand": "pnpm -w run dev",
     "devUrl": "http://127.0.0.1:3000",
     "frontendDist": "../../apps/web/.output/public"

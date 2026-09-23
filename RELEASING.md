@@ -22,8 +22,9 @@ accept a `workflow_dispatch` tag, so a manually published release still works.
 
 1. Run the **Bump Version** workflow with `dry-run` checked to see the next
    version, then again with `dry-run` unchecked. It updates every version
-   source (Cargo workspace and lockfile, Tauri config, `packages/*`, nix
-   derivations), writes the release's `CHANGELOG.md` section, commits, tags
+   source (Cargo workspace and lockfile, Tauri config, the engine's
+   `pkg/package.json`, `packages/*`, nix derivations), writes the release's
+   `CHANGELOG.md` section, commits, tags
    `typbase-v<version>`, pushes, and dispatches the **Release** workflow with
    the new tag. If the dispatch is skipped (for example the workflow file is
    not on `main` yet), start **Release** from the Actions tab with the tag as

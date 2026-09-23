@@ -2,7 +2,8 @@
 
 // Bumps every version source in the repo to the same value:
 //   Cargo.toml, Cargo.lock, apps/native/tauri.conf.json,
-//   packages/*/package.json, and the nix derivations.
+//   packages/engine/pkg/package.json, packages/*/package.json, and the nix
+//   derivations.
 //
 // Android versionName/versionCode are not here: `tauri android build` writes
 // gen/android/app/tauri.properties from tauri.conf.json on every build (the
@@ -11,7 +12,7 @@
 // Usage: node scripts/release/bump-version.mjs <patch|minor|major|x.y.z> [--dry-run]
 // Prints the new version to stdout.
 
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("../../", import.meta.url).pathname;
@@ -70,6 +71,17 @@ const version = nextVersion(tauri.version, bump);
     text = text.replace(pattern, `$1${version}$2`);
   }
   write(path, text);
+}
+
+// packages/engine/pkg/package.json
+// wasm-pack output, but tracked so the npm manifest does not lag a bump
+// between engine builds. The moon build tasks reset it before wasm-pack runs.
+{
+  const path = "packages/engine/pkg/package.json";
+  if (existsSync(join(root, path))) {
+    const text = read(path).replace(/^  "version": "[^"]+"/m, `  "version": "${version}"`);
+    write(path, text);
+  }
 }
 
 // apps/native/tauri.conf.json
