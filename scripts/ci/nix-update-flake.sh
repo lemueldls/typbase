@@ -15,8 +15,11 @@ cd "$repo_root"
 
 bash "$script_dir/git-ssh-signing.sh"
 
-nix-update --flake --version "$version" --build typbase
-nix-update --flake --version "$version" --build typbase-bin
+# The bump workflow already wrote <version> into the derivations, so asking
+# nix-update for that version would treat it as unchanged and skip the hashes
+# too. `skip` updates only the hashes, which is what a release needs.
+nix-update --flake --version=skip --build typbase
+nix-update --flake --version=skip --build typbase-bin
 
 sign=()
 if [[ -n "${SSH_SIGNING_KEY:-}" ]]; then

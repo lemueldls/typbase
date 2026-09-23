@@ -33,7 +33,10 @@ git checkout -b "typbase-$version"
 mkdir -p pkgs/by-name/ty/typbase
 cp "$repo_root/nix/nixpkgs/typbase.nix" pkgs/by-name/ty/typbase/package.nix
 
-nix-update --version "$version" --build typbase
+# The derivation already carries <version> (the bump workflow writes it), so
+# nix-update would skip the hash updates along with the version. `skip` updates
+# only the hashes.
+nix-update --version=skip --build typbase
 
 git config user.name "lemueldls"
 git config user.email "noreply@git.lemueldls.dev"

@@ -42,7 +42,12 @@ jobs:
 
       - name: 🦀 Install Rust and wasm-pack
         run: |
-          rustup toolchain install stable --profile minimal
+          # Void's rustup package ships rustup-init; its `rustup` symlink is
+          # created outside the package and never installed, so initialize the
+          # toolchain through rustup-init directly.
+          rustup-init -y --profile minimal --default-toolchain stable --no-modify-path
+          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           rustup target add wasm32-unknown-unknown
 
           curl -sSfL "https://github.com/rustwasm/wasm-pack/releases/download/v${WASM_PACK_VERSION}/wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl.tar.gz" | tar -xz -C /tmp

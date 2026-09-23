@@ -14,8 +14,14 @@ if [[ -z "$name" || -z "$generator" || -z "$version" || -z "$sha256" ]]; then
 fi
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-if [[ ! -f "$generator" ]]; then
+# Resolve the generator before cd-ing into the AUR clone: a relative path would
+# stop resolving there.
+if [[ "$generator" != /* ]]; then
     generator="$repo_root/$generator"
+fi
+if [[ ! -f "$generator" ]]; then
+    echo "Generator $generator not found" >&2
+    exit 1
 fi
 
 work=${AUR_WORKDIR:-"$HOME/aur"}
