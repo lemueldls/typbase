@@ -5,9 +5,23 @@
 //! The central type is [`state::TypstState`], which owns a
 //! [`world::TypstWorld`] and a collection of per-note
 //! [`source::context::SourceContext`] values. JavaScript creates a single
-//! `TypstState`, registers fonts into it, then
-//! calls [`TypstState::compile_paged`] or [`TypstState::compile_html`] on
+//! `TypstState`, registers fonts into it, then calls
+//! [`TypstState::compile_paged`] or [`TypstState::compile_html`] on
 //! individual notes as the user edits them.
+//!
+//! ## Module layout
+//!
+//! - [`state::TypstState`] owns the world and the contexts, plus the
+//!   font/theme/file/package setters the host drives. [`state::RenderContext`]
+//!   hands a renderer the world and one note without the rest of the state.
+//! - [`renderer::paged`] is the chunked SVG pipeline (editor) and the SVG and
+//!   PDF exports; [`renderer::html`] is the inline frames renderer and
+//!   [`renderer::html::document`] the full-document HTML render. The
+//!   `#[wasm_bindgen]` entry points live next to the code they call.
+//! - [`prelude`] holds the app stdlib module and the generated document style.
+//! - [`source`] holds the raw/pristine-synth/render-source model.
+//! - [`world`] implements Typst's `World` and collects the file and package
+//!   requests a compile could not answer.
 //!
 //! ## The Source Model
 //!
@@ -35,12 +49,15 @@
 //! overwrites it with length-preserving whitespace, and retries. Math errors
 //! get finer treatment: the broken sub-expression is wrapped in a red-text
 //! marker rather than blanked, so the rest of the equation keeps rendering.
-//! Unclosed delimiters are repaired before the first compile, so they never
-//! de-render the note.
+//! Markup characters in the marked token are swapped for a same-byte
+//! placeholder before wrapping, because the wrapper puts the token back into
+//! content mode where `_` and `$` are syntax again. Unclosed delimiters are
+//! repaired before the first compile, so they never de-render the note.
 
 pub mod bindings;
 pub mod flatten;
 pub mod fonts;
+pub mod prelude;
 pub mod renderer;
 pub mod source;
 pub mod state;

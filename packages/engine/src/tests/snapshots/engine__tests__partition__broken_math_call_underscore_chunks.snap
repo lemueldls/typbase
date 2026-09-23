@@ -5,12 +5,12 @@ expression: summarize(&render.chunks)
 [
   {
     "range": [
-      83,
-      103
+      0,
+      73
     ],
-    "items": 4,
-    "width": 82.96,
-    "height": 67.2,
+    "items": 22,
+    "width": 94.64,
+    "height": 286.08,
     "x": 0.0,
     "y": -0.64
   }

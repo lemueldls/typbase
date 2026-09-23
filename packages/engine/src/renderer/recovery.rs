@@ -28,6 +28,11 @@
 //! [`SourceMap::insert`](crate::source::SourceMap::insert); there is no manual
 //! anchor bookkeeping.
 //!
+//! The wrapper puts the token back into a content block, where markup
+//! characters (`_`, `$`, `*`, brackets, ...) are syntax again. Those bytes are
+//! replaced with `?` first, same length, so a token like `_` cannot fail the
+//! wrapper and spin recovery forever.
+//!
 //! ## Recovery loop
 //!
 //! The caller runs these passes in a bounded retry loop (see
@@ -206,6 +211,20 @@ pub fn try_mark_errornous(
             context.render_map.backward(pre_offset)..context.render_map.backward(synth_range.end);
         context.marked_raw_ranges.push(raw_range.clone());
 
+        // The wrapper puts the token inside a content block, where markup
+        // characters like `_` or `$` are syntax again and would fail the same
+        // compile. Swap them for a same-byte placeholder so the mark renders
+        // instead of spinning recovery; record it as generated or the map
+        // still claims the old bytes.
+        let marked_text = sanitize_marked_text(&original_text);
+        if marked_text != original_text {
+            let source = context.render_source_mut(world).unwrap();
+            source.edit(synth_range.clone(), &marked_text);
+            context
+                .render_map
+                .replace(synth_range.clone(), &marked_text, SegmentKind::ErrorMark);
+        }
+
         let source = context.render_source_mut(world).unwrap();
         if hash_len == 0 {
             source.edit(pre_offset..pre_offset, pre_text);
@@ -276,14 +295,36 @@ struct PendingMark {
     raw_range: Range<usize>,
 }
 
+/// Characters that mean syntax again once the marked token sits inside the
+/// wrapper's content block. Replaced with `?` so the mark compiles.
+const UNSAFE_IN_CONTENT: &[u8] = b"#$_*`~<>@\\[]";
+
+/// Makes a marked token safe to embed as literal content, byte-for-byte. Only
+/// ASCII markup characters change, so UTF-8 text keeps its length and the
+/// caller's range bookkeeping stays valid.
+fn sanitize_marked_text(text: &str) -> String {
+    if !text.bytes().any(|byte| UNSAFE_IN_CONTENT.contains(&byte)) {
+        return text.to_owned();
+    }
+
+    text.chars()
+        .map(|ch| {
+            if ch.is_ascii() && UNSAFE_IN_CONTENT.contains(&(ch as u8)) {
+                '?'
+            } else {
+                ch
+            }
+        })
+        .collect()
+}
+
 /// Expands a marked range over a math call's argument list.
 ///
 /// An unknown variable used as a math callee (`notdefined(x)`) reports its
 /// span on the callee alone. Wrapping just the callee leaves `(x)` to attach
 /// to the inserted code expression, which fails again and spins the recovery
 /// loop. Marking the whole call as red content renders instead.
-fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {
-    let bytes = text.as_bytes();
+fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {    let bytes = text.as_bytes();
 
     if bytes.get(range.end) != Some(&b'(') {
         return range;

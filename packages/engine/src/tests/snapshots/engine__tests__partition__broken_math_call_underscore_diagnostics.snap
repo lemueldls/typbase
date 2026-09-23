@@ -1,0 +1,15 @@
+---
+source: packages/engine/src/tests/partition.rs
+expression: render.diagnostics
+---
+[
+  {
+    "range": {
+      "start": 46,
+      "end": 47
+    },
+    "severity": "error",
+    "message": "unexpected underscore",
+    "hints": []
+  }
+]

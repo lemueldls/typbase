@@ -1,46 +1,28 @@
 use std::{
     io::{Cursor, Read},
     num::NonZeroUsize,
-    path::PathBuf,
     str::FromStr,
 };
 
 use ecow::EcoVec;
-use indoc::formatdoc;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tar::Archive;
 use tsify::{Ts, Tsify};
 use typst::{
-    compile,
     ecow::EcoString,
     foundations::Bytes,
     introspection::{HtmlPosition, PagedPosition},
     layout::{Abs, Point},
     syntax::{FileId, VirtualPath, package::PackageSpec},
 };
-use typst_html::{HtmlDocument, HtmlOptions};
 use typst_ide::Tooltip;
-use typst_layout::PagedDocument;
-// use typst_html::html;
-// use typst_pdf::{PdfOptions, pdf};
-use typst_svg::SvgOptions;
 use typst_syntax::{LinkedNode, RootedPath, Side, Source, Tag, VirtualRoot};
 use wasm_bindgen::prelude::*;
 
-#[cfg(feature = "pdf")]
-use crate::bindings::RenderPdfResult;
 use crate::{
-    bindings::{
-        CheckResult, CompileHTMLResult, CompilePagedResult, RenderSvgResult, TypstCompletion,
-        TypstDiagnostic, TypstFileId, TypstHighlight, TypstJump,
-    },
+    bindings::{TypstCompletion, TypstFileId, TypstHighlight, TypstJump},
     flatten::{CellSpan, FlattenedBlock, SectionSpan},
-    renderer::{
-        html::{self, RenderHtmlResult},
-        paged::svg::render_svgs_by_items,
-        recovery::remove_errornous_block,
-    },
     source::{
         RenderTarget, Side as MapSide, SourceContext, SpaceContext, SynthResult, sync_source_state,
     },
@@ -81,7 +63,8 @@ impl TypstState {
             VirtualRoot::Project,
             VirtualPath::new("typbase/lib.typ").expect("Invalid virtual path"),
         ));
-        this.world.insert_source(id, String::from(TYPBASE_LIB));
+        this.world
+            .insert_source(id, String::from(crate::prelude::TYPBASE_LIB));
         this.insert_syntax_theme(&ThemeColors::default());
 
         this
@@ -578,67 +561,6 @@ impl TypstState {
 
 #[wasm_bindgen]
 impl TypstState {
-    fn process_requests(&self) -> Vec<TypstRequest> {
-        let mut requests = Vec::new();
-
-        self.world.requested_sources.retain(|source| {
-            requests.push(TypstRequest::Source(PathBuf::from(source.get_with_slash())));
-            false
-        });
-
-        self.world.requested_files.retain(|file| {
-            requests.push(TypstRequest::File(PathBuf::from(file.get_with_slash())));
-            false
-        });
-
-        self.world.requested_packages.retain(|package| {
-            requests.push(TypstRequest::Package {
-                namespace: package.namespace.to_string(),
-                name: package.name.to_string(),
-                version: package.version.to_string(),
-            });
-
-            false
-        });
-
-        requests
-    }
-
-    #[wasm_bindgen(js_name = "compilePaged")]
-    pub fn compile_paged(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-    ) -> Result<Ts<CompilePagedResult>, JsError> {
-        let result = render_svgs_by_items(id, text, prelude, self);
-
-        Ok(CompilePagedResult {
-            frames: result.frames,
-            tooltips: result.tooltips,
-            diagnostics: result.diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
-    }
-
-    #[wasm_bindgen(js_name = "compileHTML")]
-    pub fn compile_html(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-    ) -> Result<Ts<CompileHTMLResult>, JsError> {
-        let result = html::render(id, text, prelude, self);
-
-        Ok(CompileHTMLResult {
-            frames: result.frames,
-            diagnostics: result.diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
-    }
-
     /// Plain-text flattening per block for the search index, plus the byte
     /// map back to raw source. Pure syntax pass; no state needed.
     #[wasm_bindgen(js_name = "flattenDocument")]
@@ -666,96 +588,6 @@ impl TypstState {
             .into_iter()
             .map(|cell| cell.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
-    }
-
-    #[wasm_bindgen(js_name = "checkPaged")]
-    pub fn check_paged(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-    ) -> Result<Ts<CheckResult>, JsError> {
-        // Diagnostics-only pass: compile the pristine synth, no recovery.
-        sync_source_state(id, text, prelude, RenderTarget::Svg, self);
-
-        let context = self.source_context_map.get_mut(id).unwrap();
-
-        let compiled = compile::<PagedDocument>(&self.world);
-        let compiled_warnings = Some(compiled.warnings);
-
-        let mut diagnostics = Vec::new();
-
-        if let Some(warnings) = compiled_warnings {
-            diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                warnings,
-                context,
-                &self.world,
-            ));
-        }
-
-        match compiled.output {
-            Ok(document) => {
-                context.paged_document = Some(document);
-            }
-            Err(source_diagnostics) => {
-                diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics,
-                    context,
-                    &self.world,
-                ));
-            }
-        }
-
-        Ok(CheckResult {
-            diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
-    }
-
-    #[wasm_bindgen(js_name = "checkHTML")]
-    pub fn check_html(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-    ) -> Result<Ts<CheckResult>, JsError> {
-        // Diagnostics-only pass: compile the pristine synth, no recovery.
-        sync_source_state(id, text, prelude, RenderTarget::Html, self);
-
-        let context = self.source_context_map.get_mut(id).unwrap();
-
-        let compiled = compile::<HtmlDocument>(&self.world);
-        let compiled_warnings = Some(compiled.warnings);
-
-        let mut diagnostics = Vec::new();
-
-        if let Some(warnings) = compiled_warnings {
-            diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                warnings,
-                context,
-                &self.world,
-            ));
-        }
-
-        match compiled.output {
-            Ok(document) => {
-                context.html_document = Some(document);
-            }
-            Err(source_diagnostics) => {
-                diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics,
-                    context,
-                    &self.world,
-                ));
-            }
-        }
-
-        Ok(CheckResult {
-            diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
     }
 
     #[wasm_bindgen]
@@ -883,9 +715,6 @@ impl TypstState {
         let result = (|| {
             let context = self.source_context_map.get(id)?;
 
-            let raw_source = context.raw_source(&self.world)?;
-            let raw_lines = raw_source.lines();
-            let raw_cursor = Self::raw_cursor_byte(raw_source, raw_cursor_utf16);
             // Same as autocomplete: the cursor belongs at the end of the copied
             // text, not after a generated separator.
             let synth_cursor = context.map_raw_to_synth(raw_cursor, MapSide::Before);
@@ -936,228 +765,6 @@ impl TypstState {
         width_changed
     }
 
-    /// PDF publishing, compiled only when the `pdf` cargo feature is on.
-    /// Returns the PDF bytes plus diagnostics; the caller uploads the bytes
-    /// as a blob on `at.typbase.post`.
-    #[cfg(feature = "pdf")]
-    #[wasm_bindgen(js_name = "renderPdf")]
-    pub fn render_pdf(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-    ) -> Result<Ts<RenderPdfResult>, JsError> {
-        use typst_pdf::{PdfOptions, pdf};
-
-        sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
-
-        let context = self.source_context_map.get_mut(id).unwrap();
-
-        // Exports get the delimiter repair too; they compile the render source.
-        self.world.main_id = Some(context.render_id);
-
-        let compiled = compile::<PagedDocument>(&self.world);
-
-        self.world.main_id = Some(context.synth_id);
-        let mut diagnostics =
-            TypstDiagnostic::from_diagnostics(compiled.warnings, context, &self.world).into_vec();
-
-        let bytes = match compiled.output {
-            Ok(document) => match pdf(&document, &PdfOptions::default()) {
-                Ok(pdf) => Some(pdf),
-                Err(source_diagnostics) => {
-                    diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                        source_diagnostics,
-                        context,
-                        &self.world,
-                    ));
-                    None
-                }
-            },
-            Err(source_diagnostics) => {
-                diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics,
-                    context,
-                    &self.world,
-                ));
-                None
-            }
-        };
-
-        Ok(RenderPdfResult {
-            bytes,
-            diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
-    }
-
-    /// SVG export of the paged document: one entry per page, or a single
-    /// merged document. Uses the PDF page geometry so the sheets match the
-    /// PDF export; the caller sets the page width through `resize`.
-    #[wasm_bindgen(js_name = "renderSvg")]
-    pub fn render_svg(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-        merged: bool,
-    ) -> Result<Ts<RenderSvgResult>, JsError> {
-        sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
-
-        let context = self.source_context_map.get_mut(id).unwrap();
-
-        // Same render source as the PDF export so the SVG sheets and the PDF
-        // agree on page geometry and repaired delimiters.
-        self.world.main_id = Some(context.render_id);
-
-        let compiled = compile::<PagedDocument>(&self.world);
-
-        self.world.main_id = Some(context.synth_id);
-        let mut diagnostics =
-            TypstDiagnostic::from_diagnostics(compiled.warnings, context, &self.world).into_vec();
-
-        let pages = match compiled.output {
-            Ok(document) => {
-                let options = SvgOptions::default();
-                if merged {
-                    vec![typst_svg::svg_merged(&document, &options, Abs::pt(12.0))]
-                } else {
-                    document
-                        .pages()
-                        .iter()
-                        .map(|page| typst_svg::svg(page, &options))
-                        .collect()
-                }
-            }
-            Err(source_diagnostics) => {
-                diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics,
-                    context,
-                    &self.world,
-                ));
-                Vec::new()
-            }
-        };
-
-        Ok(RenderSvgResult {
-            pages,
-            diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
-    }
-
-    /// The stdlib source as shipped, for writing a compilable project to disk.
-    #[wasm_bindgen(js_name = "typbaseLib")]
-    #[must_use]
-    pub fn typbase_lib(&self) -> String {
-        TYPBASE_LIB.to_string()
-    }
-
-    /// False when the shipped wasm build omits the pdf feature (the default).
-    #[wasm_bindgen(js_name = "pdfAvailable")]
-    #[must_use]
-    pub fn pdf_available(&self) -> bool {
-        cfg!(feature = "pdf")
-    }
-
-    #[wasm_bindgen(js_name = renderHtml)]
-    pub fn render_html(
-        &mut self,
-        id: &TypstFileId,
-        text: &str,
-        prelude: &str,
-    ) -> Result<Ts<RenderHtmlResult>, JsError> {
-        let SynthResult { blocks, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Html, self);
-
-        let mut diagnostics = Vec::new();
-        let mut compiled_warnings = None;
-
-        let context = self.source_context_map.get_mut(id).unwrap();
-
-        // Recovery blanks blocks of the render source; the pristine synth
-        // stays available to the editor.
-        self.world.main_id = Some(context.render_id);
-
-        let mut document = None;
-        let mut convergence = 0_u8;
-
-        while document.is_none() {
-            let compiled = compile::<HtmlDocument>(&self.world);
-            compiled_warnings = Some(compiled.warnings);
-
-            document = match compiled.output {
-                Ok(document) => {
-                    let html = typst_html::html(&document, &HtmlOptions::default());
-
-                    match html {
-                        Ok(html) => Some(html),
-                        Err(source_diagnostics) => {
-                            crate::error!("[HTML ERRORS]: {source_diagnostics:?}");
-
-                            diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                                source_diagnostics,
-                                context,
-                                &self.world,
-                            ));
-
-                            None
-                        }
-                    }
-                }
-                Err(source_diagnostics) => {
-                    convergence += 1;
-                    if convergence >= 128 {
-                        crate::error!("COULD NOT CONVERGE ‼️");
-
-                        break;
-                    }
-
-                    diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                        source_diagnostics.clone(),
-                        context,
-                        &self.world,
-                    ));
-
-                    crate::error!("[ERRORS]: {diagnostics:?}");
-
-                    let indicies = remove_errornous_block(
-                        &blocks,
-                        &source_diagnostics,
-                        context,
-                        &mut self.world,
-                    );
-
-                    if indicies.is_empty() {
-                        crate::error!("NO ERROR BLOCKS FOUND ‼️");
-
-                        break;
-                    }
-
-                    None
-                }
-            };
-        }
-
-        self.world.main_id = Some(context.synth_id);
-
-        if let Some(warnings) = compiled_warnings {
-            diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                warnings,
-                context,
-                &self.world,
-            ));
-        }
-
-        Ok(RenderHtmlResult {
-            document,
-            diagnostics,
-            requests: self.process_requests(),
-        }
-        .into_ts()?)
-    }
 }
 
 impl TypstState {
@@ -1202,192 +809,26 @@ impl TypstState {
         let space_id = self.get_source_context(id).space_id.clone();
         self.space_context_map.get_mut(&space_id).unwrap()
     }
-}
 
-// The stdlib module, inserted into the world once at TypstState::new and
-// imported by the generated prelude as `typbase`. `typbase.query` loads JSON
-// the JS side synthesizes on demand (file request `/typbase/query/<kind>.json`);
-// `typbase.embed` includes another page's source (source request
-// `/typbase/src/<id>.typ`). Filters ride in the path because the request
-// channel only carries paths, so keep filter values slug-safe.
-//
-// Paths are root-absolute so the same source compiles both in the wasm world
-// and in a plain Typst project rooted at the workspace (see `sources/typbase`).
-//
-// It is a module rather than a dict of closures: Typst cannot call dict
-// values with dot syntax (`typbase.query(...)`), but module functions can.
-const TYPBASE_LIB: &str = r#"
-#let query(kind, filter: none) = {
-  let target = if filter == none {
-    "/typbase/query/" + kind + ".json"
-  } else {
-    "/typbase/query/" + kind + "/" + str(filter) + ".json"
-  }
-  json(target)
-}
+    /// Splits the state into the two borrows a renderer needs: the world and
+    /// this note's source context. Field-level, so the borrow checker keeps
+    /// them disjoint and renderer code never sees fonts, other notes, or the
+    /// revision counter.
+    pub fn render_context(&mut self, id: &TypstFileId) -> Option<RenderContext<'_>> {
+        let note = self.source_context_map.get_mut(id)?;
+        let world = &mut self.world;
 
-#let embed(id) = include("/typbase/src/" + str(id) + ".typ")
-
-// A navigable link to another page. Renders the page title (or the given
-// body) as a Typst link; the app intercepts `typbase://page/<id>` clicks in
-// the preview and opens that page for editing. Unlike embed, nothing is
-// compiled at link time, and a missing page renders a quiet placeholder
-// instead of failing the compile.
-#let page-link(page-id, body: none) = {
-  let meta = json("/typbase/query/pages/by-id/" + str(page-id) + ".json")
-  if meta == none {
-    if body == none [none] else [#body]
-  } else {
-    let url = "typbase://page/" + str(page-id)
-    if body == none [#link(url)[#meta.title]] else [#link(url)[#body]]
-  }
-}
-
-// A semantic block for app-side consumers (AI context, plugins).
-// The body renders where it sits; the app reads kind and range off the AST.
-#let section(kind: none, body) = body
-"#;
-
-// The import and the request paths are root-absolute: pages compile from
-// `pages/<id>.typ`, so a relative import would resolve next to the page
-// instead of at the workspace root.
-const TYPBASE_PRELUDE: &str = r#"
-    #import "/typbase/lib.typ" as typbase
-"#;
-
-/// The canonical document style: theme, body text, headings, links, shape
-/// strokes, math and raw fonts, and the code-block theme. Live compiles append
-/// the render-target page config in `TypstState::prelude`; exports and the
-/// project mirror call it through the `stylePrelude` binding, so the app and
-/// the files it writes cannot drift.
-fn style_prelude(
-    theme: &ThemeColors,
-    text_size: f64,
-    font: &str,
-    math_font: &str,
-    code_font: &str,
-    locale: &str,
-) -> String {
-    let h1 = text_size * 2.0;
-    let h2 = text_size * 1.75;
-    let h3 = text_size * 1.5;
-    let h4 = text_size * 1.375;
-    let h5 = text_size;
-    let h6 = text_size * 0.875;
-    let block_math = text_size * 1.125;
-
-    formatdoc!(
-        r#"
-            #let theme={theme}
-            //#let theme=(..theme,base00:theme.surface,base01:theme.surface-2,base02:theme.surface-3,base03:theme.border,base04:theme.text-secondary,base05:theme.text,base06:theme.border-strong,base07:theme.surface,base08:theme.red,base09:theme.orange,base0a:theme.yellow,base0b:theme.green,base0c:theme.cyan,base0d:theme.blue,base0e:theme.violet,base0f:theme.orange)
-            #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
-
-            #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
-            #show heading.where(level:2):set text(fill:theme.text,size:{h2}pt,weight:400)
-            #show heading.where(level:3):set text(fill:theme.text-secondary,size:{h3}pt,weight:400)
-            #show heading.where(level:4):set text(fill:theme.accent,size:{h4}pt,weight:400)
-            #show heading.where(level:5):set text(fill:theme.text,size:{h5}pt,weight:500)
-            #show heading.where(level:6):set text(fill:theme.text-secondary,size:{h6}pt,weight:500)
-
-            #show link:set text(fill:theme.accent)
-            #show link:underline
-
-            #set line(stroke:theme.border)
-            #set table(stroke:theme.border)
-            #set circle(stroke:theme.border)
-            #set ellipse(stroke:theme.border)
-            #set curve(stroke:theme.border)
-            #set polygon(stroke:theme.border)
-            #set rect(stroke:theme.border)
-            #set square(stroke:theme.border)
-
-            #show math.equation:set text(font:"{math_font}")
-            #show math.equation.where(block:true):set text(size:{block_math}pt)
-            #show math.equation.where(block:true):set par(leading:0.5em)
-
-            #show raw:set text(font:"{code_font}")
-            #show raw:set raw(theme:"/{syntax_theme}")
-            #show raw.where(block:true):it=>block(fill:theme.code,inset:8pt,radius:4pt,width:100%,it)
-
-            #context {{show math.equation:set text(size:text.size*2)}}
-
-            {typbase_prelude}
-        "#,
-        typbase_prelude = TYPBASE_PRELUDE,
-        syntax_theme = theme.syntax_theme_path(),
-    )
-}
-
-#[comemo::track]
-impl TypstState {
-    pub fn prelude(&self, id: &TypstFileId, render_target: RenderTarget) -> String {
-        let source_ctx = self.source_context_map.get(id).unwrap();
-        let space_ctx = self.space_context_map.get(&source_ctx.space_id).unwrap();
-
-        let page_config = match render_target {
-            RenderTarget::Svg => {
-                formatdoc!(
-                    r#"
-                        #set page(fill:rgb(0,0,0,0),width:{width},height:auto,margin:0pt)
-                        #set text(top-edge:"ascender",bottom-edge:"descender")
-                        #set par(leading:0.08em)
-                    "#,
-                    width = source_ctx.width,
-                )
-            }
-            RenderTarget::Pdf => {
-                formatdoc!(
-                    r"
-                        #set page(width:{width},height:auto,margin:16pt)
-                    ",
-                    width = source_ctx.width,
-                )
-            }
-            RenderTarget::Html => formatdoc!(""),
-        };
-
-        let style = style_prelude(
-            &space_ctx.theme,
-            space_ctx.text_size,
-            &space_ctx.font,
-            space_ctx.math_font.as_ref().unwrap_or(&space_ctx.font),
-            space_ctx.code_font.as_ref().unwrap_or(&space_ctx.font),
-            &space_ctx.locale,
-        );
-
-        formatdoc!(
-            r#"
-                {style}
-
-                {page_config}
-            "#,
-        )
+        Some(RenderContext { world, note })
     }
 }
 
-#[wasm_bindgen]
-impl TypstState {
-    /// The style block alone, for exports and the project mirror: the same
-    /// text the engine prepends, minus the render-target page config.
-    #[must_use]
-    #[wasm_bindgen(js_name = "stylePrelude")]
-    pub fn style_prelude_export(
-        theme: ThemeColors,
-        text_size: f64,
-        font: String,
-        math_font: Option<String>,
-        code_font: Option<String>,
-        locale: String,
-    ) -> String {
-        style_prelude(
-            &theme,
-            text_size,
-            &font,
-            math_font.as_deref().unwrap_or(&font),
-            code_font.as_deref().unwrap_or(&font),
-            &locale,
-        )
-    }
+/// The minimal borrow a render pass needs. Built by
+/// [`TypstState::render_context`]; the paged and HTML renderers take this
+/// instead of the whole state.
+pub struct RenderContext<'a> {
+    pub world: &'a mut TypstWorld,
+    /// The note being rendered: sources, maps, documents, page width.
+    pub note: &'a mut SourceContext,
 }
 
 /// Result of `TypstState::check_index`: a self-test of the source maps.
@@ -1412,18 +853,6 @@ pub struct CheckedSegment {
     pub from_end: u32,
     pub to: u32,
     pub to_end: u32,
-}
-
-#[derive(Tsify, Serialize, Deserialize)]
-#[serde(tag = "type", content = "value", rename_all = "kebab-case")]
-pub enum TypstRequest {
-    Source(PathBuf),
-    File(PathBuf),
-    Package {
-        namespace: String,
-        name: String,
-        version: String,
-    },
 }
 
 #[derive(Tsify, Serialize, Deserialize)]

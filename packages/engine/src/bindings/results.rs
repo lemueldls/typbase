@@ -4,7 +4,7 @@ use tsify::Tsify;
 use crate::{
     bindings::TypstDiagnostic,
     renderer::{html::HTMLRangedFrame, paged::svg::SvgRangedFrame},
-    state::TypstRequest,
+    world::TypstRequest,
 };
 
 #[derive(Tsify, Serialize, Deserialize)]

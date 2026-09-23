@@ -10,7 +10,7 @@ expression: summarize(&render.chunks)
     ],
     "items": 6,
     "width": 55.2,
-    "height": 95.04,
+    "height": 89.6,
     "x": 0.0,
     "y": -1.28
   },
@@ -21,9 +21,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 9,
     "width": 46.8,
-    "height": 148.0,
+    "height": 134.4,
     "x": 0.0,
-    "y": 111.04
+    "y": 105.6
   },
   {
     "range": [
@@ -32,9 +32,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 7,
     "width": 26.24,
-    "height": 25.12,
+    "height": 22.4,
     "x": 18.8,
-    "y": 276.96
+    "y": 257.92
   },
   {
     "range": [
@@ -43,9 +43,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 15,
     "width": 72.16,
-    "height": 65.44,
+    "height": 62.72,
     "x": 17.6,
-    "y": 302.08
+    "y": 280.32
   },
   {
     "range": [
@@ -54,9 +54,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 15,
     "width": 35.82,
-    "height": 25.12,
+    "height": 22.4,
     "x": 28.5,
-    "y": 367.52
+    "y": 343.04
   },
   {
     "range": [
@@ -67,7 +67,7 @@ expression: summarize(&render.chunks)
     "width": 35.82,
     "height": 22.4,
     "x": 28.5,
-    "y": 392.64
+    "y": 365.44
   },
   {
     "range": [
@@ -76,9 +76,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 11,
     "width": 8.32,
-    "height": 122.88,
+    "height": 112.0,
     "x": 0.0,
-    "y": 432.96
+    "y": 405.76
   },
   {
     "range": [
@@ -87,9 +87,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 4,
     "width": 15.28,
-    "height": 72.64,
+    "height": 67.2,
     "x": -0.16,
-    "y": 573.76
+    "y": 535.68
   },
   {
     "range": [
@@ -98,9 +98,9 @@ expression: summarize(&render.chunks)
     ],
     "items": 6,
     "width": 8.59,
-    "height": 122.88,
+    "height": 112.0,
     "x": 0.0,
-    "y": 664.32
+    "y": 620.8
   },
   {
     "range": [
@@ -109,8 +109,8 @@ expression: summarize(&render.chunks)
     ],
     "items": 18,
     "width": 35.1,
-    "height": 129.84,
+    "height": 117.6,
     "x": 0.0,
-    "y": 805.28
+    "y": 750.88
   }
 ]

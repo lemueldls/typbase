@@ -1,15 +1,19 @@
+pub mod document;
+
 use std::{hash::BuildHasher, ops::Range};
 
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use typst::{compile, diag::Severity};
 use typst_html::{HtmlDocument, HtmlOptions};
+use wasm_bindgen::prelude::*;
 
 use crate::{
-    bindings::{TypstDiagnostic, TypstFileId, map_synth_span},
+    bindings::{CompileHTMLResult, TypstDiagnostic, TypstFileId, map_synth_span},
     source::{RenderTarget, SegmentKind, Side, SynthResult, sync_source_state},
-    state::{TypstRequest, TypstState},
+    state::TypstState,
+    world::TypstRequest,
 };
 
 pub fn render(
@@ -182,4 +186,27 @@ pub struct RenderHtmlResult {
     /// embedded pages). The editor's `compileHTML` carries them too; the
     /// publish worker needs them on this path.
     pub requests: Vec<TypstRequest>,
+}
+
+#[wasm_bindgen]
+impl TypstState {
+    /// The editor's inline HTML render: one ranged frame for the whole note,
+    /// with the frames renderer's block-blanking recovery. Publishing, export,
+    /// and chat use `renderHtml` (see [`document`]) instead.
+    #[wasm_bindgen(js_name = "compileHTML")]
+    pub fn compile_html(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<CompileHTMLResult>, JsError> {
+        let result = render(id, text, prelude, self);
+
+        Ok(CompileHTMLResult {
+            frames: result.frames,
+            diagnostics: result.diagnostics,
+            requests: self.world.take_requests(),
+        }
+        .into_ts()?)
+    }
 }

@@ -159,3 +159,32 @@ fn recovery_svg_snapshots() {
         }
     }
 }
+
+/// A bare `_` inside a math call argument used to fail the red-mark wrapper:
+/// the token lands in a content block, `_` is markup syntax again, the wrapper
+/// never compiled, and recovery re-marked it until the block blanked out.
+#[test]
+fn math_call_underscore_keeps_its_chunk() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    for source in ["$S(_)$", "before $S(_)$ after"] {
+        let mut state = harness::state();
+        let id = harness::page(&mut state, "math_call_underscore");
+
+        let render = harness::compile(&mut state, &id, source);
+
+        assert!(render.document.is_some(), "{source:?}: no document");
+        assert!(!render.chunks.is_empty(), "{source:?}: block de-rendered");
+        assert!(
+            render
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("unexpected underscore")),
+            "{source:?}: missing diagnostic, got {:#?}",
+            render.diagnostics
+        );
+    }
+}

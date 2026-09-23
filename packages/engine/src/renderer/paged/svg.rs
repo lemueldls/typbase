@@ -13,27 +13,42 @@ use typst_svg::svg_in_html;
 use super::BoundFrameItem;
 use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
-    renderer::paged::{PagedRender, items::chunk_by_items},
+    renderer::paged::{
+        PagedRender,
+        items::chunk_by_items_ctx,
+    },
     source::RenderTarget,
-    state::TypstState,
+    state::{RenderContext, TypstState},
 };
 
 /// Renders SVG frames for each chunked item in a Typst document.
-#[typst_macros::time]
 pub fn render_svgs_by_items(
     id: &TypstFileId,
     text: &str,
     prelude: &str,
     state: &mut TypstState,
 ) -> SvgRender {
+    let line_height_ratio = state.get_space_context(id).line_height_ratio;
+    let prelude = state.prelude(id, RenderTarget::Svg) + prelude + "\n";
+    let mut ctx = state.render_context(id).unwrap();
+
+    render_svgs_by_items_ctx(&mut ctx, text, &prelude, line_height_ratio)
+}
+
+/// [`render_svgs_by_items`] over an explicit render context.
+#[typst_macros::time]
+pub fn render_svgs_by_items_ctx(
+    ctx: &mut RenderContext<'_>,
+    text: &str,
+    prelude: &str,
+    line_height_ratio: f64,
+) -> SvgRender {
     let PagedRender {
         chunks,
         tooltips,
         diagnostics,
         document,
-    } = chunk_by_items(id, text, prelude, RenderTarget::Svg, state);
-
-    let context = state.get_source_context_mut(id);
+    } = chunk_by_items_ctx(ctx, text, prelude, line_height_ratio);
 
     let (frames, tooltips) = if let Some(document) = &document {
         let link_resolver = LateLinkResolver::new(None, document.introspector().as_ref());
@@ -97,7 +112,7 @@ pub fn render_svgs_by_items(
         (Vec::new(), Vec::new())
     };
 
-    context.paged_document = document;
+    ctx.note.paged_document = document;
 
     SvgRender {
         frames,

@@ -1,5 +1,6 @@
 use dashmap::DashSet;
 use rustc_hash::FxHashMap;
+use std::path::PathBuf;
 use time::{OffsetDateTime, UtcOffset};
 use typst::{
     Feature, Library, LibraryExt, World,
@@ -11,6 +12,9 @@ use typst::{
 };
 use typst_ide::IdeWorld;
 use typst_syntax::{VirtualPath, VirtualRoot, package::PackageSpec};
+
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
 use crate::fonts::FontLoader;
 
@@ -114,6 +118,36 @@ impl TypstWorld {
     pub fn install_font(&mut self, bytes: Vec<u8>) {
         self.font_loader.install(bytes);
     }
+
+    /// Drains the sources, files, and packages the compiler asked for since
+    /// the last call and turns them into a request list. The JS side answers
+    /// each request and recompiles.
+    #[must_use]
+    pub fn take_requests(&self) -> Vec<TypstRequest> {
+        let mut requests = Vec::new();
+
+        self.requested_sources.retain(|source| {
+            requests.push(TypstRequest::Source(PathBuf::from(source.get_with_slash())));
+            false
+        });
+
+        self.requested_files.retain(|file| {
+            requests.push(TypstRequest::File(PathBuf::from(file.get_with_slash())));
+            false
+        });
+
+        self.requested_packages.retain(|package| {
+            requests.push(TypstRequest::Package {
+                namespace: package.namespace.to_string(),
+                name: package.name.to_string(),
+                version: package.version.to_string(),
+            });
+
+            false
+        });
+
+        requests
+    }
 }
 
 impl World for TypstWorld {
@@ -210,4 +244,19 @@ impl FileSlot {
             FileSlot::Bytes(file) => file.clone(),
         }
     }
+}
+
+/// A file, source, or package the compiler asked for but the world does not
+/// have. Every compile returns the requests it accumulated; the caller
+/// resolves them (workspace source, blob bytes, package tarball) and recompiles.
+#[derive(Tsify, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "kebab-case")]
+pub enum TypstRequest {
+    Source(PathBuf),
+    File(PathBuf),
+    Package {
+        namespace: String,
+        name: String,
+        version: String,
+    },
 }

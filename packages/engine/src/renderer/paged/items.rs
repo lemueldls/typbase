@@ -17,7 +17,7 @@ use crate::{
         RenderTarget, SegmentKind, Side, SourceContext, SynthBlock, SynthResult,
         delimiter_diagnostics, sync_source_context,
     },
-    state::TypstState,
+    state::{RenderContext, TypstState},
     world::TypstWorld,
 };
 
@@ -28,7 +28,6 @@ use crate::{
 /// rewrite it without touching the pristine synth. IDE queries parse the
 /// render source too (see `TypstState::hover`), which is why recovery must
 /// keep it compilable: blocks get blanked, math spans get placeholders.
-#[typst_macros::time]
 pub fn chunk_by_items(
     id: &TypstFileId,
     text: &str,
@@ -38,16 +37,29 @@ pub fn chunk_by_items(
 ) -> PagedRender {
     let line_height_ratio = state.get_space_context(id).line_height_ratio;
     let prelude = state.prelude(id, render_target) + prelude + "\n";
-    let context = state.source_context_map.get_mut(id).unwrap();
+    let mut ctx = state.render_context(id).unwrap();
+
+    chunk_by_items_ctx(&mut ctx, text, &prelude, line_height_ratio)
+}
+
+/// [`chunk_by_items`] over an explicit render context, so the pipeline only
+/// sees the world and this note's source context.
+#[typst_macros::time]
+pub fn chunk_by_items_ctx(
+    ctx: &mut RenderContext<'_>,
+    text: &str,
+    prelude: &str,
+    line_height_ratio: f64,
+) -> PagedRender {
     let SynthResult {
         mut blocks,
         equation_ranges,
         ..
-    } = sync_source_context(text, prelude, context, &mut state.world);
+    } = sync_source_context(text, prelude.to_owned(), ctx.note, ctx.world);
 
     // Compile the render source for the rest of this call. The pristine synth
     // stays in the world for hover/autocomplete/jump.
-    state.world.main_id = Some(context.render_id);
+    ctx.world.main_id = Some(ctx.note.render_id);
 
     let mut divergence = 0_u8;
 
@@ -56,22 +68,22 @@ pub fn chunk_by_items(
         &equation_ranges,
         &mut divergence,
         line_height_ratio,
-        context,
-        &mut state.world,
+        ctx.note,
+        ctx.world,
     );
 
-    state.world.main_id = Some(context.synth_id);
+    ctx.world.main_id = Some(ctx.note.synth_id);
 
     // If recovery marked ranges, update the patched source IDE queries trace
     // against. The pristine parse source stays untouched; the patch keeps the
     // file compilable without moving spans.
-    if !context.marked_raw_ranges.is_empty() {
-        context.rebuild_ide_source(&mut state.world);
+    if !ctx.note.marked_raw_ranges.is_empty() {
+        ctx.note.rebuild_ide_source(ctx.world);
     }
 
     // The repaired document compiles cleanly, so the unclosed-delimiter
     // warnings have to come from the fixup list, not the compiler.
-    let mut diagnostics = delimiter_diagnostics(&context.render_fixups, text);
+    let mut diagnostics = delimiter_diagnostics(&ctx.note.render_fixups, text);
     diagnostics.append(&mut render.diagnostics);
     render.diagnostics = diagnostics;
 
@@ -82,7 +94,7 @@ pub fn chunk_by_items(
 #[typst_macros::time]
 pub fn chunk_by_items_with_blocks(
     blocks: &mut Vec<SynthBlock>,
-    eq_ranges: &Vec<Range<usize>>,
+    eq_ranges: &[Range<usize>],
     divergence: &mut u8,
     line_height_ratio: f64,
     context: &mut SourceContext,
