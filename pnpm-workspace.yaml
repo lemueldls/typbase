@@ -15,7 +15,6 @@ allowBuilds:
   protobufjs: true
   sharp: false
   vue-demi: true
-  "@nuxtjs/i18n@https://codeload.github.com/onmax/i18n/tar.gz/cf1fb91708422e749ed36d753c012e99ac2cd3ac": true
 
 overrides:
   "@internationalized/date": "3.12.4"

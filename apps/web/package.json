@@ -22,7 +22,7 @@
     "@codemirror/view": "^6.43.10",
     "@huggingface/transformers": "^4.2.0",
     "@internationalized/date": "^3.12.4",
-    "@nuxtjs/i18n": "github:onmax/i18n#agent/nuxt5-nitro3-runtime",
+    "@nuxtjs/i18n": "file:../../vendor/nuxtjs-i18n-10.6.0.tgz",
     "@typbase/codemirror": "workspace:*",
     "@typbase/engine": "workspace:*",
     "@typbase/spaces": "workspace:*",
