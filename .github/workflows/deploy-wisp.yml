@@ -51,9 +51,9 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: 🔨 Build the static site
+      - name: 🔨 Generate the static site
         if: steps.gate.outputs.deploy == 'true'
-        run: pnpm build
+        run: pnpm generate
         env:
           NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
           NUXT_PUBLIC_RELAY_URL: ${{ vars.NUXT_PUBLIC_RELAY_URL }}
