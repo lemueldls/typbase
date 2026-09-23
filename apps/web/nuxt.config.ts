@@ -29,7 +29,7 @@ export default defineNuxtConfig({
           content: "Local-first knowledge base built around the Typst language.",
         },
       ],
-      link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+      link: [{ rel: "icon", type: "image/x-icon", href: "favicon.ico" }],
       script: [
         {
           // Runs before first paint. The workspace doc is async, so without

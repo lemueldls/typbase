@@ -34,6 +34,8 @@ withDefaults(
 
 <style scoped>
 .ms-icon {
+  width: 1em;
+  height: 1em;
   vertical-align: -0.125em;
   user-select: none;
 }
