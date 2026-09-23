@@ -127,6 +127,52 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("writes the current storage layout", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Layout check",
+      content: "= Layout\n\nhello\n",
+    });
+    await showPage(page, id, "write");
+    await page.evaluate(() => window.__typbase.store.flush());
+
+    const paths = await page.evaluate(async () => {
+      const found: string[] = [];
+      const root = await navigator.storage.getDirectory();
+
+      const walk = async (dir: FileSystemDirectoryHandle, prefix: string): Promise<void> => {
+        const entries = (
+          dir as unknown as {
+            entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+          }
+        ).entries();
+        for await (const [name, handle] of entries) {
+          const path = prefix ? `${prefix}/${name}` : name;
+          if (handle.kind === "directory") await walk(handle as FileSystemDirectoryHandle, path);
+          else found.push(path);
+        }
+      };
+      await walk(root, "");
+
+      return found;
+    });
+
+    expect(paths.some((path) => /^workspaces\/[^/]+\/state\/workspace\.loro$/.test(path))).toBe(
+      true,
+    );
+    expect(paths.some((path) => /^workspaces\/[^/]+\/state\/pages\/[^/]+\.loro$/.test(path))).toBe(
+      true,
+    );
+    expect(paths.some((path) => /^workspaces\/[^/]+\/pages\/layout-check\.typ$/.test(path))).toBe(
+      true,
+    );
+    expect(paths).toContain("layout.json");
+    expect(paths.some((path) => path.includes("/sources/"))).toBe(false);
+    await page.close();
+  });
+
   it("saves immediately on Ctrl+S with a toast", async () => {
     const page = await createPage();
     await openApp(page);

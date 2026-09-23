@@ -13,6 +13,7 @@ export {
   storedDirectoryHandle,
 } from "./fsa";
 export { LocalState, localStatePath } from "./local";
+export { migrateLayout } from "./migrate";
 export { WorkspaceRegistry, removeWorkspace } from "./registry";
 export type { TauriStorageMode, TauriStorageState } from "./tauri";
 export {
@@ -32,15 +33,18 @@ export type {
   WorkspaceStoreOptions,
 } from "./workspace";
 export {
+  RESERVED_ROOTS,
   WorkspaceStore,
   chatDocId,
   chatIdOf,
   chatPath,
+  isSourceChange,
   pagePath,
   pluginDocId,
   pluginInstanceOf,
   pluginPath,
   slugify,
   workspacePath,
+  workspaceRoot,
 } from "./workspace";
 export { createId } from "@paralleldrive/cuid2";

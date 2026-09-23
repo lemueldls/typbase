@@ -17,10 +17,18 @@ import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/p
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 
 export interface WorkspaceExportOptions extends ExportOptions {
-  /** Write each selected page's artifacts under `pages/<slug>/`. */
+  /** Write each selected page's source and artifacts. */
   separate: boolean;
   /** Write one merged document from the selected pages. */
   combined: boolean;
+}
+
+/**
+ * Bundle stem for a page's rendered artifacts. Sources keep their `page.path`;
+ * renders live under `artifacts/` so the two never collide.
+ */
+function artifactStem(path: string): string {
+  return `artifacts/${path.replace(/\.typ$/i, "")}`;
 }
 
 export async function buildWorkspaceExport(
@@ -44,8 +52,18 @@ export async function buildWorkspaceExport(
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
+  const names = new Set<string>();
   const payloads = new Map<string, ExportFile>();
   const index: Array<{ title: string; href: string }> = [];
+
+  const addFile = (file: ExportFile): void => {
+    if (names.has(file.name)) {
+      throw new Error(`Two exported files would both be named ${file.name}; rename one page.`);
+    }
+
+    names.add(file.name);
+    files.push(file);
+  };
 
   const collect = (outcome: RenderOutcome): void => {
     for (const payload of outcome.payloads) {
@@ -62,11 +80,15 @@ export async function buildWorkspaceExport(
 
   const renderInto = async (input: {
     source: string;
+    /** Virtual page path handed to the renderer. */
     pagePath: string;
+    /** Bundle path of the source file, mirroring the workspace tree. */
+    sourceName: string;
+    /** Artifact stem under `artifacts/`; sheet suffixes are appended. */
     stem: string;
     title?: string;
   }): Promise<void> => {
-    const { source, pagePath, stem, title } = input;
+    const { source, pagePath, sourceName, stem, title } = input;
 
     if (options.html) {
       const rendered = await renderInWorker({
@@ -82,7 +104,7 @@ export async function buildWorkspaceExport(
       }
 
       collect(rendered);
-      files.push({
+      addFile({
         name: `${stem}.html`,
         bytes: encoder.encode(styleExportHtml(await inlineBlobs(rendered.html, store), palette)),
       });
@@ -103,7 +125,7 @@ export async function buildWorkspaceExport(
       }
 
       collect(rendered);
-      files.push({ name: `${stem}.pdf`, bytes: rendered.pdf });
+      addFile({ name: `${stem}.pdf`, bytes: rendered.pdf });
     }
 
     if (options.svg) {
@@ -123,7 +145,7 @@ export async function buildWorkspaceExport(
       collect(rendered);
       const many = rendered.svg.length > 1;
       rendered.svg.forEach((svg, sheet) => {
-        files.push({
+        addFile({
           name: `${stem}${many ? `-${sheet + 1}` : ""}.svg`,
           bytes: encoder.encode(svg),
         });
@@ -132,8 +154,8 @@ export async function buildWorkspaceExport(
 
     if (options.project) {
       const projectSource = options.stripMarkers ? stripCellMarkers(source) : source;
-      files.push({
-        name: `${stem}.typ`,
+      addFile({
+        name: sourceName,
         bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`),
       });
     }
@@ -142,11 +164,11 @@ export async function buildWorkspaceExport(
   if (options.separate) {
     for (const page of pages) {
       const source = await store.loadPageText(page.id);
-      const base = fileBase(page.title, page.path);
       await renderInto({
         source,
         pagePath: page.path,
-        stem: `pages/${base}/${base}`,
+        sourceName: page.path,
+        stem: artifactStem(page.path),
         title: page.title,
       });
     }
@@ -163,10 +185,12 @@ export async function buildWorkspaceExport(
     const paged = `${sources.join("\n#pagebreak(weak: true)\n")}\n`;
     const flowed = `${sources.join("\n\n#horizontalrule()\n\n")}\n`;
     const name = pages.every((page) => page.path.startsWith("daily/")) ? "daily" : "combined";
+    const pagePath = `${name}.typ`;
+    const stem = `artifacts/${name}`;
 
     if (options.html) {
       const rendered = await renderInWorker({
-        pagePath: `${name}.typ`,
+        pagePath,
         source: flowed,
         prelude: htmlPrelude,
         wants: "html",
@@ -176,16 +200,16 @@ export async function buildWorkspaceExport(
       if (!rendered.html) throw new Error("The combined render produced no HTML.");
 
       collect(rendered);
-      files.push({
-        name: `${name}.html`,
+      addFile({
+        name: `${stem}.html`,
         bytes: encoder.encode(styleExportHtml(await inlineBlobs(rendered.html, store), palette)),
       });
-      index.unshift({ title: name, href: `${name}.html` });
+      index.unshift({ title: name, href: `${stem}.html` });
     }
 
     if (options.pdf) {
       const rendered = await renderInWorker({
-        pagePath: `${name}.typ`,
+        pagePath,
         source: paged,
         prelude: pagedPrelude,
         wants: "pdf",
@@ -195,12 +219,12 @@ export async function buildWorkspaceExport(
       if (!rendered.pdf) throw new Error("The combined render produced no PDF.");
 
       collect(rendered);
-      files.push({ name: `${name}.pdf`, bytes: rendered.pdf });
+      addFile({ name: `${stem}.pdf`, bytes: rendered.pdf });
     }
 
     if (options.svg) {
       const rendered = await renderInWorker({
-        pagePath: `${name}.typ`,
+        pagePath,
         source: paged,
         prelude: pagedPrelude,
         wants: "svg",
@@ -213,8 +237,8 @@ export async function buildWorkspaceExport(
       collect(rendered);
       const many = rendered.svg.length > 1;
       rendered.svg.forEach((svg, sheet) => {
-        files.push({
-          name: `${name}${many ? `-${sheet + 1}` : ""}.svg`,
+        addFile({
+          name: `${stem}${many ? `-${sheet + 1}` : ""}.svg`,
           bytes: encoder.encode(svg),
         });
       });
@@ -222,27 +246,29 @@ export async function buildWorkspaceExport(
 
     if (options.project) {
       const combined = options.stripMarkers ? stripCellMarkers(paged) : paged;
-      files.push({ name: `${name}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${combined}`) });
+      addFile({ name: pagePath, bytes: encoder.encode(`${pagedPrelude}\n${combined}`) });
     }
   }
 
   if (options.project) {
     if (typstState) {
-      files.push({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
+      addFile({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
     }
     const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
-    files.push({ name: syntax.path, bytes: encoder.encode(syntax.text) });
-    for (const payload of payloads.values()) files.push(payload);
-    if (options.fonts) files.push(...(await fontFiles()));
+    addFile({ name: syntax.path, bytes: encoder.encode(syntax.text) });
+    for (const payload of payloads.values()) addFile(payload);
+    if (options.fonts) {
+      for (const font of await fontFiles()) addFile(font);
+    }
   }
 
   if (files.length > 1) {
-    files.push({
+    addFile({
       name: "README.md",
       bytes: encoder.encode(buildWorkspaceReadme(pages.length, options)),
     });
     if (index.length) {
-      files.push({ name: "index.html", bytes: encoder.encode(buildWorkspaceIndex(index)) });
+      addFile({ name: "index.html", bytes: encoder.encode(buildWorkspaceIndex(index)) });
     }
   }
 
@@ -290,7 +316,8 @@ function buildWorkspaceReadme(pageCount: number, options: WorkspaceExportOptions
 
   if (options.separate) {
     lines.push(
-      "- `pages/<slug>/`: each page's artifacts, plus its `.typ` with the prelude inlined",
+      "- `artifacts/`: rendered HTML, PDF, and SVG, mirroring each page's path",
+      "- `pages/`, `daily/`, ...: the page sources with the workspace prelude inlined",
     );
   }
   if (options.combined) {
@@ -305,11 +332,14 @@ function buildWorkspaceReadme(pageCount: number, options: WorkspaceExportOptions
     lines.push(
       "## Compiling the Typst source",
       "",
-      "Compile from the extracted bundle root; the project imports `/typbase/lib.typ`:",
+      "Compile from the extracted bundle root; the prelude imports `/typbase/lib.typ`:",
       "",
       "```sh",
-      `typst compile --root .${options.fonts ? " --font-path typbase/fonts" : ""} pages/<slug>/<slug>.typ`,
+      `typst compile --root .${options.fonts ? " --font-path typbase/fonts" : ""} pages/<page.path>`,
       "```",
+      "",
+      'Tinymist needs the same root (`"tinymist.typstExtraArgs": ["--root", "."]`), because',
+      "the prelude's import is root-absolute.",
       "",
     );
   }

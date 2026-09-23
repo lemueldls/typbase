@@ -111,4 +111,32 @@ export class TauriBackend implements StorageBackend {
   async stat(path: string): Promise<StorageEntryStat | null> {
     return invoke<StorageEntryStat | null>("storage_stat", { path });
   }
+
+  /**
+   * Watches through the Rust `notify` watcher. The event payload carries the
+   * watched root so events that race a workspace switch are dropped.
+   */
+  async watch(path: string, listener: (relativePath: string) => void): Promise<() => void> {
+    const event = await import("@tauri-apps/api/event");
+    const unlisten = await event.listen<{ root: string; relative: string }>(
+      "storage-source-change",
+      (message) => {
+        if (message.payload.root === path) listener(message.payload.relative);
+      },
+    );
+
+    try {
+      await invoke("storage_watch", { path });
+    } catch (cause) {
+      unlisten();
+      throw cause;
+    }
+
+    return () => {
+      unlisten();
+      void invoke("storage_unwatch", { path }).catch(() => {
+        // A stale unwatch is harmless; the next watch replaces the watcher.
+      });
+    };
+  }
 }

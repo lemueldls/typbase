@@ -21,6 +21,7 @@ import { DEFAULT_SETTINGS } from "@typbase/typing";
 
 import type { StorageBackend, StorageEntryStat } from "./backend";
 
+import { pathSegments } from "./backend";
 import { blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
 import { type LoroModule, loadLoro } from "./loro";
 
@@ -134,16 +135,44 @@ function firstHeading(text: string): string | undefined {
 
 const SOURCE_HASHES_KEY = "sourceHashes";
 
+/**
+ * Directories the app owns inside a workspace. Page paths never enter them:
+ * `state/` holds the CRDT snapshots, `typbase/` the generated project view,
+ * `blobs/` content-addressed media, and `artifacts/` is only claimed in
+ * export bundles, which reuse page paths.
+ */
+export const RESERVED_ROOTS = ["state", "typbase", "blobs", "artifacts"] as const;
+
+/** Backend-relative path of a workspace directory. */
+export function workspaceRoot(workspaceId: string): string {
+  return `workspaces/${workspaceId}`;
+}
+
 export function workspacePath(workspaceId: string): string {
-  return `workspaces/${workspaceId}/workspace.loro`;
+  return `${workspaceRoot(workspaceId)}/state/workspace.loro`;
 }
 
 export function pagePath(workspaceId: string, pageId: string): string {
-  return `workspaces/${workspaceId}/pages/${pageId}.loro`;
+  return `${workspaceRoot(workspaceId)}/state/pages/${pageId}.loro`;
 }
 
 export function pluginPath(workspaceId: string, instanceId: string): string {
-  return `workspaces/${workspaceId}/plugins/${instanceId}.loro`;
+  return `${workspaceRoot(workspaceId)}/state/plugins/${instanceId}.loro`;
+}
+
+/**
+ * True when a workspace-relative path is a page source: a visible `.typ` file
+ * outside the app-owned roots. Backends pass raw change paths here, so the
+ * same rule answers "is this event worth a sync pass". Kept in step with the
+ * Rust filter in `apps/native/src/storage.rs`.
+ */
+export function isSourceChange(relativePath: string): boolean {
+  const parts = pathSegments(relativePath);
+  if (!parts.length) return false;
+  if (parts.some((part) => part.startsWith("."))) return false;
+  if ((RESERVED_ROOTS as readonly string[]).includes(parts[0]!)) return false;
+
+  return parts.at(-1)!.endsWith(".typ");
 }
 
 /** Doc id space for plugin instance docs; sync treats them like page docs. */
@@ -157,7 +186,7 @@ export function pluginInstanceOf(docId: string): string | null {
 }
 
 export function chatPath(workspaceId: string, threadId: string): string {
-  return `workspaces/${workspaceId}/chats/${threadId}.loro`;
+  return `${workspaceRoot(workspaceId)}/state/chats/${threadId}.loro`;
 }
 
 /** Doc id space for chat threads; sync treats them like page docs. */
@@ -211,6 +240,7 @@ export class WorkspaceStore {
   private sourceSync?: SourceSyncStore;
   private sourceHashes: Record<string, SourceHashRecord> | undefined;
   private sourceSyncPromise: Promise<SourceSyncResult> | undefined;
+  private unwatchSources: (() => void) | undefined;
 
   private constructor(
     private readonly backend: StorageBackend,
@@ -218,6 +248,11 @@ export class WorkspaceStore {
     private readonly doc: LoroDoc,
     private readonly snapshotDebounceMs = SNAPSHOT_DEBOUNCE_MS,
   ) {}
+
+  /** Backend-relative root of this workspace's own directory. */
+  private get root(): string {
+    return workspaceRoot(this.workspaceId);
+  }
 
   static async open(
     backend: StorageBackend,
@@ -252,7 +287,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * Writes pending snapshots and mirrors page sources to `sources/<path>`.
+   * Writes pending snapshots and mirrors page sources to their `page.path`.
    * Called on the snapshot debounce and on page hide so a crash loses little.
    */
   async flush(): Promise<void> {
@@ -268,23 +303,63 @@ export class WorkspaceStore {
     }
   }
 
-  /** Enables the `sources/<path>` mirror; call once the device state exists. */
+  /** Enables the source mirror; call once the device state exists. */
   attachSourceSync(sync: SourceSyncStore): void {
     this.sourceSync = sync;
   }
 
-  /** Current disk path for a page's mirrored source. */
+  /** Disk path of a page's mirrored source. */
   sourcePath(page: PageMeta): string {
-    return `workspaces/${this.workspaceId}/sources/${page.path}`;
+    return `${this.root}/${page.path}`;
   }
 
   /**
-   * Writes a file under the mirror root but outside the page tree
-   * (`typbase/...`). Used for the compilable project view: the library,
-   * per-page entries, and the request data external tools need.
+   * Watches the page tree for external edits and calls `onChanged` for every
+   * change that looks like a source edit. Backends without change
+   * notifications (OPFS, memory) return a no-op disposer. Calling this again
+   * replaces the previous watcher.
+   */
+  watchSources(onChanged: () => void): () => void {
+    this.unwatchSources?.();
+
+    const watch = this.backend.watch?.bind(this.backend);
+    if (!watch) return () => {};
+
+    let dispose: (() => void) | undefined;
+    let closed = false;
+
+    void watch(this.root, (relative) => {
+      if (isSourceChange(relative)) onChanged();
+    })
+      .then((result) => {
+        if (closed) result();
+        else dispose = result;
+      })
+      .catch((cause) => console.warn("[sources] watch failed:", cause));
+
+    const close = (): void => {
+      closed = true;
+      dispose?.();
+      dispose = undefined;
+      this.unwatchSources = undefined;
+    };
+    this.unwatchSources = close;
+
+    return close;
+  }
+
+  /**
+   * Writes a file into the generated project view. Request payloads arrive
+   * root-absolute (`/typbase/...`); anything outside `typbase/` is rejected so
+   * a stray path cannot land on a page source.
    */
   async writeProjectFile(path: string, bytes: Uint8Array): Promise<void> {
-    await this.backend.write(`workspaces/${this.workspaceId}/sources/${path}`, bytes);
+    const relative = pathSegments(path).join("/");
+    if (!relative.startsWith("typbase/")) {
+      throw new Error(`Refusing to write outside typbase/: ${path}`);
+    }
+
+    await this.backend.write(`${this.root}/${relative}`, bytes);
   }
 
   private async loadSourceHashes(): Promise<Record<string, SourceHashRecord>> {
@@ -334,7 +409,7 @@ export class WorkspaceStore {
   /** Mirrored `.typ` files as `virtual path -> stat`, without reading. */
   private async listSourceFiles(relative = ""): Promise<Map<string, SourceFileInfo>> {
     const files = new Map<string, SourceFileInfo>();
-    const dir = `workspaces/${this.workspaceId}/sources${relative ? `/${relative}` : ""}`;
+    const dir = relative ? `${this.root}/${relative}` : this.root;
     let entries: string[] = [];
     try {
       entries = await this.backend.list(dir);
@@ -343,9 +418,12 @@ export class WorkspaceStore {
     }
 
     for (const name of entries) {
-      // `typbase/` is the generated project view (library, entries, request
-      // data); it is not page content and must never import as pages.
-      if (!relative && name === "typbase") continue;
+      // Hidden entries are never page content (a `.git` a user dropped in, or
+      // anything the app may hide later).
+      if (name.startsWith(".")) continue;
+      // The app-owned roots are not page content: `typbase/` is generated,
+      // `state/` and `blobs/` are internal, `artifacts/` exists in exports.
+      if (!relative && (RESERVED_ROOTS as readonly string[]).includes(name)) continue;
 
       const path = `${dir}/${name}`;
       const stat = await this.backend.stat(path).catch(() => null);
@@ -363,7 +441,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * Mirrors `sources/` and the page docs:
+   * Mirrors the page tree and the page docs:
    * - a file with no page creates one;
    * - a changed file imports when the doc has not changed since the last export;
    * - when both changed, the doc wins and the file is re-exported;
@@ -734,6 +812,11 @@ export class WorkspaceStore {
   }
 
   private uniquePath(path: string): string {
+    const root = pathSegments(path)[0] ?? "";
+    if ((RESERVED_ROOTS as readonly string[]).includes(root)) {
+      throw new Error(`Page paths cannot start with ${root}/; that directory belongs to the app.`);
+    }
+
     const existing = new Set(this.listPages().map((page) => page.path));
     if (!existing.has(path)) return path;
 
@@ -1578,7 +1661,7 @@ export class WorkspaceStore {
   }
 
   async listBlobs(): Promise<BlobEntry[]> {
-    const dir = `workspaces/${this.workspaceId}/blobs`;
+    const dir = `${this.root}/blobs`;
     let names: string[] = [];
     try {
       names = await this.backend.list(dir);

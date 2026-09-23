@@ -16,6 +16,7 @@ import {
   isFsaSupported,
   isTauri,
   localStatePath,
+  migrateLayout,
   pickDirectory,
   pickTauriDirectory,
   removeWorkspace,
@@ -172,6 +173,8 @@ function useWorkspaceState() {
   const backendRef = shallowRef<StorageBackend>();
   let registry: WorkspaceRegistry | undefined;
   let openingSeq = 0;
+  /** Disposer for the active workspace's source watcher, if the backend has one. */
+  let unwatchSources: (() => void) | undefined;
   /**
    * Owns the switching overlay. Kept apart from `openingSeq` because
    * `bootAtproto` also bumps that one, which made the overlay's cleanup guard
@@ -486,6 +489,8 @@ function useWorkspaceState() {
 
   /** Nothing but the atproto/search/services belong to the old workspace. */
   function teardownActive(): void {
+    unwatchSources?.();
+    unwatchSources = undefined;
     atproto.value?.dispose();
     atproto.value = undefined;
     atprotoReady.value = false;
@@ -552,7 +557,7 @@ function useWorkspaceState() {
       void refreshWorkspaceList();
 
       // Device-local state doubles as the source-mirror bookkeeping; create it
-      // before atproto boots so `sources/` can sync right away.
+      // before atproto boots so the page tree can sync right away.
       const local = new LocalState(backendRef.value!, localStatePath(id));
       localState.value = local;
       store.attachSourceSync(local);
@@ -560,7 +565,7 @@ function useWorkspaceState() {
       // atproto boots in the background, never gating the editor.
       void bootAtproto(store, backendRef.value!, local);
 
-      // Mirror pages to `sources/` and pick up external edits.
+      // Mirror pages to their paths and pick up external edits.
       void store
         .syncSources()
         .then((result) => {
@@ -569,6 +574,10 @@ function useWorkspaceState() {
           }
         })
         .catch((reason) => console.warn("[sources] sync failed:", reason));
+
+      // Native and picked-folder backends push changes as they land; the
+      // focus/visibility sweep still covers engines without a watcher.
+      unwatchSources = store.watchSources(syncExternalChanges);
 
       if (import.meta.dev) {
         // Console access for debugging (mirrors __typstState in typst.ts).
@@ -636,6 +645,9 @@ function useWorkspaceState() {
 
     ensurePromise ??= (async () => {
       await ensureBackend();
+      // One-time move off the pre-restructure layout; see
+      // `packages/storage/src/migrate.ts` for the removal recipe.
+      await migrateLayout(backendRef.value!);
       const reg = await ensureRegistry();
       const id = await chooseWorkspaceId(reg);
       if (!id) return null; // nothing to open; the shell shows the chooser
@@ -765,15 +777,15 @@ function useWorkspaceState() {
 
   const workspaceId = computed(() => activeWorkspaceId.value ?? "");
 
-  // External editors write straight to `sources/`; pull their changes when
-  // the window regains focus instead of watching (browsers cannot watch).
-  if (typeof window !== "undefined") {
-    const syncExternalChanges = useDebounceFn(() => {
-      void workspace.value?.syncSources().catch((reason) => {
-        console.warn("[sources] focus sync failed:", reason);
-      });
-    }, 600);
+  // One debounced sync pass serves both the watcher (native, picked folder)
+  // and the focus/visibility sweep that covers engines without one.
+  const syncExternalChanges = useDebounceFn(() => {
+    void workspace.value?.syncSources().catch((reason) => {
+      console.warn("[sources] sync failed:", reason);
+    });
+  }, 600);
 
+  if (typeof window !== "undefined") {
     window.addEventListener("focus", syncExternalChanges);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) void syncExternalChanges();

@@ -1,4 +1,4 @@
-import { DirectoryHandleBackend } from "./backend";
+import { DirectoryHandleBackend, pathSegments } from "./backend";
 
 /**
  * A directory the user picked through the File System Access API, persisted
@@ -111,5 +111,25 @@ export async function requestDirectoryPermission(
 export class FileSystemAccessBackend extends DirectoryHandleBackend {
   get name(): string {
     return this.root.name;
+  }
+
+  /**
+   * Watches through Chromium's `FileSystemObserver`. Older engines and
+   * Firefox/Safari have no equivalent, so they keep the focus sweep.
+   */
+  async watch(path: string, listener: (relativePath: string) => void): Promise<() => void> {
+    if (typeof FileSystemObserver === "undefined") return () => {};
+
+    // A fresh workspace may not have flushed its first snapshot yet.
+    const dir = await this.ensureDir(pathSegments(path));
+    const observer = new FileSystemObserver((records) => {
+      for (const record of records) {
+        const parts = record.relativePathComponents;
+        if (parts?.length) listener(parts.join("/"));
+      }
+    });
+    await observer.observe(dir, { recursive: true });
+
+    return () => observer.disconnect();
   }
 }

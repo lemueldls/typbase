@@ -68,8 +68,18 @@ export async function buildExport(
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
+  const names = new Set<string>();
   const payloads = new Map<string, ExportFile>();
   const artifacts: { html?: string; pdf?: string; svg: string[] } = { svg: [] };
+
+  const addFile = (file: ExportFile): void => {
+    if (names.has(file.name)) {
+      throw new Error(`Two exported files would both be named ${file.name}; rename one page.`);
+    }
+
+    names.add(file.name);
+    files.push(file);
+  };
 
   const collect = (outcome: RenderOutcome): void => {
     for (const payload of outcome.payloads) {
@@ -99,7 +109,7 @@ export async function buildExport(
 
     collect(rendered);
     artifacts.html = `${base}.html`;
-    files.push({
+    addFile({
       name: artifacts.html,
       bytes: encoder.encode(styleExportHtml(await inlineBlobs(rendered.html, store), palette)),
     });
@@ -120,7 +130,7 @@ export async function buildExport(
 
     collect(rendered);
     artifacts.pdf = `${base}.pdf`;
-    files.push({ name: artifacts.pdf, bytes: rendered.pdf });
+    addFile({ name: artifacts.pdf, bytes: rendered.pdf });
   }
 
   if (options.svg) {
@@ -142,29 +152,31 @@ export async function buildExport(
     rendered.svg.forEach((svg, index) => {
       const name = `${base}${many ? `-${index + 1}` : ""}.svg`;
       artifacts.svg.push(name);
-      files.push({ name, bytes: encoder.encode(svg) });
+      addFile({ name, bytes: encoder.encode(svg) });
     });
   }
 
   if (options.project) {
     const projectSource = options.stripMarkers ? stripCellMarkers(source) : source;
-    files.push({ name: `${base}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`) });
+    addFile({ name: `${base}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`) });
     if (typstState) {
-      files.push({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
+      addFile({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
     }
     const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
-    files.push({ name: syntax.path, bytes: encoder.encode(syntax.text) });
-    for (const payload of payloads.values()) files.push(payload);
-    if (options.fonts) files.push(...(await fontFiles()));
+    addFile({ name: syntax.path, bytes: encoder.encode(syntax.text) });
+    for (const payload of payloads.values()) addFile(payload);
+    if (options.fonts) {
+      for (const font of await fontFiles()) addFile(font);
+    }
   }
 
   // One artifact stays a single file; more than one becomes a zip with an
   // index that works without a local server.
   if (files.length > 1) {
     const readme = buildReadme(page.title, base, options);
-    files.push({ name: "README.md", bytes: encoder.encode(readme) });
+    addFile({ name: "README.md", bytes: encoder.encode(readme) });
     if (artifacts.html || artifacts.svg.length) {
-      files.push({ name: "index.html", bytes: encoder.encode(buildIndex(page.title, artifacts)) });
+      addFile({ name: "index.html", bytes: encoder.encode(buildIndex(page.title, artifacts)) });
     }
   }
 
@@ -348,6 +360,9 @@ function buildReadme(title: string, base: string, options: ExportOptions): strin
       "```",
       "",
       "The prelude (theme, fonts, text size, heading styles) is inlined at the top of the file.",
+      "",
+      'Tinymist needs the same root (`"tinymist.typstExtraArgs": ["--root", "."]`), because',
+      "the prelude's import is root-absolute.",
       "",
     );
   }

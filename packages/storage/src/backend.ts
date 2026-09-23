@@ -17,6 +17,29 @@ declare global {
       startIn?: string;
     }): Promise<FileSystemDirectoryHandle>;
   }
+
+  // Chromium-only change notifications for File System Access directories.
+  // Same story as `entries()` above: real API, missing from lib.dom.
+  interface FileSystemObserverRecord {
+    readonly changedHandle: FileSystemHandle;
+    readonly relativePathComponents?: readonly string[];
+    readonly type: "appeared" | "disappeared" | "modified" | "moved" | "unknown" | "errored";
+  }
+
+  interface FileSystemObserverInstance {
+    observe(handle: FileSystemHandle, options?: { recursive?: boolean }): Promise<void>;
+    unobserve(handle: FileSystemHandle): Promise<void>;
+    disconnect(): void;
+  }
+
+  var FileSystemObserver:
+    | (new (
+        callback: (
+          records: FileSystemObserverRecord[],
+          observer: FileSystemObserverInstance,
+        ) => void,
+      ) => FileSystemObserverInstance)
+    | undefined;
 }
 
 /**
@@ -25,11 +48,11 @@ declare global {
  *
  * Layout:
  *
- *   workspaces/<id>/workspace.loro
- *   workspaces/<id>/pages/<pageId>.loro
- *   workspaces/<id>/sources/<page.path>   (mirrored Typst source)
+ *   workspaces/<id>/state/workspace.loro
+ *   workspaces/<id>/state/pages/<pageId>.loro
+ *   workspaces/<id>/<page.path>           (mirrored Typst source)
  *   workspaces/<id>/blobs/<sha256>        (content-addressed media)
- *   workspaces/<id>/local.json
+ *   workspaces/<id>/state/local.json
  */
 
 export interface StorageEntryStat {
@@ -52,6 +75,12 @@ export interface StorageBackend {
   list(path: string): Promise<string[]>;
   /** Metadata for one entry, or null when it does not exist. */
   stat(path: string): Promise<StorageEntryStat | null>;
+  /**
+   * Calls `listener` with paths relative to `path` when files under it
+   * change. Backends without change notifications leave this out; the source
+   * sync then falls back to its focus sweep. Resolves to a disposer.
+   */
+  watch?(path: string, listener: (relativePath: string) => void): Promise<() => void>;
 }
 
 export function pathSegments(path: string): string[] {

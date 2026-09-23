@@ -22,6 +22,8 @@ pub fn run() {
             storage::storage_delete,
             storage::storage_list,
             storage::storage_stat,
+            storage::storage_watch,
+            storage::storage_unwatch,
             storage::export_save_file,
             fonts::system_font_index,
             fonts::system_font_file,
@@ -53,6 +55,7 @@ pub fn run() {
             // them; `load` never fails on a broken root (the setup screen
             // takes over), only on a missing platform config dir.
             app.manage(storage::StorageState::load(app.handle())?);
+            app.manage(storage::WatchState::default());
 
             let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
                 .background_color(Color::from_str("#f5efe6").unwrap());

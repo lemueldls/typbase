@@ -659,7 +659,7 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
   state.insertSource(fileId.value, text.value);
 
   // Mirror a compilable entry for external tools (typst CLI, Tinymist):
-  // `typst compile --root <sources> typbase/entries/<path>`.
+  // `typst compile --root <workspace> typbase/entries/<path>`.
   void mirrorPageProject(store, pageId, state).catch((cause) => {
     console.warn("[page] project mirror failed:", cause);
   });

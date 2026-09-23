@@ -21,7 +21,7 @@ use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, them
 // channel only carries paths, so keep filter values slug-safe.
 //
 // Paths are root-absolute so the same source compiles both in the wasm world
-// and in a plain Typst project rooted at the workspace (see `sources/typbase`).
+// and in a plain Typst project rooted at the workspace (see `typbase/`).
 //
 // It is a module rather than a dict of closures: Typst cannot call dict
 // values with dot syntax (`typbase.query(...)`), but module functions can.

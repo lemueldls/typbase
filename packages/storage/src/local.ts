@@ -60,5 +60,5 @@ export class LocalState {
 }
 
 export function localStatePath(workspaceId: string): string {
-  return `workspaces/${workspaceId}/local.json`;
+  return `workspaces/${workspaceId}/state/local.json`;
 }

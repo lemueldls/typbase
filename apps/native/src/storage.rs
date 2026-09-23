@@ -19,16 +19,17 @@ use std::{
     io::{ErrorKind, Write as _},
     path::{Component, Path, PathBuf},
     sync::{
-        PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
+        Mutex, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
         atomic::{AtomicU64, Ordering},
     },
     time::UNIX_EPOCH,
 };
 
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher as _};
 use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
 use tauri::{
-    AppHandle, Manager, Runtime, State,
+    AppHandle, Emitter, Manager, Runtime, State,
     ipc::{InvokeBody, Request, Response},
 };
 
@@ -462,6 +463,111 @@ pub fn storage_stat(
     }))
 }
 
+/// Change event payload for `storage-source-change`.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SourceChange {
+    root: String,
+    relative: String,
+}
+
+/// One active source watcher. Replacing it drops the previous watch, and the
+/// stored path lets a late `storage_unwatch` from a switched workspace be
+/// ignored instead of clearing the new watcher.
+struct SourceWatch {
+    path: String,
+    _watcher: RecommendedWatcher,
+}
+
+/// Watcher slot for the active workspace's page tree.
+#[derive(Default)]
+pub struct WatchState(Mutex<Option<SourceWatch>>);
+
+/// Starts (or replaces) the source watcher for one directory under the active
+/// root. Filtering happens here so the webview only hears about page sources
+/// and never about the app's own `state/` snapshots.
+#[tauri::command]
+pub fn storage_watch<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, StorageState>,
+    watch: State<'_, WatchState>,
+    path: String,
+) -> Result<(), String> {
+    let root = state.resolve(&path)?;
+    // A fresh workspace may not have flushed its first snapshot yet; the
+    // watcher owns the directory from here on.
+    if let Err(error) = fs::create_dir_all(&root) {
+        return Err(format!("failed to create {}: {error}", root.display()));
+    }
+
+    let base = root.clone();
+    let watched = path.clone();
+    let mut handle = notify::recommended_watcher(move |result: notify::Result<Event>| {
+        let Ok(event) = result else { return };
+        if !matches!(event.kind, EventKind::Create(_) | EventKind::Modify(_)) {
+            return;
+        }
+
+        for changed in event.paths {
+            let Ok(relative) = changed.strip_prefix(&base) else {
+                continue;
+            };
+            let relative = relative.to_string_lossy().replace('\\', "/");
+            if !is_source_change(&relative) {
+                continue;
+            }
+
+            let _ = app.emit(
+                "storage-source-change",
+                SourceChange {
+                    root: watched.clone(),
+                    relative,
+                },
+            );
+        }
+    })
+    .map_err(|error| format!("failed to start the source watcher: {error}"))?;
+
+    handle
+        .watch(&root, RecursiveMode::Recursive)
+        .map_err(|error| format!("failed to watch {}: {error}", root.display()))?;
+
+    *watch.0.lock().unwrap_or_else(PoisonError::into_inner) = Some(SourceWatch {
+        path,
+        _watcher: handle,
+    });
+
+    Ok(())
+}
+
+/// Stops the watcher when it still belongs to `path`.
+#[tauri::command]
+pub fn storage_unwatch(watch: State<'_, WatchState>, path: String) {
+    let mut current = watch.0.lock().unwrap_or_else(PoisonError::into_inner);
+    if current.as_ref().is_some_and(|watcher| watcher.path == path) {
+        *current = None;
+    }
+}
+
+/// Page-source filter for watcher events: visible `.typ` files outside the
+/// app-owned roots. Kept in step with `RESERVED_ROOTS`/`isSourceChange` in
+/// `packages/storage/src/workspace.ts`.
+#[allow(clippy::case_sensitive_file_extension_comparisons)] // both sides match lowercase `.typ`
+fn is_source_change(relative: &str) -> bool {
+    let parts: Vec<&str> = relative.split('/').collect();
+    if parts.iter().any(|part| part.starts_with('.')) {
+        return false;
+    }
+    if matches!(
+        parts.first(),
+        Some(&"state" | &"typbase" | &"blobs" | &"artifacts")
+    ) {
+        return false;
+    }
+
+    relative.ends_with(".typ")
+}
+
 /// Validates a storage-relative path: segments only, no roots or `..`.
 fn safe_relative(raw: &str) -> Result<PathBuf, String> {
     if raw.is_empty() {
@@ -618,6 +724,27 @@ mod tests {
         );
         assert!(request_bytes(&InvokeBody::Json(serde_json::json!({ "0": 1 }))).is_err());
         assert!(request_bytes(&InvokeBody::Json(serde_json::json!([256]))).is_err());
+    }
+
+    #[test]
+    fn source_change_filter_keeps_only_page_sources() {
+        for accepted in ["pages/foo.typ", "daily/2026-09-22.typ", "a/b/c.typ"] {
+            assert!(is_source_change(accepted), "`{accepted}` should sync");
+        }
+
+        for rejected in [
+            "",
+            "state/workspace.loro",
+            "typbase/entries/pages/foo.typ",
+            "blobs/abc.png",
+            "artifacts/pages/foo.typ",
+            "pages/foo.txt",
+            "pages/.hidden.typ",
+            ".git/objects/foo.typ",
+            ".notes/foo.typ",
+        ] {
+            assert!(!is_source_change(rejected), "`{rejected}` should not sync");
+        }
     }
 
     #[test]
