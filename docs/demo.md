@@ -106,8 +106,10 @@ completion, hovering the computed bindings, math tooltips, an inline show rule,
 broken math healing while typing, source and read views, theme switch, daily
 note, and the export dialog.
 
-Search is left out: the palette opens but the index never returns results in
-the scripted browser. Worth investigating separately.
+Search works in the scripted browser now. It used to stall because Vite serves
+worker scripts itself, so they missed the COOP/COEP headers the document has,
+and Chromium will not create a worker under COEP unless the worker response
+carries them too. The dev server sets the headers on its own responses.
 
 ## GIFs
 

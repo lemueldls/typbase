@@ -4,18 +4,16 @@ https://github.com/user-attachments/assets/7d278d95-e4ab-4928-b832-aa15b4c6bee8
 
 ## Features
 
-- **Inline WYSIWYG.** Compiled output replaces the source as you type; click a rendered element to jump back to it. Split, Source, and Read views come with it.
-- **Notebook cells.** `// %%` markers turn a page into cells that render in place and run with a click, with execution counters and Jupyter keybindings.
+- **Inline WYSIWYG.** Compiled output replaces the source as you type. Split, Source, and Read views come with it.
+- **Notebook pages.** Create a page as a notebook and its source splits into cells on `// %%` markers. Cells render in place and run with a click with execution counters and Jupyter keybindings.
 - **The workspace as data.** `#typbase.query`, `#typbase.embed`, `#typbase.page-link`, and `#typbase.section` read pages, categories, daily notes, and sections from inside a document.
 - **Standalone output.** Export HTML, PDF, SVG, or a compilable Typst project. The source mirror is plain `.typ`, and `typst compile --root .` works outside the app.
 - **Local-first.** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto Spaces. Publish a page as a public post when you want a URL.
 
-<!-- - **Search and AI.** Local full-text search with optional semantic search, plus OpenAI-compatible, Anthropic, or Ollama providers for summaries, flashcards, and study guides. -->
-<!-- - Web, desktop, and mobile builds. -->
-
 ## Technologies
 
-- [Nuxt](https://nuxt.com) 5 (nightly), [Vue](https://vuejs.org) 3, and [CodeMirror](https://codemirror.net) 6 on the front end.
+- [Nuxt](https://nuxt.com) 5 (nightly) for the application framework
+- [CodeMirror](https://codemirror.net) 6 for the editor with [Harper](https://writewithharper.com) integration.
 - [Typst](https://typst.app) 0.15 compiled to WebAssembly for the engine.
 - [Loro](https://loro.dev) CRDTs for collaborative editing.
 - [atproto](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
