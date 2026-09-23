@@ -23,8 +23,6 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: write
-      # Dispatching the Release workflow needs this. A tag pushed with
-      # GITHUB_TOKEN does not start a workflow on its own.
       actions: write
     steps:
       - name: 🔄 Checkout
