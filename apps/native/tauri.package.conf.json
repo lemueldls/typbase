@@ -1,6 +1,9 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "identifier": "at.typbase.app",
+  "build": {
+    "beforeBuildCommand": "pnpm -w run generate:direct"
+  },
   "bundle": {
     "createUpdaterArtifacts": false
   },

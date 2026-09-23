@@ -10,6 +10,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "generate": "moon run web:generate",
+    "generate:direct": "bash scripts/build-web-direct.sh",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "packages:build": "moon run typing:build storage:build spaces:build codemirror:build",
