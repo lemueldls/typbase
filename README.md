@@ -1,6 +1,6 @@
 # Typbase
 
-https://github.com/user-attachments/assets/7d278d95-e4ab-4928-b832-aa15b4c6bee8
+https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 
 ## Features
 
