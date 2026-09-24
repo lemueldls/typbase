@@ -250,6 +250,23 @@ const notebookCounters = computed({
     }),
 });
 
+// Display-only editor options; the pane reconfigures them in place.
+const editorLineNumbers = computed({
+  get: () => settings.value.editor?.lineNumbers ?? false,
+  set: (value: boolean) =>
+    props.store.updateSettings({
+      editor: { ...settings.value.editor, lineNumbers: value },
+    }),
+});
+
+const editorScrollPastEnd = computed({
+  get: () => settings.value.editor?.scrollPastEnd ?? false,
+  set: (value: boolean) =>
+    props.store.updateSettings({
+      editor: { ...settings.value.editor, scrollPastEnd: value },
+    }),
+});
+
 const themeModeOptions = computed<SelectOption[]>(() => [
   { value: "auto", label: t("settings.auto") },
   { value: "light", label: t("settings.light") },
@@ -650,6 +667,26 @@ async function renameWorkspace(event: Event) {
                 :aria-label="$t('settings.notebookCounters')"
               />
               <span class="settings__hint">{{ $t("settings.notebookCountersHint") }}</span>
+            </div>
+          </section>
+
+          <section class="settings__section">
+            <h4 class="settings__heading">{{ $t("settings.editor") }}</h4>
+            <div class="settings__field">
+              <UiSwitch
+                v-model="editorLineNumbers"
+                :label="$t('settings.editorLineNumbers')"
+                :aria-label="$t('settings.editorLineNumbers')"
+              />
+              <span class="settings__hint">{{ $t("settings.editorLineNumbersHint") }}</span>
+            </div>
+            <div class="settings__field">
+              <UiSwitch
+                v-model="editorScrollPastEnd"
+                :label="$t('settings.editorScrollPastEnd')"
+                :aria-label="$t('settings.editorScrollPastEnd')"
+              />
+              <span class="settings__hint">{{ $t("settings.editorScrollPastEndHint") }}</span>
             </div>
           </section>
         </section>

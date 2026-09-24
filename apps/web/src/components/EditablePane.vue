@@ -2,7 +2,7 @@
 import type { NotebookOptions } from "@typbase/codemirror";
 import type { TypstRequest } from "@typbase/engine";
 import type { FileId, TypstState } from "@typbase/engine";
-import type { IgnoredSpellcheckLint, SpellcheckMode } from "@typbase/typing";
+import type { EditorSettings, IgnoredSpellcheckLint, SpellcheckMode } from "@typbase/typing";
 
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";
@@ -38,6 +38,7 @@ import {
 } from "@typbase/codemirror";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
+import { editorDisplayCompartment, editorDisplayExtension } from "~/lib/editorDisplay";
 import { openExternal } from "~/lib/openExternal";
 import {
   spellcheckCompartment,
@@ -64,6 +65,8 @@ const props = defineProps<{
   degraded?: boolean;
   /** Spellcheck provider; reconfigured in place when it changes. */
   spellcheck?: SpellcheckMode;
+  /** Line numbers and scroll-past-end; reconfigured in place when they change. */
+  editor?: EditorSettings;
   /** Harper's user dictionary; the native checker keeps its own. */
   spellcheckWords?: string[];
   /** Lints silenced with "Ignore". */
@@ -257,6 +260,18 @@ watch(spellcheckSignature, () => {
   });
 });
 
+// Display flags are swapped in place too; the mode watcher above rebuilds the
+// view and picks the current props up from `createStateConfig`.
+const editorDisplaySignature = computed(() =>
+  JSON.stringify([Boolean(props.editor?.lineNumbers), Boolean(props.editor?.scrollPastEnd)]),
+);
+
+watch(editorDisplaySignature, () => {
+  view.value?.dispatch({
+    effects: editorDisplayCompartment.reconfigure(editorDisplayExtension(props.editor)),
+  });
+});
+
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
 
@@ -331,6 +346,7 @@ function createStateConfig(): EditorStateConfig {
           }),
         ]),
     spellcheckCompartment.of(spellcheckExtension(props.spellcheck, spellcheckOptions())),
+    editorDisplayCompartment.of(editorDisplayExtension(props.editor)),
     EditorView.exceptionSink.of((error) => {
       console.error(error);
     }),

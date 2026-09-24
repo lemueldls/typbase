@@ -57,8 +57,8 @@ export const tooltipViewPlugin = () =>
             container.append(svg);
 
             tooltip = {
-              pos: start,
-              end: end,
+              pos: start + 1,
+              end: end - 1,
               create(tooltipView) {
                 return {
                   dom: container,

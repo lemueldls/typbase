@@ -481,6 +481,13 @@ function ignoreSpellcheckLint(lint: IgnoredSpellcheckLint): void {
   store.updateSettings({ spellcheckIgnoredLints: next });
 }
 
+/** Editor display options follow the workspace setting; dataRevision re-reads them. */
+const editorDisplay = computed(() => {
+  void dataRevision.value;
+
+  return store?.getSettings().editor;
+});
+
 const aiEnabled = computed(() => {
   void dataRevision.value;
 
@@ -1268,6 +1275,7 @@ function convertPageKind(): void {
         :spellcheck="spellcheckMode"
         :spellcheck-words="spellcheckWords"
         :spellcheck-ignored-lints="spellcheckIgnoredLints"
+        :editor="editorDisplay"
         :on-add-spellcheck-word="addSpellcheckWord"
         :on-ignore-spellcheck-lint="ignoreSpellcheckLint"
         :typst-state="boundState"

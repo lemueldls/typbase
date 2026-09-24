@@ -132,6 +132,14 @@ export interface NotebookSettings {
   showCounters: boolean;
 }
 
+/** Editor display options, synced with the workspace like the theme. */
+export interface EditorSettings {
+  /** Show source line numbers in the gutter. */
+  lineNumbers: boolean;
+  /** Leave scroll room below the last line so the cursor is not pinned to the bottom. */
+  scrollPastEnd: boolean;
+}
+
 export type ThemeMode = "auto" | "light" | "dark";
 
 /**
@@ -313,6 +321,7 @@ export interface WorkspaceSettings {
   ai: AiSettings;
   search: SearchSettings;
   notebook: NotebookSettings;
+  editor: EditorSettings;
 }
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
@@ -370,6 +379,10 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   },
   notebook: {
     showCounters: true,
+  },
+  editor: {
+    lineNumbers: false,
+    scrollPastEnd: false,
   },
 };
 
