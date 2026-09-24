@@ -1,6 +1,6 @@
 # Typbase
 
-Local-first knowledge base made for Typst and the Atmosphere.
+Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphere](https://atproto.com/).
 
 https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 
