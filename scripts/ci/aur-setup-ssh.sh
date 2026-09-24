@@ -22,6 +22,6 @@ cat > "$home/.ssh/config" <<'EOF'
 Host aur.archlinux.org
   IdentityFile ~/.ssh/aur
   User aur
+  StrictHostKeyChecking accept-new
 EOF
-ssh-keyscan -H aur.archlinux.org >> "$home/.ssh/known_hosts" 2>/dev/null
 chown -R "$build_user:$build_user" "$home/.ssh"
