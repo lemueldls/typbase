@@ -53,7 +53,7 @@ if [[ -z "$(git status --porcelain)" ]]; then
 fi
 
 makepkg --printsrcinfo > .SRCINFO
-makepkg
+makepkg --syncdeps --noconfirm
 makepkg --install --noconfirm
 
 git config user.name "${AUR_GIT_NAME:-lemueldls}"
