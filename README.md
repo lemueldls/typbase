@@ -6,7 +6,7 @@ https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 
 ## Features
 
-- **Inline WYSIWYG:** Compiled output replaces the source as you type. Split edit, and read views come with it.
+- **Inline WYSIWYG:** Compiled output replaces the source as you type. Split edit and read views come with it.
 - **Notebook pages:** Create a page as a notebook and its source splits into cells on `// %%` markers. Cells render in place and run with a click with execution counters and Jupyter keybindings.
 - **The workspace as data:** `#typbase.query`, `#typbase.embed`, `#typbase.page-link`, and `#typbase.section` read pages, categories, daily notes, and sections from inside a document.
 - **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The source mirror is plain `.typ`, and `typst compile --root .` works outside the app.
@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 
 ## Technologies
 
-- [Nuxt](https://nuxt.com) 5 (nightly) for the application framework
+- [Nuxt](https://nuxt.com) 5 (nightly) for the application framework.
 - [CodeMirror](https://codemirror.net) 6 for the editor with [Harper](https://writewithharper.com) integration.
 - [Typst](https://typst.app) 0.15 compiled to WebAssembly for the engine.
 - [Loro](https://loro.dev) CRDTs for collaborative editing.
