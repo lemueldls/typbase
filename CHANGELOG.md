@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-09-24
+
+### Fixed
+
+- Bump the engine lock entry and keep the wasm-bindgen pin
+
 ## [0.2.0] - 2026-09-24
 
 ### New

@@ -2,7 +2,7 @@
   "name": "@typbase/engine",
   "type": "module",
   "description": "Local-first knowledge base made for Typst and the Atmosphere.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "AGPL-3.0",
   "files": [
     "engine_bg.wasm",
