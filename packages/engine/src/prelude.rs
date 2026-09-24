@@ -88,6 +88,7 @@ fn style_prelude(
     formatdoc!(
         r#"
             #let theme={theme}
+
             #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
 
             #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
@@ -113,8 +114,8 @@ fn style_prelude(
             #show math.equation.where(block:true):set text(size:{block_math}pt)
             #show math.equation.where(block:true):set par(leading:0.5em)
 
+            #set raw(lang:"typst",theme:"/{syntax_theme}")
             #show raw:set text(font:"{code_font}")
-            #show raw:set raw(theme:"/{syntax_theme}")
             #show raw.where(block:true):it=>block(fill:theme.code,inset:8pt,radius:4pt,width:100%,it)
 
             #context {{show math.equation:set text(size:text.size*2)}}
