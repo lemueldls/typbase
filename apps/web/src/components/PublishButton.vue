@@ -160,7 +160,7 @@ watch(
         <MsIcon name="error" :size="16" />
         <span>{{ error }}</span>
       </p>
-      <p class="publish__hint">{{ t("pageView.publishHint") }}</p>
+      <!-- <p class="publish__hint">{{ t("pageView.publishHint") }}</p> -->
     </UiPopover>
 
     <UiConfirmDialog
