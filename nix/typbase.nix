@@ -26,10 +26,6 @@
 }:
 
 let
-  # The wasm-bindgen CLI must match the wasm-bindgen crate in Cargo.lock
-  # exactly; a patch version off and the CLI refuses the module. nixos-26.05
-  # carries 0.2.126, so build 0.2.127 with nixpkgs' helper and the hashes
-  # nixpkgs master uses for it. Bump both when Cargo.lock moves.
   wasmBindgenSrc = fetchCrate {
     pname = "wasm-bindgen-cli";
     version = "0.2.127";
@@ -94,9 +90,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
   tauriBuildFlags = [
     "--config"
     "tauri.package.conf.json"
-    # The release tarball has no git metadata and moon's platform binary is not
-    # in the pnpm store, so preBuild builds the frontend and Tauri's own
-    # beforeBuildCommand is a no-op.
     "--config"
     ''{"build":{"beforeBuildCommand":"true"}}''
   ];

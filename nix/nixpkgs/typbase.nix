@@ -23,10 +23,6 @@
 }:
 
 let
-  # The wasm-bindgen CLI must match the wasm-bindgen crate in Cargo.lock
-  # exactly; a patch version off and the CLI refuses the module. Build 0.2.127
-  # with nixpkgs' helper and the hashes master uses for it, rather than
-  # following the versioned attr. Bump both when Cargo.lock moves.
   wasmBindgenSrc = fetchCrate {
     pname = "wasm-bindgen-cli";
     version = "0.2.127";
@@ -43,9 +39,6 @@ let
   };
 in
 
-# Nixpkgs-ready derivation. The release workflow copies this file into a
-# nixpkgs fork at pkgs/by-name/ty/typbase/package.nix, fills the hashes with
-# nix-update, and opens a PR.
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typbase";
   version = "0.1.1";
@@ -92,17 +85,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
   tauriBuildFlags = [
     "--config"
     "tauri.package.conf.json"
-    # The release tarball has no git metadata and moon's platform binary is not
-    # in the pnpm store, so preBuild builds the frontend and Tauri's own
-    # beforeBuildCommand is a no-op.
     "--config"
     ''{"build":{"beforeBuildCommand":"true"}}''
   ];
 
-  # wasm-pack downloads wasm-bindgen and wasm-opt, which the sandbox cannot do.
-  # It prefers an installed wasm-bindgen whose version matches Cargo.lock, and
-  # that CLI is on PATH, so nothing is fetched for it; --no-opt skips the
-  # wasm-opt install and nixpkgs' wasm-opt optimizes the output instead.
   preBuild = ''
     (cd packages/engine && printf '{}' > pkg/package.json \
       && wasm-pack build --release --target web --scope typbase --no-opt .)

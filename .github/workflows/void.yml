@@ -38,15 +38,10 @@ jobs:
       - name: 🛠️ Install tools
         run: |
           xbps-install -Syu xbps
-          # The image ships sh only; the steps and scripts below use bash.
-          # xtools provides xlint, which void-package.sh runs.
           xbps-install -y base-devel bash curl git nodejs pnpm rustup xtools
 
       - name: 🦀 Install Rust and wasm-pack
         run: |
-          # Void's rustup package ships rustup-init; its `rustup` symlink is
-          # created outside the package and never installed, so initialize the
-          # toolchain through rustup-init directly.
           rustup-init -y --profile minimal --default-toolchain stable --no-modify-path
           export PATH="$HOME/.cargo/bin:$PATH"
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
