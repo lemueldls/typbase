@@ -114,7 +114,7 @@ const version = nextVersion(tauri.version, bump);
 for (const path of ["nix/typbase.nix", "nix/typbase-bin.nix", "nix/nixpkgs/typbase.nix"]) {
   const text = read(path);
   const pattern = /(pname = "typbase";\n\s*version = ")[^"]+(")/;
-  if (!pattern.test(text)) throw new Error(`${path}: typbase derivation version not found`);
+  if (!pattern.test(text)) throw new Error(`${path}: Typbase derivation version not found`);
   write(path, text.replace(pattern, `$1${version}$2`));
 }
 

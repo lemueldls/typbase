@@ -30,7 +30,7 @@ use crate::{
     world::TypstWorld,
 };
 
-/// Global state for Typst rendering and compilation in typbase.
+/// Global state for Typst rendering and compilation in Typbase.
 ///
 /// Holds the world, all open source and space contexts, and manages the mapping
 /// between user/editor state and Typst's compilation model.
@@ -764,7 +764,6 @@ impl TypstState {
 
         width_changed
     }
-
 }
 
 impl TypstState {

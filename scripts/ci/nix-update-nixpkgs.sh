@@ -57,6 +57,6 @@ gh pr create \
     --base master \
     --head "$pr_head" \
     --title "typbase: update to $version" \
-    --body "Automated update from the typbase release workflow.
+    --body "Automated update from the Typbase release workflow.
 
 Release: https://github.com/lemueldls/typbase/releases/tag/typbase-v$version"

@@ -1,4 +1,4 @@
-//! The Typst rendering and IDE engine for typbase, compiled to WebAssembly.
+//! The Typst rendering and IDE engine for Typbase, compiled to WebAssembly.
 //!
 //! ## Architecture
 //!

@@ -18,7 +18,7 @@ use tsify::Tsify;
 
 use crate::fonts::FontLoader;
 
-/// Implementation of Typst's `World` for typbase, managing all loaded files,
+/// Implementation of Typst's `World` for Typbase, managing all loaded files,
 /// fonts, and compilation state.
 #[derive(Debug)]
 pub struct TypstWorld {

@@ -1,5 +1,5 @@
 /**
- * Shared workspace/page types for typbase.
+ * Shared workspace/page types for Typbase.
  *
  * These describe the Loro doc data model as JS data. The app, the storage
  * layer, and (later) the server and public records all speak this shape.

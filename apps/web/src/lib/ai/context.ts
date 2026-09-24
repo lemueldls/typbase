@@ -50,7 +50,7 @@ export interface ContextPack {
 
 const DIALECT_RULES = `## Output rules
 
-You write Typst for typbase, a local-first knowledge base. Reply with Typst
+You write Typst for Typbase, a local-first knowledge base. Reply with Typst
 source only: no Markdown fences, no commentary outside the document. The app
 compiles your reply and renders it; a reply that does not compile is sent back
 to you with the compiler's diagnostics.
@@ -105,7 +105,7 @@ function clip(text: string, max: number): string {
 /** The static dialect card; the engine's own library is the contract. */
 export function dialectCard(typstState: TypstState): string {
   return [
-    "## The typbase Typst library (the only app API)",
+    "## The Typbase Typst library (the only app API)",
     "",
     "```typst",
     librarySource(typstState).trim(),
