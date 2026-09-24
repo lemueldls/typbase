@@ -22,8 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # A classic PAT with public_repo, used to fork winget-pkgs and open the
-    # manifest PR. The steps below are skipped until the secret is set.
     env:
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     steps:
