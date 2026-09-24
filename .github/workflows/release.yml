@@ -133,3 +133,15 @@ jobs:
     secrets: inherit
     with:
       tagName: ${{ needs.prepare.outputs.tag }}
+
+  winget:
+    name: 🪟 WinGet
+    needs:
+      - prepare
+      - publish-release
+    permissions:
+      contents: read
+    uses: ./.github/workflows/winget.yml
+    secrets: inherit
+    with:
+      tagName: ${{ needs.prepare.outputs.tag }}

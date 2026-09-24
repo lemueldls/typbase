@@ -1,0 +1,72 @@
+name: Windows Package Manager (WinGet)
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      tagName:
+        description: Release tag to publish.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: Release tag to publish.
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: 🪟 winget
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # A classic PAT with public_repo, used to fork winget-pkgs and open the
+    # manifest PR. The steps below are skipped until the secret is set.
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: 🔄 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: 🏷️ Resolve version
+        id: version
+        shell: bash
+        env:
+          TAG: ${{ inputs.tagName || github.event.release.tag_name }}
+        run: bash scripts/ci/resolve-version.sh
+
+      - name: 🆙 Sync the winget-pkgs fork
+        if: env.WINGET_TOKEN != ''
+        uses: michidk/run-komac@9b27eadc6e9235c252444a437d246c139da2f57f # v2.1.0
+        with:
+          komac-version: 2.16.0
+          args: "sync-fork --token=${{ env.WINGET_TOKEN }}"
+
+      - name: 🪟 Update the package
+        if: env.WINGET_TOKEN != ''
+        uses: michidk/run-komac@9b27eadc6e9235c252444a437d246c139da2f57f # v2.1.0
+        with:
+          komac-version: 2.16.0
+          args: >-
+            update lemueldls.typbase
+            --version ${{ steps.version.outputs.version }}
+            --urls https://github.com/lemueldls/typbase/releases/download/${{ steps.version.outputs.tag }}/Typbase_${{ steps.version.outputs.version }}_x64.exe
+            --submit
+            --token=${{ env.WINGET_TOKEN }}
+
+  cleanup:
+    name: 🧹 winget branches
+    runs-on: ubuntu-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: 🧹 Delete branches from merged or closed PRs
+        if: env.WINGET_TOKEN != ''
+        uses: michidk/run-komac@9b27eadc6e9235c252444a437d246c139da2f57f # v2.1.0
+        with:
+          komac-version: 2.16.0
+          args: "cleanup --only-merged --token=${{ env.WINGET_TOKEN }}"
