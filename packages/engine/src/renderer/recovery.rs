@@ -2,8 +2,8 @@
 //!
 //! When a compile fails, the recovery pass identifies which part of the synth
 //! is responsible, neutralizes it, and returns enough information for the
-//! caller to retry. Two strategies are available, applied in order
-//! of specificity:
+//! caller to retry. Three strategies are available, applied in order of
+//! specificity:
 //!
 //! ## Block removal
 //!
@@ -33,6 +33,16 @@
 //! replaced with `?` first, same length, so a token like `_` cannot fail the
 //! wrapper and spin recovery forever.
 //!
+//! ## Unmappable errors
+//!
+//! Package code that errors after `context` deferral (a plugin call inside
+//! `layout`, say) reports a span and trace that all sit in the package file.
+//! No diagnostic maps to a block, so block removal and math marking have
+//! nothing to work with. [`remove_unmappable_block`] bisects the block list
+//! instead: it compiles prefixes with the suffix blanked and blanks the first
+//! block whose prefix fails with an unmappable error. Every probe restores the
+//! render source and map, so the search leaves the caller's state alone.
+//!
 //! ## Recovery loop
 //!
 //! The caller runs these passes in a bounded retry loop (see
@@ -44,13 +54,23 @@ use std::ops::Range;
 
 use ecow::EcoVec;
 use rustc_hash::FxHashSet;
-use typst::diag::{Severity, SourceDiagnostic};
+use typst::{
+    compile,
+    diag::{Severity, SourceDiagnostic},
+    foundations::Output,
+    syntax::{LinkedNode, ast::FuncCall},
+};
 
 use crate::{
     bindings::map_synth_span,
     source::{SegmentKind, Side, SourceContext, SynthBlock},
     world::TypstWorld,
 };
+
+/// Probe compiles one render may spend on [`remove_unmappable_block`] before
+/// giving up. Each probe is a full compile of a prefixed source, so a page
+/// with many unmappable errors must not turn recovery into a compile storm.
+pub const PROBE_BUDGET: u32 = 32;
 
 /// Removes the block containing the first error from the source, updating
 /// diagnostics and context.
@@ -99,17 +119,46 @@ pub fn remove_errornous_block(
         .unzip();
 
     for render_range in render_ranges {
-        // Fill the block with whitespace to stabilize ranges.
-        let length = render_range.len();
-        let whitespace = " ".repeat(length.saturating_sub(1)) + "\n";
-        let source = context.render_source_mut(world).unwrap();
-        source.edit(render_range.clone(), &whitespace);
-        context
-            .render_map
-            .replace(render_range, &whitespace, SegmentKind::ErrorMark);
+        blank_render_range(render_range, context, world);
     }
 
     indicies
+}
+
+/// Fills a render range with whitespace of the same length, recording the
+/// replacement in the map. Ranges do not move, so later blocks stay mappable.
+///
+/// Empty ranges are skipped: writing `"\n"` into them would insert a byte and
+/// shift every offset after it.
+fn blank_render_range(
+    render_range: Range<usize>,
+    context: &mut SourceContext,
+    world: &mut TypstWorld,
+) -> bool {
+    if render_range.is_empty() {
+        return false;
+    }
+
+    let length = render_range.len();
+    let whitespace = " ".repeat(length.saturating_sub(1)) + "\n";
+    let Some(source) = context.render_source_mut(world) else {
+        return false;
+    };
+    source.edit(render_range.clone(), &whitespace);
+    context
+        .render_map
+        .replace(render_range, &whitespace, SegmentKind::ErrorMark);
+
+    true
+}
+
+/// [`blank_render_range`] for one synth block, mapping the block's repaired
+/// range to the render source first.
+fn blank_block(block: &SynthBlock, context: &mut SourceContext, world: &mut TypstWorld) -> bool {
+    let render_range = context.map_repaired_to_render(block.range.start, Side::Before)
+        ..context.map_repaired_to_render(block.range.end, Side::After);
+
+    blank_render_range(render_range, context, world)
 }
 
 /// Tries to mark the specific expressions containing errors and wraps them in
@@ -367,4 +416,224 @@ pub struct ErrorMark {
     /// Raw range of the marked expression, captured before the wrapper was
     /// inserted.
     pub raw_range: Range<usize>,
+}
+
+/// Splits a failed pass into diagnostics that map to a user range and ones
+/// that do not.
+///
+/// Unowned warnings land in the first list and are dropped downstream by
+/// [`crate::bindings::TypstDiagnostic::from_diagnostics`], matching its
+/// behavior.
+pub fn split_unmappable(
+    diagnostics: &[SourceDiagnostic],
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> (EcoVec<SourceDiagnostic>, Vec<SourceDiagnostic>) {
+    let mut mapped = Vec::new();
+    let mut unmappable = Vec::new();
+
+    for diagnostic in diagnostics {
+        if is_unmappable(diagnostic, context, world) {
+            unmappable.push(diagnostic.clone());
+        } else {
+            mapped.push(diagnostic.clone());
+        }
+    }
+
+    (mapped.into_iter().collect(), unmappable)
+}
+
+/// Whether a diagnostic's span and trace all point outside the note's own
+/// sources, so no block can be selected from it.
+fn is_unmappable(
+    diagnostic: &SourceDiagnostic,
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> bool {
+    diagnostic.severity == Severity::Error
+        && map_synth_span(diagnostic.span, true, &diagnostic.trace, context, world).is_none()
+}
+
+fn unmappable_errors(
+    diagnostics: &[SourceDiagnostic],
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> Vec<SourceDiagnostic> {
+    diagnostics
+        .iter()
+        .filter(|diagnostic| is_unmappable(diagnostic, context, world))
+        .cloned()
+        .collect()
+}
+
+/// What one prefix probe found.
+enum Probe {
+    /// The prefix compiles.
+    Compiles,
+    /// The prefix fails, but every error maps to a user range.
+    Mapped,
+    /// The prefix fails with at least one error that maps nowhere.
+    Unmappable(Vec<SourceDiagnostic>),
+}
+
+/// Compiles `blocks[prefix..]` blanked and restores the render source and map
+/// afterwards, so a probe never leaks into the caller's state.
+fn probe_prefix<T: Output>(
+    blocks: &[SynthBlock],
+    prefix: usize,
+    context: &mut SourceContext,
+    world: &mut TypstWorld,
+) -> Probe {
+    let Some(text) = context
+        .render_source(world)
+        .map(|source| source.text().to_string())
+    else {
+        return Probe::Compiles;
+    };
+    let map = context.render_map.clone();
+
+    for block in &blocks[prefix..] {
+        blank_block(block, context, world);
+    }
+
+    let probe = match compile::<T>(world).output {
+        Ok(..) => Probe::Compiles,
+        Err(diagnostics) => {
+            let unmappable = unmappable_errors(&diagnostics, context, world);
+
+            if unmappable.is_empty() {
+                Probe::Mapped
+            } else {
+                Probe::Unmappable(unmappable)
+            }
+        }
+    };
+
+    if let Some(source) = context.render_source_mut(world) {
+        source.replace(&text);
+    }
+    context.render_map = map;
+
+    probe
+}
+
+/// Blanks the first block whose prefix fails with an error that maps to no
+/// user span, and returns that block's index plus the prefix's unmappable
+/// errors.
+///
+/// `diagnostics` is the failing compile of the full render source. `None`
+/// means no block can be blamed: blanking every block still fails (a prelude
+/// error, say) or the probe budget ran out. The caller then gives up on the
+/// note as before.
+pub fn remove_unmappable_block<T: Output>(
+    blocks: &[SynthBlock],
+    diagnostics: &[SourceDiagnostic],
+    context: &mut SourceContext,
+    world: &mut TypstWorld,
+    budget: &mut u32,
+) -> Option<(usize, Vec<SourceDiagnostic>)> {
+    if blocks.is_empty() {
+        return None;
+    }
+
+    let mut hi_errors = unmappable_errors(diagnostics, context, world);
+    if hi_errors.is_empty() {
+        return None;
+    }
+
+    // A document with every block blanked must compile, or no set of blocks
+    // can fix it. This also rules out prelude failures.
+    if *budget == 0 {
+        return None;
+    }
+    *budget -= 1;
+    if let Probe::Unmappable(..) = probe_prefix::<T>(blocks, 0, context, world) {
+        return None;
+    }
+
+    // Smallest prefix that fails with an unmappable error. The predicate is
+    // monotone: an unmappable error raised by one block is not fixed by adding
+    // later blocks.
+    let mut lo = 0_usize;
+    let mut hi = blocks.len();
+
+    while hi - lo > 1 {
+        if *budget == 0 {
+            return None;
+        }
+        *budget -= 1;
+
+        let mid = lo + (hi - lo) / 2;
+        match probe_prefix::<T>(blocks, mid, context, world) {
+            Probe::Unmappable(errors) => {
+                hi = mid;
+                hi_errors = errors;
+            }
+            Probe::Compiles | Probe::Mapped => lo = mid,
+        }
+    }
+
+    // The block that introduced the failure is the last one in the prefix.
+    let index = hi - 1;
+    blank_block(&blocks[index], context, world);
+
+    Some((index, hi_errors))
+}
+
+/// The raw range the editor should blame for a block that failed with no user
+/// span.
+///
+/// Narrows to the block's only call expression when it has exactly one, so
+/// `#render("digraph { a -> }")` underlines the call instead of the whole
+/// paragraph. Multi-call blocks stay at block granularity; guessing which call
+/// reached the failing package would point at the wrong line.
+pub fn blamed_raw_range(
+    block: &SynthBlock,
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> Range<usize> {
+    let start = context.map_repaired_to_raw(block.range.start);
+    let end = context.map_repaired_to_raw(block.range.end);
+
+    let narrowed = context
+        .raw_source(world)
+        .and_then(|source| source.text().get(start..end))
+        .and_then(single_call_range);
+
+    match narrowed {
+        Some(call) => start + call.start..start + call.end,
+        None => start..end,
+    }
+}
+
+/// The range of a text's only function call, `#` included, if it has exactly
+/// one.
+fn single_call_range(text: &str) -> Option<Range<usize>> {
+    let root = typst::syntax::parse(text);
+    let mut stack = vec![LinkedNode::new(&root)];
+    let mut calls = Vec::new();
+
+    while let Some(node) = stack.pop() {
+        if node.get().cast::<FuncCall>().is_some() {
+            calls.push(node.range());
+        }
+
+        for child in node.children() {
+            stack.push(child);
+        }
+    }
+
+    if calls.len() != 1 {
+        return None;
+    }
+
+    let mut range = calls.pop()?;
+
+    // The `#` marker before a code expression is a sibling, not part of the
+    // call node. Include it so the squiggle starts at the hash.
+    if range.start > 0 && text.as_bytes().get(range.start - 1) == Some(&b'#') {
+        range.start -= 1;
+    }
+
+    Some(range)
 }

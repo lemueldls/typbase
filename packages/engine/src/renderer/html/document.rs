@@ -16,7 +16,13 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     bindings::{CheckResult, TypstDiagnostic, TypstFileId},
-    renderer::{html::RenderHtmlResult, recovery::remove_errornous_block},
+    renderer::{
+        html::RenderHtmlResult,
+        recovery::{
+            PROBE_BUDGET, blamed_raw_range, remove_errornous_block, remove_unmappable_block,
+            split_unmappable,
+        },
+    },
     source::{RenderTarget, SynthBlock, SynthResult, sync_source_state},
     state::{RenderContext, TypstState},
 };
@@ -70,7 +76,7 @@ impl TypstState {
 
 /// Compiles the render source to an HTML document, blanking offending blocks
 /// until it compiles or the divergence cap is hit.
-fn render_html_ctx(
+pub(crate) fn render_html_ctx(
     ctx: &mut RenderContext<'_>,
     blocks: &[SynthBlock],
 ) -> (Option<String>, Vec<TypstDiagnostic>) {
@@ -83,6 +89,9 @@ fn render_html_ctx(
 
     let mut document = None;
     let mut convergence = 0_u8;
+
+    // Probe compiles the unmappable-error bisection may spend on this render.
+    let mut probe_budget = PROBE_BUDGET;
 
     while document.is_none() {
         let compiled = compile::<HtmlDocument>(ctx.world);
@@ -103,7 +112,10 @@ fn render_html_ctx(
                             ctx.world,
                         ));
 
-                        None
+                        // The document compiled; the export pass is what
+                        // failed. Blanking blocks cannot help, so stop
+                        // instead of recompiling the same document forever.
+                        break;
                     }
                 }
             }
@@ -115,25 +127,59 @@ fn render_html_ctx(
                     break;
                 }
 
+                let (mapped, unmappable) =
+                    split_unmappable(&source_diagnostics, ctx.note, ctx.world);
+
                 diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics.clone(),
+                    mapped,
                     ctx.note,
                     ctx.world,
                 ));
 
                 crate::error!("[ERRORS]: {diagnostics:?}");
 
-                let indicies = remove_errornous_block(
-                    blocks,
-                    &source_diagnostics,
-                    ctx.note,
-                    ctx.world,
-                );
+                let indicies =
+                    remove_errornous_block(blocks, &source_diagnostics, ctx.note, ctx.world);
 
                 if indicies.is_empty() {
-                    crate::error!("NO ERROR BLOCKS FOUND ‼️");
+                    match remove_unmappable_block::<HtmlDocument>(
+                        blocks,
+                        &source_diagnostics,
+                        ctx.note,
+                        ctx.world,
+                        &mut probe_budget,
+                    ) {
+                        Some((index, blamed)) => {
+                            // Report the blamed prefix's errors on the block
+                            // that caused them, not the whole note.
+                            let raw = blamed_raw_range(&blocks[index], ctx.note, ctx.world);
+                            let (_, blamed_unmappable) =
+                                split_unmappable(&blamed, ctx.note, ctx.world);
 
-                    break;
+                            diagnostics.extend(
+                                TypstDiagnostic::from_diagnostics_with_fallback(
+                                    blamed_unmappable.into_iter().collect(),
+                                    ctx.note,
+                                    ctx.world,
+                                    Some(&raw),
+                                ),
+                            );
+                        }
+                        None => {
+                            crate::error!("NO ERROR BLOCKS FOUND ‼️");
+
+                            diagnostics.extend(
+                                TypstDiagnostic::from_diagnostics_with_fallback(
+                                    unmappable.into_iter().collect(),
+                                    ctx.note,
+                                    ctx.world,
+                                    None,
+                                ),
+                            );
+
+                            break;
+                        }
+                    }
                 }
 
                 None

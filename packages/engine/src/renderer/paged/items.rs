@@ -11,7 +11,10 @@ use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
     renderer::{
         paged::{BoundFrameItem, FrameItemsChunk, PagedRender},
-        recovery::{remove_errornous_block, try_mark_errornous},
+        recovery::{
+            PROBE_BUDGET, blamed_raw_range, remove_errornous_block, remove_unmappable_block,
+            split_unmappable, try_mark_errornous,
+        },
     },
     source::{
         RenderTarget, SegmentKind, Side, SourceContext, SynthBlock, SynthResult,
@@ -107,6 +110,9 @@ pub fn chunk_by_items_with_blocks(
 
     let mut chunks = Vec::new();
     let mut tooltips = Vec::new();
+
+    // Probe compiles the unmappable-error bisection may spend on this render.
+    let mut probe_budget = PROBE_BUDGET;
 
     while document.is_none() {
         let compiled = compile::<PagedDocument>(world);
@@ -344,11 +350,10 @@ pub fn chunk_by_items_with_blocks(
                     break;
                 }
 
-                diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics.clone(),
-                    context,
-                    world,
-                ));
+                let (mapped, unmappable) =
+                    split_unmappable(&source_diagnostics, context, world);
+
+                diagnostics.extend(TypstDiagnostic::from_diagnostics(mapped, context, world));
 
                 crate::error!("[ERRORS]: {diagnostics:?}");
 
@@ -356,6 +361,16 @@ pub fn chunk_by_items_with_blocks(
                     try_mark_errornous(&source_diagnostics, eq_ranges, context, world);
 
                 if !marked_errors.marks.is_empty() {
+                    // The marks fix the equation. Unmappable errors belong to
+                    // other blocks, so they keep the whole-note range here
+                    // rather than holding up the marked render.
+                    diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                        unmappable.into_iter().collect(),
+                        context,
+                        world,
+                        None,
+                    ));
+
                     let marked_render = chunk_by_items_with_blocks(
                         blocks,
                         eq_ranges,
@@ -402,11 +417,50 @@ pub fn chunk_by_items_with_blocks(
                     };
                 }
 
-                let indicies = remove_errornous_block(blocks, &source_diagnostics, context, world);
+                let mut indicies =
+                    remove_errornous_block(blocks, &source_diagnostics, context, world);
 
                 if indicies.is_empty() {
-                    crate::error!("NO ERROR BLOCKS FOUND ‼️");
-                    break;
+                    match remove_unmappable_block::<PagedDocument>(
+                        blocks,
+                        &source_diagnostics,
+                        context,
+                        world,
+                        &mut probe_budget,
+                    ) {
+                        Some((index, blamed)) => {
+                            // Report the blamed prefix's errors on the block
+                            // that caused them, not the whole note.
+                            let raw = blamed_raw_range(&blocks[index], context, world);
+                            let (_, blamed_unmappable) =
+                                split_unmappable(&blamed, context, world);
+
+                            diagnostics.extend(
+                                TypstDiagnostic::from_diagnostics_with_fallback(
+                                    blamed_unmappable.into_iter().collect(),
+                                    context,
+                                    world,
+                                    Some(&raw),
+                                ),
+                            );
+
+                            indicies.push(index);
+                        }
+                        None => {
+                            crate::error!("NO ERROR BLOCKS FOUND ‼️");
+
+                            diagnostics.extend(
+                                TypstDiagnostic::from_diagnostics_with_fallback(
+                                    unmappable.into_iter().collect(),
+                                    context,
+                                    world,
+                                    None,
+                                ),
+                            );
+
+                            break;
+                        }
+                    }
                 }
 
                 for idx in indicies.iter().rev() {

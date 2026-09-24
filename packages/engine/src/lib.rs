@@ -53,6 +53,12 @@
 //! placeholder before wrapping, because the wrapper puts the token back into
 //! content mode where `_` and `$` are syntax again. Unclosed delimiters are
 //! repaired before the first compile, so they never de-render the note.
+//!
+//! Errors that carry no span in the note at all, like package code failing
+//! after `context` deferral, get bisected instead: recovery compiles prefixes
+//! of the blocks and blanks the first one that fails, so a broken package call
+//! takes down its own block rather than the whole page. The blamed block's raw
+//! range backs the diagnostic, so the editor squiggles the call, not the file.
 
 pub mod bindings;
 pub mod flatten;

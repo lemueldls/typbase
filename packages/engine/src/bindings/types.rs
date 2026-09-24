@@ -42,6 +42,21 @@ impl TypstDiagnostic {
         context: &SourceContext,
         world: &TypstWorld,
     ) -> Box<[Self]> {
+        Self::from_diagnostics_with_fallback(diagnostics, context, world, None)
+    }
+
+    /// Like [`Self::from_diagnostics`], but errors that map to no span in the
+    /// note are reported against `fallback` instead of the whole note.
+    ///
+    /// Package errors raised after `context` deferral carry no user span, so
+    /// recovery blames the block it isolated and passes that block's raw range
+    /// here. `None` keeps the whole-note range.
+    pub fn from_diagnostics_with_fallback(
+        diagnostics: EcoVec<SourceDiagnostic>,
+        context: &SourceContext,
+        world: &TypstWorld,
+        fallback: Option<&Range<usize>>,
+    ) -> Box<[Self]> {
         diagnostics
             .into_iter()
             .filter_map(|mut diagnostic| {
@@ -61,6 +76,7 @@ impl TypstDiagnostic {
                     &diagnostic.trace,
                     context,
                     world,
+                    fallback,
                 )
                 .map(|range| TypstDiagnostic {
                     range,
@@ -131,6 +147,7 @@ pub fn map_raw_span(
     trace: &[Spanned<Tracepoint>],
     context: &SourceContext,
     world: &TypstWorld,
+    fallback: Option<&Range<usize>>,
 ) -> Option<Range<usize>> {
     let raw_source = context.raw_source(world)?;
 
@@ -157,7 +174,9 @@ pub fn map_raw_span(
             return None;
         }
 
-        0..raw_source.text().len()
+        fallback
+            .cloned()
+            .unwrap_or_else(|| 0..raw_source.text().len())
     };
 
     let raw_lines = raw_source.lines();

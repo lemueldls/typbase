@@ -11,6 +11,9 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     bindings::{CompileHTMLResult, TypstDiagnostic, TypstFileId, map_synth_span},
+    renderer::recovery::{
+        PROBE_BUDGET, blamed_raw_range, remove_unmappable_block, split_unmappable,
+    },
     source::{RenderTarget, SegmentKind, Side, SynthResult, sync_source_state},
     state::TypstState,
     world::TypstRequest,
@@ -40,6 +43,9 @@ pub fn render(
 
     let mut frames = Vec::new();
 
+    // Probe compiles the unmappable-error bisection may spend on this render.
+    let mut probe_budget = PROBE_BUDGET;
+
     while last_document.is_none() {
         let compiled = compile::<HtmlDocument>(&state.world);
         compiled_warnings = Some(compiled.warnings);
@@ -63,6 +69,15 @@ pub fn render(
                 }]
             }
             Err(source_diagnostics) => {
+                let (mapped, unmappable) =
+                    split_unmappable(&source_diagnostics, context, &state.world);
+
+                diagnostics.extend(TypstDiagnostic::from_diagnostics(
+                    mapped,
+                    context,
+                    &state.world,
+                ));
+
                 let error_ranges = source_diagnostics
                     .iter()
                     .filter_map(|diagnostic| {
@@ -81,7 +96,7 @@ pub fn render(
                 // Pick the offending block by index and drop it from the
                 // candidate list: blanking it does not change the mapper, so
                 // keeping it around would loop forever on unfixable errors.
-                let Some(index) = blocks.iter().position(|block| {
+                let index = blocks.iter().position(|block| {
                     let repaired_range = &block.range;
 
                     // Outer range: include the generated wrapper so error
@@ -97,42 +112,72 @@ pub fn render(
                             || (synth_range_start <= error_range.end
                                 && synth_range_end >= error_range.end)
                     })
-                }) else {
-                    break;
-                };
+                });
 
-                let repaired_range = blocks[index].range.clone();
-                let inline = blocks[index].inline;
-                blocks.remove(index);
+                if let Some(index) = index {
+                    let repaired_range = blocks[index].range.clone();
+                    let inline = blocks[index].inline;
+                    blocks.remove(index);
 
-                let mut end_byte = context.map_repaired_to_render(repaired_range.end, Side::After);
-                if inline {
-                    end_byte += 12;
-                }
+                    let mut end_byte =
+                        context.map_repaired_to_render(repaired_range.end, Side::After);
+                    if inline {
+                        end_byte += 12;
+                    }
 
-                diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    source_diagnostics,
+                    crate::error!("[ERRORS]: {diagnostics:?}");
+
+                    let start_byte =
+                        context.map_repaired_to_render(repaired_range.start, Side::Before);
+
+                    // Earlier passes shrink the synth while the map still
+                    // describes the original text; clamp before blanking.
+                    let source = context.render_source_mut(&mut state.world).unwrap();
+                    let len = source.text().len();
+                    let start_byte = start_byte.min(len);
+                    let end_byte = end_byte.min(len).max(start_byte);
+                    let whitespace = " ".repeat(end_byte - start_byte);
+                    source.edit(start_byte..end_byte, &whitespace);
+                    context.render_map.replace(
+                        start_byte..end_byte,
+                        &whitespace,
+                        SegmentKind::ErrorMark,
+                    );
+                } else if let Some((index, blamed)) = remove_unmappable_block::<HtmlDocument>(
+                    &blocks,
+                    &source_diagnostics,
                     context,
-                    &state.world,
-                ));
+                    &mut state.world,
+                    &mut probe_budget,
+                ) {
+                    // Report the blamed prefix's errors on the block that
+                    // caused them, not the whole note.
+                    let raw = blamed_raw_range(&blocks[index], context, &state.world);
+                    let (_, blamed_unmappable) =
+                        split_unmappable(&blamed, context, &state.world);
 
-                crate::error!("[ERRORS]: {diagnostics:?}");
+                    diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                        blamed_unmappable.into_iter().collect(),
+                        context,
+                        &state.world,
+                        Some(&raw),
+                    ));
 
-                let start_byte = context.map_repaired_to_render(repaired_range.start, Side::Before);
+                    // The search blanked the block; drop it from the
+                    // candidate list so it cannot be selected again.
+                    blocks.remove(index);
+                } else {
+                    crate::error!("NO ERROR BLOCKS FOUND ‼️");
 
-                // Earlier passes shrink the synth while the map still
-                // describes the original text; clamp before blanking.
-                let source = context.render_source_mut(&mut state.world).unwrap();
-                let len = source.text().len();
-                let start_byte = start_byte.min(len);
-                let end_byte = end_byte.min(len).max(start_byte);
-                let whitespace = " ".repeat(end_byte - start_byte);
-                source.edit(start_byte..end_byte, &whitespace);
-                context.render_map.replace(
-                    start_byte..end_byte,
-                    &whitespace,
-                    SegmentKind::ErrorMark,
-                );
+                    diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                        unmappable.into_iter().collect(),
+                        context,
+                        &state.world,
+                        None,
+                    ));
+
+                    break;
+                }
 
                 Vec::new()
             }
