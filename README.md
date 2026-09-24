@@ -1,6 +1,6 @@
 # Typbase
 
-Local-first knowledge base made for Typst and the Atmosphere
+Local-first knowledge base made for Typst and the Atmosphere.
 
 https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 
@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 - [Loro](https://loro.dev) CRDTs for collaborative editing.
 - [atproto](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
 - [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) for search.
-- [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile.
+- [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile builds.
 - [pnpm](https://pnpm.io) and [moonrepo](https://moonrepo.dev) for monorepo management.
 
 ## Inspirations
