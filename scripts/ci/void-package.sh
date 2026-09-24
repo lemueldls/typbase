@@ -19,7 +19,6 @@ if [[ ! -d "$void_packages/.git" ]]; then
 fi
 
 cd "$void_packages"
-# The container rootfs is the masterdir; ethereal mode skips the chroot init check.
 ln -sf / masterdir
 mkdir -p hostdir
 cp -a "$HOME/.cargo" "$HOME/.rustup" hostdir/
@@ -39,9 +38,12 @@ cp "$repo_root/scripts/distro/void/tauri.sh" common/build-style/
 
 if [[ -z "${XBPS_REPOSITORY_SIGNING_KEY:-}" ]]; then
     echo "XBPS_REPOSITORY_SIGNING_KEY is not set; skipping signing."
-    exit 0
+else
+    printf '%s\n' "$XBPS_REPOSITORY_SIGNING_KEY" > private.pem
+    xbps-rindex --privkey private.pem --sign --signedby "void@lemueldls.dev" hostdir/binpkgs
+    xbps-rindex --privkey private.pem --sign-pkg hostdir/binpkgs/*.xbps
 fi
 
-printf '%s\n' "$XBPS_REPOSITORY_SIGNING_KEY" > private.pem
-xbps-rindex --privkey private.pem --sign --signedby "void@lemueldls.dev" hostdir/binpkgs
-xbps-rindex --privkey private.pem --sign-pkg hostdir/binpkgs/*.xbps
+out=${GITHUB_WORKSPACE:-$repo_root}/void-out
+mkdir -p "$out"
+cp hostdir/binpkgs/*.xbps hostdir/binpkgs/x86_64-repodata "$out/"

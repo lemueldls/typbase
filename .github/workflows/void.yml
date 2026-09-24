@@ -84,8 +84,7 @@ jobs:
         with:
           name: void
           path: |
-            /root/void-packages/hostdir/binpkgs/*.xbps
-            /root/void-packages/hostdir/binpkgs/x86_64-repodata
+            ${{ github.workspace }}/void-out/*
 
       - name: 🚀 Attach to release (publish only)
         if: github.event_name == 'release' || inputs.tagName != ''
@@ -94,11 +93,11 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           draft: true
           files: |
-            /root/void-packages/hostdir/binpkgs/typbase-${{ steps.version.outputs.version }}_1.x86_64.xbps
-            /root/void-packages/hostdir/binpkgs/x86_64-repodata
+            ${{ github.workspace }}/void-out/typbase-${{ steps.version.outputs.version }}_1.x86_64.xbps
+            ${{ github.workspace }}/void-out/x86_64-repodata
 
       - name: 🛡️ Attest build provenance (publish only)
         if: github.event_name == 'release' || inputs.tagName != ''
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
-          subject-path: /root/void-packages/hostdir/binpkgs/*
+          subject-path: ${{ github.workspace }}/void-out/*
