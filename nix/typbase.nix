@@ -28,7 +28,7 @@
 let
   wasmBindgenSrc = fetchCrate {
     pname = "wasm-bindgen-cli";
-    version = "0.2.127";
+    version = "0.2.0";
     hash = "sha256-di+qBAdd7pENLiIB9CoZoab+W5xeDoByMREcCGTSzWo=";
   };
 

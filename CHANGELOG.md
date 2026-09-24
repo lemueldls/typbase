@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0] - 2026-09-24
+
+### New
+
+- Publish releases to winget
+
+### Fixed
+
+- Build the frontend without moon
+- Push the release commit as HEAD:master
+- Build the 0.1.1 xbps
+- Build the frontend in the sandbox and fill the 0.1.1 hashes
+- Icon url
+- Set default raw lang in prelude
+- Error recovery for unmappable blocks and diagnostics
+
 ## [0.1.1] - 2026-09-23
 
 First release. Typbase keeps a workspace of Typst files on your device, edits
