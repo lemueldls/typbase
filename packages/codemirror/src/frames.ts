@@ -28,8 +28,8 @@ const openInNewTab: ExternalLinkOpener = (url) => {
  * Typst point per CSS pixel, so the numbers map to px directly.
  *
  * `frame.render.width` is the chunk's bounding-box width, which does not
- * change with the pane for fixed-size blocks (images, boxes) — the viewBox
- * width is the correct resize key, and the size to pin: a render laid out
+ * change with the pane for fixed-size blocks (images, boxes). The viewBox
+ * width is the correct resize key and the size to pin: a render laid out
  * for a wider pane must keep its size, not be stretched by CSS while a
  * resize is in flight.
  */
@@ -44,7 +44,7 @@ export function frameSize(frame: SvgRangedFrame): { width: number; height: numbe
 
 /**
  * Pins a container's SVG to the compiled frame size (via CSS variables). The
- * container keeps max-width: 100% so it never exceeds the line — an explicit
+ * container keeps max-width: 100% so it never exceeds the line. An explicit
  * container width would make CodeMirror's flex layout grow the content width
  * forever (resize -> wider widget -> wider content). The pinned SVG overflows
  * the clamped container while the pane is narrower than the compiled width;

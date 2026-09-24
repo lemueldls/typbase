@@ -159,7 +159,7 @@ fn block_kind(kind: SyntaxKind) -> String {
 }
 
 /// Recursively collects leaf text, skipping markup markers. Plain bytes and
-/// raw byte offsets stay in lockstep, which is the whole point.
+/// raw byte offsets stay in lockstep.
 fn flatten_node(node: &LinkedNode, src: &str, plain: &mut String, map: &mut Vec<u32>) {
     match node.kind() {
         SyntaxKind::Text

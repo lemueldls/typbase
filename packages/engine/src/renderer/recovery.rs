@@ -48,7 +48,7 @@
 //! The caller runs these passes in a bounded retry loop (see
 //! `renderer/paged/items.rs` for the SVG case). The loop terminates when either
 //! a compile succeeds or the divergence counter reaches its limit, preventing
-//! infinite loops on documents that genuinely cannot be fixed by blanking.
+//! infinite loops on documents that cannot be fixed by blanking.
 
 use std::ops::Range;
 

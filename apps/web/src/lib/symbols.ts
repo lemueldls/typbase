@@ -19,7 +19,7 @@ export const DEFAULT_WORKSPACE_ICON: MaterialSymbol = "folder";
 
 /**
  * Curated set shown first when the search box is empty. Without it the grid
- * opens on "123", "360", "10k" — alphabetically first, practically useless.
+ * opens on "123", "360", "10k" (alphabetically first, practically useless).
  * All ids are verified against the glyph union; sorting by this list is what
  * makes the picker inviting on first open.
  */
