@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 - [Dynamic Documents as Personal Software](https://www.youtube.com/watch?v=MccJdr61xnc) for documents that run their own code.
 - [PlayBook: A Programmable Paper Notebook](https://www.youtube.com/watch?v=GurWDZ8ENpA) for programmable notebook pages.
 
-## Getting Started
+## Self-Hosting
 
 ### Prerequisites
 
@@ -47,6 +47,50 @@ pnpm install
 pnpm dev
 ```
 
+### Production
+
+```sh
+pnpm install
+pnpm build
+pnpm preview
+```
+
+## Installation
+
+You can download the latest version of the application from the [GitHub Release page](https://github.com/lemueldls/typbase/releases/latest).
+
+### Windows (winget)
+
+Run the following command:
+
+```sh
+winget install typbase
+```
+
+### Arch Linux (AUR)
+
+Install either the prebuilt package or build-from-source package from AUR:
+
+```sh
+# Prebuilt binary package
+paru -S typbase-bin
+
+# Or build from source
+paru -S typbase
+```
+
+### Void Linux
+
+Add the repository and install the package:
+
+```sh
+# Add the repository
+echo "repository=https://github.com/lemueldls/typbase/releases/latest/download" | sudo tee /etc/xbps.d/typbase-repo.conf
+
+# Install the package
+sudo xbps-install -S typbase
+```
+
 ## License
 
-AGPL-3.0. See [LICENSE](LICENSE).
+This project is licensed under [AGPL-3.0](https://choosealicense.com/licenses/agpl-3.0/). See the [LICENSE](LICENSE) file for details.
