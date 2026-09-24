@@ -28,7 +28,7 @@
 let
   wasmBindgenSrc = fetchCrate {
     pname = "wasm-bindgen-cli";
-    version = "0.2.0";
+    version = "0.2.127";
     hash = "sha256-di+qBAdd7pENLiIB9CoZoab+W5xeDoByMREcCGTSzWo=";
   };
 
@@ -44,7 +44,7 @@ in
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typbase";
-  version = "0.1.1";
+  version = "0.2.0";
 
   src = fetchFromGitHub {
     owner = "lemueldls";

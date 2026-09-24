@@ -66,7 +66,7 @@ const version = nextVersion(tauri.version, bump);
 {
   const path = "Cargo.lock";
   let text = read(path);
-  for (const name of ["typbase", "wasm"]) {
+  for (const name of ["typbase", "engine"]) {
     const pattern = new RegExp(`(\\[\\[package\\]\\]\\nname = "${name}"\\nversion = ")[^"]+(")`);
     text = text.replace(pattern, `$1${version}$2`);
   }
@@ -112,8 +112,10 @@ const version = nextVersion(tauri.version, bump);
 
 // nix derivations
 for (const path of ["nix/typbase.nix", "nix/typbase-bin.nix", "nix/nixpkgs/typbase.nix"]) {
-  const text = read(path).replace(/^(\s*version = ")[^"]+(";)$/m, `$1${version}$2`);
-  write(path, text);
+  const text = read(path);
+  const pattern = /(pname = "typbase";\n\s*version = ")[^"]+(")/;
+  if (!pattern.test(text)) throw new Error(`${path}: typbase derivation version not found`);
+  write(path, text.replace(pattern, `$1${version}$2`));
 }
 
 console.log(version);
