@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SplitterPanel } from "reka-ui";
 
-import faviconUrl from "~~/public/favicon.svg?url";
+import iconUrl from "~~/public/icon.svg?url";
 
 import { setChatNavigation, useChat } from "~/composables/chat";
 import { setProviderOverride } from "~/lib/ai/engine";
@@ -413,7 +413,7 @@ definePageMeta({ ssr: false });
 
     <Transition name="splash">
       <div v-if="!loaded" class="app__splash" role="status" aria-live="polite">
-        <img class="app__splash-mark" :src="faviconUrl" alt="" />
+        <img class="app__splash-mark" :src="iconUrl" alt="" />
         <h1 class="app__splash-title">Typbase</h1>
         <div class="app__splash-bar" aria-hidden="true"><span /></div>
         <p class="app__splash-step">
