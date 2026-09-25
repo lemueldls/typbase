@@ -2,6 +2,15 @@
   "name": "@typbase/codemirror",
   "version": "0.2.2",
   "description": "CodeMirror 6 editing experience for Typst: WYSIWYG inline preview, highlighting, hover, autocomplete.",
+  "keywords": [
+    "atproto",
+    "codemirror",
+    "editor",
+    "knowledge-base",
+    "note-taking",
+    "typst",
+    "wysiwyg"
+  ],
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",

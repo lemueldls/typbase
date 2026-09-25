@@ -4,6 +4,10 @@
   "description": "Local-first knowledge base made for Typst and the Atmosphere.",
   "version": "0.2.2",
   "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lemueldls/typbase"
+  },
   "files": [
     "engine_bg.wasm",
     "engine.js",
@@ -15,6 +19,10 @@
     "./snippets/*"
   ],
   "keywords": [
-    ""
+    "atproto",
+    "knowledge-base",
+    "note-taking",
+    "rust",
+    "typst"
   ]
 }
