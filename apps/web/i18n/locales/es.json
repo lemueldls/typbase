@@ -280,7 +280,7 @@
   },
   "calendar": {
     "title": "Notas diarias",
-    "description": "Elige un día para abrir o crear su nota. Los días con notas están marcados; usa la papelera para eliminar una.",
+    "description": "Elige un día para abrir o crear su nota. Los días con notas están marcados.",
     "previousMonth": "Mes anterior",
     "nextMonth": "Mes siguiente",
     "today": "Hoy",

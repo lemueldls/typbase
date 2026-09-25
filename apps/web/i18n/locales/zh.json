@@ -280,7 +280,7 @@
   },
   "calendar": {
     "title": "每日笔记",
-    "description": "选择一天以打开或创建笔记。有笔记的日期会有标记；使用垃圾桶删除。",
+    "description": "选择一天以打开或创建笔记。有笔记的日期会有标记。",
     "previousMonth": "上个月",
     "nextMonth": "下个月",
     "today": "今天",

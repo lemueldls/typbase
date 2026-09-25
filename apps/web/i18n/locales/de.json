@@ -280,7 +280,7 @@
   },
   "calendar": {
     "title": "Tägliche Notizen",
-    "description": "Wähle einen Tag, um seine Notiz zu öffnen oder zu erstellen. Tage mit Notizen sind markiert; mit dem Papierkorb löschst du eine.",
+    "description": "Wähle einen Tag, um seine Notiz zu öffnen oder zu erstellen. Tage mit Notizen sind markiert.",
     "previousMonth": "Vorheriger Monat",
     "nextMonth": "Nächster Monat",
     "today": "Heute",

@@ -290,7 +290,7 @@
   },
   "calendar": {
     "title": "Daily notes",
-    "description": "Pick a day to open or create its note. Days with notes are marked; use the trash to delete one.",
+    "description": "Pick a day to open or create its note. Days with notes are marked.",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
     "today": "Today",
