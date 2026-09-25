@@ -7,9 +7,20 @@
     "type": "git",
     "url": "https://github.com/lemueldls/typbase"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./src/index.ts",
   "publishConfig": {
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    },
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
