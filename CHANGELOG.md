@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2] - 2026-09-25
+
+### New
+
+- Add editor display options
+- Initial page graph and backlinks
+
+### Fixed
+
+- App name spelling
+- Remove scopes style
+
 ## [0.2.1] - 2026-09-24
 
 ### Fixed

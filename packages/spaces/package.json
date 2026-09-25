@@ -1,6 +1,6 @@
 {
   "name": "@typbase/spaces",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The only module that talks to atproto: browser OAuth, the airspace data model, and Loro sync.",
   "license": "AGPL-3.0",
   "repository": {
