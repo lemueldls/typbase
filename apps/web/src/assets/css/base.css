@@ -29,3 +29,22 @@ body {
   color: var(--color-text-secondary);
   opacity: 1;
 }
+
+/*
+ * Overlay fade. reka-ui's Presence waits for `animationend` on the element
+ * before unmounting, so the exit has to be a keyframe (it never waits on a
+ * transition). One duration for every portaled layer keeps dialogs, menus,
+ * selects, tooltips, and toasts feeling like the same surface. Each overlay
+ * component declares the animation for its own element.
+ */
+@keyframes ui-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-overlay-fade-out {
+  to {
+    opacity: 0;
+  }
+}

@@ -29,3 +29,9 @@ const emit = defineEmits<{ (e: "select", event: Event): void }>();
     <slot />
   </DropdownMenuItem>
 </template>
+
+<style>
+.menu__item .ms-icon {
+  flex: none;
+}
+</style>

@@ -144,8 +144,6 @@ function neighborsOf(id: string): Set<string> {
   return neighbors;
 }
 
-// ---- Data sync -----------------------------------------------------------
-
 watch(
   () => props.data,
   (data) => {
@@ -189,8 +187,6 @@ watch(
 watch([() => props.palette, () => props.labels, () => props.matchIds, () => props.selectedId], () =>
   scheduleDraw(),
 );
-
-// ---- Camera and hit testing ---------------------------------------------
 
 function worldX(screenX: number): number {
   return camera.x + (screenX - viewport.width / 2) / camera.k;
@@ -252,8 +248,6 @@ function fitView(): void {
   camera.y = (minY + maxY) / 2;
   scheduleDraw();
 }
-
-// ---- Drawing -------------------------------------------------------------
 
 function scheduleDraw(): void {
   if (frame) return;
@@ -345,12 +339,16 @@ function draw(): void {
   context.restore();
 }
 
-// ---- Pointer input -------------------------------------------------------
-
-function localPoint(event: PointerEvent | WheelEvent): { x: number; y: number } {
+function localPoint(event: PointerEvent | WheelEvent): {
+  x: number;
+  y: number;
+} {
   const rect = canvas.value?.getBoundingClientRect();
 
-  return { x: event.clientX - (rect?.left ?? 0), y: event.clientY - (rect?.top ?? 0) };
+  return {
+    x: event.clientX - (rect?.left ?? 0),
+    y: event.clientY - (rect?.top ?? 0),
+  };
 }
 
 function pinchState(): { distance: number; x: number; y: number } | null {
@@ -483,8 +481,6 @@ function onWheel(event: WheelEvent): void {
   scheduleDraw();
 }
 
-// ---- Lifecycle -----------------------------------------------------------
-
 let observer: ResizeObserver | undefined;
 
 function measure(): void {
@@ -551,7 +547,7 @@ defineExpose({ fit: fitView });
   </div>
 </template>
 
-<style scoped>
+<style>
 .graph-canvas {
   position: relative;
   width: 100%;

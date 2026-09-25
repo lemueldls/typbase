@@ -427,18 +427,18 @@ defineExpose({ view, recompile, revealRange, insertAt });
   </section>
 </template>
 
-<style scoped>
+<style>
 .editable-pane {
   position: relative;
   height: 100%;
   min-height: 0;
 }
 
-.editable-pane :deep(.cm-editor) {
+.editable-pane .cm-editor {
   height: 100%;
 }
 
-.editable-pane--dragging :deep(.cm-editor) {
+.editable-pane--dragging .cm-editor {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
@@ -510,5 +510,354 @@ defineExpose({ view, recompile, revealRange, insertAt });
   to {
     opacity: 1;
   }
+}
+
+/* CodeMirror internals: scrollbar, syntax tags, rendered frames, remote
+   cursors, and notebook cell widgets. The classes come from
+   @typbase/codemirror and the wasm highlighter; this editor is the only place
+   they render. */
+
+.cm-scroller {
+  scrollbar-color: auto;
+}
+
+.cm-scroller::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cm-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 2px solid transparent;
+  border-radius: var(--radius-full);
+  background-clip: content-box;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-secondary);
+  background-clip: content-box;
+}
+
+/* Keep the drawn selection over active-line and search backgrounds. */
+.cm-selectionLayer {
+  z-index: 0;
+}
+
+/* Typst syntax tags from the wasm highlighter, mapped to theme tokens. */
+.typ-comment {
+  color: var(--color-text-secondary);
+}
+
+.typ-punct,
+.typ-escape {
+  color: var(--color-text-secondary);
+}
+
+.typ-strong {
+  font-weight: bold;
+}
+
+.typ-emph {
+  font-style: italic;
+}
+
+.typ-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.typ-raw {
+  color: var(--color-warning);
+}
+
+.typ-label,
+.typ-ref {
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
+}
+
+.typ-heading {
+  color: var(--color-text);
+}
+
+.typ-heading-level-1 {
+  color: var(--color-accent);
+  font-size: 2em;
+  font-weight: 400;
+}
+
+.typ-heading-level-2 {
+  color: var(--color-text);
+  font-size: 1.75em;
+  font-weight: 400;
+}
+
+.typ-heading-level-3 {
+  color: var(--color-text-secondary);
+  font-size: 1.5em;
+  font-weight: 400;
+}
+
+.typ-heading-level-4 {
+  color: var(--color-accent);
+  font-size: 1.375em;
+  font-weight: 400;
+}
+
+.typ-heading-level-5 {
+  color: var(--color-text);
+  font-size: 1em;
+  font-weight: 500;
+}
+
+.typ-heading-level-6 {
+  color: var(--color-text-secondary);
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.typ-marker {
+  color: var(--color-text-secondary);
+  font-weight: bold;
+}
+
+.typ-term {
+  font-weight: bold;
+}
+
+.typ-math-delim {
+  color: var(--color-text-secondary);
+}
+
+.typ-math-op,
+.typ-op {
+  color: var(--color-danger);
+}
+
+.typ-key {
+  color: var(--color-accent);
+}
+
+.typ-num,
+.typ-str {
+  color: var(--color-warning);
+}
+
+.typ-func {
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
+}
+
+.typ-pol {
+  color: var(--color-text);
+}
+
+.typ-error {
+  color: var(--color-danger);
+}
+
+.typst-render {
+  display: inline-block;
+  max-width: 100%;
+  overflow: visible;
+  vertical-align: top;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* A block-level SVG anchors at the container's top. Inline, it sits on the
+   container's text baseline, so a frame shorter than the editor's 22.4px line
+   box is pushed down and overflows the bottom. */
+.typst-render svg {
+  display: block;
+  width: var(--render-w) !important;
+  height: var(--render-h) !important;
+}
+
+.cm-content[contenteditable="true"] .typst-render {
+  border-radius: var(--radius-xs);
+  transition: background-color 0.15s;
+}
+
+.cm-content[contenteditable="true"] .typst-render:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+.cm-content[contenteditable="true"] .typst-render svg {
+  cursor: text;
+}
+
+.typst-popup-render {
+  padding: var(--space-4);
+  max-height: min(70vh, 32rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.typst-popup-render div {
+  position: relative;
+}
+
+.typst-popup-render svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.typst-hints {
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+}
+
+.typbase-remote-cursor {
+  background-color: color-mix(in srgb, var(--cursor-color) 25%, transparent);
+  border-bottom: 2px solid var(--cursor-color);
+}
+
+.typbase-remote-cursor-flag {
+  position: absolute;
+  transform: translate(-2px, -100%);
+  padding: 0 var(--space-1);
+  font-size: var(--text-2xs);
+  font-family: var(--font-mono);
+  line-height: var(--leading-tight);
+  color: #fff;
+  background: var(--cursor-color);
+  border-radius: var(--radius-xs) var(--radius-xs) var(--radius-xs) 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tb-cell-header {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-right: var(--space-2);
+  vertical-align: middle;
+  font-size: var(--text-xs);
+  line-height: 1;
+  user-select: none;
+}
+
+.tb-cell-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.tb-cell-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.tb-cell-btn--run {
+  color: var(--color-accent);
+}
+
+.tb-cell-btn--type {
+  width: auto;
+  gap: var(--space-1);
+  height: 1.4rem;
+  padding: 0 var(--space-1-5);
+  border: 1px solid var(--color-border);
+}
+
+.tb-cell-counter {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+.tb-cell-spacer {
+  flex: 1;
+}
+
+.tb-cell-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.tb-cell-header:hover .tb-cell-actions,
+.tb-cell-header:focus-within .tb-cell-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tb-cell-actions {
+    opacity: 1;
+  }
+}
+
+/* Marker lines read as cell separators, not source. */
+.tb-cell-marker {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  font-size: var(--text-xs);
+}
+
+.tb-cell-marker.cm-line {
+  padding-left: var(--space-1);
+}
+
+.tb-cell-output {
+  margin: var(--space-1) 0 var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border);
+}
+
+.tb-cell-output--cleared,
+.tb-cell-output--empty {
+  display: none;
+}
+
+.tb-cell-output-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.tb-cell-frame {
+  overflow: hidden;
+}
+
+.tb-cell-frame .typst-render {
+  cursor: text;
+}
+
+.tb-cell-empty {
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.tb-cell-diagnostic {
+  padding: var(--space-1-5) var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+}
+
+.tb-cell-diagnostic ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+  color: var(--color-text-secondary);
 }
 </style>

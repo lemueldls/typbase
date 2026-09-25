@@ -41,7 +41,7 @@ const icon = computed<MaterialSymbol>(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .plugin-view {
   display: flex;
   flex-direction: column;

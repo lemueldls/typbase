@@ -346,8 +346,8 @@ export const typstEditorTheme = EditorView.theme({
 
   // Autocomplete icons are Material Symbols ligatures, same font as MsIcon.
   // The ::after content holds the glyph name; the font turns it into a
-  // pictogram. Base glyphs (ƒ, ○) would win from codemirror.css, so the
-  // mapping has to live in the theme.
+  // pictogram. CodeMirror's default glyphs (ƒ, ○) would win, so the mapping
+  // has to live in the theme.
   ".cm-completionIcon": {
     width: "1em",
     paddingRight: "0.5em",

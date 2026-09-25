@@ -9,7 +9,6 @@
 // Bodies are named (`body:`) so call sites read the same everywhere; Typst
 // `html.elem` wants its body positionally, which the helpers handle.
 
-// ---------------------------------------------------------------- actions --
 
 #let action-attrs(name, args: (:)) = (
   "data-tb-action": name,
@@ -89,7 +88,6 @@
   ],
 )
 
-// ------------------------------------------------------------------ layout --
 
 #let panel(body: [], title: none) = html.elem(
   "section",
@@ -138,7 +136,6 @@
   html.elem("div", attrs: attrs, body)
 }
 
-// ------------------------------------------------------------ canvas/board --
 
 #let canvas(action, strokes: (), color: "#1f2328", width: 3, height: 320) = html.elem(
   "div",
@@ -209,7 +206,6 @@
   body,
 )
 
-// ----------------------------------------------------------------- patches --
 
 // Action builders. A patch is `(state: (op, ..), view: (key: value, ..))`.
 #let op-append(collection, record) = (op: "append", collection: collection, record: record)
@@ -289,7 +285,6 @@
   stack(body: body),
 )
 
-// ------------------------------------------------------------------- ai ----
 //
 // AI calls arrive back at the plugin as a render whose `ctx.action` is
 // `ai.result` with `text`, `diagnostics`, and `error` in its args. A surface

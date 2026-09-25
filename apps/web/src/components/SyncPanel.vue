@@ -221,7 +221,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
   </div>
 </template>
 
-<style scoped>
+<style>
 .sync {
   display: flex;
   flex-direction: column;

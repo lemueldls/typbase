@@ -358,7 +358,7 @@ defineExpose({ scroller, getFrameLayout });
   </div>
 </template>
 
-<style scoped>
+<style>
 .paged-preview {
   height: 100%;
   min-height: 0;
@@ -388,7 +388,7 @@ defineExpose({ scroller, getFrameLayout });
   background-clip: content-box;
 }
 
-.paged-preview :deep(a[href]) {
+.paged-preview a[href] {
   cursor: pointer;
 }
 
@@ -433,7 +433,7 @@ defineExpose({ scroller, getFrameLayout });
   cursor: text;
 }
 
-.paged-preview__frame :deep(svg) {
+.paged-preview__frame svg {
   display: block;
   width: var(--frame-w) !important;
   height: var(--frame-h) !important;

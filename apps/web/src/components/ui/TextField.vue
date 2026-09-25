@@ -57,7 +57,7 @@ defineExpose({ input, focus: () => input.value?.focus() });
   </span>
 </template>
 
-<style scoped>
+<style>
 .ui-text-field {
   display: inline-flex;
   align-items: center;

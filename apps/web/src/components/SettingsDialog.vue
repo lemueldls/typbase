@@ -1030,7 +1030,25 @@ async function renameWorkspace(event: Event) {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
+/* Roomy dialog with a section rail instead of a popover. */
+.settings-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(56rem, calc(100vw - var(--space-8)));
+  height: min(46rem, calc(100dvh - var(--space-16)));
+  padding: var(--space-5);
+  overflow: hidden;
+}
+
+@media (max-width: 48rem) {
+  .settings-dialog {
+    width: calc(100vw - var(--space-8) - var(--safe-left) - var(--safe-right));
+    height: calc(100dvh - var(--space-16) - var(--safe-top) - var(--safe-bottom));
+    padding: var(--space-4);
+  }
+}
+
 .settings {
   display: grid;
   grid-template-columns: 13rem minmax(0, 1fr);

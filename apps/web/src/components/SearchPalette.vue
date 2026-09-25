@@ -43,7 +43,7 @@ function onDrawerOpen(open: boolean) {
   </div>
 </template>
 
-<style scoped>
+<style>
 .search-palette {
   position: fixed;
   inset: 0;

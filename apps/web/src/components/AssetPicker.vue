@@ -204,7 +204,12 @@ function formatSize(bytes: number): string {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
+/* Wider than the default dialog so the thumbnail grid breathes. */
+.asset-dialog {
+  width: min(680px, calc(100vw - var(--space-8)));
+}
+
 .picker {
   display: flex;
   flex-direction: column;

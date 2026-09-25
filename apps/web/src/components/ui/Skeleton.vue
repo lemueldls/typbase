@@ -16,7 +16,7 @@ withDefaults(
   <span class="ui-skeleton" :style="{ width, height, borderRadius: radius }" aria-hidden="true" />
 </template>
 
-<style scoped>
+<style>
 .ui-skeleton {
   display: block;
   background: linear-gradient(

@@ -171,7 +171,7 @@ async function run(choice: StorageSetupChoice): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style>
 .storage-setup {
   flex: 1;
   display: grid;

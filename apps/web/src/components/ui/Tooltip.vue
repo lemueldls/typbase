@@ -45,4 +45,12 @@ withDefaults(
 .ui-tooltip__arrow {
   fill: var(--color-border);
 }
+
+.ui-tooltip {
+  animation: ui-overlay-fade-in 100ms ease-out;
+}
+
+.ui-tooltip[data-state="closed"] {
+  animation: ui-overlay-fade-out 80ms ease-in;
+}
 </style>

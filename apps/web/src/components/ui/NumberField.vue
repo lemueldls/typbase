@@ -37,7 +37,7 @@ const model = defineModel<number | null>({ required: true });
   </NumberFieldRoot>
 </template>
 
-<style scoped>
+<style>
 .ui-number {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

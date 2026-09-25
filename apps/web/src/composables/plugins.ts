@@ -59,7 +59,10 @@ interface NavigationHooks {
   openPlugin: (instanceId: string) => void;
 }
 
-const navigation: NavigationHooks = { openPage: () => {}, openPlugin: () => {} };
+const navigation: NavigationHooks = {
+  openPage: () => {},
+  openPlugin: () => {},
+};
 
 /** The shell registers how plugin actions reach app navigation. */
 export function setPluginNavigation(hooks: Partial<NavigationHooks>): void {
@@ -235,7 +238,9 @@ function usePluginHost() {
       await refreshCatalog();
       await install(manifest.id);
     } catch (error) {
-      pushError({ message: error instanceof Error ? error.message : String(error) });
+      pushError({
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -282,8 +287,6 @@ function usePluginHost() {
     docUnsubscribes.delete(instanceId);
   }
 
-  // ---- device-local view state -------------------------------------------
-
   async function loadViews(): Promise<void> {
     const local = localState.value;
     if (!local || viewsLoaded) return;
@@ -311,8 +314,6 @@ function usePluginHost() {
     const local = localState.value;
     if (local) void local.set("pluginViews", views.value);
   }
-
-  // ---- rendering ----------------------------------------------------------
 
   function subscribe(instanceId: string, listener: (html: string) => void): () => void {
     let listeners = subscriptions.get(instanceId);
@@ -372,7 +373,11 @@ function usePluginHost() {
     const entry = catalog.value.find((candidate) => candidate.manifest.id === instance.pluginId);
     const record = store.getPluginInstall(instance.pluginId);
     if (!entry || !record) {
-      pushError({ instanceId, pluginId: instance.pluginId, message: "plugin sources missing" });
+      pushError({
+        instanceId,
+        pluginId: instance.pluginId,
+        message: "plugin sources missing",
+      });
       return;
     }
 
@@ -387,8 +392,16 @@ function usePluginHost() {
     const canReadPages = manifest.capabilities.includes("pages.read");
 
     const ctx: PluginContext = {
-      plugin: { id: manifest.id, name: manifest.name, version: manifest.version },
-      instance: { id: instance.id, title: instance.title, surface: instance.surface },
+      plugin: {
+        id: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+      },
+      instance: {
+        id: instance.id,
+        title: instance.title,
+        surface: instance.surface,
+      },
       locale: locale.value,
       now: new Date().toISOString(),
       today: todayISO(),
@@ -562,8 +575,6 @@ function usePluginHost() {
     }
   }
 
-  // ---- actions ------------------------------------------------------------
-
   async function dispatch(instanceId: string, action: PluginAction): Promise<void> {
     log({
       kind: "action",
@@ -707,12 +718,18 @@ function usePluginHost() {
       }
 
       default:
-        pushError({ instanceId, message: `unknown host action "${action.name}"` });
+        pushError({
+          instanceId,
+          message: `unknown host action "${action.name}"`,
+        });
     }
   }
 
   function deny(instanceId: string, capability: PluginCapability): void {
-    pushError({ instanceId, message: `action denied: missing capability "${capability}"` });
+    pushError({
+      instanceId,
+      message: `action denied: missing capability "${capability}"`,
+    });
   }
 
   /** Maps a resolved AI call back into the plugin as an `ai.result` render. */
@@ -779,7 +796,9 @@ function usePluginHost() {
       });
       await followUp({ text: result.text, diagnostics: result.diagnostics });
     } catch (error) {
-      await followUp({ error: error instanceof Error ? error.message : String(error) });
+      await followUp({
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -806,7 +825,9 @@ function usePluginHost() {
     const store = workspace.value;
     if (!store) return;
     if (!input.collection || !input.recordId) {
-      await input.followUp({ error: "ai.stream: collection and id are required" });
+      await input.followUp({
+        error: "ai.stream: collection and id are required",
+      });
       return;
     }
 
@@ -880,7 +901,10 @@ function usePluginHost() {
           },
         },
       ]);
-      await input.followUp({ text: result.text, diagnostics: result.diagnostics });
+      await input.followUp({
+        text: result.text,
+        diagnostics: result.diagnostics,
+      });
     } catch (error) {
       if (timer) clearTimeout(timer);
       const message = error instanceof Error ? error.message : String(error);
@@ -890,7 +914,10 @@ function usePluginHost() {
             op: "merge",
             collection: input.collection,
             id: input.recordId,
-            record: { [statusField]: "error", [`${input.field}Error`]: message },
+            record: {
+              [statusField]: "error",
+              [`${input.field}Error`]: message,
+            },
           },
         ])
         .catch(() => undefined);

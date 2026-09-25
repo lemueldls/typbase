@@ -127,7 +127,7 @@ definePageMeta({ ssr: false });
   </main>
 </template>
 
-<style scoped>
+<style>
 .profile {
   max-width: 760px;
   margin: 0 auto;

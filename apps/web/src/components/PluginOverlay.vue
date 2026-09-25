@@ -28,7 +28,7 @@ const overlays = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .plugin-overlay {
   position: fixed;
   inset: 0;

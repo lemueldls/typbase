@@ -30,7 +30,7 @@ withDefaults(
   </Label>
 </template>
 
-<style scoped>
+<style>
 .ui-switch {
   display: inline-flex;
   align-items: center;

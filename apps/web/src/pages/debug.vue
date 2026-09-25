@@ -419,7 +419,7 @@ definePageMeta({ ssr: false });
   </main>
 </template>
 
-<style scoped>
+<style>
 .lab {
   max-width: 900px;
   margin: 0 auto;

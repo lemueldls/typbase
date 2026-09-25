@@ -119,7 +119,7 @@ function commitModel(): void {
   </div>
 </template>
 
-<style scoped>
+<style>
 .chat-composer {
   display: flex;
   flex-direction: column;

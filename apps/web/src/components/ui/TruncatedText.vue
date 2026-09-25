@@ -28,22 +28,17 @@ watch(
   () => props.text,
   () => void nextTick(measure),
 );
-
-const scopeAttrs = computed<Record<string, string>>(() => {
-  const scopeId = getCurrentInstance()?.vnode.scopeId;
-  return scopeId ? { [scopeId]: "" } : {};
-});
 </script>
 
 <template>
   <UiTooltip :text="text ?? ''" :side="side" :disabled="!overflowing">
-    <span ref="element" v-bind="{ ...scopeAttrs, ...attrs }" class="ui-truncated-text">
+    <span ref="element" v-bind="attrs" class="ui-truncated-text">
       <slot>{{ text }}</slot>
     </span>
   </UiTooltip>
 </template>
 
-<style scoped>
+<style>
 .ui-truncated-text {
   display: inline-block;
   min-width: 0;

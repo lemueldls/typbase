@@ -433,7 +433,11 @@ export class WorkspaceStore {
       if (stat.kind === "directory") {
         for (const [key, info] of await this.listSourceFiles(virtual)) files.set(key, info);
       } else if (name.endsWith(".typ")) {
-        files.set(virtual, { path, size: stat.size, modifiedAt: stat.modifiedAt });
+        files.set(virtual, {
+          path,
+          size: stat.size,
+          modifiedAt: stat.modifiedAt,
+        });
       }
     }
 
@@ -458,7 +462,12 @@ export class WorkspaceStore {
   }
 
   private async doSyncSources(): Promise<SourceSyncResult> {
-    const result: SourceSyncResult = { imported: [], created: [], conflicts: [], exported: 0 };
+    const result: SourceSyncResult = {
+      imported: [],
+      created: [],
+      conflicts: [],
+      exported: 0,
+    };
     if (!this.sourceSync) return result;
 
     // Compare before flushing: doc text is live, and the recorded hashes
@@ -699,7 +708,10 @@ export class WorkspaceStore {
 
     const meta = map.toJSON() as PageMeta;
 
-    return { ...meta, kind: meta.kind === "notebook" ? "notebook" : "document" };
+    return {
+      ...meta,
+      kind: meta.kind === "notebook" ? "notebook" : "document",
+    };
   }
 
   private writePageMeta(meta: PageMeta): void {
@@ -1233,7 +1245,6 @@ export class WorkspaceStore {
     doc.commit();
   }
 
-  // ---- Plugins -----------------------------------------------------------
   //
   // Installed plugins and their instances live in the workspace doc, so the
   // registry syncs like pages and categories. Instance data lives in its own
@@ -1442,7 +1453,6 @@ export class WorkspaceStore {
     return () => listeners.delete(listener);
   }
 
-  // ---- Chats -------------------------------------------------------------
   //
   // Thread metadata is a record in the workspace doc's `chats` map; messages
   // live in the thread's own doc (`chat:<threadId>`). The sync engine already
@@ -1649,8 +1659,6 @@ export class WorkspaceStore {
     return () => listeners.delete(listener);
   }
 
-  // ---- Blobs -------------------------------------------------------------
-
   /**
    * Stores bytes under their content hash. Writing the same bytes twice is a
    * no-op, so callers can upload freely.
@@ -1661,7 +1669,11 @@ export class WorkspaceStore {
     const existing = await this.backend.stat(path).catch(() => null);
     if (!existing) await this.backend.write(path, bytes);
 
-    return { hash, size: bytes.byteLength, modifiedAt: existing?.modifiedAt ?? Date.now() };
+    return {
+      hash,
+      size: bytes.byteLength,
+      modifiedAt: existing?.modifiedAt ?? Date.now(),
+    };
   }
 
   async getBlob(hash: string): Promise<Uint8Array | null> {
@@ -1684,7 +1696,11 @@ export class WorkspaceStore {
       if (!isBlobHash(name)) continue;
       const stat = await this.backend.stat(`${dir}/${name}`).catch(() => null);
       if (!stat || stat.kind !== "file") continue;
-      entries.push({ hash: name, size: stat.size, modifiedAt: stat.modifiedAt });
+      entries.push({
+        hash: name,
+        size: stat.size,
+        modifiedAt: stat.modifiedAt,
+      });
     }
 
     return entries.sort((a, b) => (b.modifiedAt ?? 0) - (a.modifiedAt ?? 0));

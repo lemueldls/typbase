@@ -81,7 +81,7 @@ async function remove(id: string) {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
 .category-list {
   margin: 0;
   padding: 0;

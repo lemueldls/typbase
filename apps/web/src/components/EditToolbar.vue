@@ -35,16 +35,36 @@ const groups: ToolbarItem[][] = [
   [
     { id: "bold", run: toggleStrong, icon: "format_bold", label: "bold" },
     { id: "italic", run: toggleEmph, icon: "format_italic", label: "italic" },
-    { id: "underline", run: toggleUnderline, icon: "format_underlined", label: "underline" },
-    { id: "strike", run: toggleStrike, icon: "strikethrough_s", label: "strike" },
+    {
+      id: "underline",
+      run: toggleUnderline,
+      icon: "format_underlined",
+      label: "underline",
+    },
+    {
+      id: "strike",
+      run: toggleStrike,
+      icon: "strikethrough_s",
+      label: "strike",
+    },
     { id: "code", run: toggleCode, icon: "code", label: "code" },
     { id: "math", run: toggleMath, icon: "functions", label: "math" },
     { id: "link", run: insertLink, icon: "link", label: "link" },
   ],
   [{ id: "heading", run: cycleHeading, icon: "format_h1", label: "heading" }],
   [
-    { id: "bulletList", run: toggleList, icon: "format_list_bulleted", label: "bulletList" },
-    { id: "orderedList", run: toggleEnum, icon: "format_list_numbered", label: "orderedList" },
+    {
+      id: "bulletList",
+      run: toggleList,
+      icon: "format_list_bulleted",
+      label: "bulletList",
+    },
+    {
+      id: "orderedList",
+      run: toggleEnum,
+      icon: "format_list_numbered",
+      label: "orderedList",
+    },
   ],
 ];
 
@@ -61,8 +81,6 @@ function insertLink(view: EditorView) {
     selection: { anchor: urlFrom, head: urlFrom + url.length },
   });
 }
-
-// ---- Page links ----------------------------------------------------------
 
 const { workspace } = useWorkspace();
 const { t } = useI18n();
@@ -177,7 +195,7 @@ function run(item: ToolbarItem) {
   </ToolbarRoot>
 </template>
 
-<style scoped>
+<style>
 .edit-toolbar {
   display: inline-flex;
   align-items: center;
@@ -213,5 +231,49 @@ function run(item: ToolbarItem) {
   height: calc(1.2rem * var(--ui-size));
   margin: 0 var(--space-1);
   background: var(--color-border);
+}
+
+/* Page-link picker. Portaled popover content, so the styles live here rather
+   than next to the toolbar's own classes. */
+.edit-toolbar__picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: min(280px, calc(100vw - var(--space-8)));
+  max-height: calc(100dvh - 8rem);
+  padding: var(--space-2);
+}
+
+.edit-toolbar__picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.edit-toolbar__picker-row {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.edit-toolbar__picker-row:hover {
+  background: var(--color-surface-2);
+}
+
+.edit-toolbar__picker-empty {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 </style>

@@ -431,7 +431,12 @@ function openRepository(entry: PackageEntry) {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
+/* Wide enough for the list and the per-row actions. */
+.package-dialog {
+  width: min(760px, calc(100vw - var(--space-8)));
+}
+
 .package-browser__toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -604,7 +609,8 @@ function openRepository(entry: PackageEntry) {
   border-bottom: 1px solid var(--color-border);
 }
 
-mark {
+.package-browser__name mark,
+.package-browser__description mark {
   padding: 0;
   background: color-mix(in srgb, var(--color-accent) 22%, transparent);
   color: inherit;

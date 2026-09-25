@@ -108,7 +108,7 @@ async function submit() {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
 .ws-dialog__preview {
   display: flex;
   align-items: center;

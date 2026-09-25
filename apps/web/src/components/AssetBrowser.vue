@@ -247,7 +247,7 @@ async function pruneUnused(): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style>
 .assets {
   display: flex;
   flex-direction: column;

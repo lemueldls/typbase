@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .graph {
   display: flex;
   flex-direction: column;

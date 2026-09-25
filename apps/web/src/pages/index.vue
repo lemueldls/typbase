@@ -607,7 +607,7 @@ definePageMeta({ ssr: false });
   </main>
 </template>
 
-<style scoped>
+<style>
 .app {
   display: flex;
   height: 100vh;
@@ -702,7 +702,7 @@ definePageMeta({ ssr: false });
   min-width: 0;
 }
 
-.app__nav-panel :deep(.sidebar) {
+.app__nav-panel .sidebar {
   border-right: 0;
 }
 
@@ -738,30 +738,27 @@ definePageMeta({ ssr: false });
 
 /* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
    in the toolbar flow (MainPane slot), so it pushes content rather than
-   floating over it. Slot content is compiled in this component's scope, so
-   the toggle styles belong here, not in MainPane.
+   floating over it.
 
    The desktop variant renders whenever the desktop shell does; its icon and
    label flip with the sidebar state so it can collapse and expand. */
-/* :deep() targets UiIconButton's inner button; component-wrapped buttons do
-   not receive the consumer's scope attribute. */
-.app__main :deep(.app__nav-toggle),
+.app__main .app__nav-toggle,
 .app__backdrop {
   display: none;
 }
 
-.app__main :deep(.app__nav-toggle--desktop) {
+.app__main .app__nav-toggle--desktop {
   display: inline-flex;
   padding: var(--space-1-5) var(--space-2);
 }
 
-.app__main :deep(.app__nav-toggle:focus-visible),
-.app__main :deep(.app__nav-toggle--desktop:focus-visible) {
+.app__main .app__nav-toggle:focus-visible,
+.app__main .app__nav-toggle--desktop:focus-visible {
   background: var(--color-surface-2);
 }
 
 @media (max-width: 768px) {
-  .app__main :deep(.app__nav-toggle) {
+  .app__main .app__nav-toggle {
     display: inline-flex;
   }
 

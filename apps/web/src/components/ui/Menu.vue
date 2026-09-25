@@ -48,6 +48,14 @@ const open = defineModel<boolean>("open", { default: false });
   gap: var(--space-0-5);
 }
 
+.menu {
+  animation: ui-overlay-fade-in 100ms ease-out;
+}
+
+.menu[data-state="closed"] {
+  animation: ui-overlay-fade-out 80ms ease-in;
+}
+
 .menu [data-reka-menu-item],
 .menu [data-placeholder] {
   display: flex;

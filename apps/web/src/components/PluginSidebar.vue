@@ -76,7 +76,7 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
   </div>
 </template>
 
-<style scoped>
+<style>
 .plugin-sidebar {
   display: grid;
   gap: var(--space-1-5);

@@ -330,7 +330,7 @@ function formatTime(at: number): string {
   </div>
 </template>
 
-<style scoped>
+<style>
 .lab-plugin {
   display: grid;
   gap: var(--space-4);

@@ -70,7 +70,7 @@ const icon = computed(
   </div>
 </template>
 
-<style scoped>
+<style>
 .ws-row {
   display: flex;
   align-items: center;
@@ -150,9 +150,9 @@ const icon = computed(
   color: var(--color-accent);
 }
 
-/* :deep() targets UiIconButton's inner button; component-wrapped buttons do
-   not receive the consumer's scope attribute. */
-.ws-row :deep(.ws-row__more) {
+/* The row's menu button: revealed on hover/focus and tinted like the row
+   surface instead of carrying its own button chrome. */
+.ws-row .ws-row__more {
   flex: none;
   opacity: 0;
   transition: opacity 0.12s ease;
@@ -160,14 +160,14 @@ const icon = computed(
 
 /* Tint the row's own surface instead of painting the ghost button background
    over it, so the action stays visually inside the row highlight. */
-.ws-row :deep(.ws-row__more:hover),
-.ws-row :deep(.ws-row__more[data-state="open"]) {
+.ws-row .ws-row__more:hover,
+.ws-row .ws-row__more[data-state="open"] {
   background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
-.ws-row:hover :deep(.ws-row__more),
-.ws-row :deep(.ws-row__more:focus-visible),
-.ws-row :deep(.ws-row__more[data-state="open"]) {
+.ws-row:hover .ws-row__more,
+.ws-row .ws-row__more:focus-visible,
+.ws-row .ws-row__more[data-state="open"] {
   opacity: 1;
 }
 
@@ -189,7 +189,7 @@ const icon = computed(
 }
 
 @media (hover: none) {
-  .ws-row :deep(.ws-row__more) {
+  .ws-row .ws-row__more {
     opacity: 1;
   }
 }

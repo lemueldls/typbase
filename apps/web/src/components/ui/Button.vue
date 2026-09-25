@@ -32,3 +32,106 @@ withDefaults(
     <slot />
   </Primitive>
 </template>
+
+<style>
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-2);
+  font-size: var(--text-md);
+  font-family: inherit;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-surface-2);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.button--primary {
+  color: var(--color-surface);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.button--primary:hover {
+  background: color-mix(in srgb, var(--color-accent) 84%, var(--color-text));
+}
+
+.button--danger {
+  color: var(--color-surface);
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.button--danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 84%, var(--color-text));
+}
+
+.button--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.button--ghost:hover {
+  background: var(--color-surface-2);
+}
+
+.button--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-md);
+  height: var(--control-md);
+  padding: 0;
+  line-height: var(--leading-none);
+}
+
+.button .ms-icon {
+  flex: none;
+}
+
+.button--tiny {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.button--small {
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.button--small.button--icon {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0;
+}
+
+.button--tiny.button--icon {
+  width: var(--control-xs);
+  height: var(--control-xs);
+  padding: 0;
+}
+
+/* Destructive icon button: the icon carries the danger color and the hover
+   tints toward the danger-soft surface. Last so it beats the ghost hover. */
+.button--danger-icon {
+  color: var(--color-danger);
+}
+
+.button--danger-icon:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+</style>

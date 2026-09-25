@@ -159,7 +159,7 @@ function mentionCount(group: BacklinkGroup): string {
   </section>
 </template>
 
-<style scoped>
+<style>
 .links {
   display: flex;
   flex-direction: column;

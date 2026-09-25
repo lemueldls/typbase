@@ -150,7 +150,7 @@ async function copySource(): Promise<void> {
   </article>
 </template>
 
-<style scoped>
+<style>
 .chat-message {
   display: flex;
   flex-direction: column;
@@ -178,22 +178,22 @@ async function copySource(): Promise<void> {
   white-space: pre-wrap;
 }
 
-.chat-message__render :deep(> :first-child) {
+.chat-message__render > :first-child {
   margin-top: 0;
 }
 
-.chat-message__render :deep(> :last-child) {
+.chat-message__render > :last-child {
   margin-bottom: 0;
 }
 
-.chat-message__render :deep(pre) {
+.chat-message__render pre {
   padding: var(--space-2);
   overflow: auto;
   background: var(--color-code);
   border-radius: var(--radius-sm);
 }
 
-.chat-message__render :deep(a) {
+.chat-message__render a {
   color: var(--color-accent);
 }
 

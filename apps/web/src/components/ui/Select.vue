@@ -73,6 +73,14 @@ const model = defineModel<T>({ required: true });
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
 }
 
+.ui-select__content {
+  animation: ui-overlay-fade-in 100ms ease-out;
+}
+
+.ui-select__content[data-state="closed"] {
+  animation: ui-overlay-fade-out 80ms ease-in;
+}
+
 .ui-select__viewport {
   display: flex;
   flex-direction: column;

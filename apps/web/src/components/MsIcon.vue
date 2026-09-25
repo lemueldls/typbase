@@ -32,7 +32,7 @@ withDefaults(
   </span>
 </template>
 
-<style scoped>
+<style>
 .ms-icon {
   width: 1em;
   height: 1em;

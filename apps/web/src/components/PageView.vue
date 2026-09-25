@@ -105,8 +105,6 @@ useResizeObserver(pageView, (entries) => {
 });
 const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
 
-// ---- Notebook mode -------------------------------------------------------
-
 const notebookSession = createNotebookSession();
 const notebookController = shallowRef<NotebookController>();
 /** Cell selected in command mode (editor blurred); null while editing. */
@@ -1334,7 +1332,7 @@ function convertPageKind(): void {
   </div>
 </template>
 
-<style scoped>
+<style>
 .page-view {
   display: flex;
   flex-direction: column;
@@ -1385,7 +1383,7 @@ function convertPageKind(): void {
 }
 
 /* Chevron pinned to the strip's right edge; matches the edit button size. */
-.page-view__format :deep(.page-view__format-collapse) {
+.page-view__format .page-view__format-collapse {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1401,7 +1399,7 @@ function convertPageKind(): void {
   cursor: pointer;
 }
 
-.page-view__format :deep(.page-view__format-collapse:hover) {
+.page-view__format .page-view__format-collapse:hover {
   color: var(--color-text);
   background: var(--color-surface-2);
 }
@@ -1555,11 +1553,11 @@ function convertPageKind(): void {
   min-height: 0;
 }
 
-.page-view__body--split :deep(.paged-preview) {
+.page-view__body--split .paged-preview {
   box-shadow: -1px 0 0 var(--color-border);
 }
 
-.page-view__body--read :deep(.paged-preview) {
+.page-view__body--read .paged-preview {
   padding: 0 var(--space-6);
   background: var(--color-surface-2);
 }
@@ -1576,11 +1574,11 @@ function convertPageKind(): void {
     display: none;
   }
 
-  .page-view__body--split :deep(.paged-preview) {
+  .page-view__body--split .paged-preview {
     box-shadow: 0 -1px 0 var(--color-border);
   }
 
-  .page-view__body--read :deep(.paged-preview) {
+  .page-view__body--read .paged-preview {
     padding: 0 var(--space-2);
   }
 }

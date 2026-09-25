@@ -17,7 +17,7 @@ const percent = computed(() => Math.min(100, Math.max(0, (props.value / props.ma
   </ProgressRoot>
 </template>
 
-<style scoped>
+<style>
 .ui-progress {
   display: block;
   height: 2px;

@@ -176,7 +176,7 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
   </div>
 </template>
 
-<style scoped>
+<style>
 .plugin-manager {
   display: grid;
   gap: var(--space-4);

@@ -56,7 +56,7 @@ onBeforeUnmount(() => {
   />
 </template>
 
-<style scoped>
+<style>
 .plugin-surface {
   display: block;
   width: 100%;

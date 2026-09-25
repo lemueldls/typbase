@@ -173,14 +173,16 @@ watch(
   </div>
 </template>
 
-<style scoped>
+<style>
 .publish {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.publish__menu {
+/* Qualified with `.menu`: the surface styles come from Menu.vue and either
+   file can land first in the bundle. */
+.menu.publish__menu {
   min-width: 15rem;
 }
 

@@ -76,7 +76,7 @@ const emit = defineEmits<{
   </div>
 </template>
 
-<style scoped>
+<style>
 .app__empty {
   flex: 1;
   display: grid;

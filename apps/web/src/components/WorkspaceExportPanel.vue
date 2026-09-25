@@ -217,7 +217,7 @@ async function run(): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style>
 .workspace-export {
   display: flex;
   flex-direction: column;
@@ -260,14 +260,14 @@ async function run(): Promise<void> {
   border-radius: var(--radius-md);
 }
 
-.workspace-export__pages :deep(.ui-checkbox) {
+.workspace-export__pages .ui-checkbox {
   width: 100%;
   align-items: flex-start;
   padding: var(--space-1) var(--space-1-5);
   border-radius: var(--radius-sm);
 }
 
-.workspace-export__pages :deep(.ui-checkbox:hover) {
+.workspace-export__pages .ui-checkbox:hover {
   background: var(--color-surface-2);
 }
 

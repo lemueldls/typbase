@@ -153,7 +153,7 @@ async function run(): Promise<void> {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
 .export {
   display: flex;
   flex-direction: column;

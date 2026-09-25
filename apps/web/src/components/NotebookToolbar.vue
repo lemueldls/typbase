@@ -65,7 +65,7 @@ const status = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .notebook-toolbar {
   display: flex;
   align-items: center;

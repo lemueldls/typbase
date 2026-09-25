@@ -34,7 +34,7 @@ withDefaults(
   </Label>
 </template>
 
-<style scoped>
+<style>
 .ui-checkbox {
   display: inline-flex;
   align-items: center;

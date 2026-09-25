@@ -6,7 +6,6 @@
 #import "/typbase/lib.typ" as typbase
 #import "/typbase/ui.typ": *
 
-// ------------------------------------------------------------- date helpers
 
 #let pad(value) = if value < 10 { "0" + str(value) } else { str(value) }
 
@@ -48,7 +47,6 @@
   if key == "" { ctx.today.slice(0, 7) } else { key }
 }
 
-// ------------------------------------------------------------ daily notes
 
 // `daily/2026-09-14.typ` -> `2026-09-14`.
 #let date-of(page) = page.path.slice(6, 16)
@@ -108,7 +106,6 @@
 
 #let events-on(state, month, date) = all-events(state, month).filter(event => event.date == date)
 
-// ------------------------------------------------------------------ reducer
 
 #let step(state, view, action, ctx) = {
   let name = action.name
@@ -143,7 +140,6 @@
   }
 }
 
-// ------------------------------------------------------------------ widgets
 
 #let month-grid(year, month, state, month-key, today-iso) = {
   let first-weekday = datetime(year: year, month: month, day: 1).weekday()
@@ -229,7 +225,6 @@
   ])
 }
 
-// ---------------------------------------------------------------- surfaces
 
 #let sidebar(ctx) = {
   let patch = if ctx.action != none { step(ctx.state, ctx.view, ctx.action, ctx) } else { none }

@@ -522,7 +522,7 @@ async function rebuildIndex() {
   </div>
 </template>
 
-<style scoped>
+<style>
 .search-palette-panel {
   display: flex;
   flex: 1 1 auto;

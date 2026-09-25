@@ -317,7 +317,7 @@ function applySuggestion(text: string): void {
   </div>
 </template>
 
-<style scoped>
+<style>
 .chat-pane {
   display: flex;
   flex-direction: column;

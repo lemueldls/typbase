@@ -515,7 +515,7 @@ onBeforeUnmount(() => {
   </section>
 </template>
 
-<style scoped>
+<style>
 .explorer {
   display: flex;
   flex-direction: column;

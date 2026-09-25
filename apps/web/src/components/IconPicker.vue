@@ -67,7 +67,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   </div>
 </template>
 
-<style scoped>
+<style>
 .icon-picker {
   display: flex;
   flex-direction: column;

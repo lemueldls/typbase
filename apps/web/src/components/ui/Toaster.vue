@@ -129,4 +129,12 @@ function onOpenChange(id: string, open: boolean) {
   list-style: none;
   outline: none;
 }
+
+.ui-toast {
+  animation: ui-overlay-fade-in 100ms ease-out;
+}
+
+.ui-toast[data-state="closed"] {
+  animation: ui-overlay-fade-out 80ms ease-in;
+}
 </style>

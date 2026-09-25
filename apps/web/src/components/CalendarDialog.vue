@@ -133,7 +133,7 @@ function goToToday() {
   </UiDialog>
 </template>
 
-<style scoped>
+<style>
 .calendar__toolbar {
   display: flex;
   align-items: center;

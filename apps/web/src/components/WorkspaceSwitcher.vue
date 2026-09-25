@@ -165,7 +165,7 @@ function statusFor(info: WorkspaceInfo): string {
   />
 </template>
 
-<style scoped>
+<style>
 .ws-screen {
   display: grid;
   place-content: center;

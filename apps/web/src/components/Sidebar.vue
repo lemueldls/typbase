@@ -427,7 +427,7 @@ function onCreated(page: PageMeta) {
   </aside>
 </template>
 
-<style scoped>
+<style>
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -563,6 +563,11 @@ function onCreated(page: PageMeta) {
   background: transparent;
 }
 
+/* The row's trailing menu button keeps its icon from flexing with the label. */
+.sidebar__row .ms-icon {
+  flex: none;
+}
+
 .sidebar__row {
   display: flex;
   align-items: center;
@@ -586,27 +591,26 @@ function onCreated(page: PageMeta) {
 }
 
 /* The row's menu button: revealed on hover/focus and tinted like the row
-   surface instead of carrying its own button chrome. :deep() because the
-   class sits on UiIconButton's inner button. */
-.sidebar__item :deep(.sidebar__row-more) {
+   surface instead of carrying its own button chrome. */
+.sidebar__item .sidebar__row-more {
   flex: none;
   opacity: 0;
   transition: opacity 0.12s ease;
 }
 
-.sidebar__item :deep(.sidebar__row-more:hover),
-.sidebar__item :deep(.sidebar__row-more[data-state="open"]) {
+.sidebar__item .sidebar__row-more:hover,
+.sidebar__item .sidebar__row-more[data-state="open"] {
   background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
-.sidebar__item:hover :deep(.sidebar__row-more),
-.sidebar__item :deep(.sidebar__row-more:focus-visible),
-.sidebar__item :deep(.sidebar__row-more[data-state="open"]) {
+.sidebar__item:hover .sidebar__row-more,
+.sidebar__item .sidebar__row-more:focus-visible,
+.sidebar__item .sidebar__row-more[data-state="open"] {
   opacity: 1;
 }
 
 @media (hover: none) {
-  .sidebar__item :deep(.sidebar__row-more) {
+  .sidebar__item .sidebar__row-more {
     opacity: 1;
   }
 }

@@ -86,9 +86,9 @@ export function notebookOptions(state: EditorState): NotebookOptions | undefined
 export const notebookRefreshEffect = StateEffect.define();
 
 /** Asks the plugin to recompile and report the result through `onRun`. */
-export const notebookRunEffect = StateEffect.define<{ index: number | "all" }>();
-
-// ---- Cell geometry -------------------------------------------------------
+export const notebookRunEffect = StateEffect.define<{
+  index: number | "all";
+}>();
 
 /** First position that belongs to the cell (marker line, or content). */
 export function cellStart(cell: NotebookCell): number {
@@ -134,8 +134,6 @@ export interface CellEdit {
   changes: { from: number; to?: number; insert: string };
   anchor: number;
 }
-
-// ---- Pure text operations ------------------------------------------------
 
 export function insertCellText(
   text: string,
@@ -216,7 +214,11 @@ export function moveCellText(
   const insert = delta < 0 ? `${a}\n\n${b}` : `${b}\n\n${a}`;
 
   return {
-    changes: { from, to, insert: `${insert}${to < text.length ? "\n\n" : "\n"}` },
+    changes: {
+      from,
+      to,
+      insert: `${insert}${to < text.length ? "\n\n" : "\n"}`,
+    },
     anchor: delta < 0 ? bStart : bStart + b.length + 2,
   };
 }
@@ -281,8 +283,6 @@ export function stripCellMarkers(text: string): string {
   return text.replace(MARKER_LINE, "");
 }
 
-// ---- Commands ------------------------------------------------------------
-
 function dispatchEdit(view: EditorView, edit: CellEdit): boolean {
   view.dispatch({
     changes: edit.changes,
@@ -320,7 +320,9 @@ export function focusCell(
   if (!cell) return false;
 
   view.dispatch({
-    selection: { anchor: edge === "start" ? cell.content_start : cell.content_end },
+    selection: {
+      anchor: edge === "start" ? cell.content_start : cell.content_end,
+    },
     scrollIntoView: true,
   });
   view.focus();
@@ -430,8 +432,6 @@ export function setCellType(view: EditorView, index: number, type: NotebookCellT
 
   return dispatchEdit(view, setCellTypeText(view.state.doc.toString(), cells, index, type));
 }
-
-// ---- Keyboard ------------------------------------------------------------
 
 function runAndAdvance(view: EditorView): boolean {
   const cells = cellsOf(view.state);
