@@ -23,10 +23,10 @@ tasks:
     command: "pnpm nuxt build"
     deps:
       - "engine:build"
-      - "codemirror:build"
-      - "typing:build"
-      - "storage:build"
-      - "spaces:build"
+      # - "codemirror:build"
+      # - "typing:build"
+      # - "storage:build"
+      # - "spaces:build"
     env:
       NODE_OPTIONS: "--max-old-space-size=8192"
     inputs:
@@ -54,10 +54,10 @@ tasks:
     command: "pnpm nuxt generate"
     deps:
       - "engine:build"
-      - "codemirror:build"
-      - "typing:build"
-      - "storage:build"
-      - "spaces:build"
+      # - "codemirror:build"
+      # - "typing:build"
+      # - "storage:build"
+      # - "spaces:build"
 
   preview:
     command: "pnpm nuxt preview"
