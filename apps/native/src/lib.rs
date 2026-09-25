@@ -6,6 +6,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, webview::PageLoadEvent, w
 
 mod fonts;
 mod storage;
+mod update;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,6 +29,21 @@ pub fn run() {
             storage::export_save_file,
             fonts::system_font_index,
             fonts::system_font_file,
+            update::update_channel,
+            #[cfg(target_os = "android")]
+            update::android_update_check,
+            #[cfg(target_os = "android")]
+            update::android_update_download,
+            #[cfg(target_os = "android")]
+            update::android_update_can_install,
+            #[cfg(target_os = "android")]
+            update::android_update_request_permission,
+            #[cfg(target_os = "android")]
+            update::android_update_install,
+            #[cfg(target_os = "android")]
+            update::android_play_update_check,
+            #[cfg(target_os = "android")]
+            update::android_play_update_start,
         ]);
 
     #[cfg(desktop)]
@@ -44,6 +60,11 @@ pub fn run() {
             .plugin(tauri_plugin_updater::Builder::new().build());
     }
 
+    #[cfg(target_os = "android")]
+    {
+        builder = builder.plugin(update::init());
+    }
+
     // #[cfg(any(debug_assertions, feature = "devtools"))]
     // let builder = builder
     //     .plugin(tauri_plugin_devtools::init())
@@ -52,9 +73,6 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
-            // Storage roots must be resolved before the webview can ask for
-            // them; `load` never fails on a broken root (the setup screen
-            // takes over), only on a missing platform config dir.
             app.manage(storage::StorageState::load(app.handle())?);
             app.manage(storage::WatchState::default());
 
@@ -65,7 +83,7 @@ pub fn run() {
 
             #[cfg(desktop)]
             let win_builder = win_builder
-                .background_color(Color::from_str("#f5efe6").unwrap())
+                // .background_color(Color::from_str("#f5efe6").unwrap())
                 .title("Typbase")
                 // .inner_size(896.0, 672.0)
                 .visible(false)

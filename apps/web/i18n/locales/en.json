@@ -602,5 +602,29 @@
     "newPageTitle": "AI answer",
     "engineDown": "The Typst engine is unavailable; chat replies cannot be rendered",
     "insertUnverified": "This reply has not been verified by the Typst engine. Insert it anyway?"
+  },
+  "updates": {
+    "title": "Software update",
+    "check": "Check for updates",
+    "checking": "Checking…",
+    "checkHint": "Updates are installed by Typbase.",
+    "upToDate": "Typbase is up to date.",
+    "available": "Typbase {version} is available.",
+    "availableCurrent": "Typbase {version} is available. You have {current}.",
+    "playAvailable": "A new version is available on Google Play.",
+    "playHint": "Google Play will download and install the update.",
+    "playInstall": "Update with Google Play",
+    "notes": "Release notes",
+    "size": "Download size: {size}",
+    "downloading": "Downloading the update…",
+    "downloadingPercent": "Downloading the update… {percent}%",
+    "downloadingBytes": "Downloading the update… {downloaded} of {total}",
+    "installing": "Installing the update…",
+    "install": "Download and install",
+    "later": "Later",
+    "retry": "Retry",
+    "failed": "The update failed.",
+    "permissionDenied": "Allow Typbase to install unknown apps, then try again.",
+    "packageManaged": "Updates come from your package manager."
   }
 }

@@ -548,5 +548,29 @@
     "toggleSource": "Zelle einklappen",
     "noOutput": "Keine Ausgabe",
     "error": "Zellenfehler"
+  },
+  "updates": {
+    "title": "Software-Aktualisierung",
+    "check": "Nach Updates suchen",
+    "checking": "Suche läuft…",
+    "checkHint": "Typbase installiert die Updates.",
+    "upToDate": "Typbase ist aktuell.",
+    "available": "Typbase {version} ist verfügbar.",
+    "availableCurrent": "Typbase {version} ist verfügbar. Installiert ist {current}.",
+    "playAvailable": "Eine neue Version ist bei Google Play verfügbar.",
+    "playHint": "Google Play lädt das Update herunter und installiert es.",
+    "playInstall": "Mit Google Play aktualisieren",
+    "notes": "Versionshinweise",
+    "size": "Downloadgröße: {size}",
+    "downloading": "Update wird heruntergeladen…",
+    "downloadingPercent": "Update wird heruntergeladen… {percent} %",
+    "downloadingBytes": "Update wird heruntergeladen… {downloaded} von {total}",
+    "installing": "Update wird installiert…",
+    "install": "Herunterladen und installieren",
+    "later": "Später",
+    "retry": "Erneut versuchen",
+    "failed": "Das Update ist fehlgeschlagen.",
+    "permissionDenied": "Erlaube Typbase, unbekannte Apps zu installieren, und versuche es erneut.",
+    "packageManaged": "Updates kommen von deiner Paketverwaltung."
   }
 }

@@ -548,5 +548,29 @@
     "toggleSource": "Replier la cellule",
     "noOutput": "Aucune sortie",
     "error": "Erreur de cellule"
+  },
+  "updates": {
+    "title": "Mise à jour",
+    "check": "Rechercher des mises à jour",
+    "checking": "Vérification…",
+    "checkHint": "Typbase installe les mises à jour.",
+    "upToDate": "Typbase est à jour.",
+    "available": "Typbase {version} est disponible.",
+    "availableCurrent": "Typbase {version} est disponible. Vous avez {current}.",
+    "playAvailable": "Une nouvelle version est disponible sur Google Play.",
+    "playHint": "Google Play téléchargera et installera la mise à jour.",
+    "playInstall": "Mettre à jour avec Google Play",
+    "notes": "Notes de version",
+    "size": "Taille du téléchargement : {size}",
+    "downloading": "Téléchargement de la mise à jour…",
+    "downloadingPercent": "Téléchargement de la mise à jour… {percent} %",
+    "downloadingBytes": "Téléchargement de la mise à jour… {downloaded} sur {total}",
+    "installing": "Installation de la mise à jour…",
+    "install": "Télécharger et installer",
+    "later": "Plus tard",
+    "retry": "Réessayer",
+    "failed": "La mise à jour a échoué.",
+    "permissionDenied": "Autorisez Typbase à installer des applications inconnues, puis réessayez.",
+    "packageManaged": "Les mises à jour viennent de votre gestionnaire de paquets."
   }
 }

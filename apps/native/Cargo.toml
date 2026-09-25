@@ -39,6 +39,19 @@ tauri-plugin-dialog = "3.0.0-alpha.0"
 tauri-plugin-single-instance = { version = "3.0.0-alpha.0", features = ["deep-link"] }
 tauri-plugin-updater = "3.0.0-alpha.0"
 
+[target.'cfg(target_os = "android")'.dependencies]
+futures-util = "0.3.34"
+hex = "0.4.3"
+reqwest = { version = "0.13.5", default-features = false, features = [
+  "json",
+  "rustls-no-provider",
+  "stream",
+] }
+rustls = { version = "0.23.44", default-features = false, features = ["ring"] }
+semver = "1.0.28"
+sha2 = "0.10.9"
+tokio = { version = "1.53.1", features = ["fs", "io-util"] }
+
 [build-dependencies]
 tauri-build = { version = "3.0.0-alpha.0", features = [] }
 

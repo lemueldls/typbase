@@ -70,8 +70,15 @@ jobs:
           ANDROID_KEYSTORE_PROPERTIES: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
         run: bash scripts/ci/android-signing.sh
 
-      - name: 🔨 Build Android app
+      - name: 🔨 Build Android app (split APKs)
         run: pnpm moon run native:android-build
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: 📦 Build Android bundle (Play AAB)
+        run: pnpm moon run native:android-bundle
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -79,7 +86,31 @@ jobs:
 
       - name: ✏️ Collect artifacts
         shell: bash
-        run: bash scripts/ci/android-artifacts.sh "${{ steps.version.outputs.version }}"
+        run: bash scripts/ci/android-artifacts.sh "${{ steps.version.outputs.version }}" "${{ inputs.tagName }}"
+
+      - name: 🔑 Check Play credentials
+        id: play
+        if: inputs.tagName
+        shell: bash
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [[ -n "$PLAY_SERVICE_ACCOUNT_JSON" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No PLAY_SERVICE_ACCOUNT_JSON secret set; skipping the Play upload."
+          fi
+
+      - name: 🎡 Publish to Google Play
+        if: steps.play.outputs.ready == 'true'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: at.typbase.app
+          releaseFiles: dist/Typbase_${{ steps.version.outputs.version }}_universal.aab
+          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: completed
+          releaseName: ${{ steps.version.outputs.version }}
 
       - name: 📤 Upload build artifacts (test builds only)
         if: (!inputs.tagName)

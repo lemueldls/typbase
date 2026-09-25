@@ -79,6 +79,7 @@ function toggleSidebar() {
 
 const { ensure: ensureSearch } = useSearch();
 const chat = useChat();
+const appUpdates = useAppUpdates();
 
 // Cmd-K / Ctrl-K opens the search palette.
 onKeyStroke((event) => {
@@ -179,6 +180,11 @@ function isViewMode(value: unknown): value is ViewModeId {
 onMounted(async () => {
   await ensure();
   loaded.value = true;
+
+  // Dev builds run against a release channel they cannot install over, but the
+  // Settings row still needs to know which channel it is.
+  void appUpdates.detect();
+  if (!import.meta.dev) void appUpdates.check({ silent: true });
 
   const store = workspace.value;
   if (!store) return; // no workspaces; the chooser handles it
@@ -604,6 +610,8 @@ definePageMeta({ ssr: false });
     <div v-if="loaded && !storageSetup && !workspace" class="app__chooser">
       <WorkspaceSwitcher mode="screen" />
     </div>
+
+    <UpdateDialog />
   </main>
 </template>
 

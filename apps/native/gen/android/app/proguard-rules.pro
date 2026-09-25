@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# App-local Tauri plugin. Rust instantiates it by class name and calls its
+# @Command methods by name, so the shrinker must not rename or drop it.
+-keep class at.typbase.app.UpdaterPlugin { *; }

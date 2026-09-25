@@ -27,8 +27,15 @@ tasks:
       - "/target/**/release/typbase*"
 
   android-build:
-    script: "pnpm tauri android build"
+    script: "pnpm tauri android build --apk --split-per-abi"
     deps:
       - "web:build"
     outputs:
-      - "gen/android/app/build/outputs/**/*"
+      - "gen/android/app/build/outputs/apk/**/*"
+
+  android-bundle:
+    script: "pnpm tauri android build --aab"
+    deps:
+      - "web:build"
+    outputs:
+      - "gen/android/app/build/outputs/bundle/**/*"

@@ -6335,10 +6335,16 @@ name = "typbase"
 version = "0.2.2"
 dependencies = [
  "fontdb 0.24.0",
+ "futures-util",
+ "hex",
  "notify",
  "percent-encoding",
+ "reqwest",
+ "rustls",
+ "semver",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-cli",
@@ -6349,6 +6355,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tauri-runtime-wry",
+ "tokio",
  "ttf-parser",
 ]
 

@@ -54,6 +54,19 @@ const workspaceIcon = computed({
 const { t, locale, setLocale } = useI18n();
 const appLocale = useAppLocale(locale, setLocale, () => props.store);
 
+const {
+  channel: updateChannel,
+  status: updateStatus,
+  info: updateInfo,
+  check: checkForUpdates,
+} = useAppUpdates();
+
+const updateHint = computed(() => {
+  if (updateChannel.value === "android-play") return t("updates.playHint");
+  if (updateChannel.value === "desktop-package-managed") return t("updates.packageManaged");
+  return t("updates.checkHint");
+});
+
 // Loro maps are not reactive; the workspace bumps dataRevision on any change.
 const settings = computed(() => {
   void dataRevision.value;
@@ -565,6 +578,28 @@ async function renameWorkspace(event: Event) {
               </UiButton>
             </div>
             <!-- <span class="settings__hint">{{ $t("settings.storageHint") }}</span> -->
+          </div>
+
+          <div v-if="updateChannel !== 'unsupported'" class="settings__field">
+            <span>{{ $t("updates.title") }}</span>
+            <div class="settings__storage">
+              <span class="settings__storage-info">
+                <span class="settings__storage-label">
+                  {{
+                    updateStatus === "available" && updateInfo?.version
+                      ? $t("updates.available", { version: updateInfo.version })
+                      : updateHint
+                  }}
+                </span>
+              </span>
+              <UiButton
+                v-if="updateChannel !== 'desktop-package-managed'"
+                :disabled="updateStatus === 'checking'"
+                @click="checkForUpdates()"
+              >
+                {{ updateStatus === "checking" ? $t("updates.checking") : $t("updates.check") }}
+              </UiButton>
+            </div>
           </div>
         </section>
 

@@ -548,5 +548,29 @@
     "toggleSource": "折叠单元格",
     "noOutput": "无输出",
     "error": "单元格错误"
+  },
+  "updates": {
+    "title": "软件更新",
+    "check": "检查更新",
+    "checking": "正在检查…",
+    "checkHint": "由 Typbase 安装更新。",
+    "upToDate": "Typbase 已是最新版本。",
+    "available": "Typbase {version} 已发布。",
+    "availableCurrent": "Typbase {version} 已发布，当前版本为 {current}。",
+    "playAvailable": "Google Play 上有新版本。",
+    "playHint": "Google Play 将下载并安装更新。",
+    "playInstall": "通过 Google Play 更新",
+    "notes": "更新日志",
+    "size": "下载大小：{size}",
+    "downloading": "正在下载更新…",
+    "downloadingPercent": "正在下载更新…{percent}%",
+    "downloadingBytes": "正在下载更新…{downloaded} / {total}",
+    "installing": "正在安装更新…",
+    "install": "下载并安装",
+    "later": "稍后",
+    "retry": "重试",
+    "failed": "更新失败。",
+    "permissionDenied": "请允许 Typbase 安装未知应用，然后重试。",
+    "packageManaged": "更新由你的软件包管理器提供。"
   }
 }
