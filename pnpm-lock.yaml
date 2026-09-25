@@ -302,6 +302,9 @@ importers:
       nuxt:
         specifier: npm:nuxt-nightly@5.0.0-29835210.f258408a
         version: nuxt-nightly@5.0.0-29835210.f258408a(@devframes/agentic@1.0.0)(@devframes/hub-ui@1.0.0(@devframes/hub@1.0.0(@devframes/agentic@1.0.0)(crossws@0.4.12(srvx@1.0.5))(devframe@1.0.0)(ocache@0.3.0))(@devframes/json-render@1.0.0(@devframes/hub@1.0.0(@devframes/agentic@1.0.0)(crossws@0.4.12(srvx@1.0.5))(devframe@1.0.0)(ocache@0.3.0))(devframe@1.0.0))(devframe@1.0.0))(@devframes/json-render@1.0.0(@devframes/hub@1.0.0(@devframes/agentic@1.0.0)(crossws@0.4.12(srvx@1.0.5))(devframe@1.0.0)(ocache@0.3.0))(devframe@1.0.0))(@oxc-project/types@0.150.0)(@types/node@26.6.2)(@vitejs/devtools@0.7.5)(@vue/compiler-sfc@3.5.43)(acorn@8.18.0)(cac@7.0.0)(confbox@0.3.1)(crossws@0.4.12(srvx@1.0.5))(db0@0.4.1)(eslint@10.11.0(jiti@2.7.0))(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(magicast@0.5.5)(mlly@1.8.2)(nitro@3.0.260903-beta)(nuxt-nightly@5.0.0-29835210.f258408a)(ocache@0.3.0)(optionator@0.9.4)(oxc-parser@0.141.0)(oxlint@1.85.0(oxlint-tsgolint@7.0.2002))(rolldown@1.2.9)(rollup@4.63.4)(srvx@1.0.5)(typescript@5.9.3)(vite@8.3.0)(yaml@2.9.1)
+      ofetch:
+        specifier: 2.0.0-alpha.3
+        version: 2.0.0-alpha.3
       reka-ui:
         specifier: ^2.10.4
         version: 2.10.5(vue@3.5.43(typescript@5.9.3))
