@@ -12,6 +12,7 @@ body,
   accent-color: var(--color-accent);
   caret-color: var(--color-accent);
   scrollbar-color: var(--color-border-strong) transparent;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -46,5 +47,15 @@ body {
 @keyframes ui-overlay-fade-out {
   to {
     opacity: 0;
+  }
+}
+
+@media (hover: none) {
+  :is(button, [role="button"], a, summary):not(:disabled) {
+    transition: filter 120ms ease;
+  }
+
+  :is(button, [role="button"], a, summary):not(:disabled):active {
+    filter: brightness(0.92);
   }
 }

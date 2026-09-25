@@ -49,10 +49,6 @@ withDefaults(
   cursor: pointer;
 }
 
-.button:hover {
-  background: var(--color-surface-2);
-}
-
 .button:disabled {
   opacity: 0.55;
   cursor: default;
@@ -64,27 +60,15 @@ withDefaults(
   border-color: var(--color-accent);
 }
 
-.button--primary:hover {
-  background: color-mix(in srgb, var(--color-accent) 84%, var(--color-text));
-}
-
 .button--danger {
   color: var(--color-surface);
   background: var(--color-danger);
   border-color: var(--color-danger);
 }
 
-.button--danger:hover {
-  background: color-mix(in srgb, var(--color-danger) 84%, var(--color-text));
-}
-
 .button--ghost {
   background: transparent;
   border-color: transparent;
-}
-
-.button--ghost:hover {
-  background: var(--color-surface-2);
 }
 
 .button--icon {
@@ -123,15 +107,31 @@ withDefaults(
   padding: 0;
 }
 
-/* Destructive icon button: the icon carries the danger color and the hover
-   tints toward the danger-soft surface. Last so it beats the ghost hover. */
 .button--danger-icon {
   color: var(--color-danger);
 }
 
-.button--danger-icon:hover {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+@media (hover: hover) {
+  .button:hover {
+    background: var(--color-surface-2);
+  }
+
+  .button--primary:hover {
+    background: color-mix(in srgb, var(--color-accent) 84%, var(--color-text));
+  }
+
+  .button--danger:hover {
+    background: color-mix(in srgb, var(--color-danger) 84%, var(--color-text));
+  }
+
+  .button--ghost:hover {
+    background: var(--color-surface-2);
+  }
+
+  .button--danger-icon:hover {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+  }
 }
 </style>

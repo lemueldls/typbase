@@ -1,3 +1,4 @@
+#[cfg(desktop)]
 use std::str::FromStr;
 
 #[allow(unused_imports)]
@@ -57,11 +58,14 @@ pub fn run() {
             app.manage(storage::StorageState::load(app.handle())?);
             app.manage(storage::WatchState::default());
 
-            let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                .background_color(Color::from_str("#f5efe6").unwrap());
+            let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default());
+
+            #[cfg(mobile)]
+            let win_builder = win_builder.transparent(true);
 
             #[cfg(desktop)]
             let win_builder = win_builder
+                .background_color(Color::from_str("#f5efe6").unwrap())
                 .title("Typbase")
                 // .inner_size(896.0, 672.0)
                 .visible(false)

@@ -35,8 +35,11 @@ export default defineNuxtConfig({
           // Runs before first paint. The workspace doc is async, so without
           // this the boot splash paints in the default palette and then
           // switches; the cache holds the exact vars applyThemeToDom writes.
+          // With no cache (first run, or unreadable storage) it follows the
+          // OS: #1b1d21 is the default theme's dark surface, so a dark-mode
+          // launch never paints a white canvas before the workspace lands.
           innerHTML:
-            '(function(){try{var raw=localStorage.getItem("typbase:themeCache");if(!raw)return;var vars=JSON.parse(raw).vars;if(!vars)return;var root=document.documentElement;for(var key in vars)root.style.setProperty(key,vars[key]);}catch(e){}})();',
+            '(function(){var root=document.documentElement;try{var raw=localStorage.getItem("typbase:themeCache");if(raw){var cached=JSON.parse(raw);var vars=cached.vars;if(vars){for(var key in vars)root.style.setProperty(key,vars[key]);if(vars["--color-surface"])root.style.backgroundColor=vars["--color-surface"];}if(cached.mode){root.dataset.theme=cached.mode;root.style.colorScheme=cached.mode;}return;}}catch(e){}try{if(!window.matchMedia||!window.matchMedia("(prefers-color-scheme: dark)").matches)return;root.dataset.theme="dark";root.style.colorScheme="dark";root.style.backgroundColor="#1b1d21";}catch(e){}})();',
           tagPosition: "head",
         },
       ],

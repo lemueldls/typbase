@@ -612,7 +612,7 @@ export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSet
 const THEME_CACHE_KEY = "typbase:themeCache";
 
 type CachedThemeSettings = Parameters<typeof resolveTheme>[0] &
-  AppChromeSettings & { vars?: Record<string, string> };
+  AppChromeSettings & { vars?: Record<string, string>; mode?: "light" | "dark" };
 
 export function cacheThemeSettings(settings: CachedThemeSettings): void {
   try {
@@ -631,8 +631,7 @@ export function cacheThemeSettings(settings: CachedThemeSettings): void {
         uiDensity: settings.uiDensity ?? "default",
         uiRadius: settings.uiRadius ?? "default",
         textSize: settings.textSize ?? 16,
-        // The inline head script applies these before first paint, so the
-        // boot splash never flashes the default palette.
+        mode: resolved.mode,
         vars: themeCssVars(resolved, settings),
       } satisfies CachedThemeSettings),
     );

@@ -2,6 +2,8 @@
 import { pushToast } from "~/composables/toasts";
 import { requestSave } from "~/lib/saveRequest";
 
+const noHover = useMediaQuery("(hover: none) and (pointer: coarse)");
+
 /** Ctrl/Cmd+S saves now and says so. Capture phase: CodeMirror's keymap gets
  *  first look otherwise, and the browser's own save dialog is never wanted. */
 function onKeydown(event: KeyboardEvent): void {
@@ -37,7 +39,12 @@ onMounted(() => {
 
 <template>
   <NuxtRouteAnnouncer />
-  <TooltipProvider :delay-duration="500" :skip-delay-duration="300">
+  <TooltipProvider
+    :delay-duration="500"
+    :skip-delay-duration="300"
+    :disabled="noHover"
+    ignore-non-keyboard-focus
+  >
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
