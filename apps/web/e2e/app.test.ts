@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 declare global {
   interface Window {
     __typbase: {
+      pageId: string;
       store: {
         createPage(input: {
           title: string;
