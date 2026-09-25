@@ -55,6 +55,7 @@ const emit = defineEmits<{
   (e: "update:modelValue", mode: ViewModeId): void;
   (e: "openPage", id: string): void;
   (e: "openPlugin", instanceId: string): void;
+  (e: "openGraph"): void;
 }>();
 
 const { workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
@@ -88,6 +89,7 @@ const pageError = ref<string>();
 const ready = ref(false);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
+const linksOpen = useLocalStorage("typbase:linksPanel", false);
 const packagesOpen = ref(false);
 const assetsOpen = ref(false);
 const exportOpen = ref(false);
@@ -1084,6 +1086,16 @@ function convertPageKind(): void {
           @click="askAi"
         />
 
+        <!-- <UiIconButton
+          v-if="store"
+          icon="link"
+          :label="$t('links.title')"
+          :pressed="linksOpen"
+          :disabled="!ready"
+          class="page-view__links-toggle"
+          @click="linksOpen = !linksOpen"
+        /> -->
+
         <PublishButton v-if="store" :page-id="pageId" :store="store" />
 
         <ExportDialog
@@ -1310,6 +1322,15 @@ function convertPageKind(): void {
         @jump="onPreviewJump"
       />
     </div>
+
+    <LinksPanel
+      v-if="linksOpen && store"
+      :page-id="pageId"
+      :store="store"
+      @open-page="emit('openPage', $event)"
+      @open-graph="emit('openGraph')"
+      @close="linksOpen = false"
+    />
   </div>
 </template>
 

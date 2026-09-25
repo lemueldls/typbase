@@ -459,8 +459,9 @@ fn to_spans(text: &str, cells: Vec<CellBytes>) -> Vec<CellSpan> {
 }
 
 /// Maps sorted byte offsets to UTF-16 offsets. Offsets must sit on char
-/// boundaries, which line boundaries always do.
-fn utf16_offsets(text: &str, bytes: &[usize]) -> Vec<usize> {
+/// boundaries, which line boundaries always do. Shared with [`crate::links`],
+/// whose ranges feed CodeMirror positions.
+pub(crate) fn utf16_offsets(text: &str, bytes: &[usize]) -> Vec<usize> {
     let mut out = Vec::with_capacity(bytes.len());
     let mut cursor = 0;
     let mut utf16 = 0;

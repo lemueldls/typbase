@@ -19,6 +19,8 @@
 //!   [`renderer::html::document`] the full-document HTML render. The
 //!   `#[wasm_bindgen]` entry points live next to the code they call.
 //! - [`prelude`] holds the app stdlib module and the generated document style.
+//! - [`flatten`] and [`links`] are syntax-level passes: flattened block text,
+//!   section spans, notebook cells, and the app's link calls.
 //! - [`source`] holds the raw/pristine-synth/render-source model.
 //! - [`world`] implements Typst's `World` and collects the file and package
 //!   requests a compile could not answer.
@@ -63,6 +65,7 @@
 pub mod bindings;
 pub mod flatten;
 pub mod fonts;
+pub mod links;
 pub mod prelude;
 pub mod renderer;
 pub mod source;

@@ -322,6 +322,7 @@ export interface WorkspaceSettings {
   search: SearchSettings;
   notebook: NotebookSettings;
   editor: EditorSettings;
+  graph: GraphSettings;
 }
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
@@ -384,6 +385,14 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     lineNumbers: false,
     scrollPastEnd: false,
   },
+  graph: {
+    local: false,
+    localDepth: 1,
+    showOrphans: true,
+    categoryId: null,
+    tag: null,
+    labels: "auto",
+  },
 };
 
 /*
@@ -406,6 +415,22 @@ export type QueryCategories = Category[];
 
 /** `typbase/query/daily.json` (optionally filtered by `YYYY-MM`). */
 export type QueryDaily = PageMeta[];
+
+/** Graph view display settings; synced with the workspace like the theme. */
+export interface GraphSettings {
+  /** Restrict the graph to the open page's neighborhood. */
+  local: boolean;
+  /** Neighborhood radius in link hops when `local`. */
+  localDepth: number;
+  /** Keep pages with no visible links. */
+  showOrphans: boolean;
+  /** Only pages in this category; null shows every category. */
+  categoryId: string | null;
+  /** Only pages carrying this tag; null shows every tag. */
+  tag: string | null;
+  /** When node labels render; hovered and selected nodes always label. */
+  labels: "auto" | "always" | "never";
+}
 
 export {
   NATIVE_OAUTH_METADATA_PATH,

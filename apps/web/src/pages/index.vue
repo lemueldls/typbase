@@ -31,6 +31,7 @@ const activeBootStep = computed(
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
+const graphOpen = ref(false);
 const mode = ref<ViewModeId>("write");
 const {
   open: paletteOpen,
@@ -127,6 +128,7 @@ watch(
 
 testApi.openPage = (id) => openPage(id);
 testApi.setMode = (value) => void setMode(value as ViewModeId);
+testApi.openGraph = () => openGraph();
 testApi.openChat = (threadId) => openChat(threadId ?? undefined);
 testApi.newChat = async (pageId) => (await chat.startThread({ pageId: pageId ?? null })).id;
 testApi.sendChat = (threadId, text) => chat.send(threadId, text);
@@ -189,8 +191,9 @@ onMounted(async () => {
   if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
   syncModeToPage(currentPageId.value);
 
-  // A ?view=plugin:<instance> or ?view=chat:<thread> link reopens that pane.
+  // A ?view=plugin:<instance>, ?view=chat:<thread>, or ?view=graph link reopens that pane.
   const linkedView = queryString(viewQuery.value);
+  if (linkedView === "graph") graphOpen.value = true;
   const instanceId = linkedView.startsWith("plugin:") ? linkedView.slice("plugin:".length) : "";
   if (instanceId && store.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
   const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
@@ -236,15 +239,16 @@ watch(modeQuery, (value) => {
   if (loaded.value && value !== mode.value && isViewMode(value)) mode.value = value;
 });
 
-/** One `?view=` value, so only one of the chat/plugin panes is open. */
+/** One `?view=` value, so only one of the graph/chat/plugin panes is open. */
 function paneViewValue(): string {
   if (currentChatId.value) return `chat:${currentChatId.value}`;
   if (currentPluginId.value) return `plugin:${currentPluginId.value}`;
+  if (graphOpen.value) return "graph";
 
   return "";
 }
 
-watch([currentPluginId, currentChatId], () => {
+watch([currentPluginId, currentChatId, graphOpen], () => {
   if (!loaded.value) return;
   const value = paneViewValue();
   if (queryString(viewQuery.value) !== value) viewQuery.value = value;
@@ -255,11 +259,20 @@ watch(viewQuery, (raw) => {
   if (!loaded.value) return;
 
   const value = queryString(raw);
+  if (value === "graph") {
+    currentChatId.value = null;
+    currentPluginId.value = null;
+    graphOpen.value = true;
+
+    return;
+  }
+
   if (value.startsWith("chat:")) {
     const id = value.slice("chat:".length);
     if (workspace.value?.getChat(id)) {
       currentChatId.value = id;
       currentPluginId.value = null;
+      graphOpen.value = false;
     } else if (queryString(viewQuery.value) === value) {
       viewQuery.value = "";
     }
@@ -270,6 +283,7 @@ watch(viewQuery, (raw) => {
   if (value.startsWith("plugin:")) {
     const id = value.slice("plugin:".length);
     currentChatId.value = null;
+    graphOpen.value = false;
     if (workspace.value?.getPluginInstance(id)) currentPluginId.value = id;
     else if (queryString(viewQuery.value) === value) viewQuery.value = "";
     return;
@@ -277,6 +291,7 @@ watch(viewQuery, (raw) => {
 
   currentChatId.value = null;
   currentPluginId.value = null;
+  graphOpen.value = false;
 });
 
 // A deleted instance or thread must not leave the shell on an empty pane.
@@ -293,6 +308,7 @@ function openPage(id: string) {
   navOpen.value = false; // drawer interactions close after selection
   currentPluginId.value = null; // opening a page leaves the other panes
   currentChatId.value = null;
+  graphOpen.value = false;
   // An empty id means the open page was deleted; fall back to home/first.
   currentPageId.value = id || fallbackPageId();
   syncModeToPage(currentPageId.value);
@@ -349,8 +365,17 @@ function openPlugin(instanceId: string) {
   navOpen.value = false;
   if (instanceId) {
     currentChatId.value = null;
+    graphOpen.value = false;
     currentPluginId.value = instanceId;
   }
+}
+
+/** The sidebar and page toolbar open the workspace graph. */
+function openGraph() {
+  navOpen.value = false;
+  currentPluginId.value = null;
+  currentChatId.value = null;
+  graphOpen.value = true;
 }
 
 function closePlugin() {
@@ -362,6 +387,7 @@ function openChat(threadId?: string | null) {
   navOpen.value = false;
   if (threadId) {
     currentPluginId.value = null;
+    graphOpen.value = false;
     currentChatId.value = threadId;
 
     return;
@@ -370,6 +396,7 @@ function openChat(threadId?: string | null) {
   const latest = workspace.value?.listChats()[0];
   if (latest) {
     currentPluginId.value = null;
+    graphOpen.value = false;
     currentChatId.value = latest.id;
 
     return;
@@ -379,6 +406,7 @@ function openChat(threadId?: string | null) {
     .startThread({ pageId: currentPageId.value || null })
     .then((created) => {
       currentPluginId.value = null;
+      graphOpen.value = false;
       currentChatId.value = created.id;
     })
     .catch((cause) => {
@@ -461,6 +489,7 @@ definePageMeta({ ssr: false });
               @open-plugin="openPlugin"
               @search="openSearch"
               @chat="openChat"
+              @graph="openGraph"
               @collapse-request="toggleSidebar"
             />
           </SplitterPanel>
@@ -477,6 +506,7 @@ definePageMeta({ ssr: false });
                 :page-id="currentPageId"
                 :plugin-instance-id="currentPluginId"
                 :chat-thread-id="currentChatId"
+                :graph-open="graphOpen"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
@@ -484,6 +514,8 @@ definePageMeta({ ssr: false });
                 @close-plugin="closePlugin"
                 @open-thread="openChat"
                 @close-chat="closeChat"
+                @open-graph="openGraph"
+                @close-graph="graphOpen = false"
               >
                 <template #nav-toggle>
                   <UiIconButton
@@ -515,6 +547,7 @@ definePageMeta({ ssr: false });
               @open-plugin="openPlugin"
               @search="openSearch"
               @chat="openChat"
+              @graph="openGraph"
               @collapse-request="navOpen = false"
             />
           </div>
@@ -532,6 +565,7 @@ definePageMeta({ ssr: false });
               :page-id="currentPageId"
               :plugin-instance-id="currentPluginId"
               :chat-thread-id="currentChatId"
+              :graph-open="graphOpen"
               :model-value="mode"
               @update:model-value="setMode"
               @open-page="openPage"
@@ -539,6 +573,8 @@ definePageMeta({ ssr: false });
               @close-plugin="closePlugin"
               @open-thread="openChat"
               @close-chat="closeChat"
+              @open-graph="openGraph"
+              @close-graph="graphOpen = false"
             >
               <template #nav-toggle>
                 <UiIconButton

@@ -62,6 +62,49 @@ function insertLink(view: EditorView) {
   });
 }
 
+// ---- Page links ----------------------------------------------------------
+
+const { workspace } = useWorkspace();
+const { t } = useI18n();
+const pickerOpen = ref(false);
+const pickerQuery = ref("");
+
+const pages = computed(() => {
+  const store = workspace.value;
+  if (!store) return [];
+
+  const needle = pickerQuery.value.trim().toLowerCase();
+
+  return store
+    .listPages()
+    .filter((page) => !needle || page.title.toLowerCase().includes(needle))
+    .slice(0, 50);
+});
+
+function openPicker(): void {
+  pickerQuery.value = "";
+  pickerOpen.value = true;
+}
+
+/** A picked page becomes `#typbase.page-link("<id>")`; a selection wraps. */
+function insertPageLink(pageId: string): void {
+  const view = props.view;
+  if (!view) return;
+
+  const { from, to } = view.state.selection.main;
+  const text = view.state.sliceDoc(from, to);
+  const insert = text
+    ? `#typbase.page-link("${pageId}", body: [${text}])`
+    : `#typbase.page-link("${pageId}")`;
+
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: from + insert.length },
+  });
+  pickerOpen.value = false;
+  view.focus();
+}
+
 function run(item: ToolbarItem) {
   const editor = props.view;
   if (!editor || props.disabled) return;
@@ -79,17 +122,57 @@ function run(item: ToolbarItem) {
   >
     <template v-for="(group, index) in groups" :key="index">
       <ToolbarSeparator v-if="index > 0" class="edit-toolbar__separator" />
-      <UiTooltip v-for="item in group" :key="item.id" :text="$t(`formatting.${item.label}`)">
-        <ToolbarButton
-          type="button"
-          class="edit-toolbar__button"
-          :aria-label="$t(`formatting.${item.label}`)"
-          :disabled="disabled || !view"
-          @click="run(item)"
-        >
-          <MsIcon :name="item.icon" :size="18" />
-        </ToolbarButton>
-      </UiTooltip>
+      <template v-for="item in group" :key="item.id">
+        <UiTooltip :text="$t(`formatting.${item.label}`)">
+          <ToolbarButton
+            type="button"
+            class="edit-toolbar__button"
+            :aria-label="$t(`formatting.${item.label}`)"
+            :disabled="disabled || !view"
+            @click="run(item)"
+          >
+            <MsIcon :name="item.icon" :size="18" />
+          </ToolbarButton>
+        </UiTooltip>
+
+        <UiPopover v-if="item.id === 'link'" v-model:open="pickerOpen" class="edit-toolbar__picker">
+          <template #trigger>
+            <UiTooltip :text="$t('formatting.pageLink')">
+              <ToolbarButton
+                type="button"
+                class="edit-toolbar__button"
+                :aria-label="$t('formatting.pageLink')"
+                :disabled="disabled || !view"
+                @click="openPicker"
+              >
+                <MsIcon name="add_link" :size="18" />
+              </ToolbarButton>
+            </UiTooltip>
+          </template>
+
+          <UiTextField
+            v-model="pickerQuery"
+            size="small"
+            :label="$t('links.searchPages')"
+            :placeholder="$t('links.searchPages')"
+            class="edit-toolbar__picker-search"
+          />
+          <ul class="edit-toolbar__picker-list">
+            <li v-for="candidate in pages" :key="candidate.id">
+              <button
+                type="button"
+                class="edit-toolbar__picker-row"
+                @click="insertPageLink(candidate.id)"
+              >
+                <UiTruncatedText :text="candidate.title" />
+              </button>
+            </li>
+          </ul>
+          <p v-if="pages.length === 0" class="edit-toolbar__picker-empty">
+            {{ $t("links.noPages") }}
+          </p>
+        </UiPopover>
+      </template>
     </template>
   </ToolbarRoot>
 </template>

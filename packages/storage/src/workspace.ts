@@ -604,6 +604,10 @@ export class WorkspaceStore {
       ...DEFAULT_SETTINGS.editor,
       ...decodeSetting<Partial<WorkspaceSettings["editor"]>>(map.get("editor")),
     };
+    settings.graph = {
+      ...DEFAULT_SETTINGS.graph,
+      ...decodeSetting<Partial<WorkspaceSettings["graph"]>>(map.get("graph")),
+    };
     const themeName = map.get("themeName");
     settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
     const themeCustom = decodeSetting<WorkspaceSettings["themeCustom"] | null>(
@@ -648,6 +652,7 @@ export class WorkspaceStore {
       else if (key === "search") map.set("search", encodeSetting(value));
       else if (key === "notebook") map.set("notebook", encodeSetting(value));
       else if (key === "editor") map.set("editor", encodeSetting(value));
+      else if (key === "graph") map.set("graph", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
       else if (
         key === "installedPackages" ||

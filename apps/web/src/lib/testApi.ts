@@ -33,6 +33,12 @@ export interface TypbaseTestApi {
   crashEngine: (() => void) | null;
   /** Open the chat pane, on a thread id or the most recent thread. */
   openChat: ((threadId?: string | null) => void) | null;
+  /** Open the graph pane. */
+  openGraph: (() => void) | null;
+  /** Node and edge counts of the open graph, or null when it is closed. */
+  graphStats: (() => { nodes: number; edges: number } | null) | null;
+  /** Source page ids that link the given page, for link/backlink checks. */
+  backlinksFor: ((pageId: string) => string[]) | null;
   /** Create a chat thread and return its id. */
   newChat: ((pageId?: string | null) => Promise<string>) | null;
   /** Send a chat message and wait for the reply flow to settle. */
@@ -55,6 +61,9 @@ export const testApi: TypbaseTestApi = {
   engineMemory: null,
   crashEngine: null,
   openChat: null,
+  openGraph: null,
+  graphStats: null,
+  backlinksFor: null,
   newChat: null,
   sendChat: null,
   chatMessages: null,

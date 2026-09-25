@@ -5,6 +5,7 @@ defineProps<{
   pageId: string | null;
   pluginInstanceId?: string | null;
   chatThreadId?: string | null;
+  graphOpen?: boolean;
   modelValue: ViewModeId;
 }>();
 
@@ -15,6 +16,7 @@ const emit = defineEmits<{
   (e: "closePlugin"): void;
   (e: "openThread", id: string): void;
   (e: "closeChat"): void;
+  (e: "closeGraph"): void;
 }>();
 </script>
 
@@ -42,6 +44,17 @@ const emit = defineEmits<{
       <slot name="nav-toggle" />
     </template>
   </PluginView>
+
+  <GraphView
+    v-else-if="graphOpen"
+    :page-id="pageId"
+    @open-page="emit('openPage', $event)"
+    @close="emit('closeGraph')"
+  >
+    <template #nav-toggle>
+      <slot name="nav-toggle" />
+    </template>
+  </GraphView>
 
   <PageView
     v-else-if="pageId"

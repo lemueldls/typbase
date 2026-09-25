@@ -23,6 +23,7 @@ use wasm_bindgen::prelude::*;
 use crate::{
     bindings::{TypstCompletion, TypstFileId, TypstHighlight, TypstJump},
     flatten::{CellSpan, FlattenedBlock, SectionSpan},
+    links::LinkSpan,
     source::{
         RenderTarget, Side as MapSide, SourceContext, SpaceContext, SynthResult, sync_source_state,
     },
@@ -575,6 +576,17 @@ impl TypstState {
     #[wasm_bindgen(js_name = "extractSections")]
     pub fn extract_sections(&self, text: &str) -> Result<Vec<Ts<SectionSpan>>, JsError> {
         Ok(crate::flatten::extract_sections(text)
+            .into_iter()
+            .map(|span| span.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Extracts the app's link calls (`typbase.page-link`, `typbase.embed`,
+    /// and `typbase://page/` URLs) with UTF-16 ranges. Pure syntax pass; no
+    /// state needed.
+    #[wasm_bindgen(js_name = "extractLinks")]
+    pub fn extract_links(&self, text: &str) -> Result<Vec<Ts<LinkSpan>>, JsError> {
+        Ok(crate::links::extract_links(text)
             .into_iter()
             .map(|span| span.into_ts())
             .collect::<Result<Vec<_>, _>>()?)

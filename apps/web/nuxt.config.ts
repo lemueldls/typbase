@@ -72,8 +72,6 @@ export default defineNuxtConfig({
     // experimental: { bundledDev: true },
     optimizeDeps: {
       exclude: ["loro-crdt", "sqlite-wasm-vec", "harper.js", "harper.js/binaryInlined"],
-      // include: ["@typbase/engine"],
-      // force: true,
     },
     server: {
       // middlewareMode: false,

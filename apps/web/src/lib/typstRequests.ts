@@ -1,9 +1,12 @@
 import type { TypstRequest } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { InstalledPackage, Section } from "@typbase/typing";
+import type { InstalledPackage, PageMeta, Section } from "@typbase/typing";
 
 import { parseQueryPath } from "@typbase/typing";
 
+import { engineAvailable } from "~/lib/engineHealth";
+import { getLinkIndex } from "~/lib/linkIndex";
+import { extractLinksFallback, workspaceBacklinks } from "~/lib/links";
 import { fetchPackageBytes, samePackage, specString } from "~/lib/packages";
 import { getPluginSource } from "~/lib/plugins/registry";
 import { mirrorRequestPayload } from "~/lib/projectMirror";
@@ -310,26 +313,45 @@ export async function buildQueryJson(
       const target = pages.find((page) => page.id === query.filterValue);
       if (!target) return JSON.stringify([]);
 
-      const search = await Promise.all(
-        pages.map(async (page) => {
-          if (page.id === target.id) return false;
+      const incoming = await incomingPages(store, pages, target.id);
 
-          // Backlinks are only as fresh as the last index: scan raw source
-          // for `#typbase.embed("<id>")` or a path mention, cheapest first.
-          const text = await store.loadPageText(page.id);
-
-          return (
-            text.includes(`#typbase.embed("${target.id}")`) ||
-            text.includes(target.path) ||
-            text.includes(target.title)
-          );
-        }),
-      );
-
-      return JSON.stringify(pages.filter((_, index) => search[index]));
+      return JSON.stringify(pages.filter((page) => incoming.has(page.id)));
     }
   }
 
   // Every query kind returns above; keep the fallthrough explicit.
   return null;
+}
+
+/**
+ * Pages that link `targetId`. The running link index answers when the engine
+ * is healthy; a failed or unstarted index falls back to the regex scan so a
+ * query never fails a compile. Self-links are not backlinks, matching the
+ * panel.
+ */
+async function incomingPages(
+  store: WorkspaceStore,
+  pages: PageMeta[],
+  targetId: string,
+): Promise<Set<string>> {
+  if (engineAvailable()) {
+    try {
+      const index = getLinkIndex(store);
+      await index.start();
+      if (!index.status.error) {
+        const sources = index
+          .backlinksFor(targetId)
+          .map((group) => group.pageId)
+          .filter((pageId) => pageId !== targetId);
+
+        return new Set(sources);
+      }
+    } catch {
+      // Fall through to the scan; a broken index must not fail the compile.
+    }
+  }
+
+  const backlinks = await workspaceBacklinks(store, pages, extractLinksFallback);
+
+  return backlinks.get(targetId) ?? new Set();
 }

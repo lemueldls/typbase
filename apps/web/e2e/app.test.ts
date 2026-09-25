@@ -34,6 +34,15 @@ declare global {
       engineMemory(): number;
       crashEngine(): void;
       openChat(threadId?: string | null): void;
+      openGraph(): void;
+      graphStats(): { nodes: number; edges: number } | null;
+      backlinksFor(pageId: string): string[];
+      view: {
+        state: {
+          doc: { toString(): string };
+          selection: { main: { from: number; to: number } };
+        };
+      } | null;
       newChat(pageId?: string | null): Promise<string>;
       sendChat(threadId: string, text: string): Promise<void>;
       chatMessages(threadId: string): Promise<Array<{ id: string; status: string }>>;
@@ -602,6 +611,83 @@ describe("typbase app", async () => {
 
     const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
     expect(messages.length).toBeGreaterThanOrEqual(2);
+
+    await page.close();
+  });
+
+  it("lists a page's backlinks and reveals the linking call", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const targetId = await createTestPage(page, {
+      title: "Backlink target",
+      content: "= Target\n\nNothing links here yet.\n",
+    });
+    const sourceId = await createTestPage(page, {
+      title: "Backlink source",
+      content: `= Source\n\n#typbase.page-link("${targetId}")\n`,
+    });
+
+    // The links panel remembers its open state; turn it on before the page
+    // mounts so the toggle click is not part of the assertion.
+    await page.evaluate(() => localStorage.setItem("typbase:linksPanel", "true"));
+    await showPage(page, targetId, "write");
+
+    await page.waitForFunction(
+      ({ id, source }) => (window.__typbase.backlinksFor?.(id) ?? []).includes(source),
+      { id: targetId, source: sourceId },
+      { timeout: 60_000 },
+    );
+
+    await page.waitForSelector(".links", { timeout: 30_000 });
+    const text = await page.locator(".links__body").innerText();
+    expect(text).toContain("Backlink source");
+    expect(text).toContain("#typbase.page-link");
+
+    // Clicking the mention jumps to the source page and reveals the call.
+    await page.locator(".links__row--mention").first().click();
+    await page.waitForFunction((id) => window.__typbase.pageId === id, sourceId, {
+      timeout: 60_000,
+    });
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        if (!view) return false;
+
+        const start = view.state.doc.toString().indexOf("#typbase.page-link");
+
+        return start >= 0 && view.state.selection.main.from === start;
+      },
+      null,
+      { timeout: 60_000 },
+    );
+
+    await page.close();
+  });
+
+  it("builds a graph with the linked pages as nodes and edges", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const targetId = await createTestPage(page, {
+      title: "Graph target",
+      content: "= Target\n",
+    });
+    await createTestPage(page, {
+      title: "Graph source",
+      content: `= Source\n\n#typbase.embed("${targetId}")\n`,
+    });
+
+    await page.evaluate(() => window.__typbase.openGraph());
+    await page.waitForSelector(".graph canvas", { timeout: 60_000 });
+
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.graphStats()), { timeout: 60_000 })
+      .not.toBeNull();
+
+    const stats = await page.evaluate(() => window.__typbase.graphStats());
+    expect(stats?.nodes ?? 0).toBeGreaterThanOrEqual(2);
+    expect(stats?.edges ?? 0).toBeGreaterThanOrEqual(1);
 
     await page.close();
   });
