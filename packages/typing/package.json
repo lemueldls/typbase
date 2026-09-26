@@ -1,6 +1,6 @@
 {
   "name": "@typbase/typing",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Shared workspace/page types for Typbase: app, storage, and future server.",
   "license": "AGPL-3.0",
   "repository": {
