@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.4] - 2026-09-26
+
+### New
+
+- Dynamic app title
+- Soft wrap editor option
+
+### Fixed
+
+- Android update handler
+- Removed deprecated open graph tags
+- Dialog layer ordering
+
 ## [0.2.3] - 2026-09-26
 
 ### New
