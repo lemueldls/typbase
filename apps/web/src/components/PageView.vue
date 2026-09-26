@@ -1222,6 +1222,10 @@ function convertPageKind(): void {
             {{ $t("packages.title") }}
           </UiMenuItem>
 
+          <UiMenuItem icon="link" @select="linksOpen = true">
+            {{ $t("links.title") }}
+          </UiMenuItem>
+
           <UiMenuItem icon="download" @select="exportOpen = true">
             {{ $t("exportPage.title") }}
           </UiMenuItem>
