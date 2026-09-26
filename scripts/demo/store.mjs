@@ -44,6 +44,16 @@ const DEVICES = {
 
 const pause = (page, ms) => page.waitForTimeout(ms);
 
+/**
+ * Store shots run the large interface size: Play renders the listing
+ * screenshots small, so the chrome needs the extra legibility. Density and
+ * radius stay at the defaults.
+ */
+const STORE_SETTINGS = {
+  light: { ...SHOT_SETTINGS["notebook-hero"], uiSize: "large" },
+  dark: { ...SHOT_SETTINGS["query-split"], uiSize: "large" },
+};
+
 /** Newest daily note with prose. The seed leaves today blank on purpose. */
 async function dailyWithProse(page) {
   return page.evaluate(async () => {
@@ -143,7 +153,7 @@ const SCENES = [
   {
     id: "dark",
     async run({ page, ids }) {
-      await applySettings(page, SHOT_SETTINGS["query-split"]);
+      await applySettings(page, STORE_SETTINGS.dark);
       await show(page, ids.fibonacci, "split");
       await page.waitForSelector(".paged-preview svg", { timeout: 60_000 });
       await pause(page, 900);
@@ -172,7 +182,7 @@ async function captureDevice(browser, device) {
   page.on("pageerror", (error) => console.log("[pageerror]", String(error).slice(0, 300)));
 
   await boot(page);
-  await applySettings(page, SHOT_SETTINGS["notebook-hero"]);
+  await applySettings(page, STORE_SETTINGS.light);
 
   const planned = SCENES.filter((scene) => !scene.narrowOnly || !device.wide);
   const target = `${OUT}/${device.dir}/`;
