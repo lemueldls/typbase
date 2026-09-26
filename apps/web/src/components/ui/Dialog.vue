@@ -5,8 +5,10 @@ const props = withDefaults(
   defineProps<{
     title?: string;
     description?: string;
+    /** "top" stacks this dialog above another dialog that is already open. */
+    layer?: "default" | "top";
   }>(),
-  { title: undefined, description: undefined },
+  { title: undefined, description: undefined, layer: "default" },
 );
 
 const attrs = useAttrs();
@@ -34,10 +36,11 @@ const contentAttrs = computed(() => ({
     </DialogTrigger>
 
     <DialogPortal>
-      <DialogOverlay class="dialog-overlay" />
+      <DialogOverlay class="dialog-overlay" :class="{ 'dialog-overlay--top': layer === 'top' }" />
       <DialogContent
         v-bind="contentAttrs"
         class="dialog"
+        :class="{ 'dialog--top': layer === 'top' }"
         @open-auto-focus="emit('openAutoFocus', $event)"
       >
         <DialogTitle v-if="title" class="dialog__title">{{ title }}</DialogTitle>
@@ -88,6 +91,17 @@ const contentAttrs = computed(() => ({
 .dialog__title {
   margin: 0 0 var(--space-4);
   font-size: var(--text-2xl);
+}
+
+/* Dialogs opened from another dialog (Settings → updates) need a higher layer:
+   portaled content mounts in open order, so a dialog that opened first would
+   otherwise sit above it. Below selects (90), toasts (95), and tooltips (100). */
+.dialog-overlay--top {
+  z-index: 80;
+}
+
+.dialog--top {
+  z-index: 85;
 }
 
 .dialog__description {
