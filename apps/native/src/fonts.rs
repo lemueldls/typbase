@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fs, path::PathBuf, sync::OnceLock};
 
 use serde::Serialize;
+use skrifa::{FontRef, MetadataProvider, Tag, raw::TableProvider};
 use tauri::ipc::Response;
 
 #[derive(Clone)]
@@ -49,14 +50,19 @@ const NO_FLAGS: FaceFlags = FaceFlags {
 fn face_flags(database: &fontdb::Database, face: &fontdb::FaceInfo) -> FaceFlags {
     database
         .with_face_data(face.id, |data, index| {
-            let Ok(parsed) = ttf_parser::Face::parse(data, index) else {
+            let Ok(font) = FontRef::from_index(data, index) else {
                 return NO_FLAGS;
             };
 
+            let charmap = font.charmap();
+
             FaceFlags {
-                math: parsed.tables().math.is_some(),
-                latin: parsed.glyph_index('A').is_some() && parsed.glyph_index('a').is_some(),
-                monospaced: parsed.is_monospaced(),
+                math: font.data_for_tag(Tag::new(b"MATH")).is_some(),
+                latin: charmap.map('A').is_some() && charmap.map('a').is_some(),
+                monospaced: font
+                    .post()
+                    .map(|post| post.is_fixed_pitch() != 0)
+                    .unwrap_or(false),
             }
         })
         .unwrap_or(NO_FLAGS)
