@@ -28,6 +28,8 @@ export default defineNuxtConfig({
           name: "description",
           content: "Local-first knowledge base made for Typst and the Atmosphere.",
         },
+        { property: "og:site_name", content: "Typbase" },
+        { name: "twitter:card", content: "summary" },
       ],
       link: [{ rel: "icon", type: "image/x-icon", href: "favicon.ico" }],
       script: [

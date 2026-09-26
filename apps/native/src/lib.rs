@@ -85,6 +85,11 @@ pub fn run() {
             let win_builder = win_builder
                 // .background_color(Color::from_str("#f5efe6").unwrap())
                 .title("Typbase")
+                .on_document_title_changed(|window, title| {
+                    if !title.is_empty() {
+                        let _ = window.set_title(&title);
+                    }
+                })
                 // .inner_size(896.0, 672.0)
                 .visible(false)
                 .on_page_load(|window, payload| {

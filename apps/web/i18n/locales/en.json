@@ -358,7 +358,8 @@
     "nothing": "Nothing published yet.",
     "updated": "Updated {date}",
     "viewSource": "view source",
-    "publishedCount": "{count} published note(s)"
+    "publishedCount": "{count} published note(s)",
+    "description": "Published notes by {name} on Typbase."
   },
   "notebook": {
     "runCell": "Run cell",

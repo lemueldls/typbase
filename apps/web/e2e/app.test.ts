@@ -122,6 +122,7 @@ describe("typbase app", async () => {
       content: "= Persistence\n\nfirst draft\n",
     });
     await showPage(page, id, "write");
+    await expect(page.title()).resolves.toBe("Persistence check · My workspace");
 
     await page.locator(".cm-content").click();
     await page.keyboard.press("Control+End");

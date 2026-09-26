@@ -348,7 +348,8 @@
     "nothing": "尚未发布任何内容。",
     "updated": "更新于 {date}",
     "viewSource": "查看源码",
-    "publishedCount": "{count} 篇已发布笔记"
+    "publishedCount": "{count} 篇已发布笔记",
+    "description": "{name} 在 Typbase 上发布的笔记。"
   },
   "formatting": {
     "title": "格式",

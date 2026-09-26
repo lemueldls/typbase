@@ -3,6 +3,8 @@ import type { PostValue } from "@typbase/spaces";
 
 import { createPublicPostsClient } from "@typbase/spaces";
 
+import { APP_NAME, formatDocumentTitle } from "~/lib/documentTitle";
+
 const routeDid = useRouteParams<string>("did");
 
 const loading = ref(true);
@@ -70,6 +72,27 @@ function formatDate(value: unknown): string {
 function tagList(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
+
+const { t } = useI18n();
+
+/** Author name once identity resolves; the DID is the fallback. */
+const profileName = computed(() => author.value.handle ?? author.value.did);
+
+/** Public profile title: "Author · Typbase". */
+const profileTitle = computed(() => formatDocumentTitle(profileName.value, APP_NAME));
+
+const profileDescription = computed(() =>
+  profileName.value ? t("profile.description", { name: profileName.value }) : undefined,
+);
+
+useSeoMeta({
+  title: () => profileTitle.value,
+  ogTitle: () => profileTitle.value,
+  twitterTitle: () => profileTitle.value,
+  ogType: "profile",
+  description: () => profileDescription.value,
+  ogDescription: () => profileDescription.value,
+});
 
 definePageMeta({ ssr: false });
 </script>

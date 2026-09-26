@@ -5,6 +5,7 @@ import iconUrl from "~~/public/icon.svg?url";
 
 import { setChatNavigation, useChat } from "~/composables/chat";
 import { setProviderOverride } from "~/lib/ai/engine";
+import { formatDocumentTitle } from "~/lib/documentTitle";
 import { engineAvailable } from "~/lib/engineHealth";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
@@ -357,6 +358,22 @@ const currentPageKind = computed(() => {
   void dataRevision.value;
 
   return currentPageId.value ? workspace.value?.getPage(currentPageId.value)?.kind : undefined;
+});
+
+/** Tab and window title for the open page: "Page · Workspace". */
+const pageTitle = computed(() => {
+  void dataRevision.value; // a rename arrives as a structure change, not a new read
+
+  const page = currentPageId.value ? workspace.value?.getPage(currentPageId.value) : undefined;
+
+  return formatDocumentTitle(page?.title, workspace.value?.getSettings().name);
+});
+
+useSeoMeta({
+  title: () => pageTitle.value,
+  ogTitle: () => pageTitle.value,
+  ogType: "website",
+  twitterTitle: () => pageTitle.value,
 });
 
 // Converting the open page carries the mode with it. A deliberate mode change

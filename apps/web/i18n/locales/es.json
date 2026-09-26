@@ -348,7 +348,8 @@
     "nothing": "Aún no hay nada publicado.",
     "updated": "Actualizado el {date}",
     "viewSource": "ver fuente",
-    "publishedCount": "{count} nota(s) publicada(s)"
+    "publishedCount": "{count} nota(s) publicada(s)",
+    "description": "Notas publicadas por {name} en Typbase."
   },
   "formatting": {
     "title": "Formato",

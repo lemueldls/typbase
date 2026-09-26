@@ -348,7 +348,8 @@
     "nothing": "Rien de publié pour l'instant.",
     "updated": "Mis à jour le {date}",
     "viewSource": "voir la source",
-    "publishedCount": "{count} note(s) publiée(s)"
+    "publishedCount": "{count} note(s) publiée(s)",
+    "description": "Notes publiées par {name} sur Typbase."
   },
   "formatting": {
     "title": "Mise en forme",
