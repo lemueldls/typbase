@@ -10,7 +10,6 @@ import type {
   PluginPatchOp,
   PluginRecord,
   PluginState,
-  PluginSurfaceKind,
   Section,
   WorkspaceSettings,
 } from "@typbase/typing";
@@ -141,7 +140,7 @@ const SOURCE_HASHES_KEY = "sourceHashes";
  * `blobs/` content-addressed media, and `artifacts/` is only claimed in
  * export bundles, which reuse page paths.
  */
-export const RESERVED_ROOTS = ["state", "typbase", "blobs", "artifacts"] as const;
+export const RESERVED_ROOTS = ["state", "typbase", "blobs", "artifacts", "plugins"] as const;
 
 /** Backend-relative path of a workspace directory. */
 export function workspaceRoot(workspaceId: string): string {
@@ -173,6 +172,20 @@ export function isSourceChange(relativePath: string): boolean {
   if ((RESERVED_ROOTS as readonly string[]).includes(parts[0]!)) return false;
 
   return parts.at(-1)!.endsWith(".typ");
+}
+
+/**
+ * True when a path under `plugins/` is an authoring file the studio watches.
+ * `plugins/` is a reserved root, so these never reach the page sync.
+ */
+export function isPluginChange(relativePath: string): boolean {
+  const parts = pathSegments(relativePath);
+  if (!parts.length || parts[0] !== "plugins") return false;
+  if (parts.some((part) => part.startsWith("."))) return false;
+
+  const name = parts.at(-1)!;
+
+  return name.endsWith(".typ") || name.endsWith(".css") || name.endsWith(".json");
 }
 
 /** Doc id space for plugin instance docs; sync treats them like page docs. */
@@ -315,11 +328,12 @@ export class WorkspaceStore {
 
   /**
    * Watches the page tree for external edits and calls `onChanged` for every
-   * change that looks like a source edit. Backends without change
+   * change that looks like a source edit. Plugin authoring files under
+   * `plugins/` call `onPluginChange` instead. Backends without change
    * notifications (OPFS, memory) return a no-op disposer. Calling this again
    * replaces the previous watcher.
    */
-  watchSources(onChanged: () => void): () => void {
+  watchSources(onChanged: () => void, onPluginChange?: () => void): () => void {
     this.unwatchSources?.();
 
     const watch = this.backend.watch?.bind(this.backend);
@@ -330,6 +344,7 @@ export class WorkspaceStore {
 
     void watch(this.root, (relative) => {
       if (isSourceChange(relative)) onChanged();
+      else if (onPluginChange && isPluginChange(relative)) onPluginChange();
     })
       .then((result) => {
         if (closed) result();
@@ -1311,7 +1326,6 @@ export class WorkspaceStore {
 
   async createPluginInstance(input: {
     pluginId: string;
-    surface: PluginSurfaceKind;
     title: string;
     icon?: string;
     config?: Record<string, unknown>;
@@ -1319,7 +1333,6 @@ export class WorkspaceStore {
     const instance: PluginInstance = {
       id: createId(),
       pluginId: input.pluginId,
-      surface: input.surface,
       title: input.title,
       icon: input.icon ?? "",
       config: JSON.stringify(input.config ?? {}),
@@ -1364,7 +1377,6 @@ export class WorkspaceStore {
     const map = instances.ensureMergeableMap(instance.id);
     map.set("id", instance.id);
     map.set("pluginId", instance.pluginId);
-    map.set("surface", instance.surface);
     map.set("title", instance.title);
     map.set("icon", instance.icon);
     map.set("config", instance.config);

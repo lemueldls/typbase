@@ -34,6 +34,8 @@ export interface PluginSurfaceInput {
   entry: string;
   fn: string;
   sources: PluginSurfaceSource[];
+  /** Plugin stylesheets, injected into the shadow root after the host sheet. */
+  styles?: string[];
   /** Binary files the request loop resolved (query JSON, images, ...). */
   files?: PluginSurfaceFile[];
   /** Packages the request loop fetched; installed before the compile. */
@@ -55,6 +57,8 @@ export interface PluginSurfaceResult {
 export interface PluginCompileRequest extends PluginSurfaceInput {
   type: "compile";
   id: number;
+  /** Vite asset URL for the engine binary, from the main thread. */
+  wasmUrl: string;
 }
 
 export type PluginCompileResponse =

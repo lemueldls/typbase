@@ -1,16 +1,37 @@
 <script setup lang="ts">
-import type { PluginCapability } from "@typbase/typing";
+import type { PluginCapability, PluginInstance } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { isFsaSupported } from "@typbase/storage";
 
 /**
  * Install, enable, and shape plugin instances. Shared by the sidebar dialog
- * and the debug lab (the lab renders it inline).
+ * and the debug lab (the lab renders it inline). Compile problems live in the
+ * studio; this list only shows a per-plugin issue count.
  */
+const emit = defineEmits<{ (e: "openInstance", instanceId: string): void }>();
+
 const plugins = usePlugins();
+const router = useRouter();
 const { t } = useI18n();
 const canImportFolder = isFsaSupported();
+
+const renameOpen = ref(false);
+const renameTarget = ref<PluginInstance>();
+const renameTitle = ref("");
+
+function startRename(instance: PluginInstance): void {
+  renameTarget.value = instance;
+  renameTitle.value = instance.title;
+  renameOpen.value = true;
+}
+
+async function confirmRename(): Promise<void> {
+  const target = renameTarget.value;
+  renameOpen.value = false;
+  renameTarget.value = undefined;
+  if (target) await plugins.renameInstance(target.id, renameTitle.value);
+}
 
 const CAPABILITY_LABELS: Record<PluginCapability, string> = {
   "pages.read": "plugins.capPagesRead",
@@ -35,8 +56,12 @@ async function removePlugin(pluginId: string, name: string) {
   await plugins.uninstall(pluginId);
 }
 
-function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
-  return plugins.manifestOf(pluginId)?.surfaces.find((surface) => surface.kind === kind);
+function develop(pluginId: string) {
+  void router.push({ path: "/plugins", query: { plugin: pluginId } });
+}
+
+function openInstance(instance: PluginInstance) {
+  emit("openInstance", instance.id);
 }
 </script>
 
@@ -52,7 +77,6 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
         <UiButton size="small" v-if="canImportFolder" @click="plugins.installFromFolder()">
           {{ $t("plugins.installFolder") }}
         </UiButton>
-        <!-- <span class="plugin-manager__hint">{{ $t("plugins.localHint") }}</span> -->
       </div>
 
       <p v-if="plugins.catalog.value.length === 0" class="plugin-manager__empty">
@@ -74,6 +98,9 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
           <span v-if="entry.source === 'local'" class="plugin-manager__version">
             {{ $t("plugins.sourceLocal") }}
           </span>
+          <span v-if="plugins.errorsFor(entry.manifest.id).length" class="plugin-manager__issues">
+            {{ $t("plugins.issues") }}
+          </span>
 
           <span class="plugin-manager__actions">
             <UiButton
@@ -90,6 +117,9 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
                 :aria-label="entry.manifest.name"
                 @update:model-value="(value) => plugins.setEnabled(entry.manifest.id, value)"
               />
+              <UiButton variant="ghost" size="small" @click="develop(entry.manifest.id)">
+                {{ $t("plugins.develop") }}
+              </UiButton>
               <UiButton
                 variant="ghost"
                 size="small"
@@ -122,12 +152,35 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
             :key="instance.id"
             class="plugin-manager__instance"
           >
-            <MsIcon
-              :name="instance.surface === 'sidebar' ? 'view_sidebar' : 'open_in_full'"
-              :size="16"
-            />
+            <MsIcon :name="'extension'" :size="16" />
             <span>{{ instance.title }}</span>
-            <span class="plugin-manager__version">{{ instance.surface }}</span>
+            <span class="plugin-manager__version">
+              {{
+                plugins
+                  .surfacesOf(instance.id)
+                  .map((surface) => surface.kind)
+                  .join(", ")
+              }}
+            </span>
+            <UiButton
+              v-if="
+                plugins.surfaceOf(instance.id, 'pane') || plugins.surfaceOf(instance.id, 'window')
+              "
+              variant="ghost"
+              size="small"
+              class="button--tiny"
+              @click="openInstance(instance)"
+            >
+              {{ $t("plugins.open") }}
+            </UiButton>
+            <UiIconButton
+              icon="edit"
+              :size="16"
+              :label="$t('plugins.renameInstance')"
+              variant="ghost"
+              class="button--tiny"
+              @click="startRename(instance)"
+            />
             <UiIconButton
               icon="delete"
               :size="16"
@@ -139,40 +192,35 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
           </div>
 
           <div class="plugin-manager__add">
-            <UiButton
-              v-for="surface in entry.manifest.surfaces"
-              :key="surface.kind"
-              variant="ghost"
-              size="small"
-              @click="plugins.createInstance(entry.manifest.id, surface.kind)"
-            >
-              + {{ $t("plugins.addSurface", { surface: surface.title }) }}
+            <UiButton variant="ghost" size="small" @click="plugins.addInstance(entry.manifest.id)">
+              + {{ $t("plugins.addInstance") }}
             </UiButton>
           </div>
         </div>
       </article>
     </section>
 
-    <section v-if="plugins.errors.value.length" class="plugin-manager__group">
-      <header class="plugin-manager__entry-head">
-        <h3 class="plugin-manager__title">{{ $t("plugins.problems") }}</h3>
-        <UiButton variant="ghost" size="small" @click="plugins.clearErrors()">
-          {{ $t("plugins.clear") }}
-        </UiButton>
-      </header>
-      <ul class="plugin-manager__errors">
-        <li
-          v-for="(error, index) in plugins.errors.value"
-          :key="index"
-          class="plugin-manager__error"
-        >
-          <span>{{ error.message }}</span>
-          <span class="plugin-manager__version">{{
-            error.pluginId ?? error.instanceId ?? ""
-          }}</span>
-        </li>
-      </ul>
-    </section>
+    <UiDialog
+      :open="renameOpen"
+      :title="$t('plugins.renameInstance')"
+      layer="top"
+      @update:open="renameOpen = $event"
+    >
+      <div class="plugin-manager__rename">
+        <UiTextField v-model="renameTitle" :label="$t('plugins.instanceName')" />
+        <div class="plugin-manager__rename-actions">
+          <UiButton
+            variant="primary"
+            size="small"
+            :disabled="!renameTitle.trim()"
+            @click="confirmRename"
+          >
+            {{ $t("common.save") }}
+          </UiButton>
+          <UiButton size="small" @click="renameOpen = false">{{ $t("common.cancel") }}</UiButton>
+        </div>
+      </div>
+    </UiDialog>
   </div>
 </template>
 
@@ -209,12 +257,6 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
   gap: var(--space-1-5);
 }
 
-.plugin-manager__hint {
-  flex: 1 1 12rem;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
 .plugin-manager__entry {
   display: grid;
   gap: var(--space-1-5);
@@ -237,6 +279,14 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
 .plugin-manager__version {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+.plugin-manager__issues {
+  padding: 0 var(--space-1-5);
+  font-size: var(--text-2xs);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-radius: var(--radius-full);
 }
 
 .plugin-manager__actions {
@@ -287,21 +337,14 @@ function surfaceForKind(pluginId: string, kind: "sidebar" | "main") {
   gap: var(--space-1-5);
 }
 
-.plugin-manager__errors {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.plugin-manager__rename {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-3);
 }
 
-.plugin-manager__error {
+.plugin-manager__rename-actions {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-1-5) var(--space-2);
-  font-size: var(--text-sm);
-  background: var(--color-danger-soft);
-  border-radius: var(--radius-sm);
+  justify-content: flex-end;
+  gap: var(--space-1-5);
 }
 </style>

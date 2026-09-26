@@ -522,7 +522,17 @@
     "installFolder": "Install from folder",
     "localHint": "Local plugins live in plugins/ inside the workspace storage.",
     "sourceLocal": "local",
-    "capPagesWrite": "Edit pages"
+    "capPagesWrite": "Edit pages",
+    "develop": "Develop",
+    "open": "Open",
+    "addInstance": "Add instance",
+    "renameInstance": "Rename instance",
+    "instanceName": "Instance name",
+    "issues": "Issues",
+    "renderFailed": "This plugin failed to render.",
+    "openWindow": "Open in a window",
+    "resize": "Resize window",
+    "appended": "Added to {title}"
   },
   "links": {
     "title": "Links",

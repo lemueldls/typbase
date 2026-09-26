@@ -493,7 +493,17 @@
     "installFolder": "Instalar desde carpeta",
     "localHint": "Los plugins locales viven en plugins/ dentro del almacenamiento del espacio.",
     "sourceLocal": "local",
-    "capPagesWrite": "Editar páginas"
+    "capPagesWrite": "Editar páginas",
+    "develop": "Desarrollar",
+    "open": "Abrir",
+    "addInstance": "Añadir instancia",
+    "renameInstance": "Renombrar instancia",
+    "instanceName": "Nombre de la instancia",
+    "issues": "Problemas",
+    "renderFailed": "Este plugin no se pudo mostrar.",
+    "openWindow": "Abrir en una ventana",
+    "resize": "Redimensionar ventana",
+    "appended": "Añadido a {title}"
   },
   "links": {
     "title": "Enlaces",

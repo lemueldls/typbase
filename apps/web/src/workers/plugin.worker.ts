@@ -19,12 +19,14 @@ import { compileSurface } from "~/lib/plugins/compile";
 
 let state: TypstState | undefined;
 
-async function ensureState(): Promise<TypstState> {
+async function ensureState(url: string): Promise<TypstState> {
   if (state) return state;
 
-  await init();
+  // The explicit asset URL avoids Vite 8's wasm-module plugin; loading the
+  // default `new URL(..., import.meta.url)` path in a worker corrupts the heap.
+  await init({ module_or_path: url });
   const typstState = new TypstState();
-  for (const url of [
+  for (const fontUrl of [
     mapleMono,
     mapleMonoItalic,
     mapleMonoBold,
@@ -32,7 +34,7 @@ async function ensureState(): Promise<TypstState> {
     newcmMath,
     newcmMathBold,
   ]) {
-    const response = await fetch(url);
+    const response = await fetch(fontUrl);
     typstState.installFont(new Uint8Array(await response.arrayBuffer()));
   }
   state = typstState;
@@ -71,7 +73,7 @@ self.addEventListener("message", (event: MessageEvent<PluginCompileRequest>) => 
     const id = message.id;
 
     try {
-      const typstState = await ensureState();
+      const typstState = await ensureState(message.wasmUrl);
       const result = compileSurface(typstState, message);
 
       self.postMessage({

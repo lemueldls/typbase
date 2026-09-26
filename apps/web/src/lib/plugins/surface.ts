@@ -1,15 +1,23 @@
 import type { PluginAction } from "@typbase/typing";
 
+import hostCss from "./surface.css?inline";
+
 /**
  * Hosts one plugin surface in a shadow root. The sanitized HTML never leaves
  * the document, so there is no frame or postMessage bridge: events are wired
  * directly and actions call back into the host. Shadow DOM keeps plugin CSS
  * scoped; the sanitizer guarantees no scripts or network URLs.
+ *
+ * Host styles come from surface.css; the plugin's own stylesheets arrive on
+ * each render and are replaced in place, which makes studio saves apply
+ * without remounting the surface.
  */
 
 export interface PluginSurfaceOptions {
-  /** Overlay surfaces: the root ignores pointer events, controls opt back in. */
-  passThrough?: boolean;
+  /** Plugin stylesheet texts, injected after the host sheet. */
+  styles?: string[];
+  /** Host components the manifest declares; anything else reports an error. */
+  components?: string[];
   onAction: (action: PluginAction) => void;
   onError: (message: string) => void;
   /** Reported when the content size changes (auto-height surfaces). */
@@ -17,365 +25,9 @@ export interface PluginSurfaceOptions {
 }
 
 export interface PluginSurfaceHandle {
-  render(html: string): void;
+  render(html: string, styles?: string[]): void;
   destroy(): void;
 }
-
-const SURFACE_CSS = `
-:host {
-  display: block;
-  color: var(--color-text, #1f2328);
-  font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: var(--text-md);
-  line-height: var(--leading-normal);
-  accent-color: var(--color-accent, #1e5aa0);
-  caret-color: var(--color-accent, #1e5aa0);
-}
-
-/* Shadow roots do not inherit the document's ::selection rule. */
-::selection {
-  background: color-mix(in srgb, var(--color-accent, #1e5aa0) 30%, transparent);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-#tb-root {
-  height: 100%;
-  padding: 2px;
-  overflow: auto;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  margin: 0.4em 0 0.2em;
-  line-height: var(--leading-tight);
-}
-
-p {
-  margin: 0.25em 0;
-}
-
-a {
-  color: var(--color-accent, #1e5aa0);
-}
-
-.tb-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1-5);
-  padding: var(--space-1-5) var(--space-3);
-  font: inherit;
-  font-size: var(--text-md);
-  color: var(--color-text, #1f2328);
-  background: var(--color-surface-2, #f3f4f6);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.tb-button:hover:not(:disabled) {
-  background: var(--color-surface-3, #e9ebee);
-}
-
-.tb-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.tb-button--primary {
-  color: #fff;
-  background: var(--color-accent, #1e5aa0);
-  border-color: transparent;
-}
-
-.tb-button--primary:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-
-.tb-button--danger {
-  color: var(--color-danger, #b42828);
-  border-color: color-mix(in srgb, var(--color-danger, #b42828) 40%, transparent);
-}
-
-.tb-button--ghost {
-  background: transparent;
-  border-color: transparent;
-}
-
-.tb-input {
-  width: 100%;
-  padding: var(--space-1) var(--space-2);
-  font: inherit;
-  font-size: var(--text-md);
-  color: var(--color-text, #1f2328);
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-sm);
-}
-
-.tb-input:focus {
-  outline: 2px solid var(--color-accent, #1e5aa0);
-  outline-offset: -1px;
-}
-
-.tb-textarea {
-  resize: vertical;
-  min-height: var(--space-12);
-}
-
-.tb-field {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.tb-field__label {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary, #6b7280);
-}
-
-.tb-check {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  font-size: var(--text-md);
-}
-
-.tb-panel {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-2-5);
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-md);
-}
-
-.tb-panel__title {
-  margin: 0;
-  font-size: var(--text-sm);
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-secondary, #6b7280);
-}
-
-.tb-stack {
-  display: flex;
-  flex-direction: column;
-}
-
-.tb-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.tb-grid {
-  display: grid;
-}
-
-.tb-card {
-  padding: var(--space-2) var(--space-2-5);
-  background: var(--color-surface-2, #f3f4f6);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-sm);
-}
-
-.tb-badge {
-  display: inline-block;
-  padding: var(--space-0-5) var(--space-1-5);
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-3, #e9ebee);
-}
-
-.tb-badge--accent {
-  color: #fff;
-  background: var(--color-accent, #1e5aa0);
-}
-
-.tb-badge--danger {
-  background: var(--color-danger-soft, #f9e3e3);
-  color: var(--color-danger, #b42828);
-}
-
-.tb-muted {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary, #6b7280);
-}
-
-.tb-form {
-  width: 100%;
-}
-
-.tb-flash-front {
-  font-size: var(--text-lg);
-  font-weight: 600;
-}
-
-.tb-flash-back {
-  padding-top: var(--space-1-5);
-  border-top: 1px solid var(--color-border, #e5e7eb);
-}
-
-.tb-day {
-  min-height: var(--space-12);
-  padding: var(--space-1);
-  font-size: var(--text-sm);
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.tb-day--muted {
-  opacity: 0.45;
-}
-
-.tb-day--today {
-  border-color: var(--color-accent, #1e5aa0);
-  box-shadow: inset 0 0 0 1px var(--color-accent, #1e5aa0);
-}
-
-.tb-day--weekend {
-  background: var(--color-surface-2, #f3f4f6);
-}
-
-.tb-day__number {
-  font-weight: 600;
-  color: var(--color-text-secondary, #6b7280);
-}
-
-.tb-event {
-  display: block;
-  width: 100%;
-  margin-top: var(--space-0-5);
-  padding: var(--space-0-5) var(--space-1);
-  font-size: var(--text-2xs);
-  text-align: left;
-  color: var(--color-text, #1f2328);
-  background: var(--color-accent-soft, #e3edf8);
-  border: none;
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tb-board {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(circle, var(--color-border, #e5e7eb) 1px, transparent 1px) 0 0 / 18px 18px,
-    var(--color-surface-2, #f3f4f6);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-md);
-}
-
-.tb-board--fill {
-  position: fixed;
-  inset: 0;
-  height: auto !important;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-}
-
-.tb-floating {
-  position: fixed;
-  z-index: 2;
-}
-
-.tb-movable {
-  position: absolute;
-  touch-action: none;
-  cursor: grab;
-}
-
-.tb-dragging {
-  cursor: grabbing;
-  opacity: 0.85;
-}
-
-.tb-draggable {
-  cursor: grab;
-  touch-action: none;
-}
-
-.tb-drop {
-  border: 1px dashed var(--color-border-strong, #d1d5db);
-  border-radius: var(--radius-sm);
-}
-
-.tb-drop:hover {
-  border-color: var(--color-accent, #1e5aa0);
-}
-
-.tb-canvas-host {
-  position: relative;
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: var(--radius-md);
-}
-
-.tb-canvas {
-  display: block;
-  touch-action: none;
-}
-
-.tb-note {
-  width: 180px;
-  padding: var(--space-1-5);
-  border: 1px solid rgb(0 0 0 / 0.06);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.14);
-}
-
-/* The note sets its own ink inline; buttons follow it instead of the theme. */
-.tb-note .tb-button {
-  color: inherit;
-}
-
-.tb-note__text {
-  display: block;
-  width: 100%;
-  min-height: var(--space-14);
-  padding: 0;
-  font: inherit;
-  font-size: var(--text-sm);
-  color: inherit;
-  background: transparent;
-  border: none;
-  resize: none;
-}
-
-.tb-note__text:focus {
-  outline: none;
-}
-`;
-
-const PASS_THROUGH_CSS = `
-:host,
-#tb-root {
-  pointer-events: none;
-}
-
-[data-tb-action],
-[data-tb-field],
-[data-tb-move],
-[data-tb-component],
-button,
-input,
-textarea,
-select,
-a {
-  pointer-events: auto;
-}
-`;
 
 function newId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -398,21 +50,14 @@ export function attachPluginSurface(
 ): PluginSurfaceHandle {
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
-  style.textContent = SURFACE_CSS + (options.passThrough ? PASS_THROUGH_CSS : "");
+  style.textContent = [hostCss, ...(options.styles ?? [])].join("\n");
   const root = document.createElement("div");
   root.id = "tb-root";
   shadow.append(style, root);
 
-  if (options.passThrough) {
-    // Inline styles beat any stylesheet; interactive descendants opt back in
-    // through the pass-through rules above.
-    host.style.pointerEvents = "none";
-    root.style.pointerEvents = "none";
-    root.style.overflow = "visible";
-  }
-
   let lastHeight = 0;
   let inputTimer: ReturnType<typeof setTimeout> | undefined;
+  let observers: ResizeObserver[] = [];
   let moving:
     | {
         element: HTMLElement;
@@ -436,31 +81,62 @@ export function attachPluginSurface(
     }
   }
 
-  function collectAction(element: Element): PluginAction | null {
-    const name = element.getAttribute("data-tb-action");
-    if (!name) return null;
-
-    const args = parseArgs(element);
+  function collectFields(element: Element): Record<string, unknown> {
     const fields: Record<string, unknown> = {};
     const own = element.getAttribute("data-tb-field");
     if (own) {
       // A standalone field is its own scope: sending it must not sweep in
       // every other field on the surface.
       fields[own] = fieldValue(element as HTMLInputElement);
-    } else {
-      const scope = element.closest("[data-tb-form]") ?? root;
-      for (const input of scope.querySelectorAll<HTMLInputElement>("[data-tb-field]")) {
-        const key = input.getAttribute("data-tb-field");
-        if (key) fields[key] = fieldValue(input);
+      return fields;
+    }
+
+    const scope = element.closest("[data-tb-form]") ?? root;
+    for (const input of scope.querySelectorAll<HTMLInputElement>("[data-tb-field]")) {
+      const key = input.getAttribute("data-tb-field");
+      if (key) fields[key] = fieldValue(input);
+    }
+
+    return fields;
+  }
+
+  /**
+   * One element can carry a chain: `data-tb-chain` is a JSON array of
+   * `{ name, args }`. Every entry dispatches in order with the same form
+   * fields, which is how a button inserts content and closes its window in
+   * one click.
+   */
+  function collectActions(element: Element): PluginAction[] {
+    const fields = collectFields(element);
+    const chain = element.getAttribute("data-tb-chain");
+    if (chain) {
+      try {
+        const entries = JSON.parse(chain) as Array<{ name?: unknown; args?: unknown }>;
+        const actions = entries
+          .filter(
+            (entry): entry is { name: string; args?: Record<string, unknown> } =>
+              !!entry && typeof entry.name === "string",
+          )
+          .map((entry) => ({
+            id: newId(),
+            name: entry.name,
+            args: (entry.args as Record<string, unknown>) ?? {},
+            fields,
+          }));
+        if (actions.length) return actions;
+      } catch (error) {
+        options.onError(`bad data-tb-chain: ${String(error)}`);
       }
     }
 
-    return { id: newId(), name, args, fields };
+    const name = element.getAttribute("data-tb-action");
+    if (!name) return [];
+
+    return [{ id: newId(), name, args: parseArgs(element), fields }];
   }
 
   function dispatch(element: Element): void {
-    const action = collectAction(element);
-    if (action) options.onAction(action);
+    for (const action of collectActions(element)) options.onAction(action);
   }
 
   function reportHeight(): void {
@@ -485,7 +161,7 @@ export function attachPluginSurface(
       return;
     }
 
-    const element = target.closest("[data-tb-action]");
+    const element = target.closest("[data-tb-action], [data-tb-chain]");
     if (!element) return;
     event.preventDefault();
     dispatch(element);
@@ -690,16 +366,31 @@ export function attachPluginSurface(
     canvas.addEventListener("pointerup", finish);
     canvas.addEventListener("pointercancel", finish);
 
-    new ResizeObserver(resize).observe(hostElement);
+    const observer = new ResizeObserver(resize);
+    observer.observe(hostElement);
+    observers.push(observer);
     resize();
   }
 
-  function scanComponents(): void {
-    for (const element of root.querySelectorAll<HTMLElement>("[data-tb-component='canvas']")) {
+  function mountComponents(): void {
+    const declared = options.components ? new Set(options.components) : undefined;
+
+    for (const element of root.querySelectorAll<HTMLElement>("[data-tb-component]")) {
+      const name = element.getAttribute("data-tb-component") ?? "";
+      if (declared && !declared.has(name)) {
+        options.onError(`component "${name}" is not declared in hostComponents`);
+        continue;
+      }
+      if (name !== "canvas") continue;
       if (element.dataset.tbMounted) continue;
       element.dataset.tbMounted = "1";
       mountCanvas(element);
     }
+  }
+
+  function teardownComponents(): void {
+    for (const observer of observers) observer.disconnect();
+    observers = [];
   }
 
   root.addEventListener("submit", (event) => event.preventDefault());
@@ -715,7 +406,9 @@ export function attachPluginSurface(
   resizeObserver?.observe(root);
 
   return {
-    render(html: string): void {
+    render(html: string, styles?: string[]): void {
+      if (styles) style.textContent = [hostCss, ...styles].join("\n");
+
       // Keep typing focus across a render: plugin patches often follow input.
       const active = (shadow.activeElement ?? document.activeElement) as HTMLElement | null;
       const focusKey = active?.getAttribute?.("data-tb-field") ?? null;
@@ -728,6 +421,7 @@ export function attachPluginSurface(
           ? (active as HTMLInputElement).selectionEnd
           : null;
 
+      teardownComponents();
       root.innerHTML = html;
 
       if (focusKey) {
@@ -746,13 +440,14 @@ export function attachPluginSurface(
         }
       }
 
-      scanComponents();
+      mountComponents();
       reportHeight();
     },
 
     destroy(): void {
       if (inputTimer) clearTimeout(inputTimer);
       resizeObserver?.disconnect();
+      teardownComponents();
       root.replaceChildren();
       shadow.replaceChildren();
     },

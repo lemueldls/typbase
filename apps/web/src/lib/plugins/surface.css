@@ -1,0 +1,325 @@
+/*
+ * Host styles for plugin surfaces. Injected into every plugin shadow root
+ * before the plugin's own stylesheets, so a plugin can override these rules.
+ *
+ * Rules here are generic primitives and host components only. Anything that
+ * looks like one bundled plugin (calendar cells, event chips) belongs in that
+ * plugin's style.css. Theme custom properties inherit through the shadow
+ * boundary from <html>; the fallbacks only cover a detached test mount.
+ */
+
+:host {
+  display: block;
+  color: var(--color-text, #1f2328);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--text-md, 0.875rem);
+  line-height: var(--leading-normal, 1.5);
+  accent-color: var(--color-accent, #1e5aa0);
+  caret-color: var(--color-accent, #1e5aa0);
+}
+
+/* Shadow roots do not inherit the document's ::selection rule. */
+::selection {
+  background: color-mix(in srgb, var(--color-accent, #1e5aa0) 30%, transparent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#tb-root {
+  height: 100%;
+  padding: 2px;
+  overflow: auto;
+}
+
+.tb-surface > * + * {
+  margin-top: var(--space-3, 0.75rem);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0.4em 0 0.2em;
+  line-height: var(--leading-tight, 1.25);
+}
+
+p {
+  margin: 0.25em 0;
+}
+
+a {
+  color: var(--color-accent, #1e5aa0);
+}
+
+/* Primitives */
+
+.tb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5, 0.375rem);
+  padding: var(--space-1-5, 0.375rem) var(--space-3, 0.75rem);
+  font: inherit;
+  font-size: var(--text-md, 0.875rem);
+  color: var(--color-text, #1f2328);
+  background: var(--color-surface-2, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+}
+
+.tb-button:hover:not(:disabled) {
+  background: var(--color-surface-3, #e9ebee);
+}
+
+.tb-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tb-button--primary {
+  color: var(--color-on-accent, #fff);
+  background: var(--color-accent, #1e5aa0);
+  border-color: transparent;
+}
+
+.tb-button--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.tb-button--danger {
+  color: var(--color-danger, #b42828);
+  border-color: color-mix(in srgb, var(--color-danger, #b42828) 40%, transparent);
+}
+
+.tb-button--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.tb-button--ghost:hover:not(:disabled) {
+  background: var(--color-surface-2, #f3f4f6);
+}
+
+.tb-button--selected {
+  color: var(--color-accent, #1e5aa0);
+  border-color: var(--color-accent, #1e5aa0);
+  box-shadow: inset 0 0 0 1px var(--color-accent, #1e5aa0);
+}
+
+.tb-button--tiny {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm, 0.8125rem);
+}
+
+.tb-icon {
+  font-family: "Material Symbols Rounded";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25em;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  user-select: none;
+}
+
+/* Color swatch. The plugin sets --tb-swatch on the element. */
+.tb-swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: var(--tb-swatch, var(--color-surface-2));
+  border: 1px solid var(--color-border-strong, #d1d5db);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.tb-swatch.tb-button--selected {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-accent);
+}
+
+.tb-input {
+  width: 100%;
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  font: inherit;
+  font-size: var(--text-md, 0.875rem);
+  color: var(--color-text, #1f2328);
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.tb-input:focus {
+  outline: 2px solid var(--color-accent, #1e5aa0);
+  outline-offset: -1px;
+}
+
+.tb-textarea {
+  resize: vertical;
+  min-height: var(--space-12, 3rem);
+}
+
+.tb-field {
+  display: grid;
+  gap: var(--space-1, 0.25rem);
+}
+
+.tb-field__label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.tb-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5, 0.375rem);
+  font-size: var(--text-md, 0.875rem);
+}
+
+.tb-panel {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2-5, 0.625rem);
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.tb-panel__title {
+  margin: 0;
+  font-size: var(--text-sm, 0.8125rem);
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.tb-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.tb-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tb-grid {
+  display: grid;
+}
+
+.tb-card {
+  padding: var(--space-2, 0.5rem) var(--space-2-5, 0.625rem);
+  background: var(--color-surface-2, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.tb-badge {
+  display: inline-block;
+  padding: var(--space-0-5, 0.125rem) var(--space-1-5, 0.375rem);
+  font-size: var(--text-2xs, 0.6875rem);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-surface-3, #e9ebee);
+}
+
+.tb-badge--accent {
+  color: var(--color-on-accent, #fff);
+  background: var(--color-accent, #1e5aa0);
+}
+
+.tb-badge--danger {
+  background: var(--color-danger-soft, #f9e3e3);
+  color: var(--color-danger, #b42828);
+}
+
+.tb-badge--ok {
+  background: var(--color-ok-soft, #e3f2e7);
+  color: var(--color-ok, #2f6f4f);
+}
+
+.tb-muted {
+  font-size: var(--text-sm, 0.8125rem);
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.tb-error {
+  padding: var(--space-2, 0.5rem) var(--space-2-5, 0.625rem);
+  font-size: var(--text-sm, 0.8125rem);
+  color: var(--color-danger, #b42828);
+  background: var(--color-danger-soft, #f9e3e3);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.tb-empty {
+  padding: var(--space-4, 1rem);
+  font-size: var(--text-sm, 0.8125rem);
+  color: var(--color-text-secondary, #6b7280);
+  text-align: center;
+  border: 1px dashed var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.tb-form {
+  width: 100%;
+}
+
+/* Host components */
+
+.tb-board {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, var(--color-border, #e5e7eb) 1px, transparent 1px) 0 0 / 18px 18px,
+    var(--color-surface-2, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.tb-movable {
+  position: absolute;
+  touch-action: none;
+  cursor: grab;
+}
+
+.tb-dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+}
+
+.tb-draggable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.tb-drop {
+  border: 1px dashed var(--color-border-strong, #d1d5db);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.tb-drop:hover {
+  border-color: var(--color-accent, #1e5aa0);
+}
+
+.tb-canvas-host {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.tb-canvas {
+  display: block;
+  touch-action: none;
+}

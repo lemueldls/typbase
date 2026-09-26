@@ -2,6 +2,7 @@ import { reactive } from "vue";
 
 import { useTypst } from "~/composables/typst";
 import { useEngineHealth } from "~/lib/engineHealth";
+import { wasmBinaryUrl } from "~/lib/wasmUrl";
 
 import type {
   PluginCompileRequest,
@@ -108,7 +109,12 @@ function compileInWorker(input: PluginSurfaceInput): Promise<PluginSurfaceResult
     pending.set(id, { resolve, reject });
   });
 
-  active.postMessage({ type: "compile", id, ...input } satisfies PluginCompileRequest);
+  active.postMessage({
+    type: "compile",
+    id,
+    ...input,
+    wasmUrl: wasmBinaryUrl,
+  } satisfies PluginCompileRequest);
 
   return promise;
 }

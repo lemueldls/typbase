@@ -13,6 +13,8 @@ export interface CatalogPlugin {
   storageDir?: string;
   /** Virtual Typst paths already rooted at `/typbase/plugin/<slug>/`. */
   sources: { path: string; text: string }[];
+  /** Plugin stylesheets, injected into the surface shadow root in order. */
+  styles: { name: string; text: string }[];
 }
 
 export const UI_LIBRARY_PATH = "/typbase/ui.typ";
@@ -30,6 +32,12 @@ const sourceModules = import.meta.glob("../../../public/plugins/*/**/*.typ", {
   import: "default",
 }) as Record<string, string>;
 
+const styleModules = import.meta.glob("../../../public/plugins/*/**/*.css", {
+  eager: true,
+  query: "?raw",
+  import: "default",
+}) as Record<string, string>;
+
 export function loadBundledCatalog(): CatalogPlugin[] {
   const catalog: CatalogPlugin[] = [];
 
@@ -39,14 +47,25 @@ export function loadBundledCatalog(): CatalogPlugin[] {
     try {
       const manifest = parseManifest(JSON.parse(raw));
       const sources: { path: string; text: string }[] = [];
+      const styles: { name: string; text: string }[] = [];
 
       for (const [sourcePath, text] of Object.entries(sourceModules)) {
         if (!sourcePath.startsWith(`${root}/`)) continue;
         const relative = sourcePath.slice(root.length + 1);
         sources.push({ path: `/typbase/plugin/${pluginSlug(manifest.id)}/${relative}`, text });
       }
+      for (const [stylePath, text] of Object.entries(styleModules)) {
+        if (!stylePath.startsWith(`${root}/`)) continue;
+        styles.push({ name: stylePath.slice(root.length + 1), text });
+      }
 
-      catalog.push({ manifest, slug: pluginSlug(manifest.id), source: "bundled", sources });
+      catalog.push({
+        manifest,
+        slug: pluginSlug(manifest.id),
+        source: "bundled",
+        sources,
+        styles,
+      });
     } catch (error) {
       console.error(`[plugins] invalid bundled manifest at ${manifestPath}:`, error);
     }
@@ -55,21 +74,29 @@ export function loadBundledCatalog(): CatalogPlugin[] {
   return catalog;
 }
 
-async function readTypFiles(
+interface PluginFiles {
+  sources: { path: string; text: string }[];
+  styles: { name: string; text: string }[];
+}
+
+async function readPluginFiles(
   backend: StorageBackend,
   dir: string,
   prefix: string,
-): Promise<{ path: string; text: string }[]> {
-  const files: { path: string; text: string }[] = [];
+  relative = "",
+): Promise<PluginFiles> {
+  const files: PluginFiles = { sources: [], styles: [] };
+  const target = relative ? `${dir}/${relative}` : dir;
   let entries: string[] = [];
   try {
-    entries = await backend.list(dir);
+    entries = await backend.list(target);
   } catch {
     return files;
   }
 
   for (const name of entries) {
-    const path = `${dir}/${name}`;
+    const path = `${target}/${name}`;
+    const next = relative ? `${relative}/${name}` : name;
     let stat;
     try {
       stat = await backend.stat(path);
@@ -79,16 +106,21 @@ async function readTypFiles(
     if (!stat) continue;
 
     if (stat.kind === "directory") {
-      files.push(...(await readTypFiles(backend, path, `${prefix}/${name}`)));
+      const nested = await readPluginFiles(backend, dir, prefix, next);
+      files.sources.push(...nested.sources);
+      files.styles.push(...nested.styles);
       continue;
     }
 
-    if (!name.endsWith(".typ")) continue;
-
-    const bytes = await backend.read(path);
-    if (!bytes) continue;
-
-    files.push({ path: `${prefix}/${name}`, text: new TextDecoder().decode(bytes) });
+    if (name.endsWith(".typ")) {
+      const bytes = await backend.read(path);
+      if (!bytes) continue;
+      files.sources.push({ path: `${prefix}/${next}`, text: new TextDecoder().decode(bytes) });
+    } else if (name.endsWith(".css")) {
+      const bytes = await backend.read(path);
+      if (!bytes) continue;
+      files.styles.push({ name: next, text: new TextDecoder().decode(bytes) });
+    }
   }
 
   return files;
@@ -115,8 +147,15 @@ export async function loadLocalCatalog(backend?: StorageBackend): Promise<Catalo
         JSON.parse(new TextDecoder().decode(manifestBytes)) as unknown,
       );
       const slug = pluginSlug(manifest.id);
-      const sources = await readTypFiles(backend, `plugins/${dir}`, `/typbase/plugin/${slug}`);
-      catalog.push({ manifest, slug, source: "local", storageDir: `plugins/${dir}`, sources });
+      const files = await readPluginFiles(backend, `plugins/${dir}`, `/typbase/plugin/${slug}`);
+      catalog.push({
+        manifest,
+        slug,
+        source: "local",
+        storageDir: `plugins/${dir}`,
+        sources: files.sources,
+        styles: files.styles,
+      });
     } catch (error) {
       console.error(`[plugins] invalid local manifest at plugins/${dir}:`, error);
     }

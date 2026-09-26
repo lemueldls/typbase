@@ -1,8 +1,12 @@
 /**
  * Plugin protocol types. A plugin is a Typst package plus a manifest plus a
  * data schema; the host compiles its surfaces to sandboxed HTML and applies
- * the patches its render function returns. These shapes are what the app,
- * the storage layer, and (later) atproto records all speak.
+ * the patches the render returns. These shapes are what the app, the storage
+ * layer, and (later) atproto records all speak.
+ *
+ * One `PluginInstance` owns one data doc and contributes every surface its
+ * manifest declares, so a calendar's sidebar widget and its pane read the
+ * same events. Installing a plugin twice gives two independent instances.
  */
 
 import type { Category, PageMeta } from "./index";
@@ -17,8 +21,11 @@ export type PluginCapability =
   | "plugin.ai"
   | "ui.external";
 
-/** `sidebar` renders a widget; `main` opens as a pane; `overlay` floats. */
-export type PluginSurfaceKind = "sidebar" | "main" | "overlay";
+/**
+ * Where a surface renders: a sidebar widget, the main pane, or a floating
+ * window. One instance may declare all three.
+ */
+export type PluginSurfaceKind = "widget" | "pane" | "window";
 
 export interface PluginSurface {
   kind: PluginSurfaceKind;
@@ -27,8 +34,6 @@ export interface PluginSurface {
   title: string;
   /** Material Symbol name. */
   icon?: string;
-  /** Preferred starting height in px for sidebar surfaces. */
-  height?: number;
 }
 
 export type PluginFieldType = "string" | "number" | "boolean" | "datetime" | "json";
@@ -50,15 +55,16 @@ export interface PluginManifest {
   name: string;
   version: string;
   description?: string;
-  /** Host protocol version; only `typbase.host.v1` is accepted. */
+  /** Host protocol version; only `typbase.host.v2` is accepted. */
   api: string;
   /** Entry module, relative to the plugin root, e.g. `main.typ`. */
   entry: string;
   icon?: string;
   capabilities: PluginCapability[];
   collections: Record<string, PluginCollectionSchema>;
+  /** At most one of each kind; each renders for every instance. */
   surfaces: PluginSurface[];
-  /** Host components the surface may mount (canvas, text-input, drag, ...). */
+  /** Host components the surface may mount (canvas, board, ...). */
   hostComponents?: string[];
 }
 
@@ -74,11 +80,10 @@ export interface PluginInstall {
   manifest: string;
 }
 
-/** One rendered plugin surface in the workspace doc's `instances` map. */
+/** One plugin instance in the workspace doc's `instances` map. */
 export interface PluginInstance {
   id: string;
   pluginId: string;
-  surface: PluginSurfaceKind;
   title: string;
   /** Material Symbol name; empty means the manifest icon or a default. */
   icon: string;
@@ -102,9 +107,9 @@ export type PluginPatchOp =
   | { op: "remove"; collection: string; id: string };
 
 /**
- * What the plugin's render function returns alongside its HTML. `state`
- * mutates the synced plugin doc; `view` shallow-merges into device-local
- * view state (open month, revealed card, ...).
+ * What the plugin's render returns alongside its HTML. `state` mutates the
+ * synced plugin doc; `view` shallow-merges into device-local view state (open
+ * month, revealed card, ...). Both are applied before the post-action render.
  */
 export interface PluginPatch {
   state?: PluginPatchOp[];
@@ -120,10 +125,20 @@ export interface PluginAction {
   fields?: Record<string, unknown>;
 }
 
+/** The result of the host action a render was triggered by, when one was. */
+export interface PluginActionResult {
+  action: string;
+  ok: boolean;
+  message?: string;
+  data?: Record<string, unknown>;
+}
+
 /** The JSON document injected at `/typbase/plugin/ctx.json`. */
 export interface PluginContext {
   plugin: { id: string; name: string; version: string };
-  instance: { id: string; title: string; surface: PluginSurfaceKind };
+  instance: { id: string; title: string };
+  /** Which surface this render is for. */
+  surface: { kind: PluginSurfaceKind; title: string };
   locale: string;
   /** ISO-8601 instant and date, fixed for the whole render. */
   now: string;
@@ -132,6 +147,8 @@ export interface PluginContext {
   state: PluginState;
   view: Record<string, unknown>;
   action: (PluginAction & { fields: Record<string, unknown> }) | null;
+  /** Set when the last action was a host action. */
+  result: PluginActionResult | null;
   /** The page open in the shell, when one is. */
   page: { id: string } | null;
   /** App data, gated by the `pages.read` capability. */
@@ -140,7 +157,9 @@ export interface PluginContext {
     categories: Category[];
     daily: PageMeta[];
   } | null;
+  /** Resolved theme tokens under their camelCase palette names. */
+  theme: Record<string, string>;
 }
 
 /** Host protocol version plugins must declare. */
-export const PLUGIN_API = "typbase.host.v1";
+export const PLUGIN_API = "typbase.host.v2";

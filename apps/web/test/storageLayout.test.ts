@@ -1,4 +1,4 @@
-import { MemoryBackend, isSourceChange, migrateLayout } from "@typbase/storage";
+import { MemoryBackend, isPluginChange, isSourceChange, migrateLayout } from "@typbase/storage";
 import { describe, expect, it } from "vitest";
 
 const encoder = new TextEncoder();
@@ -76,9 +76,23 @@ describe("isSourceChange", () => {
     expect(isSourceChange("typbase/entries/pages/foo.typ")).toBe(false);
     expect(isSourceChange("blobs/abc.png")).toBe(false);
     expect(isSourceChange("artifacts/pages/foo.typ")).toBe(false);
+    expect(isSourceChange("plugins/calendar/main.typ")).toBe(false);
     expect(isSourceChange("pages/.hidden.typ")).toBe(false);
     expect(isSourceChange(".git/objects/foo.typ")).toBe(false);
     expect(isSourceChange("pages/foo.md")).toBe(false);
     expect(isSourceChange("")).toBe(false);
+  });
+});
+
+describe("isPluginChange", () => {
+  it("accepts plugin authoring files and nothing else", () => {
+    expect(isPluginChange("plugins/calendar/main.typ")).toBe(true);
+    expect(isPluginChange("plugins/calendar/style.css")).toBe(true);
+    expect(isPluginChange("plugins/calendar/plugin.json")).toBe(true);
+
+    expect(isPluginChange("pages/foo.typ")).toBe(false);
+    expect(isPluginChange("plugins/.cache/main.typ")).toBe(false);
+    expect(isPluginChange("plugins/calendar/icon.png")).toBe(false);
+    expect(isPluginChange("")).toBe(false);
   });
 });

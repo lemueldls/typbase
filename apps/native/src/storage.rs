@@ -513,7 +513,7 @@ pub fn storage_watch<R: Runtime>(
                 continue;
             };
             let relative = relative.to_string_lossy().replace('\\', "/");
-            if !is_source_change(&relative) {
+            if !is_watchable_change(&relative) {
                 continue;
             }
 
@@ -549,11 +549,12 @@ pub fn storage_unwatch(watch: State<'_, WatchState>, path: String) {
     }
 }
 
-/// Page-source filter for watcher events: visible `.typ` files outside the
-/// app-owned roots. Kept in step with `RESERVED_ROOTS`/`isSourceChange` in
-/// `packages/storage/src/workspace.ts`.
-#[allow(clippy::case_sensitive_file_extension_comparisons)] // both sides match lowercase `.typ`
-fn is_source_change(relative: &str) -> bool {
+/// Watcher filter: visible `.typ`, `.css`, and `.json` files outside the
+/// app-owned roots. JS classifies events into page sources and plugin
+/// authoring files (`isSourceChange`/`isPluginChange` in
+/// `packages/storage/src/workspace.ts`).
+#[allow(clippy::case_sensitive_file_extension_comparisons)] // both sides match lowercase extensions
+fn is_watchable_change(relative: &str) -> bool {
     let parts: Vec<&str> = relative.split('/').collect();
     if parts.iter().any(|part| part.starts_with('.')) {
         return false;
@@ -565,7 +566,7 @@ fn is_source_change(relative: &str) -> bool {
         return false;
     }
 
-    relative.ends_with(".typ")
+    relative.ends_with(".typ") || relative.ends_with(".css") || relative.ends_with(".json")
 }
 
 /// Validates a storage-relative path: segments only, no roots or `..`.
@@ -727,9 +728,16 @@ mod tests {
     }
 
     #[test]
-    fn source_change_filter_keeps_only_page_sources() {
-        for accepted in ["pages/foo.typ", "daily/2026-09-22.typ", "a/b/c.typ"] {
-            assert!(is_source_change(accepted), "`{accepted}` should sync");
+    fn watch_filter_passes_page_and_plugin_files() {
+        for accepted in [
+            "pages/foo.typ",
+            "daily/2026-09-22.typ",
+            "a/b/c.typ",
+            "plugins/calendar/main.typ",
+            "plugins/calendar/style.css",
+            "plugins/calendar/plugin.json",
+        ] {
+            assert!(is_watchable_change(accepted), "`{accepted}` should notify");
         }
 
         for rejected in [
@@ -743,7 +751,10 @@ mod tests {
             ".git/objects/foo.typ",
             ".notes/foo.typ",
         ] {
-            assert!(!is_source_change(rejected), "`{rejected}` should not sync");
+            assert!(
+                !is_watchable_change(rejected),
+                "`{rejected}` should not notify"
+            );
         }
     }
 

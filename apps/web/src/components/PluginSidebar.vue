@@ -5,29 +5,16 @@ import type { MaterialSymbol } from "material-symbols";
 const emit = defineEmits<{ (e: "openPlugin", instanceId: string): void }>();
 
 const plugins = usePlugins();
-const { dataRevision } = useWorkspace();
 const { t } = useI18n();
 
 const managerOpen = ref(false);
 
-function enabled(instance: PluginInstance): boolean {
-  void dataRevision.value;
-  return (
-    plugins.installs.value.find((install) => install.id === instance.pluginId)?.enabled ?? false
-  );
-}
-
-const active = computed(() => {
-  void dataRevision.value;
-  return plugins.instances.value.filter((instance) => enabled(instance));
-});
-
-const sidebarInstances = computed(() =>
-  active.value.filter((instance) => instance.surface === "sidebar"),
-);
-const mainInstances = computed(() =>
-  active.value.filter((instance) => instance.surface === "main"),
-);
+const widgets = computed(() => plugins.instancesWithSurface("widget"));
+/** Instances that open in a pane or a floating window get a sidebar row. */
+const rows = computed(() => [
+  ...plugins.instancesWithSurface("pane"),
+  ...plugins.instancesWithSurface("window"),
+]);
 
 function titleOf(instance: PluginInstance): string {
   return plugins.manifestOf(instance.pluginId)?.name ?? instance.title;
@@ -37,6 +24,20 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
   const icon = instance.icon || plugins.manifestOf(instance.pluginId)?.icon;
   return (icon as MaterialSymbol | undefined) ?? "extension";
 }
+
+function hasProblems(instance: PluginInstance): boolean {
+  return plugins.errorsFor(instance.pluginId).length > 0;
+}
+
+function openRow(instance: PluginInstance): void {
+  if (plugins.surfaceOf(instance.id, "pane")) emit("openPlugin", instance.id);
+  else plugins.openWindow(instance.id);
+}
+
+function openInstanceById(instanceId: string): void {
+  const instance = plugins.instanceById(instanceId);
+  if (instance) openRow(instance);
+}
 </script>
 
 <template>
@@ -44,7 +45,7 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
     <div class="plugin-sidebar__header">
       <span>{{ $t("plugins.title") }}</span>
       <UiIconButton
-        icon="add"
+        icon="widgets"
         :size="20"
         :label="$t('plugins.manage')"
         variant="ghost"
@@ -52,15 +53,25 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
       />
     </div>
 
-    <div v-for="instance in sidebarInstances" :key="instance.id" class="plugin-sidebar__widget">
-      <PluginSurface :instance-id="instance.id" :title="titleOf(instance)" auto-height />
+    <div v-for="instance in widgets" :key="instance.id" class="plugin-sidebar__widget">
+      <PluginSurface
+        :instance-id="instance.id"
+        surface="widget"
+        :title="titleOf(instance)"
+        auto-height
+      />
     </div>
 
-    <ul v-if="mainInstances.length" class="plugin-sidebar__list">
-      <li v-for="instance in mainInstances" :key="instance.id">
-        <button type="button" class="plugin-sidebar__row" @click="emit('openPlugin', instance.id)">
+    <ul v-if="rows.length" class="plugin-sidebar__list">
+      <li v-for="instance in rows" :key="instance.id">
+        <button type="button" class="plugin-sidebar__row" @click="openRow(instance)">
           <MsIcon :name="iconOf(instance)" :size="16" />
           <UiTruncatedText class="plugin-sidebar__label" :text="instance.title" />
+          <span
+            v-if="hasProblems(instance)"
+            class="plugin-sidebar__problem"
+            :title="t('plugins.issues')"
+          />
         </button>
       </li>
     </ul>
@@ -71,7 +82,7 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
       class="plugin-sidebar__dialog"
       @update:open="managerOpen = $event"
     >
-      <PluginManager />
+      <PluginManager @open-instance="openInstanceById" />
     </UiDialog>
   </div>
 </template>
@@ -124,7 +135,16 @@ function iconOf(instance: PluginInstance): MaterialSymbol {
 }
 
 .plugin-sidebar__label {
+  flex: 1;
   min-width: 0;
+}
+
+.plugin-sidebar__problem {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--color-danger);
+  border-radius: var(--radius-full);
 }
 
 .plugin-sidebar__dialog {

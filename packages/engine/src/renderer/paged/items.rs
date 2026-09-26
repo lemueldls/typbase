@@ -355,7 +355,7 @@ pub fn chunk_by_items_with_blocks(
 
                 diagnostics.extend(TypstDiagnostic::from_diagnostics(mapped, context, world));
 
-                crate::error!("[ERRORS]: {diagnostics:?}");
+                crate::debug!("[ERRORS]: {diagnostics:?}");
 
                 let marked_errors =
                     try_mark_errornous(&source_diagnostics, eq_ranges, context, world);

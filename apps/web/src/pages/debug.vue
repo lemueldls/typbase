@@ -42,7 +42,17 @@ const captured = ref<CapturedLog[]>([]);
 const error = ref<string>();
 
 const { ensure, workspace, workspaceId, dataRevision, wipeStorage } = useWorkspace();
+const plugins = usePlugins();
+const router = useRouter();
 const typstState = shallowRef<TypstState>();
+
+function openPluginInstance(instanceId: string): void {
+  if (plugins.surfaceOf(instanceId, "pane")) {
+    void router.push({ query: { view: `plugin:${instanceId}` } });
+  } else if (plugins.surfaceOf(instanceId, "window")) {
+    plugins.openWindow(instanceId);
+  }
+}
 
 const store = computed(() => workspace.value);
 
@@ -260,7 +270,7 @@ definePageMeta({ ssr: false });
 
     <section class="lab__plugins">
       <h2>Plugins</h2>
-      <PluginManager />
+      <PluginManager @open-instance="openPluginInstance" />
       <PluginLab />
     </section>
 

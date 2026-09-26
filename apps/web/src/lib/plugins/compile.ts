@@ -25,10 +25,18 @@ function applyStyle(typstState: TypstState, input: PluginSurfaceInput): void {
 }
 
 function wrapperSource(input: PluginSurfaceInput): string {
+  // Surfaces return `(ui, state, view)`. The wrapper emits the patch holder as
+  // a sibling of the UI and wraps the UI in a classed container: the HTML
+  // renderer already wraps frames in an unnamed div, and `tb-surface` is what
+  // the host stylesheet targets for spacing between top-level blocks.
   return [
     `#import "/typbase/plugin/${input.slug}/${input.entry}": ${input.fn}`,
     `#let ctx = json("${CTX_PATH}")`,
-    `#${input.fn}(ctx)`,
+    `#let page = ${input.fn}(ctx)`,
+    `#let ui = page.at("ui")`,
+    `#let patch = (state: page.at("state", default: ()), view: page.at("view", default: ()))`,
+    `#html.elem("div", attrs: ("hidden": "hidden", "data-tb-patch": json.encode(patch)))`,
+    `#html.elem("div", attrs: (class: "tb-surface"), ui)`,
     "",
   ].join("\n");
 }

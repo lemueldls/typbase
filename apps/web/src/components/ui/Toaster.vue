@@ -20,9 +20,11 @@ function onOpenChange(id: string, open: boolean) {
         @update:open="(open) => onOpenChange(toast.id, open)"
       >
         <div class="ui-toast__body">
-          <ToastTitle class="ui-toast__title">{{ $t(toast.titleKey) }}</ToastTitle>
+          <ToastTitle class="ui-toast__title">{{
+            toast.title ?? $t(toast.titleKey ?? "", toast.params ?? {})
+          }}</ToastTitle>
           <ToastDescription v-if="toast.descriptionKey" class="ui-toast__description">
-            {{ $t(toast.descriptionKey) }}
+            {{ $t(toast.descriptionKey, toast.params ?? {}) }}
           </ToastDescription>
           <div v-if="toast.actions?.length" class="ui-toast__actions">
             <UiButton

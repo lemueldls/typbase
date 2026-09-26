@@ -1,9 +1,9 @@
 {
   "id": "local:calendar",
   "name": "Calendar",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Month calendar over an events collection, with daily-note links.",
-  "api": "typbase.host.v1",
+  "api": "typbase.host.v2",
   "entry": "main.typ",
   "icon": "calendar_month",
   "capabilities": ["pages.read", "pages.write", "daily.write", "plugin.data"],
@@ -18,12 +18,11 @@
   },
   "surfaces": [
     {
-      "kind": "sidebar",
-      "fn": "sidebar",
+      "kind": "widget",
+      "fn": "widget",
       "title": "Calendar",
-      "icon": "calendar_month",
-      "height": 260
+      "icon": "calendar_month"
     },
-    { "kind": "main", "fn": "main", "title": "Calendar", "icon": "calendar_month" }
+    { "kind": "pane", "fn": "pane", "title": "Calendar", "icon": "calendar_month" }
   ]
 }

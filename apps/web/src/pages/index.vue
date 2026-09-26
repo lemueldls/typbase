@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { PluginSurfaceKind } from "@typbase/typing";
 import type { SplitterPanel } from "reka-ui";
 
 import iconUrl from "~~/public/icon.svg?url";
@@ -34,6 +35,7 @@ const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
 const graphOpen = ref(false);
 const mode = ref<ViewModeId>("write");
+const plugins = usePlugins();
 const {
   open: paletteOpen,
   show: showPalette,
@@ -202,12 +204,40 @@ onMounted(async () => {
   const linkedView = queryString(viewQuery.value);
   if (linkedView === "graph") graphOpen.value = true;
   const instanceId = linkedView.startsWith("plugin:") ? linkedView.slice("plugin:".length) : "";
-  if (instanceId && store.getPluginInstance(instanceId)) currentPluginId.value = instanceId;
+  if (instanceId && store.getPluginInstance(instanceId)) openPlugin(instanceId);
   const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
   if (threadId && store.getChat(threadId)) currentChatId.value = threadId;
 
   setPluginNavigation({ openPage, openPlugin });
   setChatNavigation({ openChat, openPage });
+
+  // Dev-only handles for the e2e suite; production builds drop them.
+  testApi.openPlugin = openPlugin;
+  testApi.installPlugin = async (pluginId) => {
+    await plugins.install(pluginId);
+
+    return plugins.instances.value.find((candidate) => candidate.pluginId === pluginId)?.id ?? "";
+  };
+  testApi.pluginStatus = (id, kind) =>
+    plugins.stateOf(id, kind as PluginSurfaceKind)?.status ?? null;
+  testApi.pluginHtml = (id, kind) => plugins.stateOf(id, kind as PluginSurfaceKind)?.html ?? "";
+  testApi.pluginAction = (id, kind, name, args = {}, fields = {}) =>
+    plugins.dispatch(id, kind as PluginSurfaceKind, {
+      id: crypto.randomUUID(),
+      name,
+      args,
+      fields,
+    });
+  testApi.pluginWindowOpen = (id) => plugins.windowOf(id).open;
+  testApi.pluginState = async (id) => (await workspace.value?.readPluginState(id)) ?? {};
+  testApi.writeWorkspaceFile = async (path, text) => {
+    await useWorkspace().backend.value?.write(path, new TextEncoder().encode(text));
+  };
+  testApi.refreshPlugins = () => plugins.refreshCatalog();
+  testApi.pluginLogs = () =>
+    plugins.logs.value.map((entry) =>
+      `${entry.kind} ${entry.pluginId ?? ""} ${entry.message}`.trim(),
+    );
 });
 
 watch(currentPageId, (id) => {
@@ -291,8 +321,12 @@ watch(viewQuery, (raw) => {
     const id = value.slice("plugin:".length);
     currentChatId.value = null;
     graphOpen.value = false;
-    if (workspace.value?.getPluginInstance(id)) currentPluginId.value = id;
-    else if (queryString(viewQuery.value) === value) viewQuery.value = "";
+    if (workspace.value?.getPluginInstance(id)) {
+      if (plugins.surfaceOf(id, "pane")) currentPluginId.value = id;
+      else if (plugins.surfaceOf(id, "window")) plugins.openWindow(id);
+    } else if (queryString(viewQuery.value) === value) {
+      viewQuery.value = "";
+    }
     return;
   }
 
@@ -385,12 +419,39 @@ watch(currentPageKind, (kind, previous) => {
 
 function openPlugin(instanceId: string) {
   navOpen.value = false;
-  if (instanceId) {
+  if (!instanceId) return;
+
+  // Window-only plugins (drawing) float; pane plugins take the main pane. A
+  // local plugin's manifest may not be in the catalog yet; hold the id and
+  // retry when it arrives instead of opening a blank pane.
+  const kinds = plugins.surfacesOf(instanceId).map((surface) => surface.kind);
+  if (!kinds.length) {
+    if (workspace.value?.getPluginInstance(instanceId)) pendingPluginId.value = instanceId;
+    return;
+  }
+
+  if (kinds.includes("pane")) {
     currentChatId.value = null;
     graphOpen.value = false;
     currentPluginId.value = instanceId;
+  } else if (kinds.includes("window")) {
+    plugins.openWindow(instanceId);
   }
 }
+
+/** A plugin link that arrived before its catalog entry did. */
+const pendingPluginId = ref<string | null>(null);
+
+watch(
+  () => plugins.catalog.value,
+  () => {
+    const id = pendingPluginId.value;
+    if (id && plugins.surfacesOf(id).length) {
+      pendingPluginId.value = null;
+      openPlugin(id);
+    }
+  },
+);
 
 /** The sidebar and page toolbar open the workspace graph. */
 function openGraph() {
@@ -612,7 +673,7 @@ definePageMeta({ ssr: false });
           </div>
         </template>
 
-        <PluginOverlay />
+        <PluginWindows />
 
         <SearchPalette
           v-if="paletteOpen && workspace"

@@ -34,6 +34,13 @@ pub struct TypstDiagnostic {
     pub severity: TypstDiagnosticSeverity,
     pub message: String,
     pub hints: Box<[String]>,
+    /// Virtual path of the imported file the diagnostic points into, when it
+    /// is not one of the note's own compile sources. Plugin errors land here.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+    /// 1-based line in `file`. Unset when `file` is.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<usize>,
 }
 
 impl TypstDiagnostic {
@@ -61,13 +68,18 @@ impl TypstDiagnostic {
             .into_iter()
             .filter_map(|mut diagnostic| {
                 if diagnostic.message == "failed to load file" {
-                    let source = world.source(diagnostic.span.id().unwrap()).unwrap();
-                    let text = source
-                        .text()
-                        .get(world.range(diagnostic.span).unwrap())
-                        .unwrap();
-
-                    diagnostic.message = eco_format!("failed to load file: {text}");
+                    // The span can point at the missing file itself, which is
+                    // not in the world yet; every step here stays optional so
+                    // an unanswered request cannot panic the render.
+                    if let Some(id) = diagnostic.span.id() {
+                        if let (Ok(source), Some(range)) =
+                            (world.source(id), world.range(diagnostic.span))
+                        {
+                            if let Some(text) = source.text().get(range) {
+                                diagnostic.message = eco_format!("failed to load file: {text}");
+                            }
+                        }
+                    }
                 }
 
                 map_raw_span(
@@ -78,19 +90,44 @@ impl TypstDiagnostic {
                     world,
                     fallback,
                 )
-                .map(|range| TypstDiagnostic {
-                    range,
-                    severity: TypstDiagnosticSeverity::from_severity(diagnostic.severity),
-                    message: diagnostic.message.to_string(),
-                    hints: diagnostic
-                        .hints
-                        .into_iter()
-                        .map(|s| s.v.to_string())
-                        .collect(),
+                .map(|range| {
+                    let site = foreign_site(diagnostic.span, context, world);
+                    TypstDiagnostic {
+                        range,
+                        severity: TypstDiagnosticSeverity::from_severity(diagnostic.severity),
+                        message: diagnostic.message.to_string(),
+                        hints: diagnostic
+                            .hints
+                            .into_iter()
+                            .map(|s| s.v.to_string())
+                            .collect(),
+                        file: site.as_ref().map(|(path, _)| path.clone()),
+                        line: site.map(|(_, line)| line),
+                    }
                 })
             })
             .collect()
     }
+}
+
+/// Path and 1-based line for a diagnostic span that points outside the
+/// context's own compile sources, for example a plugin module. Owned spans
+/// keep `file: none`; the caller already maps their range into the note.
+fn foreign_site(
+    span: DiagSpan,
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> Option<(String, usize)> {
+    let id = span.id()?;
+    if context.owns_span(id) {
+        return None;
+    }
+
+    let source = world.source(id).ok()?;
+    let range = world.range(span)?;
+    let line = source.lines().byte_to_line(range.start)?;
+
+    Some((id.vpath().get_with_slash().to_string(), line + 1))
 }
 
 pub fn map_synth_span(

@@ -152,6 +152,9 @@ function useWorkspaceState() {
   /** Bumped whenever workspace-level data changes (pages, categories, settings). */
   const dataRevision = ref(0);
 
+  /** Bumped when files under `plugins/` change on disk (studio reload). */
+  const pluginFilesRevision = ref(0);
+
   /** Presence state: peer -> { persona, cursor }. Filled by the relay. */
   const presence = shallowRef(
     new Map<string, { persona: { name: string; color: string }; cursor: CursorLike | null }>(),
@@ -577,7 +580,9 @@ function useWorkspaceState() {
 
       // Native and picked-folder backends push changes as they land; the
       // focus/visibility sweep still covers engines without a watcher.
-      unwatchSources = store.watchSources(syncExternalChanges);
+      unwatchSources = store.watchSources(syncExternalChanges, () => {
+        pluginFilesRevision.value += 1;
+      });
 
       if (import.meta.dev) {
         // Console access for debugging (mirrors __typstState in typst.ts).
@@ -797,6 +802,7 @@ function useWorkspaceState() {
     localState,
     error,
     dataRevision,
+    pluginFilesRevision,
     ensure,
     workspaceId,
     atproto,

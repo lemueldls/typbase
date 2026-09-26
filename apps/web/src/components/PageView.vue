@@ -1350,6 +1350,7 @@ function convertPageKind(): void {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
+  min-height: var(--pane-header-height);
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);

@@ -1,9 +1,9 @@
 {
   "id": "local:drawing",
   "name": "Drawing",
-  "version": "0.2.0",
-  "description": "A touch-friendly drawing canvas with a Typst embed for notes.",
-  "api": "typbase.host.v1",
+  "version": "0.3.0",
+  "description": "A touch-friendly drawing canvas in a floating window, with a Typst embed for notes.",
+  "api": "typbase.host.v2",
   "entry": "main.typ",
   "icon": "draw",
   "capabilities": ["pages.read", "pages.write", "plugin.data"],
@@ -16,5 +16,6 @@
       }
     }
   },
-  "surfaces": [{ "kind": "main", "fn": "main", "title": "Drawing", "icon": "draw" }]
+  "hostComponents": ["canvas"],
+  "surfaces": [{ "kind": "window", "fn": "window", "title": "Drawing", "icon": "draw" }]
 }

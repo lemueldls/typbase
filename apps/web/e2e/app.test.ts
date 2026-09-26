@@ -9,48 +9,6 @@ import { describe, expect, it } from "vitest";
  * State is created through `window.__typbase.store` (dev-only) instead of the
  * UI, so tests exercise the engine and the editor rather than dialogs.
  */
-declare global {
-  interface Window {
-    __typbase: {
-      pageId: string;
-      store: {
-        createPage(input: {
-          title: string;
-          content?: string;
-          kind?: "document" | "notebook";
-          categoryId?: string | null;
-        }): Promise<{ id: string; title: string }>;
-        loadPageText(id: string): Promise<string>;
-        flush(): Promise<void>;
-        updatePageKind(id: string, kind: "document" | "notebook"): Promise<void>;
-        updateSettings(patch: Record<string, unknown>): void;
-        getAiSettings(): Record<string, unknown>;
-        readChatMessages(id: string): Promise<Array<{ id: string; status: string }>>;
-        deleteChat(id: string): Promise<void>;
-      };
-      openPage(id: string): void;
-      setMode(mode: string): void;
-      mode(): string;
-      engineStatus(): string;
-      engineMemory(): number;
-      crashEngine(): void;
-      openChat(threadId?: string | null): void;
-      openGraph(): void;
-      graphStats(): { nodes: number; edges: number } | null;
-      backlinksFor(pageId: string): string[];
-      view: {
-        state: {
-          doc: { toString(): string };
-          selection: { main: { from: number; to: number } };
-        };
-      } | null;
-      newChat(pageId?: string | null): Promise<string>;
-      sendChat(threadId: string, text: string): Promise<void>;
-      chatMessages(threadId: string): Promise<Array<{ id: string; status: string }>>;
-      setAiStub(provider: unknown): void;
-    };
-  }
-}
 
 describe("typbase app", async () => {
   await setup({

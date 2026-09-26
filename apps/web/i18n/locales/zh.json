@@ -493,7 +493,17 @@
     "installFolder": "从文件夹安装",
     "localHint": "本地插件位于工作区存储的 plugins/ 目录中。",
     "sourceLocal": "本地",
-    "capPagesWrite": "编辑页面"
+    "capPagesWrite": "编辑页面",
+    "develop": "开发",
+    "open": "打开",
+    "addInstance": "添加实例",
+    "renameInstance": "重命名实例",
+    "instanceName": "实例名称",
+    "issues": "问题",
+    "renderFailed": "此插件渲染失败。",
+    "openWindow": "在窗口中打开",
+    "resize": "调整窗口大小",
+    "appended": "已添加到 {title}"
   },
   "links": {
     "title": "链接",

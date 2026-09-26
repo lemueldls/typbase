@@ -231,6 +231,26 @@ watch(
   },
 );
 
+// External writers replace the page text under an open editor: a plugin's
+// `app.page-append`, a source-mirror import, an atproto pull. Adopt the new
+// text when it differs from the doc; the editor's own edits echo back equal,
+// so this never fires mid-typing. PageView only updates `text` when the
+// editor is idle, so a pending keystroke cannot be clobbered here.
+watch(
+  () => props.text.value,
+  (value) => {
+    const editor = view.value;
+    if (!editor || editor.state.doc.toString() === value) return;
+
+    const anchor = Math.min(editor.state.selection.main.anchor, value.length);
+    const head = Math.min(editor.state.selection.main.head, value.length);
+    editor.dispatch({
+      changes: { from: 0, to: editor.state.doc.length, insert: value },
+      selection: { anchor, head },
+    });
+  },
+);
+
 /** The options a reconfigure captures; props are read at call time. */
 function spellcheckOptions(): SpellcheckOptions {
   return {

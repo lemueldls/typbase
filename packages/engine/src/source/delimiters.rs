@@ -246,6 +246,8 @@ pub fn delimiter_diagnostics(fixups: &RawFixups, text: &str) -> Vec<TypstDiagnos
                 severity: TypstDiagnosticSeverity::Warning,
                 message: String::from(fix.kind.message()),
                 hints: Box::default(),
+                file: None,
+                line: None,
             }
         })
         .collect()

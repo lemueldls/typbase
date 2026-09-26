@@ -1,7 +1,10 @@
 // Calendar plugin. Events come from two places: the plugin's own `events`
-// collection (structured, drag-friendly) and daily notes, where lines shaped
-// like `- 10:00 Dentist` become events. Daily notes are read through the
-// normal `#typbase.query` channel and written through `app.page-append`.
+// collection (structured, typed) and daily notes, where lines shaped like
+// `- 10:00 Dentist` become events. Daily notes are read through the normal
+// `#typbase.query` channel and written through `app.page-append`.
+//
+// The widget and the pane are two surfaces of one instance, so both read the
+// same event list.
 
 #import "/typbase/lib.typ" as typbase
 #import "/typbase/ui.typ": *
@@ -101,9 +104,7 @@
 }
 
 #let collection-events(state) = state.at("events", default: ())
-
 #let all-events(state, month) = collection-events(state) + note-day(state, month)
-
 #let events-on(state, month, date) = all-events(state, month).filter(event => event.date == date)
 
 
@@ -111,17 +112,17 @@
   let name = action.name
 
   if name == "calendar.select" {
-    patch-view((selected: action.args.date))
+    ops-view((selected: action.args.date))
   } else if name == "calendar.prev" or name == "calendar.next" {
     let delta = if name == "calendar.prev" { -1 } else { 1 }
-    patch-view((month: shift-month(action.args.month, delta)))
+    ops-view((month: shift-month(action.args.month, delta)))
   } else if name == "event.create" {
     let title = action.fields.at("title", default: "").trim()
     let date = action.fields.at("date", default: action.args.date)
     if title == "" {
-      none
+      (:)
     } else {
-      patch-both(
+      ops-both(
         (
           op-append("events", (
             id: action.id,
@@ -134,14 +135,14 @@
       )
     }
   } else if name == "event.remove" {
-    patch-state((op-remove("events", action.args.id),))
+    ops-state((op-remove("events", action.args.id),))
   } else {
-    none
+    (:)
   }
 }
 
 
-#let month-grid(year, month, state, month-key, today-iso) = {
+#let month-grid(state, month-key, year, month, today-iso, selected) = {
   let first-weekday = datetime(year: year, month: month, day: 1).weekday()
   let offset = if first-weekday == none { 0 } else { first-weekday - 1 }
   let total = days-in-month(year, month)
@@ -156,20 +157,39 @@
     body: [
       #for cell in cells [
         #if cell == none [
-          #calendar-cell(body: [])
+          #html.elem("div", attrs: (class: "cal-day cal-day--empty"))
         ] else [
           #let iso = iso-date(year, month, cell)
           #let day-events = events-on(state, month-key, iso)
-          #let tone = if iso == today-iso { "today" } else { "default" }
-          #calendar-cell(action: "calendar.select", args: (date: iso), tone: tone, body: [
-            #html.elem("span", attrs: (class: "tb-day__number"), str(cell))
-            #for event in day-events.slice(0, calc.min(2, day-events.len())) [
-              #html.elem("span", attrs: (class: "tb-event"), event.title)
-            ]
-            #if day-events.len() > 2 [
-              #muted(body: "+" + str(day-events.len() - 2))
-            ]
-          ])
+          #let tone = if iso == selected {
+            " cal-day--selected"
+          } else if iso == today-iso {
+            " cal-day--today"
+          } else {
+            ""
+          }
+          #html.elem(
+            "button",
+            attrs: (
+              type: "button",
+              class: "cal-day" + tone,
+              "data-tb-action": "calendar.select",
+              "data-tb-args": json.encode((date: iso)),
+            ),
+            [
+              #html.elem("span", attrs: (class: "cal-day__number"), str(cell))
+              #for event in day-events.slice(0, calc.min(2, day-events.len())) [
+                #html.elem("span", attrs: (class: "cal-event"), event.title)
+              ]
+              #if day-events.len() > 2 [
+                #html.elem(
+                  "span",
+                  attrs: (class: "cal-day__more"),
+                  "+" + str(day-events.len() - 2),
+                )
+              ]
+            ],
+          )
         ]
       ]
     ],
@@ -183,7 +203,7 @@
 
   panel(title: selected, body: [
     #if day-events.len() == 0 [
-      #muted(body: "No events.")
+      #empty(body: "No events.")
     ] else [
       #for event in day-events [
         #card(body: [
@@ -196,7 +216,7 @@
               #if event.at("source", default: "") == "note" [
                 #badge(body: "note")
               ] else [
-                #button("×", "event.remove", args: (id: event.id), kind: "ghost")
+                #button("×", action: "event.remove", args: (id: event.id), kind: "ghost")
               ]
             ],
             gap: "0.35rem",
@@ -213,74 +233,81 @@
       #row(
         body: [
           #field("Date", "date", value: selected, kind: "date")
-          #field("Note line", "text", placeholder: "10:00 Dentist")
+          #field("Time", "time", placeholder: "10:00", kind: "time")
+          #field("Title", "title", placeholder: "Dentist")
         ],
         gap: "0.4rem",
       )
-      #row(body: [
-        #button("Add event", "event.create", args: (date: selected), kind: "primary")
-        #button("Write to daily note", "app.page-append", args: (date: selected), kind: "ghost")
-      ])
+      #button("Add event", action: "event.create", args: (date: selected), kind: "primary")
+    ])
+
+    #form(body: [
+      #row(
+        body: [
+          #field("Daily note line", "text", placeholder: "10:00 Dentist")
+          #button("Write to daily note", action: "app.page-append", args: (date: selected), kind: "ghost")
+        ],
+        gap: "0.4rem",
+      )
     ])
   ])
 }
 
 
-#let sidebar(ctx) = {
-  let patch = if ctx.action != none { step(ctx.state, ctx.view, ctx.action, ctx) } else { none }
-  let state = apply-patch(ctx.state, patch)
-  let today-events = events-on(state, ctx.today.slice(0, 7), ctx.today)
+#let widget(ctx) = {
+  let patch = if ctx.action != none { step(ctx.state, ctx.view, ctx.action, ctx) } else { (:) }
+  let today-events = events-on(ctx.state, ctx.today.slice(0, 7), ctx.today)
 
-  [
-    #patch-holder(patch)
-    #panel(title: "Today", body: [
-      #if today-events.len() == 0 [
-        #muted(body: "No events today.")
-      ] else [
-        #for event in today-events [
-          #row(
-            body: [
-              #if event.at("time", default: "") != "" [
-                #muted(body: event.at("time", default: ""))
-              ]
-              #event.title
-            ],
-            gap: "0.35rem",
-          )
+  surface(
+    [
+      #panel(title: "Today", body: [
+        #if today-events.len() == 0 [
+          #muted(body: "No events today.")
+        ] else [
+          #for event in today-events [
+            #row(
+              body: [
+                #if event.at("time", default: "") != "" [
+                  #muted(body: event.at("time", default: ""))
+                ]
+                #event.title
+              ],
+              gap: "0.35rem",
+            )
+          ]
         ]
-      ]
-      #button("Open calendar", "app.open-plugin", args: (pluginId: "local:calendar"), kind: "ghost")
-    ])
-  ]
+        #button("Open calendar", action: "app.open-plugin", args: (pluginId: "local:calendar"), kind: "ghost")
+      ])
+    ],
+    ..patch,
+  )
 }
 
-#let main(ctx) = {
-  let patch = if ctx.action != none { step(ctx.state, ctx.view, ctx.action, ctx) } else { none }
-  let state = apply-patch(ctx.state, patch)
-  let view = apply-view(ctx.view, patch)
+#let pane(ctx) = {
+  let patch = if ctx.action != none { step(ctx.state, ctx.view, ctx.action, ctx) } else { (:) }
+  let view = ctx.view
   let month = current-month(view, ctx)
   let year = int(month.slice(0, 4))
   let month-number = int(month.slice(5, 7))
   let selected = view.at("selected", default: ctx.today)
 
-  [
-    #patch-holder(patch)
-    #panel(title: month-label(month), body: [
-      #row(
-        body: [
-          #button("‹", "calendar.prev", args: (month: month), kind: "ghost")
-          #button("Today", "calendar.select", args: (date: ctx.today), kind: "ghost")
-          #button("›", "calendar.next", args: (month: month), kind: "ghost")
-        ],
-        gap: "0.25rem",
-      )
-      #month-grid(year, month-number, state, month, ctx.today)
-    ])
+  surface(
+    [
+      #panel(title: month-label(month), body: [
+        #toolbar(body: [
+          #button("‹", action: "calendar.prev", args: (month: month), kind: "ghost")
+          #button("Today", action: "calendar.select", args: (date: ctx.today), kind: "ghost")
+          #button("›", action: "calendar.next", args: (month: month), kind: "ghost")
+        ])
+        #month-grid(ctx.state, month, year, month-number, ctx.today, selected)
+      ])
 
-    #day-panel(state, month, selected)
+      #day-panel(ctx.state, month, selected)
 
-    #if selected != ctx.today [
-      #button("Open daily note", "app.create-daily", args: (date: selected), kind: "ghost")
-    ]
-  ]
+      #if selected != ctx.today [
+        #button("Open daily note", action: "app.create-daily", args: (date: selected), kind: "ghost")
+      ]
+    ],
+    ..patch,
+  )
 }

@@ -136,7 +136,7 @@ pub(crate) fn render_html_ctx(
                     ctx.world,
                 ));
 
-                crate::error!("[ERRORS]: {diagnostics:?}");
+                crate::debug!("[ERRORS]: {diagnostics:?}");
 
                 let indicies =
                     remove_errornous_block(blocks, &source_diagnostics, ctx.note, ctx.world);

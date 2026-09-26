@@ -1,203 +1,14 @@
 <script setup lang="ts">
-import type { PluginAction } from "@typbase/typing";
-
+/**
+ * Debug lab for the plugin runtime: engine health, catalog and error counts,
+ * and the runtime log. Authoring lives on /plugins (the studio); this page
+ * stays for diagnosing the compiler and the worker fallback.
+ */
 const plugins = usePlugins();
-const { backend, workspace } = useWorkspace();
+const router = useRouter();
 
-const selectedId = ref("");
-const selected = computed(() =>
-  plugins.instances.value.find((entry) => entry.id === selectedId.value),
-);
-const previewHtml = ref("");
-
-const actionName = ref("calendar.select");
-const actionArgs = ref('{\n  "date": "2026-09-20"\n}');
-const actionFields = ref("{}");
-const actionStatus = ref("");
-
-const stateJson = ref("");
-const htmlPreview = ref("");
-const showHtml = ref(false);
-
-async function refreshInspection(): Promise<void> {
-  const id = selectedId.value;
-  if (!id) {
-    stateJson.value = "";
-    htmlPreview.value = "";
-    return;
-  }
-
-  try {
-    stateJson.value = JSON.stringify((await workspace.value?.readPluginState(id)) ?? {}, null, 2);
-  } catch (error) {
-    stateJson.value = String(error);
-  }
-
-  previewHtml.value = plugins.htmlOf(id);
-  htmlPreview.value = previewHtml.value;
-}
-
-watch(selectedId, () => void refreshInspection(), { immediate: true });
-watch(
-  plugins.instances,
-  (list) => {
-    if (!selectedId.value && list[0]) selectedId.value = list[0].id;
-  },
-  { immediate: true },
-);
-watch(
-  () => plugins.logs.value.length,
-  () => void refreshInspection(),
-);
-
-async function compile(): Promise<void> {
-  if (selectedId.value) await plugins.renderInstance(selectedId.value);
-  await refreshInspection();
-}
-
-function dispatchAction(): void {
-  actionStatus.value = "";
-  if (!selectedId.value) return;
-
-  let args: Record<string, unknown> = {};
-  let fields: Record<string, unknown> = {};
-  try {
-    args = actionArgs.value.trim() ? (JSON.parse(actionArgs.value) as Record<string, unknown>) : {};
-  } catch (error) {
-    actionStatus.value = `args: ${String(error)}`;
-    return;
-  }
-  try {
-    fields = actionFields.value.trim()
-      ? (JSON.parse(actionFields.value) as Record<string, unknown>)
-      : {};
-  } catch (error) {
-    actionStatus.value = `fields: ${String(error)}`;
-    return;
-  }
-
-  const action: PluginAction = {
-    id: crypto.randomUUID(),
-    name: actionName.value.trim(),
-    args,
-    fields,
-  };
-  actionStatus.value = `dispatched ${action.name}`;
-  void plugins.dispatch(selectedId.value, action).then(() => void refreshInspection());
-}
-
-const editPlugin = ref("");
-const editFile = ref("");
-const editText = ref("");
-const editStatus = ref("");
-const saving = ref(false);
-
-const localEntries = computed(() =>
-  plugins.catalog.value.filter((entry) => entry.source === "local" && entry.storageDir),
-);
-
-const editEntry = computed(() =>
-  localEntries.value.find((entry) => entry.manifest.id === editPlugin.value),
-);
-
-const editFiles = computed(() => {
-  const entry = editEntry.value;
-  if (!entry) return [];
-  const prefix = `/typbase/plugin/${entry.slug}/`;
-
-  return entry.sources
-    .map((source) =>
-      source.path.startsWith(prefix) ? source.path.slice(prefix.length) : source.path,
-    )
-    .sort();
-});
-
-const instanceOptions = computed(() =>
-  plugins.instances.value.map((instance) => ({
-    value: instance.id,
-    label: `${instance.title} (${instance.surface})`,
-  })),
-);
-
-const editPluginOptions = computed(() =>
-  localEntries.value.map((entry) => ({ value: entry.manifest.id, label: entry.manifest.name })),
-);
-
-const editFileOptions = computed(() =>
-  editFiles.value.map((file) => ({ value: file, label: file })),
-);
-
-watch(
-  localEntries,
-  (list) => {
-    if (!editPlugin.value && list[0]) editPlugin.value = list[0].manifest.id;
-  },
-  { immediate: true },
-);
-watch(
-  editFiles,
-  (files) => {
-    if (!editFile.value || !files.includes(editFile.value)) editFile.value = files[0] ?? "";
-  },
-  { immediate: true },
-);
-watch(editFile, () => void loadSource());
-
-async function loadSource(): Promise<void> {
-  const entry = editEntry.value;
-  const active = backend.value;
-  if (!entry || !active || !editFile.value) {
-    editText.value = "";
-    return;
-  }
-
-  const bytes = await active.read(`${entry.storageDir}/${editFile.value}`).catch(() => null);
-  editText.value = bytes ? new TextDecoder().decode(bytes) : "";
-}
-
-async function saveSource(): Promise<void> {
-  const entry = editEntry.value;
-  const active = backend.value;
-  if (!entry || !active || !editFile.value) return;
-
-  saving.value = true;
-  try {
-    await active.write(
-      `${entry.storageDir}/${editFile.value}`,
-      new TextEncoder().encode(editText.value),
-    );
-    editStatus.value = `saved ${editFile.value}`;
-    await plugins.refreshCatalog();
-    await refreshInspection();
-  } catch (error) {
-    editStatus.value = String(error);
-  } finally {
-    saving.value = false;
-  }
-}
-
-/** Copies a bundled plugin into the storage tree so it can be edited. */
-async function forkToLocal(pluginId: string): Promise<void> {
-  const entry = plugins.catalog.value.find((candidate) => candidate.manifest.id === pluginId);
-  const active = backend.value;
-  if (!entry || !active) return;
-
-  const prefix = `/typbase/plugin/${entry.slug}/`;
-  const encoder = new TextEncoder();
-  for (const source of entry.sources) {
-    const relative = source.path.startsWith(prefix)
-      ? source.path.slice(prefix.length)
-      : source.path.replace(/^\//, "");
-    await active.write(`plugins/${entry.slug}/${relative}`, encoder.encode(source.text));
-  }
-  await active.write(
-    `plugins/${entry.slug}/plugin.json`,
-    encoder.encode(`${JSON.stringify(entry.manifest, null, 2)}\n`),
-  );
-
-  await plugins.refreshCatalog();
-  editPlugin.value = pluginId;
-  editStatus.value = `copied to plugins/${entry.slug}/`;
+function develop(pluginId: string) {
+  void router.push({ path: "/plugins", query: { plugin: pluginId } });
 }
 
 function formatTime(at: number): string {
@@ -222,39 +33,29 @@ function formatTime(at: number): string {
     </section>
 
     <section class="lab-plugin__group">
-      <h3 class="lab-plugin__title">Surface</h3>
-      <div class="lab-plugin__row">
-        <UiSelect
-          v-model="selectedId"
-          :options="instanceOptions"
-          label="Plugin instance"
-          class="lab-plugin__select"
-        />
-        <UiButton variant="primary" size="small" @click="compile"> Compile </UiButton>
-        <UiButton size="small" @click="refreshInspection"> Refresh state </UiButton>
-      </div>
-
-      <div class="lab-plugin__action">
-        <UiTextField v-model="actionName" placeholder="action name" />
-        <textarea v-model="actionArgs" rows="3" class="lab-plugin__input" placeholder="args JSON" />
-        <textarea
-          v-model="actionFields"
-          rows="2"
-          class="lab-plugin__input"
-          placeholder="fields JSON"
-        />
-        <div class="lab-plugin__row">
-          <UiButton size="small" @click="dispatchAction"> Dispatch action </UiButton>
-          <span class="lab-plugin__muted">{{ actionStatus }}</span>
-        </div>
-      </div>
-    </section>
-
-    <section v-if="selected" class="lab-plugin__group">
-      <h3 class="lab-plugin__title">Preview</h3>
-      <div class="lab-plugin__preview">
-        <PluginSurface :instance-id="selected.id" :title="selected.title" />
-      </div>
+      <h3 class="lab-plugin__title">Catalog</h3>
+      <ul class="lab-plugin__plugins">
+        <li
+          v-for="entry in plugins.catalog.value"
+          :key="entry.manifest.id"
+          class="lab-plugin__plugin"
+        >
+          <span class="lab-plugin__plugin-name">{{ entry.manifest.name }}</span>
+          <span class="lab-plugin__muted">{{ entry.source }}</span>
+          <span class="lab-plugin__muted">
+            {{ entry.manifest.surfaces.map((surface) => surface.kind).join(", ") }}
+          </span>
+          <span v-if="plugins.errorsFor(entry.manifest.id).length" class="lab-plugin__count">
+            {{ plugins.errorsFor(entry.manifest.id).length }} issue(s)
+          </span>
+          <UiButton size="small" variant="ghost" @click="develop(entry.manifest.id)">
+            Studio
+          </UiButton>
+        </li>
+      </ul>
+      <p v-if="plugins.errors.value.length" class="lab-plugin__muted">
+        {{ plugins.errors.value.length }} runtime error(s) across plugins.
+      </p>
     </section>
 
     <section class="lab-plugin__group">
@@ -271,61 +72,6 @@ function formatTime(at: number): string {
           <span class="lab-plugin__log-message">{{ entry.message }}</span>
         </li>
       </ul>
-    </section>
-
-    <section class="lab-plugin__group">
-      <h3 class="lab-plugin__title">State</h3>
-      <pre class="lab-plugin__pre">{{ stateJson || "{}" }}</pre>
-      <div class="lab-plugin__row">
-        <UiButton size="small" @click="showHtml = !showHtml">
-          {{ showHtml ? "Hide" : "Show" }} rendered HTML ({{ htmlPreview.length }}b)
-        </UiButton>
-      </div>
-      <pre v-if="showHtml" class="lab-plugin__pre">{{ htmlPreview }}</pre>
-    </section>
-
-    <section class="lab-plugin__group">
-      <h3 class="lab-plugin__title">Sources</h3>
-      <div class="lab-plugin__row">
-        <UiSelect
-          v-model="editPlugin"
-          :options="editPluginOptions"
-          label="Plugin source"
-          class="lab-plugin__select"
-        />
-        <UiSelect
-          v-model="editFile"
-          :options="editFileOptions"
-          label="Plugin file"
-          class="lab-plugin__select"
-        />
-        <UiButton
-          variant="primary"
-          size="small"
-          :disabled="saving || !editFile"
-          @click="saveSource"
-        >
-          Save + reload
-        </UiButton>
-      </div>
-
-      <textarea v-model="editText" rows="16" class="lab-plugin__editor" spellcheck="false" />
-      <p class="lab-plugin__muted">{{ editStatus }}</p>
-
-      <div class="lab-plugin__row">
-        <span class="lab-plugin__muted">Make a bundled plugin editable:</span>
-        <button
-          v-for="entry in plugins.catalog.value.filter(
-            (candidate) => candidate.source === 'bundled',
-          )"
-          :key="entry.manifest.id"
-          type="button"
-          class="button button--small"
-          @click="forkToLocal(entry.manifest.id)"
-        >
-          {{ entry.manifest.name }}
-        </button>
-      </div>
     </section>
   </div>
 </template>
@@ -357,50 +103,27 @@ function formatTime(at: number): string {
   gap: var(--space-1-5);
 }
 
-.lab-plugin__action {
-  display: grid;
-  gap: var(--space-1-5);
-}
-
-.lab-plugin__input,
-.lab-plugin__editor {
-  padding: var(--space-1-5) var(--space-2);
-  font: inherit;
-  font-size: var(--text-md);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.lab-plugin__editor {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  resize: vertical;
-}
-
-.lab-plugin__select {
-  flex: 1;
-  min-width: 0;
-}
-
-.lab-plugin__preview {
-  height: 24rem;
-  overflow: hidden;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.lab-plugin__pre {
-  max-height: 18rem;
+.lab-plugin__plugins {
   margin: 0;
-  padding: var(--space-2-5);
-  overflow: auto;
-  font-size: var(--text-xs);
-  white-space: pre-wrap;
-  background: var(--color-surface-2);
-  border-radius: var(--radius-sm);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.lab-plugin__plugin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.lab-plugin__plugin-name {
+  font-weight: 600;
+}
+
+.lab-plugin__count {
+  color: var(--color-danger);
 }
 
 .lab-plugin__error {

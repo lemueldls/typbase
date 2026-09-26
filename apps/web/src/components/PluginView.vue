@@ -22,6 +22,10 @@ const icon = computed<MaterialSymbol>(() => {
   const value = instance.value?.icon || plugins.manifestOf(instance.value?.pluginId ?? "")?.icon;
   return (value as MaterialSymbol | undefined) ?? "extension";
 });
+
+const hasWindow = computed(() =>
+  plugins.surfacesOf(props.instanceId).some((surface) => surface.kind === "window"),
+);
 </script>
 
 <template>
@@ -31,12 +35,18 @@ const icon = computed<MaterialSymbol>(() => {
       <MsIcon :name="icon" :size="18" />
       <UiTruncatedText class="plugin-view__title" :text="title" />
       <div class="plugin-view__actions">
+        <UiIconButton
+          v-if="hasWindow"
+          icon="picture_in_picture_alt"
+          :label="$t('plugins.openWindow')"
+          @click="plugins.openWindow(instanceId)"
+        />
         <UiIconButton icon="close" :label="$t('plugins.close')" @click="emit('close')" />
       </div>
     </div>
 
     <div class="plugin-view__body">
-      <PluginSurface :instance-id="instanceId" :title="title" />
+      <PluginSurface :instance-id="instanceId" surface="pane" :title="title" />
     </div>
   </div>
 </template>
@@ -53,13 +63,15 @@ const icon = computed<MaterialSymbol>(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 3.5rem;
-  padding: var(--space-1-5) var(--space-3);
+  min-height: var(--pane-header-height);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
 .plugin-view__title {
   min-width: 0;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 

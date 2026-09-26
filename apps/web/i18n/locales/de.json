@@ -493,7 +493,17 @@
     "installFolder": "Aus Ordner installieren",
     "localHint": "Lokale Plugins liegen in plugins/ im Arbeitsbereichsspeicher.",
     "sourceLocal": "lokal",
-    "capPagesWrite": "Seiten bearbeiten"
+    "capPagesWrite": "Seiten bearbeiten",
+    "develop": "Entwickeln",
+    "open": "Öffnen",
+    "addInstance": "Instanz hinzufügen",
+    "renameInstance": "Instanz umbenennen",
+    "instanceName": "Instanzname",
+    "issues": "Probleme",
+    "renderFailed": "Dieses Plugin konnte nicht gerendert werden.",
+    "openWindow": "In einem Fenster öffnen",
+    "resize": "Fenstergröße ändern",
+    "appended": "Zu {title} hinzugefügt"
   },
   "links": {
     "title": "Links",

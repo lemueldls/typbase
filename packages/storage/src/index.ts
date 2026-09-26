@@ -38,6 +38,7 @@ export {
   chatDocId,
   chatIdOf,
   chatPath,
+  isPluginChange,
   isSourceChange,
   pagePath,
   pluginDocId,

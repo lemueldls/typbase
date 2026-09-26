@@ -47,6 +47,34 @@ export interface TypbaseTestApi {
   chatMessages: ((threadId: string) => Promise<ChatMessage[]>) | null;
   /** Stream from this provider instead of the configured one. */
   setAiStub: ((provider: AiProvider | null) => void) | null;
+  /** Open a plugin instance: pane when it has one, window otherwise. */
+  openPlugin: ((instanceId: string) => void) | null;
+  /** Install a catalog plugin and return its first instance id. */
+  installPlugin: ((pluginId: string) => Promise<string>) | null;
+  /** Render status of one surface: "ok", "error", or null before a render. */
+  pluginStatus: ((instanceId: string, kind: string) => string | null) | null;
+  /** Sanitized HTML of the last render of one surface. */
+  pluginHtml: ((instanceId: string, kind: string) => string) | null;
+  /** Dispatch a plugin or host action and wait for the render queue. */
+  pluginAction:
+    | ((
+        instanceId: string,
+        kind: string,
+        name: string,
+        args?: Record<string, unknown>,
+        fields?: Record<string, unknown>,
+      ) => Promise<void>)
+    | null;
+  /** Whether an instance's floating window is open. */
+  pluginWindowOpen: ((instanceId: string) => boolean) | null;
+  /** Read a plugin instance's synced records. */
+  pluginState: ((instanceId: string) => Promise<Record<string, unknown[]>>) | null;
+  /** Write a file under the workspace root (e2e seeds broken plugins). */
+  writeWorkspaceFile: ((path: string, text: string) => Promise<void>) | null;
+  /** Reload the plugin catalog from storage. */
+  refreshPlugins: (() => Promise<void>) | null;
+  /** Runtime log lines, newest first. */
+  pluginLogs: (() => string[]) | null;
 }
 
 export const testApi: TypbaseTestApi = {
@@ -68,6 +96,16 @@ export const testApi: TypbaseTestApi = {
   sendChat: null,
   chatMessages: null,
   setAiStub: null,
+  openPlugin: null,
+  installPlugin: null,
+  pluginStatus: null,
+  pluginHtml: null,
+  pluginAction: null,
+  pluginWindowOpen: null,
+  pluginState: null,
+  writeWorkspaceFile: null,
+  refreshPlugins: null,
+  pluginLogs: null,
 };
 
 if (import.meta.dev && typeof window !== "undefined") {

@@ -1,13 +1,22 @@
 // Host-supplied helpers for plugin surfaces. Import them from any plugin:
 //
-//   #import "/typbase/ui.typ": panel, button, field, patch-holder
+//   #import "/typbase/ui.typ": *
 //
-// Every interactive element is a plain HTML element carrying data-tb-*
-// attributes; the sandbox runtime turns clicks and field values into actions.
-// The host applies the patch the surface returns and styles all tb-* classes.
+// A surface function returns `surface(ui, state: ops, view: dict)`. Typst
+// binds required parameters positionally, so `ui` is passed first. The host
+// applies `state` to the plugin's synced doc and `view` to device-local
+// state, then renders the surface once more without an action. Step functions
+// therefore only describe the change:
 //
-// Bodies are named (`body:`) so call sites read the same everywhere; Typst
-// `html.elem` wants its body positionally, which the helpers handle.
+//   #let main(ctx) = {
+//     let patch = if ctx.action != none { step(ctx.state, ctx.action, ctx) } else { (:) }
+//     surface([ ... ], ..patch)
+//   }
+//
+// Every interactive element carries data-tb-* attributes; the sandbox runtime
+// turns clicks and field values into actions. Colors come from `ctx.theme`
+// (camelCase palette tokens: text, textSecondary, accent, accentSoft, red,
+// orange, yellow, green, cyan, blue, violet, code, ...).
 
 
 #let action-attrs(name, args: (:)) = (
@@ -15,18 +24,68 @@
   "data-tb-args": json.encode(args),
 )
 
-#let button(label, action, args: (:), kind: "default", disabled: false) = {
-  let base = (
-    (
-      type: "button",
-      class: "tb-button tb-button--" + kind,
-    )
-      + action-attrs(action, args: args)
-  )
-  let attrs = if disabled { base + ("disabled": "disabled") } else { base }
+// Runs several host actions in order from one element. Entries are
+// `(name: "...", args: (:))`; fields from the enclosing form are sent to each.
+// `button(actions: ...)` builds this attribute for you.
+#let action-chain(entries) = (
+  "data-tb-chain": json.encode(
+    entries.map(entry => (name: entry.at("name"), args: entry.at("args", default: (:)))),
+  ),
+)
 
-  html.elem("button", attrs: attrs, label)
+// The surface result. `state` ops go to the synced doc, `view` merges into
+// device-local state.
+#let surface(ui, state: (), view: ()) = (ui: ui, state: state, view: view)
+
+// Patch builders for step functions. Spread the result into `surface(...)`.
+#let ops-state(ops) = (state: ops)
+#let ops-view(view) = (view: view)
+#let ops-both(ops, view) = (state: ops, view: view)
+
+
+// Buttons and every other helper here follow Typst's rule: parameters with
+// defaults are named-only, so write `action:`, `args:`, `kind:` explicitly.
+#let button(
+  label,
+  action: none,
+  actions: (),
+  args: (:),
+  kind: "default",
+  selected: false,
+  disabled: false,
+  style: none,
+  body: none,
+) = {
+  let attrs = (type: "button", class: "tb-button tb-button--" + kind)
+  if selected { attrs.insert("class", attrs.at("class") + " tb-button--selected") }
+  if action != none { attrs += action-attrs(action, args: args) }
+  if actions.len() > 0 { attrs.insert("data-tb-chain", json.encode(actions)) }
+  if disabled { attrs.insert("disabled", "disabled") }
+  if style != none { attrs.insert("style", style) }
+
+  html.elem("button", attrs: attrs, (if body == none { label } else { body }))
 }
+
+// Color chip. The plugin passes a color from `ctx.theme` (or its own value).
+#let swatch(color, action: none, args: (:), selected: false, label: "") = {
+  let attrs = (
+    type: "button",
+    class: "tb-swatch" + (if selected { " tb-button--selected" } else { "" }),
+    style: "--tb-swatch:" + color,
+    title: label,
+    "aria-label": label,
+  )
+  if action != none { attrs += action-attrs(action, args: args) }
+
+  html.elem("button", attrs: attrs)
+}
+
+// Material Symbols ligature; the host loads the icon font.
+#let icon(name, size: none) = html.elem(
+  "span",
+  attrs: (class: "tb-icon") + (if size != none { (style: "font-size:" + size) } else { (:) }),
+  name,
+)
 
 #let field(title, name, value: "", placeholder: "", kind: "text", commit: "change") = html.elem(
   "label",
@@ -88,6 +147,13 @@
   ],
 )
 
+// Field container: the runtime collects only the fields inside one form.
+#let form(body: []) = html.elem(
+  "div",
+  attrs: (class: "tb-form tb-stack", "data-tb-form": "form"),
+  body,
+)
+
 
 #let panel(body: [], title: none) = html.elem(
   "section",
@@ -119,6 +185,12 @@
   body,
 )
 
+#let toolbar(body: [], gap: "0.35rem") = html.elem(
+  "div",
+  attrs: (class: "tb-row tb-toolbar", style: "gap:" + gap),
+  body,
+)
+
 #let card(body: []) = html.elem("div", attrs: (class: "tb-card"), body)
 
 #let badge(body: [], tone: "muted") = html.elem(
@@ -129,58 +201,11 @@
 
 #let muted(body: []) = html.elem("span", attrs: (class: "tb-muted"), body)
 
-#let calendar-cell(body: [], tone: "default", action: none, args: (:)) = {
-  let base = (class: "tb-day tb-day--" + tone)
-  let attrs = if action == none { base } else { base + action-attrs(action, args: args) }
-
-  html.elem("div", attrs: attrs, body)
-}
+#let empty(body: []) = html.elem("div", attrs: (class: "tb-empty"), body)
 
 
-#let canvas(action, strokes: (), color: "#1f2328", width: 3, height: 320) = html.elem(
-  "div",
-  attrs: (
-    class: "tb-canvas-host",
-    style: "height:" + str(height) + "px",
-    "data-tb-component": "canvas",
-    "data-tb-action": action,
-    "data-tb-props": json.encode((strokes: strokes, color: color, width: width)),
-  ),
-)
-
-#let board(body: [], height: 360) = html.elem(
-  "div",
-  attrs: (class: "tb-board", "data-tb-board": "board", style: "height:" + str(height) + "px"),
-  body,
-)
-
-// Full-viewport board for overlay surfaces; floating children position
-// against the window, and the surface lets pointer events fall through.
-#let overlay-board(body: []) = html.elem(
-  "div",
-  attrs: (class: "tb-board tb-board--fill", "data-tb-board": "overlay"),
-  body,
-)
-
-#let floating(body: [], x: 12, y: 12, right: false, bottom: false) = html.elem(
-  "div",
-  attrs: (
-    class: "tb-floating",
-    style: if right and bottom {
-      "right:" + str(x) + "px;bottom:" + str(y) + "px"
-    } else if right {
-      "right:" + str(x) + "px;top:" + str(y) + "px"
-    } else if bottom {
-      "left:" + str(x) + "px;bottom:" + str(y) + "px"
-    } else {
-      "left:" + str(x) + "px;top:" + str(y) + "px"
-    },
-  ),
-  body,
-)
-
-// Free-positioned element. The runtime moves it live and sends x/y on drop,
-// merged with `args` (carry the record id there).
+// Free-positioned element inside `board`. The runtime moves it live and sends
+// x/y on drop, merged with `args` (carry the record id there).
 #let movable(action, x: 0, y: 0, body: [], args: (:)) = html.elem(
   "div",
   attrs: (
@@ -206,8 +231,27 @@
   body,
 )
 
+// Paint surface. `strokes` round-trips to the canvas as
+// `((color:, width:, points: ()))`; each point is `(x, y)`.
+#let canvas(action, strokes: (), color: "#1f2328", width: 3, height: 320) = html.elem(
+  "div",
+  attrs: (
+    class: "tb-canvas-host",
+    style: "height:" + str(height) + "px",
+    "data-tb-component": "canvas",
+    "data-tb-action": action,
+    "data-tb-props": json.encode((strokes: strokes, color: color, width: width)),
+  ),
+)
 
-// Action builders. A patch is `(state: (op, ..), view: (key: value, ..))`.
+#let board(body: [], height: 360) = html.elem(
+  "div",
+  attrs: (class: "tb-board", "data-tb-board": "board", style: "height:" + str(height) + "px"),
+  body,
+)
+
+
+// Patch op builders.
 #let op-append(collection, record) = (op: "append", collection: collection, record: record)
 #let op-set(collection, id, key, value) = (
   op: "set",
@@ -226,64 +270,6 @@
 )
 #let op-remove(collection, id) = (op: "remove", collection: collection, id: id)
 
-#let patch-state(ops) = (state: ops)
-#let patch-both(ops, view) = (state: ops, view: view)
-#let patch-view(view) = (view: view)
-
-// Hidden holder the host reads, validates, and persists before the HTML hits
-// the frame. Renders nothing when there is no patch.
-#let patch-holder(patch) = if patch == none { [] } else {
-  html.elem("div", attrs: ("hidden": "hidden", "data-tb-patch": json.encode(patch)))
-}
-
-// Applies a patch's state ops to a state dict so a surface can render the
-// post-action view from the same object it sends to the host.
-#let apply-patch(state, patch) = {
-  if patch == none { return state }
-
-  let next = state
-  for op in patch.at("state", default: ()) {
-    let collection = next.at(op.collection, default: ())
-    if op.op == "append" {
-      collection.push(op.record)
-    } else if op.op == "remove" {
-      collection = collection.filter(record => record.id != op.id)
-    } else {
-      collection = collection.map(record => {
-        if record.id != op.id { return record }
-        let updated = record
-        if op.op == "merge" {
-          for (key, value) in op.record { updated.insert(key, value) }
-        } else if op.op == "set" {
-          updated.insert(op.key, op.value)
-        } else if op.op == "inc" {
-          updated.insert(op.key, updated.at(op.key, default: 0) + op.value)
-        }
-        updated
-      })
-    }
-    next.insert(op.collection, collection)
-  }
-
-  next
-}
-
-// Merges a patch's view changes into the view dict.
-#let apply-view(view, patch) = {
-  if patch == none { return view }
-
-  let next = view
-  for (key, value) in patch.at("view", default: (:)) { next.insert(key, value) }
-
-  next
-}
-
-// Field container: the runtime collects only the fields inside one form.
-#let form(body: []) = html.elem(
-  "div",
-  attrs: (class: "tb-form", "data-tb-form": "form"),
-  stack(body: body),
-)
 
 //
 // AI calls arrive back at the plugin as a render whose `ctx.action` is
@@ -297,7 +283,7 @@
 // One-shot call; the answer arrives as an `ai.result` action.
 #let ai-complete(prompt, format: "text", args: (:), kind: "default", label: "Ask AI") = button(
   label,
-  "ai.complete",
+  action: "ai.complete",
   args: (prompt: prompt, format: format) + args,
   kind: kind,
 )
@@ -317,7 +303,7 @@
   kind: "default",
 ) = button(
   label,
-  "ai.stream",
+  action: "ai.stream",
   args: (prompt: prompt, collection: collection, id: id, field: field, format: format) + args,
   kind: kind,
 )

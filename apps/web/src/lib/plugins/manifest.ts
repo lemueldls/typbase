@@ -25,9 +25,9 @@ const CAPABILITIES: Record<PluginCapability, true> = {
 };
 
 const SURFACES: Record<PluginSurfaceKind, true> = {
-  sidebar: true,
-  main: true,
-  overlay: true,
+  widget: true,
+  pane: true,
+  window: true,
 };
 
 const FIELD_TYPES: Record<PluginFieldType, true> = {
@@ -87,7 +87,6 @@ function parseSurface(raw: unknown, index: number): PluginSurface {
     fn: safeFunctionName(value.fn, `surfaces[${index}].fn`),
     title: requireString(value.title, `surfaces[${index}].title`),
     icon: typeof value.icon === "string" && value.icon ? value.icon : undefined,
-    height: typeof value.height === "number" ? value.height : undefined,
   };
 }
 
@@ -139,6 +138,13 @@ export function parseManifest(raw: unknown): PluginManifest {
 
   const surfaces = ((value.surfaces as unknown[]) ?? []).map(parseSurface);
   if (surfaces.length === 0) throw new Error("plugin declares no surfaces");
+  const kinds = new Set<PluginSurfaceKind>();
+  for (const surface of surfaces) {
+    if (kinds.has(surface.kind)) {
+      throw new Error(`plugin declares two ${surface.kind} surfaces; one per kind`);
+    }
+    kinds.add(surface.kind);
+  }
 
   return {
     id: requireString(value.id, "id"),
@@ -197,6 +203,9 @@ export function validatePatch(
 
     const clean: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(record)) {
+      // `id` is the record key, added by the runtime; schemas never declare it.
+      if (key === "id") continue;
+
       const field = schema.fields[key];
       if (!field) {
         errors.push(`field "${collection}.${key}" is not declared`);

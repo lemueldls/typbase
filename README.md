@@ -9,6 +9,7 @@ https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
 - **Inline WYSIWYG:** Compiled output replaces the source as you type. Split edit and read views come with it.
 - **Notebook pages:** Create a page as a notebook and its source splits into cells on `// %%` markers. Cells render in place and run with a click with execution counters and Jupyter keybindings.
 - **The workspace as data:** `#typbase.query`, `#typbase.embed`, `#typbase.page-link`, and `#typbase.section` read pages, categories, daily notes, and sections from inside a document.
+- **Plugins written in Typst:** A plugin declares sidebar widgets, panes, and floating windows as Typst functions plus a manifest and a record schema. One instance shares its data across its surfaces, windows are host-managed, and the `/plugins` studio edits, previews, and debugs local plugins (`docs/plugins.md`).
 - **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The source mirror is plain `.typ`, and `typst compile --root .` works outside the app.
 - **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto Spaces. Publish a page as a public post when you want a URL.
 

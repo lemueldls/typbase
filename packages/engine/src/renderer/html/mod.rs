@@ -125,7 +125,7 @@ pub fn render(
                         end_byte += 12;
                     }
 
-                    crate::error!("[ERRORS]: {diagnostics:?}");
+                    crate::debug!("[ERRORS]: {diagnostics:?}");
 
                     let start_byte =
                         context.map_repaired_to_render(repaired_range.start, Side::Before);
@@ -215,8 +215,8 @@ pub struct HTMLRangedFrame {
 
 #[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
 pub struct HTMLFrameRender {
-    html: String,
-    hash: u32,
+    pub html: String,
+    pub hash: u32,
 }
 
 /// Result of rendering a Typst document to HTML.

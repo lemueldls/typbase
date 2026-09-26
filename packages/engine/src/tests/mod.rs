@@ -22,6 +22,7 @@ mod mapper;
 mod memory;
 mod packages;
 mod partition;
+mod plugins;
 mod prefix;
 mod recovery;
 mod synth;
