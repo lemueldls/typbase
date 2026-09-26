@@ -146,6 +146,8 @@
     "editor": "编辑器",
     "editorLineNumbers": "行号",
     "editorLineNumbersHint": "在编辑器边栏显示源码行号。",
+    "editorSoftWrap": "自动换行",
+    "editorSoftWrapHint": "长行在面板宽度处换行。关闭后可横向滚动长行。",
     "editorScrollPastEnd": "滚动到最后一行之后",
     "editorScrollPastEndHint": "在文档末尾保留滚动空间，光标不会贴住底部。",
     "textFont": "正文字体",

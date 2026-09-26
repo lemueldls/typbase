@@ -146,6 +146,8 @@
     "editor": "Editor",
     "editorLineNumbers": "Números de línea",
     "editorLineNumbersHint": "Muestra los números de línea del código en el margen del editor.",
+    "editorSoftWrap": "Ajuste de línea",
+    "editorSoftWrapHint": "Ajusta las líneas largas al ancho del panel. Desactívalo para desplazarlas horizontalmente.",
     "editorScrollPastEnd": "Desplazar más allá de la última línea",
     "editorScrollPastEndHint": "Deja espacio de desplazamiento tras el documento para que el cursor no quede pegado al borde inferior.",
     "textFont": "Fuente de texto",

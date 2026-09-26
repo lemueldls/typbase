@@ -146,6 +146,8 @@
     "editor": "Éditeur",
     "editorLineNumbers": "Numéros de ligne",
     "editorLineNumbersHint": "Affiche les numéros de ligne source dans la marge de l'éditeur.",
+    "editorSoftWrap": "Retour à la ligne",
+    "editorSoftWrapHint": "Coupe les lignes longues à la largeur du panneau. Désactivez pour les faire défiler horizontalement.",
     "editorScrollPastEnd": "Défiler au-delà de la dernière ligne",
     "editorScrollPastEndHint": "Garde de l'espace de défilement après le document pour que la ligne du curseur ne reste pas collée au bord inférieur.",
     "textFont": "Police de texte",

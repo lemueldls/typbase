@@ -26,6 +26,10 @@ export const typstEditorTheme = EditorView.theme({
     overflowY: "scroll",
     padding: "var(--space-2-5) 0",
   },
+  // Soft wrap off: long lines scroll sideways instead of being clipped.
+  "&.cm-soft-wrap-off .cm-scroller": {
+    overflowX: "auto",
+  },
   ".cm-content": {
     fontFamily: "var(--font-mono)",
     // padding: "1rem 1.25rem",

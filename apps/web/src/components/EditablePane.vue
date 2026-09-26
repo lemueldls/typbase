@@ -263,7 +263,11 @@ watch(spellcheckSignature, () => {
 // Display flags are swapped in place too; the mode watcher above rebuilds the
 // view and picks the current props up from `createStateConfig`.
 const editorDisplaySignature = computed(() =>
-  JSON.stringify([Boolean(props.editor?.lineNumbers), Boolean(props.editor?.scrollPastEnd)]),
+  JSON.stringify([
+    props.editor?.softWrap !== false,
+    Boolean(props.editor?.lineNumbers),
+    Boolean(props.editor?.scrollPastEnd),
+  ]),
 );
 
 watch(editorDisplaySignature, () => {
@@ -350,7 +354,6 @@ function createStateConfig(): EditorStateConfig {
     EditorView.exceptionSink.of((error) => {
       console.error(error);
     }),
-    EditorView.lineWrapping,
     EditorView.editable.of(true),
     EditorState.readOnly.of(false),
     highlightSpecialChars(),

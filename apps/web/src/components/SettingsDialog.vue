@@ -272,6 +272,14 @@ const editorLineNumbers = computed({
     }),
 });
 
+const editorSoftWrap = computed({
+  get: () => settings.value.editor?.softWrap ?? true,
+  set: (value: boolean) =>
+    props.store.updateSettings({
+      editor: { ...settings.value.editor, softWrap: value },
+    }),
+});
+
 const editorScrollPastEnd = computed({
   get: () => settings.value.editor?.scrollPastEnd ?? false,
   set: (value: boolean) =>
@@ -714,6 +722,14 @@ async function renameWorkspace(event: Event) {
                 :aria-label="$t('settings.editorLineNumbers')"
               />
               <span class="settings__hint">{{ $t("settings.editorLineNumbersHint") }}</span>
+            </div>
+            <div class="settings__field">
+              <UiSwitch
+                v-model="editorSoftWrap"
+                :label="$t('settings.editorSoftWrap')"
+                :aria-label="$t('settings.editorSoftWrap')"
+              />
+              <span class="settings__hint">{{ $t("settings.editorSoftWrapHint") }}</span>
             </div>
             <div class="settings__field">
               <UiSwitch

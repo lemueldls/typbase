@@ -146,6 +146,8 @@
     "editor": "Editor",
     "editorLineNumbers": "Line numbers",
     "editorLineNumbersHint": "Show source line numbers in the editor gutter.",
+    "editorSoftWrap": "Soft wrap",
+    "editorSoftWrapHint": "Wrap long lines at the pane width. Turn off to scroll them horizontally.",
     "editorScrollPastEnd": "Scroll past the last line",
     "editorScrollPastEndHint": "Keep scroll room below the document so the cursor line is not pinned to the bottom edge.",
     "textFont": "Text font",

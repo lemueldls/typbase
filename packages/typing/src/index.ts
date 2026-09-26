@@ -136,6 +136,8 @@ export interface NotebookSettings {
 export interface EditorSettings {
   /** Show source line numbers in the gutter. */
   lineNumbers: boolean;
+  /** Wrap long lines at the pane width; off scrolls them horizontally. */
+  softWrap: boolean;
   /** Leave scroll room below the last line so the cursor is not pinned to the bottom. */
   scrollPastEnd: boolean;
 }
@@ -383,6 +385,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   },
   editor: {
     lineNumbers: false,
+    softWrap: true,
     scrollPastEnd: false,
   },
   graph: {

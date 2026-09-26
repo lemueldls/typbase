@@ -146,6 +146,8 @@
     "editor": "Editor",
     "editorLineNumbers": "Zeilennummern",
     "editorLineNumbersHint": "Zeigt die Quellzeilennummern am Editorrand an.",
+    "editorSoftWrap": "Zeilenumbruch",
+    "editorSoftWrapHint": "Bricht lange Zeilen an der Panelbreite um. Ausschalten, um sie horizontal zu scrollen.",
     "editorScrollPastEnd": "Über die letzte Zeile hinaus scrollen",
     "editorScrollPastEndHint": "Lässt Scrollraum nach dem Dokument, damit die Cursorzeile nicht am unteren Rand klebt.",
     "textFont": "Textschrift",
