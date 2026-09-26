@@ -100,7 +100,7 @@ Most phones use `arm64-v8a`, older 32-bit devices use `armeabi-v7a`, and emulato
 
 ## Updating
 
-- **Desktop:** Checks at launch and from the "General" settings, installs in place, and restarts. winget installs the same NSIS build and updates the same way.
+- **Desktop:** Checks at launch and from the "General" settings, installs in place, and restarts.
 - **AUR, Void, Nix:** These update through your package manager; the in-app check points there instead.
 - **Android APK:** Downloads the build for your device's ABI, verifies its checksum, and opens the system installer. Android asks you to allow installs from the browser or file manager that opens the APK. Typbase asks for the "install unknown apps" permission once, the first time it installs its own update.
 
