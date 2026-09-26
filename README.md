@@ -2,7 +2,7 @@
 
 Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphere](https://atproto.com/).
 
-https://github.com/user-attachments/assets/49163d5e-9fc1-420a-a1d6-eb6779157e32
+https://github.com/user-attachments/assets/f002f9a0-63b3-43c2-bd1a-ea7ed898fba3
 
 ## Features
 
