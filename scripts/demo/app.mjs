@@ -143,15 +143,29 @@ export async function installCursor(context) {
       document.addEventListener(
         "mousemove",
         (event) => {
+          // The overlay ignores events until `moveCursor` arms it. Chromium
+          // reports a stray mousemove at (0,0) while the app boots, and
+          // following it parked the pointer in the top-left corner before the
+          // first glide started from the center.
+          if (!window.__demoCursorArmed) return;
+
           cursor.classList.add("is-visible");
           cursor.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
         },
         true,
       );
-      document.addEventListener("mousedown", () => cursor.classList.add("is-pressed"), true);
+      document.addEventListener(
+        "mousedown",
+        () => {
+          if (window.__demoCursorArmed) cursor.classList.add("is-pressed");
+        },
+        true,
+      );
       document.addEventListener(
         "mouseup",
         () => {
+          if (!window.__demoCursorArmed) return;
+
           cursor.classList.remove("is-pressed");
           cursor.classList.remove("is-clicked");
           // Restart the ripple animation on every click.
@@ -174,12 +188,21 @@ function easeInOutCubic(t) {
 /** Last animated pointer position, so moves start where the last one ended. */
 let cursorPoint = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
 
+/** Lets the overlay track the pointer; see the guard in `installCursor`. */
+async function armCursor(page) {
+  await page.evaluate(() => {
+    window.__demoCursorArmed = true;
+  });
+}
+
 /**
  * Moves the pointer to a point over `duration` ms along a slightly curved,
  * eased path, dispatching a real mousemove per frame. Playwright's built-in
  * `steps` all fire in one tick, which reads as a teleport on video.
  */
 export async function moveCursor(page, x, y, { duration = 420 } = {}) {
+  await armCursor(page);
+
   const from = cursorPoint;
   const dx = x - from.x;
   const dy = y - from.y;
@@ -258,7 +281,7 @@ export async function applySettings(page, patch) {
 }
 
 /** In-app navigation: no reload, so settings just applied stay in memory. */
-export async function show(page, pageId, mode) {
+export async function show(page, pageId, mode, { editor = true } = {}) {
   await page.evaluate(
     ({ id, viewMode }) => {
       window.__typbase.openPage(id);
@@ -267,9 +290,11 @@ export async function show(page, pageId, mode) {
     { id: pageId, viewMode: mode },
   );
 
-  await page.waitForSelector(".cm-editor", { timeout: 120_000 });
+  // Read mode hides the editor, so it waits on the page shell instead.
+  await page.waitForSelector(editor ? ".cm-editor" : ".page-view", { timeout: 120_000 });
   await page.waitForFunction(() => document.fonts.status === "loaded", null, { timeout: 60_000 });
   await page.waitForTimeout(900);
+  if (!editor) return;
   // The linter runs after the editor compile; wait for a clean gutter so no
   // red squiggles land in the shot.
   await page

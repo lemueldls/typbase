@@ -99,9 +99,9 @@ Most phones need the `arm64-v8a` build, older 32-bit devices use `armeabi-v7a`, 
 
 ## Updating
 
-- **Desktop:** Checks at launch and from Settings -> General, installs in place, and restarts. winget installs the same NSIS build and updates the same way.
+- **Desktop:** Checks at launch and from the "General" settings, installs in place, and restarts. winget installs the same NSIS build and updates the same way.
 - **AUR, Void, Nix:** These packages update through your package manager; the in-app check points there instead.
-- **Android APK:** Downloads the build for your device's ABI, verifies its checksum, and opens the system installer. Needs the one-time "install unknown apps" grant above.
+- **Android APK:** Downloads the build for your device's ABI, verifies its checksum, and opens the system installer. Android asks you to allow installs from the browser or file manager that opens the APK. Typbase asks for the "install unknown apps" permission once, the first time it installs its own update.
 
 <!-- - **Google Play:** Play handles the download and the in-app prompt. -->
 <!-- - **Obtainium:** Point it at the [GitHub repository](https://github.com/lemueldls/typbase) and it tracks releases; the in-app check still works. -->

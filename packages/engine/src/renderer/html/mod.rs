@@ -153,8 +153,7 @@ pub fn render(
                     // Report the blamed prefix's errors on the block that
                     // caused them, not the whole note.
                     let raw = blamed_raw_range(&blocks[index], context, &state.world);
-                    let (_, blamed_unmappable) =
-                        split_unmappable(&blamed, context, &state.world);
+                    let (_, blamed_unmappable) = split_unmappable(&blamed, context, &state.world);
 
                     diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
                         blamed_unmappable.into_iter().collect(),
@@ -186,7 +185,7 @@ pub fn render(
 
     state.world.main_id = Some(context.synth_id);
 
-    crate::debug!("FRAMES: {frames:?}");
+    // crate::debug!("FRAMES: {frames:?}");
 
     if let Some(warnings) = compiled_warnings {
         diagnostics.extend(TypstDiagnostic::from_diagnostics(
