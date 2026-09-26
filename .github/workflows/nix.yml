@@ -20,6 +20,9 @@ jobs:
   update-flake:
     name: ❄️ Update flake
     runs-on: ubuntu-latest
+    concurrency:
+      group: nix-update-flake
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -48,6 +51,7 @@ jobs:
 
       - name: 🔄 Update nix derivations
         env:
+          BRANCH: ${{ github.event.repository.default_branch }}
           SSH_SIGNING_KEY: ${{ secrets.SSH_SIGNING_KEY }}
         run: bash scripts/ci/nix-update-flake.sh "${{ steps.version.outputs.version }}"
 
