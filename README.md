@@ -96,12 +96,12 @@ sudo xbps-install -S typbase
 
 Download the APK from the [GitHub Release page](https://github.com/lemueldls/typbase/releases/latest).
 
-Most phones need the `arm64-v8a` build, older 32-bit devices use `armeabi-v7a`, and emulators use `x86` or `x86_64`.
+Most phones use `arm64-v8a`, older 32-bit devices use `armeabi-v7a`, and emulators use `x86` or `x86_64`.
 
 ## Updating
 
 - **Desktop:** Checks at launch and from the "General" settings, installs in place, and restarts. winget installs the same NSIS build and updates the same way.
-- **AUR, Void, Nix:** These packages update through your package manager; the in-app check points there instead.
+- **AUR, Void, Nix:** These update through your package manager; the in-app check points there instead.
 - **Android APK:** Downloads the build for your device's ABI, verifies its checksum, and opens the system installer. Android asks you to allow installs from the browser or file manager that opens the APK. Typbase asks for the "install unknown apps" permission once, the first time it installs its own update.
 
 <!-- - **Google Play:** Play handles the download and the in-app prompt. -->
