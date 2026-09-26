@@ -3,6 +3,7 @@ import type { LocaleObject } from "@nuxtjs/i18n";
 import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
+const appDescription = "Local-first knowledge base made for Typst and the Atmosphere.";
 const locales: LocaleObject[] = [
   { code: "en", dir: "ltr", language: "en-US", file: "en.json" },
   { code: "es", dir: "ltr", language: "es-ES", file: "es.json" },
@@ -24,12 +25,11 @@ export default defineNuxtConfig({
       title: "Typbase",
       meta: [
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-        {
-          name: "description",
-          content: "Local-first knowledge base made for Typst and the Atmosphere.",
-        },
+        { name: "description", content: appDescription },
+        { property: "og:title", content: "Typbase" },
+        { property: "og:description", content: appDescription },
+        { property: "og:type", content: "website" },
         { property: "og:site_name", content: "Typbase" },
-        { name: "twitter:card", content: "summary" },
       ],
       link: [{ rel: "icon", type: "image/x-icon", href: "favicon.ico" }],
       script: [

@@ -88,7 +88,6 @@ const profileDescription = computed(() =>
 useSeoMeta({
   title: () => profileTitle.value,
   ogTitle: () => profileTitle.value,
-  twitterTitle: () => profileTitle.value,
   ogType: "profile",
   description: () => profileDescription.value,
   ogDescription: () => profileDescription.value,

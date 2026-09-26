@@ -123,6 +123,10 @@ describe("typbase app", async () => {
     });
     await showPage(page, id, "write");
     await expect(page.title()).resolves.toBe("Persistence check · My workspace");
+    // The page's og:title replaces the static app default, not the other way.
+    await expect(
+      page.locator('head meta[property="og:title"]').getAttribute("content"),
+    ).resolves.toBe("Persistence check · My workspace");
 
     await page.locator(".cm-content").click();
     await page.keyboard.press("Control+End");

@@ -373,7 +373,6 @@ useSeoMeta({
   title: () => pageTitle.value,
   ogTitle: () => pageTitle.value,
   ogType: "website",
-  twitterTitle: () => pageTitle.value,
 });
 
 // Converting the open page carries the mode with it. A deliberate mode change
