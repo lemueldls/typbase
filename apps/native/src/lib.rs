@@ -1,6 +1,3 @@
-#[cfg(desktop)]
-use std::str::FromStr;
-
 #[allow(unused_imports)]
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, webview::PageLoadEvent, window::Color};
 

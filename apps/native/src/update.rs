@@ -198,6 +198,18 @@ pub enum DownloadEvent {
 pub async fn android_update_check<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<Option<SideloadUpdate>, String> {
+    let result = check_sideload_update(&app).await;
+    if let Err(cause) = &result {
+        eprintln!("[update] check failed: {cause}");
+    }
+
+    result
+}
+
+#[cfg(target_os = "android")]
+async fn check_sideload_update<R: Runtime>(
+    app: &AppHandle<R>,
+) -> Result<Option<SideloadUpdate>, String> {
     let abis = {
         let updater = app.state::<AndroidUpdater<R>>();
         updater
@@ -209,6 +221,7 @@ pub async fn android_update_check<R: Runtime>(
 
     let manifest: AndroidManifest = http_client()?
         .get(ANDROID_MANIFEST_URL)
+        .timeout(std::time::Duration::from_secs(30))
         .send()
         .await
         .map_err(|cause| format!("update check failed: {cause}"))?
@@ -271,6 +284,7 @@ pub async fn android_update_download<R: Runtime>(
 
     let response = http_client()?
         .get(&url)
+        .timeout(std::time::Duration::from_secs(900))
         .send()
         .await
         .map_err(|cause| format!("download failed: {cause}"))?
@@ -425,14 +439,26 @@ fn plugin_error(cause: tauri::plugin::mobile::PluginInvokeError) -> String {
 
 /// reqwest's rustls backend has no bundled provider; Tauri and the updater
 /// plugin install `ring` on first use, so do the same before the first request.
+///
+/// The Android platform verifier needs a JNI context that is only set up by the
+/// hosting runtime, and panics without one. Use Mozilla's compiled-in roots
+/// instead: the only hosts this client talks to are GitHub release URLs.
 #[cfg(target_os = "android")]
 fn http_client() -> Result<reqwest::Client, String> {
     if rustls::crypto::CryptoProvider::get_default().is_none() {
         let _ = rustls::crypto::ring::default_provider().install_default();
     }
 
+    let mut roots = rustls::RootCertStore::empty();
+    roots.add_parsable_certificates(webpki_root_certs::TLS_SERVER_ROOT_CERTS.iter().cloned());
+    let tls = rustls::ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+
     reqwest::Client::builder()
         .user_agent(USER_AGENT)
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .tls_backend_preconfigured(tls)
         .build()
         .map_err(|cause| format!("could not build the HTTP client: {cause}"))
 }

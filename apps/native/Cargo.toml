@@ -51,6 +51,7 @@ rustls = { version = "0.23.44", default-features = false, features = ["ring"] }
 semver = "1.0.28"
 sha2 = "0.10.9"
 tokio = { version = "1.53.1", features = ["fs", "io-util"] }
+webpki-root-certs = "1.0.9"
 
 [build-dependencies]
 tauri-build = { version = "3.0.0-alpha.0", features = [] }

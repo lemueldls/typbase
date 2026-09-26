@@ -6,9 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
@@ -22,7 +20,6 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
-import com.google.android.play.core.ktx.startUpdateFlowForResult
 import java.io.File
 import org.json.JSONArray
 
@@ -30,6 +27,10 @@ import org.json.JSONArray
  * Android half of the sideload updater: installer intent, the per-app "install
  * unknown apps" flow, and Play Core's in-app update. The Rust commands in
  * `apps/native/src/update.rs` call these through `run_mobile_plugin`.
+ *
+ * Tauri builds the plugin after the activity has resumed, so nothing here may
+ * touch `registerForActivityResult`; Play's flow reports through
+ * [MainActivity.onActivityResult] instead.
  */
 @InvokeArg
 class InstallArgs {
@@ -38,19 +39,6 @@ class InstallArgs {
 
 @TauriPlugin
 class UpdaterPlugin(private val activity: Activity) : Plugin(activity) {
-    private var pendingPlayInvoke: Invoke? = null
-
-    // Play's update flow needs an IntentSender launcher, and the launcher has to
-    // be registered before the activity starts. The plugin is built during
-    // onCreate, so this is the last safe moment.
-    private val updateLauncher = (activity as? ComponentActivity)?.registerForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        val invoke = pendingPlayInvoke
-        pendingPlayInvoke = null
-        invoke?.resolve(playResult(result.resultCode))
-    }
-
     private val updateManager: AppUpdateManager? by lazy {
         runCatching { AppUpdateManagerFactory.create(activity) }.getOrNull()
     }
@@ -175,8 +163,7 @@ class UpdaterPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun playStart(invoke: Invoke) {
         val manager = updateManager
-        val launcher = updateLauncher
-        if (manager == null || launcher == null) {
+        if (manager == null) {
             invoke.reject("Google Play is not available.")
             return
         }
@@ -190,28 +177,43 @@ class UpdaterPlugin(private val activity: Activity) : Plugin(activity) {
             pendingPlayInvoke = invoke
             manager.startUpdateFlowForResult(
                 info,
-                launcher,
+                activity,
                 AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build(),
+                PLAY_UPDATE_REQUEST,
             )
         }.addOnFailureListener { cause ->
             invoke.reject(cause.message ?: "Could not start the Google Play update.")
         }
     }
 
-    private fun playResult(resultCode: Int, status: String? = null): JSObject {
-        val result = JSObject()
-        result.put(
-            "status", status ?: when (resultCode) {
-                Activity.RESULT_OK -> "success"
-                Activity.RESULT_CANCELED -> "canceled"
-                else -> "failed"
-            }
-        )
-        result.put("code", resultCode)
-        return result
-    }
-
     private fun canRequestInstalls(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
                 activity.packageManager.canRequestPackageInstalls()
+
+    companion object {
+        /** Request code Play reports through [MainActivity.onActivityResult]. */
+        const val PLAY_UPDATE_REQUEST = 0x7B05
+
+        private var pendingPlayInvoke: Invoke? = null
+
+        /** Called from the activity; resolves the waiting `playStart` invoke. */
+        fun onPlayUpdateResult(resultCode: Int) {
+            val invoke = pendingPlayInvoke
+            pendingPlayInvoke = null
+            invoke?.resolve(playResult(resultCode))
+        }
+
+        private fun playResult(resultCode: Int, status: String? = null): JSObject {
+            val result = JSObject()
+            result.put(
+                "status", status ?: when (resultCode) {
+                    Activity.RESULT_OK -> "success"
+                    Activity.RESULT_CANCELED -> "canceled"
+                    else -> "failed"
+                }
+            )
+            result.put("code", resultCode)
+            return result
+        }
+    }
 }
