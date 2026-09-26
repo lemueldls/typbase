@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.3] - 2026-09-26
+
+### New
+
+- Add update management system
+
+### Fixed
+
+- Native mobile app design
+- Calendar translations
+
 ## [0.2.2] - 2026-09-25
 
 ### New

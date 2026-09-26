@@ -1389,7 +1389,7 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
 name = "engine"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "comemo",
  "criterion",
@@ -6332,7 +6332,7 @@ dependencies = [
 
 [[package]]
 name = "typbase"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "fontdb 0.24.0",
  "futures-util",
