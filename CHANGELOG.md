@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2026-09-27
+
+### New
+
+- Service worker caching
+- Implement back navigation handling for overlays and pages
+- Manage system bars for Android based on app theme
+- Page context binding
+
+### Fixed
+
+- Page link insert
+- Stabilize cursor on force recompile
+- Font family consistency
+- Tween graph zoom
+- Allow changing page category
+- Lazy loading of backlinks
+- Action spelling of category
+
 ## [0.2.5] - 2026-09-26
 
 ## [0.2.4] - 2026-09-26
