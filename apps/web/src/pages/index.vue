@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PluginSurfaceKind } from "@typbase/typing";
 import type { SplitterPanel } from "reka-ui";
+import type { LocationQueryRaw } from "vue-router";
 
 import iconUrl from "~~/public/icon.svg?url";
 
@@ -46,6 +47,10 @@ const {
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter; mobile keeps the drawer. */
 const isDesktop = useMediaQuery("(min-width: 769px)");
+
+// Back closes the drawer and the palette before it navigates or leaves.
+useBackLayer(navOpen);
+useBackLayer(paletteOpen, hidePalette);
 
 /** Name of the workspace being opened, for the switching pill. */
 const switchingName = computed(
@@ -119,6 +124,7 @@ watch(workspaceGeneration, () => {
   currentPageId.value = fallbackPageId();
   currentPluginId.value = null;
   currentChatId.value = null;
+  syncRoute("replace");
 });
 
 // Demo capture and e2e tests reach the active store through this handle.
@@ -168,6 +174,8 @@ useAppLocale(locale, setLocale, () => workspace.value);
 const pageQuery = useRouteQuery<string>("page", "");
 const modeQuery = useRouteQuery<string>("mode", "write");
 const viewQuery = useRouteQuery<string>("view", "");
+const router = useRouter();
+const route = useRoute();
 
 /** Query values can be string arrays or null; a page/mode id is a plain string. */
 function queryString(value: unknown): string {
@@ -208,6 +216,10 @@ onMounted(async () => {
   const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
   if (threadId && store.getChat(threadId)) currentChatId.value = threadId;
 
+  // Normalize the URL so the first entry carries the resolved state; back
+  // from a later page then restores this one instead of an empty query.
+  syncRoute("replace");
+
   setPluginNavigation({ openPage, openPlugin });
   setChatNavigation({ openChat, openPage });
 
@@ -244,16 +256,6 @@ watch(currentPageId, (id) => {
   testApi.pageId = id || null;
 });
 
-watch(currentPageId, (id) => {
-  if (loaded.value && id && pageQuery.value !== id) pageQuery.value = id;
-});
-
-watch(mode, (value) => {
-  if (loaded.value && currentPageId.value && modeQuery.value !== value) {
-    modeQuery.value = value;
-  }
-});
-
 // Back/forward or a pasted link changes the query under us.
 watch(pageQuery, (raw) => {
   const id = queryString(raw);
@@ -285,11 +287,53 @@ function paneViewValue(): string {
   return "";
 }
 
-watch([currentPluginId, currentChatId, graphOpen], () => {
+/** The query the refs describe; foreign params (OAuth, pasted extras) stay. */
+function routeQuery(): LocationQueryRaw {
+  const query: LocationQueryRaw = { ...route.query };
+  delete query.page;
+  delete query.mode;
+  delete query.view;
+
+  if (currentPageId.value) query.page = currentPageId.value;
+  if (mode.value !== "write") query.mode = mode.value;
+  const view = paneViewValue();
+  if (view) query.view = view;
+
+  return query;
+}
+
+function sameQuery(next: LocationQueryRaw): boolean {
+  const keys = new Set([...Object.keys(route.query), ...Object.keys(next)]);
+
+  for (const key of keys) {
+    if (String(route.query[key] ?? "") !== String(next[key] ?? "")) return false;
+  }
+
+  return true;
+}
+
+/**
+ * Writes the refs to the URL. Opening something pushes a history step;
+ * normalization and closes replace the current one. The read watchers apply
+ * the result back, so this is the only writer.
+ */
+function syncRoute(historyMode: "push" | "replace"): void {
   if (!loaded.value) return;
-  const value = paneViewValue();
-  if (queryString(viewQuery.value) !== value) viewQuery.value = value;
-});
+
+  const query = routeQuery();
+  if (sameQuery(query)) return;
+
+  void router[historyMode]({ query });
+}
+
+/**
+ * A navigation from an open overlay replaces the overlay's history entry so
+ * back lands before it instead of reopening it. The overlay closes in the
+ * action that called this.
+ */
+function takeLayerHistory(): "push" | "replace" {
+  return consumeTopBackLayer() ? "replace" : "push";
+}
 
 // Back/forward or a pasted link changes the open pane under us.
 watch(viewQuery, (raw) => {
@@ -337,15 +381,21 @@ watch(viewQuery, (raw) => {
 
 // A deleted instance or thread must not leave the shell on an empty pane.
 watch(dataRevision, () => {
+  let changed = false;
   if (currentPluginId.value && !workspace.value?.getPluginInstance(currentPluginId.value)) {
     currentPluginId.value = null;
+    changed = true;
   }
   if (currentChatId.value && !workspace.value?.getChat(currentChatId.value)) {
     currentChatId.value = null;
+    changed = true;
   }
+
+  if (changed) syncRoute("replace");
 });
 
 function openPage(id: string) {
+  const historyMode = takeLayerHistory();
   navOpen.value = false; // drawer interactions close after selection
   currentPluginId.value = null; // opening a page leaves the other panes
   currentChatId.value = null;
@@ -353,6 +403,7 @@ function openPage(id: string) {
   // An empty id means the open page was deleted; fall back to home/first.
   currentPageId.value = id || fallbackPageId();
   syncModeToPage(currentPageId.value);
+  syncRoute(historyMode);
 }
 
 /** Sidebar and toolbar search buttons: close the drawer, open the palette. */
@@ -418,7 +469,10 @@ useSeoMeta({
 // put until the next page open.
 watch(currentPageKind, (kind, previous) => {
   if (kind === previous) return;
+
+  const before = mode.value;
   syncModeToPage(currentPageId.value);
+  if (mode.value !== before) syncRoute("replace");
 });
 
 function openPlugin(instanceId: string) {
@@ -435,9 +489,11 @@ function openPlugin(instanceId: string) {
   }
 
   if (kinds.includes("pane")) {
+    const historyMode = takeLayerHistory();
     currentChatId.value = null;
     graphOpen.value = false;
     currentPluginId.value = instanceId;
+    syncRoute(historyMode);
   } else if (kinds.includes("window")) {
     plugins.openWindow(instanceId);
   }
@@ -459,23 +515,33 @@ watch(
 
 /** The sidebar and page toolbar open the workspace graph. */
 function openGraph() {
+  const historyMode = takeLayerHistory();
   navOpen.value = false;
   currentPluginId.value = null;
   currentChatId.value = null;
   graphOpen.value = true;
+  syncRoute(historyMode);
+}
+
+function closeGraph() {
+  graphOpen.value = false;
+  syncRoute("replace");
 }
 
 function closePlugin() {
   currentPluginId.value = null;
+  syncRoute("replace");
 }
 
 /** Opens a thread by id, the most recent one, or a fresh one. */
 function openChat(threadId?: string | null) {
+  const historyMode = takeLayerHistory();
   navOpen.value = false;
   if (threadId) {
     currentPluginId.value = null;
     graphOpen.value = false;
     currentChatId.value = threadId;
+    syncRoute(historyMode);
 
     return;
   }
@@ -485,6 +551,7 @@ function openChat(threadId?: string | null) {
     currentPluginId.value = null;
     graphOpen.value = false;
     currentChatId.value = latest.id;
+    syncRoute(historyMode);
 
     return;
   }
@@ -495,6 +562,7 @@ function openChat(threadId?: string | null) {
       currentPluginId.value = null;
       graphOpen.value = false;
       currentChatId.value = created.id;
+      syncRoute(historyMode);
     })
     .catch((cause) => {
       console.error("[chat] could not create a thread:", cause);
@@ -503,6 +571,7 @@ function openChat(threadId?: string | null) {
 
 function closeChat() {
   currentChatId.value = null;
+  syncRoute("replace");
 }
 
 // Persist pending snapshot writes when the tab goes away.
@@ -512,6 +581,7 @@ useEventListener("pagehide", () => {
 
 async function setMode(value: ViewModeId) {
   mode.value = value;
+  syncRoute("replace");
 }
 
 definePageMeta({ ssr: false });
@@ -661,7 +731,7 @@ definePageMeta({ ssr: false });
               @open-thread="openChat"
               @close-chat="closeChat"
               @open-graph="openGraph"
-              @close-graph="graphOpen = false"
+              @close-graph="closeGraph"
             >
               <template #nav-toggle>
                 <UiIconButton

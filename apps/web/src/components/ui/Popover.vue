@@ -17,6 +17,9 @@ withDefaults(
 
 /** Optional so popovers that close themselves on select can be driven too. */
 const open = defineModel<boolean>("open", { default: false });
+
+// Back closes the popover before it navigates.
+useBackLayer(open);
 </script>
 
 <template>

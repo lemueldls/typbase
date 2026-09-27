@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const open = defineModel<boolean>("open", { default: false });
 
+// Back closes the confirm before it leaves the app.
+useBackLayer(open);
+
 const props = withDefaults(
   defineProps<{
     title: string;

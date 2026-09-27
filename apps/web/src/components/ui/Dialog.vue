@@ -15,6 +15,9 @@ const attrs = useAttrs();
 
 const open = defineModel<boolean>("open", { default: false });
 
+// Back closes the dialog before it leaves the app.
+useBackLayer(open);
+
 const emit = defineEmits<{ (e: "openAutoFocus", event: Event): void }>();
 
 // reka-ui always puts an internal aria-describedby id on DialogContent. With no

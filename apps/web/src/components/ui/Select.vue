@@ -24,10 +24,14 @@ withDefaults(
 );
 
 const model = defineModel<T>({ required: true });
+const open = ref(false);
+
+// Back closes the list before it navigates.
+useBackLayer(open);
 </script>
 
 <template>
-  <SelectRoot v-model="model" :disabled="disabled">
+  <SelectRoot v-model="model" v-model:open="open" :disabled="disabled">
     <SelectTrigger
       v-bind="$attrs"
       class="ui-select__trigger"

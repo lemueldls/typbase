@@ -783,6 +783,114 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("returns to the previous page on back", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const firstId = await createTestPage(page, {
+      title: "Back first",
+      content: "= First\n",
+    });
+    const secondId = await createTestPage(page, {
+      title: "Back second",
+      content: "= Second\n",
+    });
+    await showPage(page, firstId, "write");
+
+    // The initial entry carries the resolved page, so back has somewhere to go.
+    expect(new URL(page.url()).searchParams.get("page")).toBe(firstId);
+
+    await page.evaluate((id) => window.__typbase.openPage(id), secondId);
+    await page.waitForFunction((id) => window.__typbase.pageId === id, secondId, {
+      timeout: 30_000,
+    });
+
+    await page.evaluate(() => window.history.back());
+    await page.waitForFunction((id) => window.__typbase.pageId === id, firstId, {
+      timeout: 30_000,
+    });
+
+    await page.close();
+  });
+
+  it("closes an open pane on back", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.evaluate(() => window.__typbase.openGraph());
+    await page.waitForSelector(".graph canvas", { timeout: 60_000 });
+
+    await page.evaluate(() => window.history.back());
+    await page.waitForFunction(() => !window.__typbase.graphStats, null, {
+      timeout: 30_000,
+    });
+
+    await page.close();
+  });
+
+  it("closes a dialog on back", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.locator('.sidebar button[aria-label="Categories"]').click();
+    await page.waitForSelector(".category-list", { timeout: 30_000 });
+
+    await page.evaluate(() => window.history.back());
+    await page.waitForSelector(".category-list", { state: "detached", timeout: 30_000 });
+
+    await page.close();
+  });
+
+  it("closes the mobile drawer on back", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 420, height: 800 });
+    await openApp(page);
+
+    await page.locator(".app__nav-toggle").click();
+    await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
+
+    await page.evaluate(() => window.history.back());
+    await page.waitForFunction(() => document.querySelector(".app__nav--open") === null, null, {
+      timeout: 30_000,
+    });
+
+    await page.close();
+  });
+
+  it("replaces the drawer entry when a page is picked", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 420, height: 800 });
+    await openApp(page);
+
+    const firstId = await createTestPage(page, {
+      title: "Drawer first",
+      content: "= First\n",
+    });
+    const secondId = await createTestPage(page, {
+      title: "Drawer second",
+      content: "= Second\n",
+    });
+    await showPage(page, firstId, "write");
+
+    await page.locator(".app__nav-toggle").click();
+    await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
+    await page.locator(".sidebar__row", { hasText: "Drawer second" }).click();
+    await page.waitForFunction((id) => window.__typbase.pageId === id, secondId, {
+      timeout: 30_000,
+    });
+
+    // Back lands on the page before the drawer, not on the drawer itself.
+    await page.evaluate(() => window.history.back());
+    await page.waitForFunction((id) => window.__typbase.pageId === id, firstId, {
+      timeout: 30_000,
+    });
+    expect(await page.evaluate(() => document.querySelector(".app__nav--open") === null)).toBe(
+      true,
+    );
+
+    await page.close();
+  });
+
   it("boots the shell offline once the worker has cached it", async () => {
     const page = await createPage();
     await openApp(page);

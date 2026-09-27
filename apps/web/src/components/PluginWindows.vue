@@ -12,6 +12,25 @@ const openWindows = computed(() =>
   plugins.instancesWithSurface("window").filter((instance) => plugins.windowOf(instance.id).open),
 );
 
+// Back closes the top floating window before it navigates. One entry covers
+// the group: closing the last window consumes it, and closing one of several
+// re-arms it for the next back.
+const windowsOpen = computed(() => openWindows.value.length > 0);
+
+function closeTopWindow(): void {
+  const list = openWindows.value;
+  if (!list.length) return;
+
+  const top = list.reduce((candidate, instance) =>
+    plugins.windowOf(instance.id).z >= plugins.windowOf(candidate.id).z ? instance : candidate,
+  );
+  plugins.closeWindow(top.id);
+
+  if (openWindows.value.length > 0) windowsLayer.push();
+}
+
+const windowsLayer = useBackLayer(windowsOpen, closeTopWindow);
+
 function titleOf(instanceId: string): string {
   const instance = plugins.instanceById(instanceId);
   return instance ? (plugins.manifestOf(instance.pluginId)?.name ?? instance.title) : "";

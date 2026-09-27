@@ -41,6 +41,9 @@ const open = defineModel<boolean>("open", { default: false });
 /** The input text; bind it to filter `options` in the caller. */
 const query = defineModel<string>({ default: "" });
 
+// Back closes the combobox before it navigates.
+useBackLayer(open);
+
 const emit = defineEmits<{ (e: "select", value: string): void }>();
 </script>
 
