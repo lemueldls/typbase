@@ -10,6 +10,7 @@ import {
   stopLinkResolver,
 } from "~/lib/linkResolver";
 import { LinkIndex } from "~/lib/links";
+import { pageContextBinding } from "~/lib/pageContext";
 import { publishPrelude } from "~/lib/publishPrelude";
 
 /**
@@ -71,7 +72,11 @@ function createResolver(store: WorkspaceStore) {
       textSize: settings.textSize,
       palette: resolveAppTheme(settings).palette,
     });
-    const prelude = await publishPrelude(settings, { theme: "workspace", paged: false });
+    const prelude = await publishPrelude(settings, {
+      theme: "workspace",
+      paged: false,
+      context: pageContextBinding(store, pageId),
+    });
 
     return resolvePageLinks({ pageId, source, prelude, spaceId: store.workspaceId });
   };

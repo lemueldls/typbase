@@ -182,9 +182,12 @@ function mentionCount(group: BacklinkGroup): string {
 <style>
 .links {
   display: flex;
+  flex: none;
   flex-direction: column;
+  /* One height whenever the panel is open: a content-sized panel resized on
+     every extraction and moved the editor while typing. */
+  height: min(40%, 22rem);
   min-height: 0;
-  max-height: 40%;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -224,6 +227,7 @@ function mentionCount(group: BacklinkGroup): string {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-2);
+  min-height: 0;
   padding: var(--space-2);
   overflow-y: auto;
 }

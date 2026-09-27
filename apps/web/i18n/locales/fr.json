@@ -125,7 +125,7 @@
     "uiRadiusRound": "Arrondi",
     "uiRadiusHint": "Met à l'échelle les coins arrondis dans toute l'application.",
     "template": "Modèle de note quotidienne",
-    "templateHint": "Les nouvelles notes quotidiennes rendent ce code Typst. Variables : {'{title}'} (titre formaté), {'{date}'} (date ISO), {'{weekday}'} (jour de la semaine), {'{previous}'} (note précédente la plus proche) et {'{next}'} (note suivante la plus proche).",
+    "templateHint": "Les nouvelles notes quotidiennes partent de ce source Typst. La variable `note` fournit le titre, la date et les notes voisines au moment de la compilation.",
     "prelude": "Prélude de page",
     "preludeHint": "Ajouté avant chaque compilation (éditeur, aperçus, pages publiées). Utilisez de nouvelles fonctions Typst ou des règles #set pour créer des vues personnalisées.",
     "spellcheck": "Vérification orthographique",

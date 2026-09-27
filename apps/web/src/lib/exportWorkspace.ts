@@ -13,6 +13,7 @@ import {
   type ExportFile,
   type ExportOptions,
 } from "~/lib/exportPage";
+import { pageContext, pageContextBinding, typstContextValue } from "~/lib/pageContext";
 import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 
@@ -47,8 +48,6 @@ export async function buildWorkspaceExport(
   }
 
   const themeOptions = { theme: options.theme, pageSize: options.pageSize } as const;
-  const htmlPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: false });
-  const pagedPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: true });
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
@@ -86,9 +85,23 @@ export async function buildWorkspaceExport(
     sourceName: string;
     /** Artifact stem under `artifacts/`; sheet suffixes are appended. */
     stem: string;
+    /** The page's `note` binding; empty for the combined document. */
+    context: string;
+    /** Page id for `sys.inputs`; null for the combined document. */
+    pageId: string | null;
     title?: string;
   }): Promise<void> => {
-    const { source, pagePath, sourceName, stem, title } = input;
+    const { source, pagePath, sourceName, stem, context, pageId, title } = input;
+    const htmlPrelude = await publishPrelude(store.getSettings(), {
+      ...themeOptions,
+      paged: false,
+      context,
+    });
+    const pagedPrelude = await publishPrelude(store.getSettings(), {
+      ...themeOptions,
+      paged: true,
+      context,
+    });
 
     if (options.html) {
       const rendered = await renderInWorker({
@@ -97,6 +110,7 @@ export async function buildWorkspaceExport(
         prelude: htmlPrelude,
         wants: "html",
         spaceId: store.workspaceId,
+        pageId,
         theme: palette,
       });
       if (!rendered.html) {
@@ -118,6 +132,7 @@ export async function buildWorkspaceExport(
         prelude: pagedPrelude,
         wants: "pdf",
         spaceId: store.workspaceId,
+        pageId,
         theme: palette,
       });
       if (!rendered.pdf) {
@@ -136,6 +151,7 @@ export async function buildWorkspaceExport(
         wants: "svg",
         merged: options.svgMerged,
         spaceId: store.workspaceId,
+        pageId,
         theme: palette,
       });
       if (!rendered.svg?.length) {
@@ -169,6 +185,8 @@ export async function buildWorkspaceExport(
         pagePath: page.path,
         sourceName: page.path,
         stem: artifactStem(page.path),
+        context: pageContextBinding(store, page.id),
+        pageId: page.id,
         title: page.title,
       });
     }
@@ -180,10 +198,28 @@ export async function buildWorkspaceExport(
       sources.push(await store.loadPageText(page.id));
     }
 
+    const htmlPrelude = await publishPrelude(store.getSettings(), {
+      ...themeOptions,
+      paged: false,
+    });
+    const pagedPrelude = await publishPrelude(store.getSettings(), {
+      ...themeOptions,
+      paged: true,
+    });
+
+    // A combined document is one compile, so each page carries its own
+    // `note` in a scoped block instead of a shared binding.
+    const wrapped = sources.map((source, position) => {
+      const page = pages[position];
+      if (!page) return source;
+
+      return `#{\n  let note = ${typstContextValue(pageContext(pages, page))}\n  [\n${source}\n  ]\n}`;
+    });
+
     // Paged targets get real page breaks; HTML has no paging, so a rule
     // separates the notes there. All daily notes make the document a diary.
-    const paged = `${sources.join("\n#pagebreak(weak: true)\n")}\n`;
-    const flowed = `${sources.join("\n\n#horizontalrule()\n\n")}\n`;
+    const paged = `${wrapped.join("\n#pagebreak(weak: true)\n")}\n`;
+    const flowed = `${wrapped.join("\n\n#horizontalrule()\n\n")}\n`;
     const name = pages.every((page) => page.path.startsWith("daily/")) ? "daily" : "combined";
     const pagePath = `${name}.typ`;
     const stem = `artifacts/${name}`;
@@ -195,6 +231,7 @@ export async function buildWorkspaceExport(
         prelude: htmlPrelude,
         wants: "html",
         spaceId: store.workspaceId,
+        pageId: null,
         theme: palette,
       });
       if (!rendered.html) throw new Error("The combined render produced no HTML.");
@@ -214,6 +251,7 @@ export async function buildWorkspaceExport(
         prelude: pagedPrelude,
         wants: "pdf",
         spaceId: store.workspaceId,
+        pageId: null,
         theme: palette,
       });
       if (!rendered.pdf) throw new Error("The combined render produced no PDF.");
@@ -230,6 +268,7 @@ export async function buildWorkspaceExport(
         wants: "svg",
         merged: options.svgMerged,
         spaceId: store.workspaceId,
+        pageId: null,
         theme: palette,
       });
       if (!rendered.svg?.length) throw new Error("The combined render produced no SVG pages.");

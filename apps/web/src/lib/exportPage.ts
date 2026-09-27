@@ -5,6 +5,7 @@ import type { ThemePaletteTokens } from "@typbase/typing";
 import { stripCellMarkers } from "@typbase/codemirror";
 import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 
+import { pageContextBinding } from "~/lib/pageContext";
 import { THEME_COLOR_KEYS, paletteSlots } from "~/lib/palette";
 import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
@@ -63,8 +64,17 @@ export async function buildExport(
   const source = await store.loadPageText(pageId);
   const base = fileBase(page.title, page.path);
   const themeOptions = { theme: options.theme, pageSize: options.pageSize } as const;
-  const htmlPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: false });
-  const pagedPrelude = await publishPrelude(store.getSettings(), { ...themeOptions, paged: true });
+  const context = pageContextBinding(store, pageId);
+  const htmlPrelude = await publishPrelude(store.getSettings(), {
+    ...themeOptions,
+    paged: false,
+    context,
+  });
+  const pagedPrelude = await publishPrelude(store.getSettings(), {
+    ...themeOptions,
+    paged: true,
+    context,
+  });
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
@@ -101,6 +111,7 @@ export async function buildExport(
       prelude: htmlPrelude,
       wants: "html",
       spaceId: store.workspaceId,
+      pageId,
       theme: palette,
     });
     if (!rendered.html) {
@@ -122,6 +133,7 @@ export async function buildExport(
       prelude: pagedPrelude,
       wants: "pdf",
       spaceId: store.workspaceId,
+      pageId,
       theme: palette,
     });
     if (!rendered.pdf) {
@@ -141,6 +153,7 @@ export async function buildExport(
       wants: "svg",
       merged: options.svgMerged,
       spaceId: store.workspaceId,
+      pageId,
       theme: palette,
     });
     if (!rendered.svg?.length) {

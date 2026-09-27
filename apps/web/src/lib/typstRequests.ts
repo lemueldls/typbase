@@ -4,6 +4,7 @@ import type { InstalledPackage, PageMeta, Section } from "@typbase/typing";
 
 import { parseQueryPath } from "@typbase/typing";
 
+import { dailyNeighbors } from "~/lib/dailyNav";
 import { engineAvailable } from "~/lib/engineHealth";
 import { getLinkIndex } from "~/lib/linkIndex";
 import { extractLinksFallback, workspaceBacklinks } from "~/lib/links";
@@ -263,6 +264,12 @@ export async function buildQueryJson(
     case "categories":
       return JSON.stringify(store.listCategories());
     case "daily": {
+      // `#typbase.daily-nav` asks for the live neighbors: the page list is
+      // the truth, not whatever existed when the note was created.
+      if (query.filterName === "neighbors" && query.filterValue) {
+        return JSON.stringify(dailyNeighbors(pages, query.filterValue));
+      }
+
       const list =
         query.filterName === "by-month" && query.filterValue
           ? daily.filter((page) => page.path.startsWith(`daily/${query.filterValue}-`))

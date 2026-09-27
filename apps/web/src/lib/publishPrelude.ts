@@ -22,6 +22,11 @@ export interface PublishPreludeOptions {
   paged?: boolean;
   /** Body text size in pt; defaults to the workspace's configured size. */
   textSize?: number;
+  /**
+   * The `note` binding for the page being compiled, built by
+   * `pageContextBinding`. Inlined per entry so a bundle stays self-contained.
+   */
+  context?: string;
 }
 
 const PAGE_WIDTHS = { a4: 595.28, letter: 612 } as const;
@@ -78,6 +83,8 @@ export async function publishPrelude(
         "",
       ]
     : [];
+  // The context sits before the user prelude so custom Typst can read it.
+  const context = options.context ? [options.context, ""] : [];
 
-  return [style, ...page, settings.pagePrelude ?? ""].join("\n");
+  return [style, ...page, ...context, settings.pagePrelude ?? ""].join("\n");
 }

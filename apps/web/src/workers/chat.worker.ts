@@ -3,6 +3,7 @@ import type { TypstRequest, TypstState } from "@typbase/engine";
 import type { ChatWorkerRequest, ChatWorkerResponse, ChatWorkerStyle } from "~/lib/chatWorker";
 
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
+import { setTypstInputs } from "~/lib/typstInputs";
 
 import { initTypstState, installPayload, payloadKey, requestKey } from "./typstWorkerCore";
 
@@ -18,6 +19,9 @@ let wasmModuleUrl: string | undefined;
 let state: TypstState | undefined;
 let style: ChatWorkerStyle | undefined;
 let styleKey = "";
+/** Inputs the state was last configured with; setting them rebuilds the
+ *  library, and the chat streams many renders of the same page. */
+let inputsKey = "";
 
 async function ensureState(): Promise<TypstState> {
   if (state) return state;
@@ -90,6 +94,13 @@ self.addEventListener(
     try {
       const typstState = await ensureState();
       if (style) applyStyle(typstState, style, spaceId);
+      // Setting inputs rebuilds the library; the chat streams many renders of
+      // the same page, so only do it when the values change.
+      const inputs = `chat:${spaceId}`;
+      if (inputs !== inputsKey) {
+        inputsKey = inputs;
+        setTypstInputs(typstState, { workspaceId: spaceId, reason: "chat" });
+      }
 
       // One source file per workspace: file ids intern by path, so a shared
       // path would apply this workspace's style to another workspace's context.

@@ -24,6 +24,7 @@ import {
   setChatRequestStore,
   setChatWorkerStyle,
 } from "~/lib/chatWorker";
+import { pageContextBinding } from "~/lib/pageContext";
 import { sanitizeHtml } from "~/lib/plugins/sanitize";
 import { publishPrelude } from "~/lib/publishPrelude";
 
@@ -105,10 +106,11 @@ function useChatState() {
     const deps: ChatEngineDeps = {
       store,
       typst: () => useTypst(),
-      prelude: async () =>
+      prelude: async (pageId) =>
         publishPrelude(currentStore().getSettings(), {
           theme: "workspace",
           paged: false,
+          context: pageContextBinding(currentStore(), pageId ?? null),
         }),
       palette: () => resolveAppTheme(currentStore().getSettings()).palette,
       render: async ({ source, prelude, palette, spaceId }) => {

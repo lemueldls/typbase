@@ -17,6 +17,8 @@ export interface RenderWorkerRequest {
   /** SVG only: merge all pages into a single document. */
   merged?: boolean;
   spaceId: string;
+  /** Page id for `sys.inputs`; null for a combined document. */
+  pageId?: string | null;
   /** Export palette; the worker installs it so the code-block theme exists. */
   theme?: ThemePaletteTokens;
 }
@@ -190,6 +192,7 @@ export function renderInWorker(input: {
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
   spaceId: string;
+  pageId?: string | null;
   theme?: ThemePaletteTokens;
 }): Promise<RenderOutcome> {
   const run = renderQueue.then(() => renderOnce(input));
@@ -205,6 +208,7 @@ async function renderOnce(input: {
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
   spaceId: string;
+  pageId?: string | null;
   theme?: ThemePaletteTokens;
 }): Promise<RenderOutcome> {
   const instance = ensureWorker();

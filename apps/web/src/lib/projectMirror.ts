@@ -1,6 +1,7 @@
 import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 
+import { pageContextBinding } from "~/lib/pageContext";
 import { publishPrelude, publishSyntaxTheme } from "~/lib/publishPrelude";
 
 const encoder = new TextEncoder();
@@ -41,7 +42,11 @@ export async function mirrorPageProject(
     await store.writeProjectFile("typbase/lib.typ", encoder.encode(typstState.typbaseLib()));
   }
 
-  const prelude = await publishPrelude(store.getSettings(), { theme: "light", paged: true });
+  const prelude = await publishPrelude(store.getSettings(), {
+    theme: "light",
+    paged: true,
+    context: pageContextBinding(store, pageId),
+  });
   const source = await store.loadPageText(pageId);
   await store.writeProjectFile(
     `typbase/entries/${page.path}`,

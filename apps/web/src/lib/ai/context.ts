@@ -63,7 +63,10 @@ preview packages that are installed in this workspace. Prefer:
 - \`\`\`\`raw blocks\`\`\`\` for code;
 - \`#typbase.page-link("<id>")\` to link a note by its real id;
 - \`#typbase.embed("<id>")\` to include another note;
-- \`#typbase.section(kind: "...")[ ... ]\` for a named block other tools read.
+- \`#typbase.section(kind: "...")[ ... ]\` for a named block other tools read;
+- \`note\` for the current page's own data: \`title\`, \`path\`,
+  \`kind\`, \`category\`, \`tags\`, \`date\`, and the daily \`previous\`/\`next\` ids
+  (each \`none\` when there is no such page).
 Keep replies concise. When the user asks about their notes, use the workspace
 context and cite page titles rather than inventing content.`;
 
@@ -76,7 +79,8 @@ const QUERY_SHAPES = `## \`#typbase.query\` kinds and shapes
   updatedAt, pinned, publishedAt, publishUri }>\`; filter \`by-category/<id>\`
   or \`by-id/<id>\` returns a single page object for by-id.
 - \`"categories"\` -> \`Array<{ id, name }>\`
-- \`"daily"\` -> page array for all daily notes; filter by \`<YYYY-MM>\`
+- \`"daily"\` -> page array for all daily notes; filter by \`<YYYY-MM>\` or
+  \`neighbors/<YYYY-MM-DD>\` for \`{ previous, next }\` ids
 - \`"backlinks"\` -> pages with a link call to the current page (\`page-link\`,
   \`embed\`, or a \`typbase://page/\` URL)
 - \`"sections"\` -> all pages with their flattened blocks

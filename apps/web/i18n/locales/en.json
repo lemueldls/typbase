@@ -125,7 +125,7 @@
     "uiRadiusRound": "Round",
     "uiRadiusHint": "Scales rounded corners across the app.",
     "template": "Daily note template",
-    "templateHint": "New daily notes render this Typst source. Placeholders: {'{title}'} (formatted title), {'{date}'} (ISO date), {'{weekday}'} (weekday), {'{previous}'} (nearest previous note) and {'{next}'} (nearest next note).",
+    "templateHint": "New daily notes start from this Typst source. The `note` binding carries the page's title, date, and daily neighbors at compile time.",
     "prelude": "Page prelude",
     "preludeHint": "Appended before every page compile (editor, previews, published pages). Use new Typst functions or #set rules here to build custom views.",
     "spellcheck": "Spellcheck",

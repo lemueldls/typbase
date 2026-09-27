@@ -4,6 +4,7 @@ import type { LinkWorkerRequest, LinkWorkerResponse, LinkWorkerStyle } from "~/l
 
 import { extractPageTargets } from "~/lib/links";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
+import { setTypstInputs } from "~/lib/typstInputs";
 
 import { initTypstState, installPayload, payloadKey, requestKey } from "./typstWorkerCore";
 
@@ -112,6 +113,7 @@ self.addEventListener(
     try {
       const typstState = await ensureState();
       if (style) applyStyle(typstState, style, spaceId);
+      setTypstInputs(typstState, { pageId, workspaceId: spaceId, reason: "resolve" });
 
       // One source file per page: file ids intern by path, so a shared path
       // would leak one page's text into another page's compile.

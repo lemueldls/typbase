@@ -3,6 +3,7 @@ import type { PublishSettings } from "@typbase/typing";
 
 import type { AtprotoService } from "~/lib/atproto";
 
+import { pageContextBinding } from "~/lib/pageContext";
 import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
 
@@ -46,11 +47,17 @@ export async function publishPage(
   // Published pages are read on white in the public reader, so they get the
   // light palette and real page geometry rather than the workspace theme.
   const palette = publishThemePalette(appSettings, { theme: "light" });
-  const htmlPrelude = await publishPrelude(appSettings, { theme: "light", paged: false });
+  const context = pageContextBinding(store, pageId);
+  const htmlPrelude = await publishPrelude(appSettings, {
+    theme: "light",
+    paged: false,
+    context,
+  });
   const pdfPrelude = await publishPrelude(appSettings, {
     theme: "light",
     pageSize: "a4",
     paged: true,
+    context,
   });
 
   setPublishRequestStore(store);
@@ -60,6 +67,7 @@ export async function publishPage(
     prelude: htmlPrelude,
     wants: "html",
     spaceId: store.workspaceId,
+    pageId,
     theme: palette,
   });
   if (!rendered.html) {

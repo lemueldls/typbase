@@ -54,7 +54,7 @@ export interface ChatEngineDeps {
     spaceId: string;
   }) => Promise<{ diagnostics: unknown[] }>;
   /** The workspace's HTML prelude (style + user prelude). */
-  prelude: () => Promise<string>;
+  prelude: (pageId?: string | null) => Promise<string>;
   palette: () => ThemePaletteTokens;
   /** Dev/e2e hook: replaces whichever provider the settings resolve to. */
   providerOverride?: AiProvider | null;
@@ -574,7 +574,7 @@ export async function sendChat(input: SendChatInput): Promise<void> {
   const model = input.model ?? thread.model ?? config.model;
   const typstState = await engine.typst();
   const search = engine.search;
-  const prelude = await engine.prelude();
+  const prelude = await engine.prelude(input.pageId ?? thread.pageId);
   const palette = engine.palette();
 
   const context = await buildContext({ store, typstState, search } satisfies ContextDeps, {
@@ -703,7 +703,7 @@ export async function repairMessage(threadId: string, messageId: string): Promis
         threadId,
         message,
         settings,
-        prelude: await engine.prelude(),
+        prelude: await engine.prelude(thread.pageId),
         palette: engine.palette(),
         store,
         typstState,
@@ -790,7 +790,7 @@ export async function completeForPlugin(input: {
     (
       await engine.check({
         source: text,
-        prelude: await engine.prelude(),
+        prelude: await engine.prelude(input.pageId ?? null),
         palette: engine.palette(),
         spaceId: input.store.workspaceId,
       })

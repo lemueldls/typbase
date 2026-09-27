@@ -632,6 +632,13 @@ export class WorkspaceStore {
       }
     }
 
+    // Templates from before the context binding are broken: the app no longer
+    // substitutes `{title}` and friends. Swap the old shape for the current
+    // default; a template without placeholders is left alone.
+    if (settings.dailyNoteTemplate.includes("{title}")) {
+      settings.dailyNoteTemplate = DEFAULT_SETTINGS.dailyNoteTemplate;
+    }
+
     // Nested configs are JSON strings in the map so partial writes stay
     // last-write-wins per whole config without Loro container surgery.
     settings.publish = {
@@ -952,43 +959,14 @@ export class WorkspaceStore {
     const existing = this.listPages().find((page) => page.path === path);
     if (existing) return existing;
 
-    const title = this.formatDate(date);
-    const settings = this.getSettings();
-
-    // Neighbor links point at the nearest EXISTING daily note, not the raw
-    // next/prev calendar date, so a sparse journal still links to something
-    // navigable instead of "none".
-    const previous = this.nearestDailyPage(date, -1);
-    const next = this.nearestDailyPage(date, 1);
-
-    const content = settings.dailyNoteTemplate
-      .replaceAll("{title}", title)
-      .replaceAll("{date}", date)
-      .replaceAll("{weekday}", this.weekdayName(date))
-      .replaceAll("{previous}", previous ?? "none")
-      .replaceAll("{next}", next ?? "none");
-
-    return this.createPage({ title, path, content });
-  }
-
-  /** Nearest existing daily note strictly before/after `date`, by path order. */
-  private nearestDailyPage(date: string, direction: -1 | 1): string | undefined {
-    let best: PageMeta | undefined;
-    for (const page of this.listPages()) {
-      const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
-      if (!match) continue;
-      const day = match[1]!;
-      if (direction === -1 && day >= date) continue;
-      if (direction === 1 && day <= date) continue;
-      if (!best) {
-        best = page;
-      } else {
-        const bestDay = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(best.path)![1]!;
-        if (direction === -1 ? day > bestDay : day < bestDay) best = page;
-      }
-    }
-
-    return best?.id;
+    // The template is plain Typst: its title and neighbor links come from the
+    // prelude's `note` at compile time, so a note created before
+    // its next day still links to it once that day exists.
+    return this.createPage({
+      title: this.formatDate(date),
+      path,
+      content: this.getSettings().dailyNoteTemplate,
+    });
   }
 
   /** Locale-aware title: "Wednesday, Sep 16, 2026" in the workspace locale. */
@@ -1001,20 +979,6 @@ export class WorkspaceStore {
         month: "short",
         day: "numeric",
         year: "numeric",
-        timeZone: "UTC",
-      }).format(new Date(`${date}T00:00:00Z`));
-    } catch {
-      return date;
-    }
-  }
-
-  /** Long weekday via Intl ("auto" locale = environment default, browser in app). */
-  private weekdayName(date: string): string {
-    const settings = this.getSettings();
-    const locale = settings.locale && settings.locale !== "auto" ? settings.locale : undefined;
-    try {
-      return new Intl.DateTimeFormat(locale, {
-        weekday: "long",
         timeZone: "UTC",
       }).format(new Date(`${date}T00:00:00Z`));
     } catch {

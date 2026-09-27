@@ -125,7 +125,7 @@
     "uiRadiusRound": "Rund",
     "uiRadiusHint": "Skaliert abgerundete Ecken in der ganzen App.",
     "template": "Tägliche Notiz-Vorlage",
-    "templateHint": "Neue Tagesnotizen rendern diesen Typst-Code. Platzhalter: {'{title}'} (formatierter Titel), {'{date}'} (ISO-Datum), {'{weekday}'} (Wochentag), {'{previous}'} (nächste vorherige Notiz) und {'{next}'} (nächste folgende Notiz).",
+    "templateHint": "Neue Tagesnotizen starten mit diesem Typst-Quelltext. Die Bindung `note` liefert Titel, Datum und die benachbarten Tagesnotizen zur Kompilierzeit.",
     "prelude": "Seiten-Prelude",
     "preludeHint": "Wird vor jeder Kompilierung eingefügt (Editor, Vorschauen, veröffentlichte Seiten). Nutze neue Typst-Funktionen oder #set-Regeln für eigene Ansichten.",
     "spellcheck": "Rechtschreibprüfung",

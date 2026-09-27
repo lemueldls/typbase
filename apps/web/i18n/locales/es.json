@@ -125,7 +125,7 @@
     "uiRadiusRound": "Redondeado",
     "uiRadiusHint": "Escala las esquinas redondeadas en toda la app.",
     "template": "Plantilla de nota diaria",
-    "templateHint": "Las nuevas notas diarias renderizan este código Typst. Marcadores: {'{title}'} (título con formato), {'{date}'} (fecha ISO), {'{weekday}'} (día de la semana), {'{previous}'} (nota anterior más cercana) y {'{next}'} (nota siguiente más cercana).",
+    "templateHint": "Las notas diarias nuevas parten de este código Typst. La variable `note` aporta el título, la fecha y las notas diarias vecinas al compilar.",
     "prelude": "Preludio de página",
     "preludeHint": "Se añade antes de cada compilación (editor, previsualizaciones, páginas publicadas). Usa funciones Typst nuevas o reglas #set para crear vistas personalizadas.",
     "spellcheck": "Corrección ortográfica",

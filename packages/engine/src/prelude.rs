@@ -17,7 +17,8 @@ use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, them
 // imported by the generated prelude as `typbase`. `typbase.query` loads JSON
 // the JS side synthesizes on demand (file request `/typbase/query/<kind>.json`);
 // `typbase.embed` includes another page's source (source request
-// `/typbase/src/<id>.typ`). Filters ride in the path because the request
+// `/typbase/src/<id>.typ`); `typbase.daily-nav` asks the same channel for the
+// daily notes next to a date. Filters ride in the path because the request
 // channel only carries paths, so keep filter values slug-safe.
 //
 // Paths are root-absolute so the same source compiles both in the wasm world
@@ -35,22 +36,29 @@ pub const TYPBASE_LIB: &str = r#"
   json(target)
 }
 
-#let embed(id) = include("/typbase/src/" + str(id) + ".typ")
+// The daily notes next to a date, from the live page list. A note created
+// before its next day keeps linking to it, which creation-time placeholders
+// cannot do.
+#let daily-nav(date) = query("daily", filter: "neighbors/" + str(date))
 
 // A navigable link to another page. Renders the page title (or the given
 // body) as a Typst link; the app intercepts `typbase://page/<id>` clicks in
 // the preview and opens that page for editing. Unlike embed, nothing is
 // compiled at link time, and a missing page renders a quiet placeholder
-// instead of failing the compile.
+// instead of failing the compile. A `none` target is that placeholder, so
+// `#typbase.page-link(note.next)` works when there is no next day.
 #let page-link(page-id, body: none) = {
-  let meta = json("/typbase/query/pages/by-id/" + str(page-id) + ".json")
+  let id = if page-id == none { "none" } else { str(page-id) }
+  let meta = json("/typbase/query/pages/by-id/" + id + ".json")
   if meta == none {
     if body == none [none] else [#body]
   } else {
-    let url = "typbase://page/" + str(page-id)
+    let url = "typbase://page/" + id
     if body == none [#link(url)[#meta.title]] else [#link(url)[#body]]
   }
 }
+
+#let embed(id) = if id == none { [] } else { include("/typbase/src/" + str(id) + ".typ") }
 
 // A semantic block for app-side consumers (AI context, plugins).
 // The body renders where it sits; the app reads kind and range off the AST.

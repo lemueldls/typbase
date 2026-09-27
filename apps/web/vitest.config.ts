@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 /**
@@ -7,6 +8,10 @@ import { defineConfig } from "vitest/config";
  *   pnpm test:unit
  */
 export default defineConfig({
+  resolve: {
+    // Pure modules still import each other through the app alias.
+    alias: { "~": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
   test: {
     include: ["test/**/*.test.ts"],
     environment: "node",

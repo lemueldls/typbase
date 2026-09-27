@@ -269,9 +269,9 @@ export interface WorkspaceSettings {
   /** Page id shown when the app opens, and the page that "Home" points to. */
   homePageId: string | null;
   /**
-   * Typst source for newly created daily notes. Placeholders: `{title}` (the
-   * formatted title, e.g. "Wednesday, Sep 16, 2026"), `{date}` (ISO date),
-   * `{weekday}`, and `{previous}` / `{next}` (neighboring note ids, or "none").
+   * Typst source for newly created daily notes. Plain Typst: the prelude's
+   * `note` carries the note's title, date, and daily neighbors at
+   * compile time, so nothing is substituted when the note is created.
    */
   dailyNoteTemplate: string;
   /**
@@ -331,11 +331,11 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   name: "My workspace",
   homePageId: null,
   dailyNoteTemplate: [
-    "= {title}",
+    "= #note.title",
     "",
-    'Previous: #typbase.page-link("{previous}")',
+    "Previous: #typbase.page-link(note.previous)",
     "",
-    'Next: #typbase.page-link("{next}")',
+    "Next: #typbase.page-link(note.next)",
     "",
   ].join("\n"),
   pagePrelude: "",

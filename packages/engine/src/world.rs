@@ -3,9 +3,9 @@ use rustc_hash::FxHashMap;
 use std::path::PathBuf;
 use time::{OffsetDateTime, UtcOffset};
 use typst::{
-    Feature, Library, LibraryExt, World,
+    Feature, Features, Library, LibraryExt, World,
     diag::{FileError, FileResult},
-    foundations::{Bytes, Datetime, Duration},
+    foundations::{Bytes, Datetime, Dict, Duration, Value},
     syntax::{FileId, Source},
     text::{Font, FontBook},
     utils::LazyHash,
@@ -27,6 +27,10 @@ pub struct TypstWorld {
     pub main_id: Option<FileId>,
     /// All loaded files (sources and binaries) by id.
     pub files: FxHashMap<FileId, FileSlot>,
+    /// Features the library is built with.
+    features: Features,
+    /// Values for `sys.inputs`, baked into the library at build time.
+    inputs: Dict,
     /// The Typst standard library for this world.
     library: LazyHash<Library>,
     /// Font loader and font book.
@@ -42,13 +46,16 @@ pub struct TypstWorld {
 
 impl Default for TypstWorld {
     fn default() -> Self {
-        let features = [Feature::Html, Feature::A11yExtras].into_iter().collect();
-        let library = Library::builder().with_features(features).build();
+        let features: Features = [Feature::Html, Feature::A11yExtras].into_iter().collect();
+        let inputs = Dict::new();
+        let library = build_library(features.clone(), &inputs);
 
         Self {
             main_id: None,
             files: FxHashMap::default(),
-            library: LazyHash::new(library),
+            features,
+            inputs,
+            library,
             font_loader: FontLoader::default(),
             requested_sources: DashSet::default(),
             requested_files: DashSet::default(),
@@ -57,7 +64,36 @@ impl Default for TypstWorld {
     }
 }
 
+/// The library a world compiles with. `sys.inputs` is baked into the library's
+/// global scope, so changing the inputs rebuilds it.
+fn build_library(features: Features, inputs: &Dict) -> LazyHash<Library> {
+    LazyHash::new(
+        Library::builder()
+            .with_features(features)
+            .with_inputs(inputs.clone())
+            .build(),
+    )
+}
+
 impl TypstWorld {
+    /// Replaces `sys.inputs`: the compiling page and workspace (both optional)
+    /// plus the compile reason (`editor`, `resolve`, `render`, `chat`).
+    /// Rebuilding the library drops memoized compiles, so callers set this
+    /// when the values actually change (a page bind, a worker job).
+    pub fn set_inputs(&mut self, page: Option<String>, workspace: Option<String>, reason: String) {
+        let mut inputs = Dict::new();
+        if let Some(page) = page {
+            inputs.insert("page".into(), Value::Str(page.into()));
+        }
+        if let Some(workspace) = workspace {
+            inputs.insert("workspace".into(), Value::Str(workspace.into()));
+        }
+        inputs.insert("reason".into(), Value::Str(reason.into()));
+
+        self.inputs = inputs;
+        self.library = build_library(self.features.clone(), &self.inputs);
+    }
+
     pub fn insert_source(&mut self, id: FileId, text: String) {
         let source = Source::new(id, text);
 

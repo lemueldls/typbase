@@ -17,6 +17,7 @@ interface StoreHandle {
   getPage(id: string): { id: string; title: string; path: string } | undefined;
   getPluginInstance(id: string): { id: string; title: string } | undefined;
   flush(): Promise<void>;
+  createDailyNote(date: string): Promise<{ id: string; title: string }>;
   updatePageKind(id: string, kind: "document" | "notebook"): Promise<void>;
   updateSettings(patch: Record<string, unknown>): void;
   getAiSettings(): Record<string, unknown>;

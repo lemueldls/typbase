@@ -4,6 +4,7 @@ import type { TypstState } from "@typbase/engine";
 import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWorker";
 
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
+import { setTypstInputs } from "~/lib/typstInputs";
 import { initTypstState, installPayload, payloadKey, requestKey } from "~/workers/typstWorkerCore";
 
 /**
@@ -66,10 +67,11 @@ self.addEventListener(
 
     currentId = message.id;
     insertedKeys = new Set();
-    const { pagePath, source, prelude, wants, merged, spaceId, theme } = message;
+    const { pagePath, source, prelude, wants, merged, spaceId, pageId, theme } = message;
 
     try {
       const typstState = await ensureState();
+      setTypstInputs(typstState, { pageId, workspaceId: spaceId, reason: "render" });
       // renderHtml/renderPdf/renderSvg go through the raw/synth pipeline,
       // which needs a registered SourceContext: a plain file id panics in the
       // prelude.

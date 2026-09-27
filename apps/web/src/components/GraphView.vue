@@ -174,9 +174,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="graph">
-    <header class="graph__header" data-tauri-drag-region="deep">
+    <header
+      class="graph__header"
+      :class="{ 'graph__header--resolving': resolving }"
+      data-tauri-drag-region="deep"
+    >
       <slot name="nav-toggle" />
-      <MsIcon name="hub" :size="18" class="graph__icon" />
+      <!-- <MsIcon name="hub" :size="20" class="graph__icon" /> -->
       <span class="graph__title">{{ t("graph.title") }}</span>
       <span class="graph__stats">
         {{ t("graph.stats", { pages: graph.nodes.length, links: graph.edges.length }) }}
@@ -189,14 +193,14 @@ onBeforeUnmount(() => {
           icon="fit_screen"
           :label="t('graph.fit')"
           variant="ghost"
-          :size="18"
+          :size="20"
           @click="graphCanvas?.fit()"
         />
         <UiIconButton
           icon="close"
           :label="t('graph.close')"
           variant="ghost"
-          :size="18"
+          :size="20"
           @click="emit('close')"
         />
       </div>
@@ -289,26 +293,40 @@ onBeforeUnmount(() => {
 }
 
 .graph__title {
-  font-size: var(--text-lg);
+  font-size: var(--text-2xl);
   font-weight: 600;
+  margin-left: var(--space-2);
+  white-space: nowrap;
 }
 
-.graph__stats {
+.graph__stats,
+.graph__resolving {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .graph__resolving {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
   opacity: 0.8;
 }
 
 .graph__actions {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: var(--space-0-5);
   margin-left: auto;
+}
+
+/* Phones get one secondary line: the progress text replaces the counts
+   instead of wrapping both into a three-line header. */
+@media (max-width: 768px) {
+  .graph__header--resolving .graph__stats {
+    display: none;
+  }
 }
 
 .graph__toolbar {

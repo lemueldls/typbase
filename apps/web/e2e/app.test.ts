@@ -834,6 +834,71 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("links a daily note to the next day", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const dates = [-1, 0].map((offset) => {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() + offset);
+
+      return date.toISOString().slice(0, 10);
+    });
+    const previousId = await page.evaluate(
+      async (date) => (await window.__typbase.store.createDailyNote(date)).id,
+      dates[0],
+    );
+    const todayId = await page.evaluate(
+      async (date) => (await window.__typbase.store.createDailyNote(date)).id,
+      dates[1],
+    );
+
+    await showPage(page, previousId, "write");
+
+    // The template asks for its neighbors from the live daily list, so the
+    // note created first still links forward to the day added later.
+    const nextLink = page.locator(`a[href="typbase://page/${todayId}"]`).first();
+    await nextLink.waitFor({ timeout: 60_000 });
+    await nextLink.click();
+    await page.waitForFunction((id) => window.__typbase.pageId === id, todayId, {
+      timeout: 60_000,
+    });
+
+    // The newest note has no next day yet; a `none` neighbor must render
+    // (three frames: heading, previous, next) and must not fail the compile.
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 3, null, {
+      timeout: 60_000,
+    });
+    await expect(page.locator(".cm-lintRange-error, .cm-lint-marker-error").count()).resolves.toBe(
+      0,
+    );
+
+    await page.close();
+  });
+
+  it("exposes the compile inputs to page sources", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Inputs check",
+      content:
+        '#assert(sys.inputs.reason == "editor")\n' +
+        "#assert(sys.inputs.page != none)\n" +
+        "#assert(sys.inputs.workspace != none)\n\nOK\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 1, null, {
+      timeout: 60_000,
+    });
+    await expect(page.locator(".cm-lintRange-error, .cm-lint-marker-error").count()).resolves.toBe(
+      0,
+    );
+
+    await page.close();
+  });
+
   it("builds a graph with the linked pages as nodes and edges", async () => {
     const page = await createPage();
     await openApp(page);

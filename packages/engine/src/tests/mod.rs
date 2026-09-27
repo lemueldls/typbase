@@ -17,6 +17,7 @@ mod harness;
 mod characterize;
 mod ide;
 mod incomplete;
+mod inputs;
 mod map_props;
 mod mapper;
 mod memory;

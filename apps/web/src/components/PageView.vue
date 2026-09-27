@@ -35,6 +35,7 @@ import {
   createNotebookSession,
   type NotebookController,
 } from "~/lib/notebook";
+import { pageContextBinding } from "~/lib/pageContext";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { mirrorPageProject } from "~/lib/projectMirror";
@@ -42,6 +43,7 @@ import { revealRequests } from "~/lib/reveal";
 import { setSaveHandler } from "~/lib/saveRequest";
 import { addDictionaryWord, addIgnoredLint } from "~/lib/spellcheckSettings";
 import { testApi } from "~/lib/testApi";
+import { setTypstInputs } from "~/lib/typstInputs";
 import { recreateTypstState, takeEngineFailure } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
@@ -611,9 +613,12 @@ async function setupPage() {
 
   text.value = await store.loadPageText(pageId);
   if (pageDisposed || token !== setupToken) return;
-  // The generated prelude (theme/fonts) is implicit; this is the user's own
-  // prelude, appended on every compile.
-  prelude.value = store.getSettings().pagePrelude ?? "";
+  // The generated prelude (theme/fonts) is implicit. This is the page's
+  // `note` binding plus the user's own prelude, appended on every
+  // compile.
+  prelude.value = [pageContextBinding(store, pageId), store.getSettings().pagePrelude ?? ""]
+    .filter(Boolean)
+    .join("\n");
 
   if (engineHealth.value.status === "failed") {
     // No wasm calls while failed. The text is loaded and the watchers from the
@@ -652,8 +657,14 @@ async function setupPage() {
           fontFamiliesInSource(text.value),
         );
         requestService?.purge();
-        // A prelude edit must recompile with the new text.
-        prelude.value = store.getSettings().pagePrelude ?? "";
+        // A prelude edit must recompile with the new text; the page context
+        // moved with it, so the daily neighbors stay current.
+        prelude.value = [
+          pageContextBinding(store, props.pageId),
+          store.getSettings().pagePrelude ?? "",
+        ]
+          .filter(Boolean)
+          .join("\n");
         editorPane.value?.recompile();
         cleanupScrollSync();
         meta.value = store.getPage(props.pageId);
@@ -673,6 +684,7 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
   if (!store || !state) return;
 
   requestService?.setCurrentPage(pageId);
+  setTypstInputs(state, { pageId, workspaceId: workspaceId.value, reason: "editor" });
   syncNotebookController();
 
   fileId.value = state.createSourceId(page.path, workspaceId.value);
