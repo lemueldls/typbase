@@ -99,10 +99,15 @@ const pages = computed(() => {
     .slice(0, 50);
 });
 
-function openPicker(): void {
-  pickerQuery.value = "";
-  pickerOpen.value = true;
-}
+/** Options for the page-link autocomplete; UiCombobox takes them filtered. */
+const pageOptions = computed(() =>
+  pages.value.map((page) => ({ value: page.id, label: page.title })),
+);
+
+// Every open starts from a full list; reka's trigger toggles `open`.
+watch(pickerOpen, (open) => {
+  if (open) pickerQuery.value = "";
+});
 
 /** A picked page becomes `#typbase.page-link("<id>")`; a selection wraps. */
 function insertPageLink(pageId: string): void {
@@ -153,43 +158,33 @@ function run(item: ToolbarItem) {
           </ToolbarButton>
         </UiTooltip>
 
-        <UiPopover v-if="item.id === 'link'" v-model:open="pickerOpen" class="edit-toolbar__picker">
+        <UiCombobox
+          v-if="item.id === 'link'"
+          v-model:open="pickerOpen"
+          v-model="pickerQuery"
+          :options="pageOptions"
+          :label="$t('formatting.pageLink')"
+          :placeholder="$t('links.searchPages')"
+          :empty="$t('links.noPages')"
+          :disabled="disabled || !view"
+          class="edit-toolbar__picker"
+          @select="insertPageLink"
+        >
           <template #trigger>
-            <UiTooltip :text="$t('formatting.pageLink')">
-              <ToolbarButton
-                type="button"
-                class="edit-toolbar__button"
-                :aria-label="$t('formatting.pageLink')"
-                :disabled="disabled || !view"
-                @click="openPicker"
-              >
-                <MsIcon name="add_link" :size="18" />
-              </ToolbarButton>
-            </UiTooltip>
+            <ToolbarButton
+              type="button"
+              class="edit-toolbar__button"
+              :aria-label="$t('formatting.pageLink')"
+              :disabled="disabled || !view"
+            >
+              <MsIcon name="add_link" :size="18" />
+            </ToolbarButton>
           </template>
 
-          <UiTextField
-            v-model="pickerQuery"
-            size="small"
-            :label="$t('links.searchPages')"
-            :placeholder="$t('links.searchPages')"
-            class="edit-toolbar__picker-search"
-          />
-          <ul class="edit-toolbar__picker-list">
-            <li v-for="candidate in pages" :key="candidate.id">
-              <button
-                type="button"
-                class="edit-toolbar__picker-row"
-                @click="insertPageLink(candidate.id)"
-              >
-                <UiTruncatedText :text="candidate.title" />
-              </button>
-            </li>
-          </ul>
-          <p v-if="pages.length === 0" class="edit-toolbar__picker-empty">
-            {{ $t("links.noPages") }}
-          </p>
-        </UiPopover>
+          <template #option="{ option }">
+            <UiTruncatedText :text="option.label" />
+          </template>
+        </UiCombobox>
       </template>
     </template>
   </ToolbarRoot>
@@ -233,47 +228,9 @@ function run(item: ToolbarItem) {
   background: var(--color-border);
 }
 
-/* Page-link picker. Portaled popover content, so the styles live here rather
-   than next to the toolbar's own classes. */
-.edit-toolbar__picker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+/* Page-link autocomplete: width only. UiCombobox owns the surface, input,
+   list, and empty state, so only the picker's width differs from the base. */
+.combobox.edit-toolbar__picker {
   width: min(280px, calc(100vw - var(--space-8)));
-  max-height: calc(100dvh - 8rem);
-  padding: var(--space-2);
-}
-
-.edit-toolbar__picker-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 260px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-y: auto;
-}
-
-.edit-toolbar__picker-row {
-  display: block;
-  width: 100%;
-  padding: var(--space-1) var(--space-2);
-  text-align: left;
-  color: var(--color-text);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.edit-toolbar__picker-row:hover {
-  background: var(--color-surface-2);
-}
-
-.edit-toolbar__picker-empty {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
 }
 </style>

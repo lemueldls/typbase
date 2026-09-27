@@ -579,6 +579,42 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("inserts a page link from the toolbar picker", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const targetId = await createTestPage(page, {
+      title: "Picker target",
+      content: "= Target\n",
+    });
+    const sourceId = await createTestPage(page, {
+      title: "Picker source",
+      content: "= Source\n\n",
+    });
+    await showPage(page, sourceId, "write");
+
+    // The picker is a reka Combobox: the toolbar button opens it, the input
+    // inside filters, and a click inserts the page link.
+    await page.locator('.edit-toolbar button[aria-label="Page link"]').click();
+    await page.locator(".combobox__input").fill("Picker target");
+    await page.locator(".combobox__item").first().click();
+
+    await page.waitForFunction(
+      (id) => {
+        const view = window.__typbase.view;
+        const text = view?.state.doc.toString() ?? "";
+
+        return text.includes(`#typbase.page-link("${id}")`);
+      },
+      targetId,
+      { timeout: 30_000 },
+    );
+    // Selecting closes the popover; the exit animation delays the unmount.
+    await page.waitForSelector(".combobox", { state: "detached", timeout: 30_000 });
+
+    await page.close();
+  });
+
   it("lists a page's backlinks and reveals the linking call", async () => {
     const page = await createPage();
     await openApp(page);
