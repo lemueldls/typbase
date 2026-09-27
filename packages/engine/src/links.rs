@@ -2,9 +2,11 @@
 //!
 //! [`extract_links`] walks the Typst AST for the app's link forms:
 //! `#typbase.page-link("<id>")`, `#typbase.embed("<id>")`, and
-//! `#link("typbase://page/<id>")`. Targets must be static string literals; a
-//! target built at runtime (`#typbase.embed(myId)`) is invisible to the index.
-//! Ranges are UTF-16 code units, the space CodeMirror and `requestReveal` use.
+//! `#link("typbase://page/<id>")`. A target built at runtime, like
+//! `#typbase.page-link(page.id)` in a query loop, comes back with an empty
+//! target and `dynamic: true`: the span locates the call and the app fills the
+//! real ids from a compile. Ranges are UTF-16 code units, the space CodeMirror
+//! and `requestReveal` use.
 
 use std::ops::Range;
 
@@ -23,20 +25,25 @@ pub struct LinkSpan {
     /// The link form: `"page-link"`, `"embed"`, or `"url"`.
     pub kind: String,
     /// The page reference: the id argument for `page-link` and `embed`, or the
-    /// id part of a `typbase://page/<id>` URL.
+    /// id part of a `typbase://page/<id>` URL. Empty for a dynamic call.
     pub target: String,
     /// UTF-16 range of the whole call.
     pub from: usize,
     pub to: usize,
-    /// UTF-16 range of the target string's contents, inside the quotes.
+    /// UTF-16 range of the target string's contents (inside the quotes) or of
+    /// the target expression for a dynamic call.
     pub target_from: usize,
     pub target_to: usize,
+    /// True when the target is computed at compile time; the index resolves
+    /// the ids from a compile and this span only locates the call.
+    pub dynamic: bool,
 }
 
 /// Byte ranges before the UTF-16 conversion.
 struct RawLink {
     kind: &'static str,
     target: String,
+    dynamic: bool,
     full: Range<usize>,
     target_range: Range<usize>,
 }
@@ -62,8 +69,10 @@ pub fn extract_links(text: &str) -> Vec<LinkSpan> {
     to_spans(text, raw)
 }
 
-/// Classifies a call and pulls its static target. `None` for anything that is
-/// not an app link (other functions, dynamic targets, other URL schemes).
+/// Classifies a call and pulls its target: a string literal resolves to the
+/// target, anything else is a dynamic span the app fills from a compile.
+/// `None` for anything that is not an app link (other functions, other URL
+/// schemes, a call with no positional argument, an empty target).
 fn link_call(node: &LinkedNode, call: &FuncCall) -> Option<RawLink> {
     let callee = call.callee().to_untyped().full_text();
     let kind = match callee.as_str() {
@@ -73,14 +82,24 @@ fn link_call(node: &LinkedNode, call: &FuncCall) -> Option<RawLink> {
         _ => return None,
     };
 
-    let (target_range, value) = first_positional_str(node)?;
-    let target = match kind {
-        "url" => value.strip_prefix("typbase://page/")?.to_string(),
-        _ => value.to_string(),
+    let argument = first_positional(node)?;
+    let (target_range, target, dynamic) = match argument.get().cast::<Str>() {
+        Some(text) => {
+            let value = text.get().to_string();
+            let target = match kind {
+                "url" => value.strip_prefix("typbase://page/")?.to_string(),
+                _ => value,
+            };
+            if target.is_empty() {
+                return None;
+            }
+
+            // The node covers the quotes; two bytes is the shortest string.
+            let range = argument.range();
+            (range.start + 1..range.end - 1, target, false)
+        }
+        None => (argument.range(), String::new(), true),
     };
-    if target.is_empty() {
-        return None;
-    }
 
     // The FuncCall node starts after the `#`; include the hash so the whole
     // written call is one reveal range.
@@ -94,34 +113,38 @@ fn link_call(node: &LinkedNode, call: &FuncCall) -> Option<RawLink> {
     Some(RawLink {
         kind,
         target,
+        dynamic,
         full,
         target_range,
     })
 }
 
-/// The first positional string argument, with the range of its contents.
-/// Named arguments are skipped, so `body: "text"` cannot be mistaken for a
-/// target; a non-string target returns `None`.
-fn first_positional_str(node: &LinkedNode) -> Option<(Range<usize>, String)> {
+/// The first positional argument node. Named and spread arguments, the
+/// argument-list delimiters, commas, trivia, and trailing content blocks are
+/// skipped, so `body: "text"` cannot be mistaken for a target. `None` when
+/// the call has no positional argument.
+fn first_positional<'a>(node: &LinkedNode<'a>) -> Option<LinkedNode<'a>> {
     for child in node.children() {
         if child.kind() != SyntaxKind::Args {
             continue;
         }
 
         for item in child.children() {
-            if item.kind() != SyntaxKind::Str {
+            if item.kind().is_trivia()
+                || matches!(
+                    item.kind(),
+                    SyntaxKind::Named
+                        | SyntaxKind::Spread
+                        | SyntaxKind::Comma
+                        | SyntaxKind::LeftParen
+                        | SyntaxKind::RightParen
+                        | SyntaxKind::ContentBlock
+                )
+            {
                 continue;
             }
 
-            let range = item.range();
-            // The node covers the quotes; two bytes is the shortest string.
-            if range.end.saturating_sub(range.start) < 2 {
-                continue;
-            }
-
-            let value = item.get().cast::<Str>()?.get();
-
-            return Some((range.start + 1..range.end - 1, value.to_string()));
+            return Some(item);
         }
     }
 
@@ -153,6 +176,7 @@ fn to_spans(text: &str, links: Vec<RawLink>) -> Vec<LinkSpan> {
             to: utf16[index * 4 + 3],
             target_from: utf16[index * 4 + 1],
             target_to: utf16[index * 4 + 2],
+            dynamic: link.dynamic,
         })
         .collect()
 }
@@ -207,9 +231,36 @@ mod tests {
     fn named_arguments_are_not_targets() {
         let text = "#typbase.page-link(body: \"not-a-target\", other: 1)\n";
         assert!(extract_links(text).is_empty());
+    }
 
-        let text = "#typbase.page-link(pageId, body: [x])\n";
-        assert!(extract_links(text).is_empty());
+    #[test]
+    fn dynamic_targets_keep_the_call_span() {
+        let text = "#typbase.page-link(page.id)\n";
+        let links = extract_links(text);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].kind, "page-link");
+        assert!(links[0].dynamic);
+        assert_eq!(links[0].target, "");
+        assert_eq!(&text[links[0].from..links[0].to], "#typbase.page-link(page.id)");
+        assert_eq!(&text[links[0].target_from..links[0].target_to], "page.id");
+    }
+
+    #[test]
+    fn dynamic_targets_cover_embed_and_url_calls() {
+        let text = concat!(
+            "#typbase.embed(myId)\n\n",
+            "#link(base + \"/page\")\n\n",
+            "#typbase.page-link(pageId, body: [x])\n",
+        );
+        let links = extract_links(text);
+        assert_eq!(links.len(), 3);
+        assert!(links.iter().all(|link| link.dynamic));
+        assert_eq!(links[0].kind, "embed");
+        assert_eq!(&text[links[0].target_from..links[0].target_to], "myId");
+        assert_eq!(links[1].kind, "url");
+        assert_eq!(&text[links[1].target_from..links[1].target_to], "base + \"/page\"");
+        // A dynamic first argument beats a string in a later position.
+        assert_eq!(&text[links[2].target_from..links[2].target_to], "pageId");
     }
 
     #[test]

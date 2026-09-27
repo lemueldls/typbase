@@ -519,7 +519,8 @@
     "collapse": "Links einklappen",
     "searchPages": "Seiten suchen",
     "noPages": "Keine passenden Seiten.",
-    "degraded": "Links sind nicht verfügbar, solange die Typst-Engine gestoppt ist."
+    "degraded": "Links sind nicht verfügbar, solange die Typst-Engine gestoppt ist.",
+    "resolving": "Query-Links werden aufgelöst… noch {count}"
   },
   "graph": {
     "title": "Graph",
@@ -541,7 +542,8 @@
     "empty": "Noch keine Seiten für den Graphen.",
     "noMatches": "Keine passenden Seiten",
     "fit": "Ansicht einpassen",
-    "hint": "Ziehen zum Verschieben, scrollen zum Zoomen, klicken zum Öffnen."
+    "hint": "Ziehen zum Verschieben, scrollen zum Zoomen, klicken zum Öffnen.",
+    "resolving": "Query-Links werden aufgelöst… noch {count}"
   },
   "notebook": {
     "runCell": "Zelle ausführen",

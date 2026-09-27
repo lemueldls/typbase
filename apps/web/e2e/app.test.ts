@@ -756,6 +756,84 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("resolves query-loop links into the graph", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const targetId = await createTestPage(page, {
+      title: "Query target",
+      content: "= Target\n\nNothing links here yet.\n",
+    });
+    const sourceId = await createTestPage(page, {
+      title: "Query source",
+      content:
+        `= Source\n\n` +
+        `#let target = typbase.query("pages", filter: "by-id/${targetId}")\n` +
+        `#typbase.page-link(target.id)\n`,
+    });
+
+    // Opening the graph wants its visible pages resolved, and the rendered
+    // link becomes an edge like any static one.
+    await page.evaluate(() => window.__typbase.openGraph());
+    await page.waitForSelector(".graph canvas", { timeout: 60_000 });
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.graphStats()?.edges ?? 0), {
+        timeout: 90_000,
+      })
+      .toBeGreaterThanOrEqual(1);
+
+    // The same record answers backlinks.
+    await expect
+      .poll(() => page.evaluate((id) => window.__typbase.backlinksFor?.(id) ?? [], targetId), {
+        timeout: 30_000,
+      })
+      .toContain(sourceId);
+
+    await page.close();
+  });
+
+  it("lists a query-loop backlink in the links panel", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const targetId = await createTestPage(page, {
+      title: "Query target",
+      content: "= Target\n\nNothing links here yet.\n",
+    });
+    const sourceId = await createTestPage(page, {
+      title: "Query source",
+      content:
+        `= Source\n\n` +
+        `#let target = typbase.query("pages", filter: "by-id/${targetId}")\n` +
+        `#typbase.page-link(target.id)\n`,
+    });
+
+    // The links panel wants pending dynamic pages resolved while it is open.
+    await page.evaluate(() => localStorage.setItem("typbase:linksPanel", "true"));
+    await showPage(page, targetId, "write");
+
+    await page.waitForFunction(
+      ({ id, source }) => (window.__typbase.backlinksFor?.(id) ?? []).includes(source),
+      { id: targetId, source: sourceId },
+      { timeout: 90_000 },
+    );
+
+    await page.waitForSelector(".links", { timeout: 30_000 });
+    await expect
+      .poll(
+        async () => {
+          const text = await page.locator(".links__body").innerText();
+
+          // The mention points at the dynamic call, not a literal target.
+          return text.includes("Query source") && text.includes("#typbase.page-link(target.id)");
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+
+    await page.close();
+  });
+
   it("builds a graph with the linked pages as nodes and edges", async () => {
     const page = await createPage();
     await openApp(page);

@@ -17,7 +17,17 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { index, status, ensure } = useLinks();
+const { index, status, ensure, setWanted, clearWanted } = useLinks();
+
+/** Backlinks come from other pages' query loops, so while the panel is open
+ *  it wants every pending dynamic page resolved. */
+const owner = Symbol("links-panel");
+
+const resolving = computed(() => {
+  const value = status.value;
+
+  return Boolean(value && (value.resolving !== null || value.pending > 0));
+});
 
 /** Records and backlinks re-read when the index emits; the page id rebinds. */
 const records = computed(() => {
@@ -36,11 +46,18 @@ const backlinks = computed(() => {
 
 const failing = computed(() => Boolean(status.value?.error) && !status.value?.ready);
 
-onMounted(() => void ensure(props.store));
+onMounted(() => {
+  void ensure(props.store);
+  setWanted(owner);
+});
 watch(
   () => props.store,
-  (store) => void ensure(store),
+  (store) => {
+    void ensure(store);
+    setWanted(owner);
+  },
 );
+onBeforeUnmount(() => clearWanted(owner));
 
 function title(pageId: string): string {
   return props.store.getPage(pageId)?.title ?? pageId;
@@ -69,6 +86,9 @@ function mentionCount(group: BacklinkGroup): string {
       <span class="links__counts">
         {{ t("links.countOutgoing", { count: records.length }) }} ·
         {{ t("links.countBacklinks", { count: backlinks.length }) }}
+      </span>
+      <span v-if="resolving" class="links__resolving" aria-live="polite">
+        {{ t("links.resolving", { count: status?.pending ?? 0 }) }}
       </span>
       <div class="links__actions">
         <UiIconButton
@@ -186,6 +206,11 @@ function mentionCount(group: BacklinkGroup): string {
 
 .links__counts {
   font-size: var(--text-xs);
+}
+
+.links__resolving {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .links__actions {

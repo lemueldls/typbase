@@ -18,7 +18,17 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { workspace } = useWorkspace();
-const { index, status, ensure } = useLinks();
+const { index, status, ensure, setWanted, clearWanted } = useLinks();
+
+/** The graph wants its visible pages resolved: a query loop inside the view
+ *  is an edge like any other. Pages outside a local graph stay untouched. */
+const owner = Symbol("graph");
+
+const resolving = computed(() => {
+  const value = status.value;
+
+  return Boolean(value && (value.resolving !== null || value.pending > 0));
+});
 
 const graphCanvas = useTemplateRef<{ fit: () => void }>("graphCanvas");
 const query = ref("");
@@ -61,6 +71,16 @@ const graph = computed(() => {
     showOrphans: settings.value.showOrphans,
   });
 });
+
+watch(
+  graph,
+  (value) =>
+    setWanted(
+      owner,
+      value.nodes.map((node) => node.id),
+    ),
+  { immediate: true },
+);
 
 const palette = useWorkspaceValue(
   workspace,
@@ -137,10 +157,17 @@ onMounted(() => {
 });
 
 watch(workspace, (value) => {
-  if (value) ensure(value);
+  if (value) {
+    ensure(value);
+    setWanted(
+      owner,
+      graph.value.nodes.map((node) => node.id),
+    );
+  }
 });
 
 onBeforeUnmount(() => {
+  clearWanted(owner);
   testApi.graphStats = null;
 });
 </script>
@@ -153,6 +180,9 @@ onBeforeUnmount(() => {
       <span class="graph__title">{{ t("graph.title") }}</span>
       <span class="graph__stats">
         {{ t("graph.stats", { pages: graph.nodes.length, links: graph.edges.length }) }}
+      </span>
+      <span v-if="resolving" class="graph__resolving" aria-live="polite">
+        {{ t("graph.resolving", { count: status?.pending ?? 0 }) }}
       </span>
       <div class="graph__actions">
         <UiIconButton
@@ -266,6 +296,12 @@ onBeforeUnmount(() => {
 .graph__stats {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+.graph__resolving {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  opacity: 0.8;
 }
 
 .graph__actions {

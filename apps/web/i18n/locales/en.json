@@ -548,7 +548,8 @@
     "collapse": "Collapse links",
     "searchPages": "Search pages",
     "noPages": "No pages match.",
-    "degraded": "Links are unavailable while the Typst engine is stopped."
+    "degraded": "Links are unavailable while the Typst engine is stopped.",
+    "resolving": "Resolving query links… {count} left"
   },
   "graph": {
     "title": "Graph",
@@ -570,7 +571,8 @@
     "empty": "No pages to graph yet.",
     "noMatches": "No matching pages",
     "fit": "Fit to view",
-    "hint": "Drag to pan, scroll to zoom, click a node to open it."
+    "hint": "Drag to pan, scroll to zoom, click a node to open it.",
+    "resolving": "Resolving query links… {count} left"
   },
   "chat": {
     "title": "Chat",

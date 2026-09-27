@@ -519,7 +519,8 @@
     "collapse": "Réduire les liens",
     "searchPages": "Rechercher des pages",
     "noPages": "Aucune page correspondante.",
-    "degraded": "Les liens sont indisponibles tant que le moteur Typst est arrêté."
+    "degraded": "Les liens sont indisponibles tant que le moteur Typst est arrêté.",
+    "resolving": "Résolution des liens de requête… {count} restants"
   },
   "graph": {
     "title": "Graphe",
@@ -541,7 +542,8 @@
     "empty": "Aucune page à afficher pour l’instant.",
     "noMatches": "Aucune page correspondante",
     "fit": "Ajuster à la vue",
-    "hint": "Glissez pour déplacer, molette pour zoomer, cliquez pour ouvrir."
+    "hint": "Glissez pour déplacer, molette pour zoomer, cliquez pour ouvrir.",
+    "resolving": "Résolution des liens de requête… {count} restants"
   },
   "notebook": {
     "runCell": "Exécuter la cellule",

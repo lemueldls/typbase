@@ -519,7 +519,8 @@
     "collapse": "Contraer enlaces",
     "searchPages": "Buscar páginas",
     "noPages": "Ninguna página coincide.",
-    "degraded": "Los enlaces no están disponibles mientras el motor de Typst esté detenido."
+    "degraded": "Los enlaces no están disponibles mientras el motor de Typst esté detenido.",
+    "resolving": "Resolviendo enlaces de consulta… quedan {count}"
   },
   "graph": {
     "title": "Grafo",
@@ -541,7 +542,8 @@
     "empty": "Aún no hay páginas para el grafo.",
     "noMatches": "Sin páginas coincidentes",
     "fit": "Ajustar a la vista",
-    "hint": "Arrastra para desplazar, rueda para ampliar, clic para abrir."
+    "hint": "Arrastra para desplazar, rueda para ampliar, clic para abrir.",
+    "resolving": "Resolviendo enlaces de consulta… quedan {count}"
   },
   "notebook": {
     "runCell": "Ejecutar celda",

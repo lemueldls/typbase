@@ -50,9 +50,23 @@ function useLinksState() {
     return instance;
   }
 
+  /**
+   * Declares the pages one surface wants resolved, replacing its last set.
+   * Omit `ids` to want every pending page, now and as the sweep finds more.
+   * The backlinks panel needs that: backlinks come from other pages' query
+   * loops, and those pages are unknown until the extraction finishes.
+   */
+  function setWanted(owner: symbol, ids?: Iterable<string>): void {
+    index.value?.setWanted(owner, ids);
+  }
+
+  function clearWanted(owner: symbol): void {
+    index.value?.clearWanted(owner);
+  }
+
   onScopeDispose(reset);
 
-  return { index: computed(() => index.value), status, ensure };
+  return { index: computed(() => index.value), status, ensure, setWanted, clearWanted };
 }
 
 export const useLinks = createSharedComposable(useLinksState);
