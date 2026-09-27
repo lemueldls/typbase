@@ -1,5 +1,6 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
+import { readFile } from "node:fs/promises";
 import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
@@ -26,12 +27,21 @@ export default defineNuxtConfig({
       meta: [
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "description", content: appDescription },
+        { name: "theme-color", content: "#ffffff", media: "(prefers-color-scheme: light)" },
+        { name: "theme-color", content: "#1b1d21", media: "(prefers-color-scheme: dark)" },
+        { name: "mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-title", content: "Typbase" },
         { property: "og:title", content: "Typbase" },
         { property: "og:description", content: appDescription },
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: "Typbase" },
       ],
-      link: [{ rel: "icon", type: "image/x-icon", href: "favicon.ico" }],
+      link: [
+        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+        { rel: "manifest", href: "/site.webmanifest" },
+        { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+      ],
       script: [
         {
           // Runs before first paint. The workspace doc is async, so without
@@ -57,9 +67,25 @@ export default defineNuxtConfig({
           // so they miss the COOP/COEP the document has. Chromium refuses to
           // create a worker under COEP unless the worker response carries them
           // too, which silently blocked every worker in dev.
-          server.middlewares.use((_request, response, next) => {
+          server.middlewares.use((request, response, next) => {
             response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
             response.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+
+            // Nuxt dev serves public JS through a virtual module, which a
+            // service worker cannot evaluate. Serve the raw file so the
+            // offline test can register it; production copies public/ as-is.
+            if (request.url?.split("?")[0] === "/sw.js") {
+              void readFile(new URL("./public/sw.js", import.meta.url), "utf8").then(
+                (source) => {
+                  response.setHeader("Content-Type", "text/javascript");
+                  response.end(source);
+                },
+                () => next(),
+              );
+
+              return;
+            }
+
             next();
           });
         },

@@ -22,10 +22,28 @@ if (!password) {
   process.exit(1);
 }
 
+// The three isolation headers apply site-wide. Cache-Control entries are
+// path-scoped and non-overlapping: a path that matches none of them keeps the
+// host default (10 minutes, revalidate), which is what the entry document
+// wants. Hashed build output never changes under its URL, so it can be
+// immutable; `sw.js` must revalidate or a deploy would not replace the worker.
 const headers = [
   { name: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { name: "Cross-Origin-Embedder-Policy", value: "credentialless" },
   { name: "X-Frame-Options", value: "SAMEORIGIN" },
+  { name: "Cache-Control", value: "public, max-age=31536000, immutable", path: "/_nuxt/*" },
+  {
+    name: "Cache-Control",
+    value: "public, max-age=604800, stale-while-revalidate=86400",
+    path: "/fonts/*",
+  },
+  {
+    name: "Cache-Control",
+    value: "public, max-age=604800, stale-while-revalidate=86400",
+    path: "/icons/*",
+  },
+  { name: "Cache-Control", value: "no-cache", path: "/sw.js" },
+  { name: "Cache-Control", value: "no-cache", path: "/site.webmanifest" },
 ];
 
 // `spaMode` serves index.html for client routes that were never prerendered,

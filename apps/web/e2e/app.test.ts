@@ -782,4 +782,39 @@ describe("typbase app", async () => {
 
     await page.close();
   });
+
+  it("boots the shell offline once the worker has cached it", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // The app registers the worker in production only; the suite registers it
+    // directly so the offline path runs against the dev server too.
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+    });
+
+    // Reload so the page is controlled and the runtime cache fills.
+    await page.reload({ waitUntil: "load" });
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
+      timeout: 60_000,
+    });
+    await page.waitForSelector(".cm-editor", { timeout: 180_000 });
+    await page.waitForTimeout(3000);
+
+    // Drop the HTTP cache so only the worker's cache can answer offline.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Network.clearBrowserCache");
+
+    await page.context().setOffline(true);
+    try {
+      await page.reload({ waitUntil: "load" });
+      await page.waitForSelector(".sidebar", { timeout: 120_000 });
+      await page.waitForSelector(".cm-editor", { timeout: 180_000 });
+    } finally {
+      await page.context().setOffline(false);
+    }
+
+    await page.close();
+  });
 });
