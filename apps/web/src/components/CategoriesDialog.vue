@@ -7,11 +7,20 @@ const props = defineProps<{
 
 const open = defineModel<boolean>("open", { default: false });
 
+// Loro lists are not reactive; the workspace bumps dataRevision on any change.
+const { dataRevision } = useWorkspace();
+
 const newName = ref("");
 const error = ref<string>();
 
-const categories = computed(() => props.store.listCategories());
+const categories = computed(() => {
+  void dataRevision.value;
+
+  return props.store.listCategories();
+});
 const categoryCounts = computed(() => {
+  void dataRevision.value;
+
   const counts = new Map<string, number>();
   for (const page of props.store.listPages()) {
     if (page.categoryId) {
@@ -55,7 +64,7 @@ async function remove(id: string) {
         <span class="category-list__count">{{ categoryCounts.get(category.id) ?? 0 }}</span>
         <UiIconButton
           icon="delete"
-          :size="16"
+          :size="20"
           :label="$t('categories.removeAria', { name: category.name })"
           @click="remove(category.id)"
         />
@@ -84,6 +93,7 @@ async function remove(id: string) {
 <style>
 .category-list {
   margin: 0;
+  margin-bottom: var(--space-2);
   padding: 0;
   list-style: none;
   display: flex;

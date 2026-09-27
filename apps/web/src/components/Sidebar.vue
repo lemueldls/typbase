@@ -171,91 +171,21 @@ function onCreated(page: PageMeta) {
     </header>
 
     <div class="sidebar__sections">
-      <div class="sidebar__section">
-        <div class="sidebar__section-title">
-          <span>{{ $t("sidebar.daily") }}</span>
-          <div class="sidebar__section-actions">
-            <CalendarDialog :store="store" @select="emit('select', $event)">
-              <UiIconButton icon="calendar_month" :label="$t('sidebar.calendar')" variant="ghost" />
-            </CalendarDialog>
-          </div>
-        </div>
-
-        <ul class="sidebar__list">
-          <li
-            class="sidebar__item"
-            :class="{ 'sidebar__item--active': todayPage && todayPage.id === currentPageId }"
-          >
-            <button
-              type="button"
-              class="sidebar__row sidebar__row--today"
-              :aria-current="todayPage && todayPage.id === currentPageId ? 'page' : undefined"
-              @click="openToday"
-            >
-              <MsIcon name="calendar_today" :size="20" />
-              {{ $t("sidebar.today") }}
-            </button>
-            <UiMenu v-if="todayPage">
-              <template #trigger>
-                <UiIconButton
-                  icon="more_vert"
-                  :size="20"
-                  :label="t('sidebar.actions', { title: todayPage.title })"
-                  variant="ghost"
-                  class="button--tiny sidebar__row-more"
-                />
-              </template>
-              <UiMenuItem danger icon="delete" @select="askRemove(todayPage)">
-                {{ $t("sidebar.delete") }}
-              </UiMenuItem>
-            </UiMenu>
-          </li>
-
-          <!-- Day notes, most recent first. Tapping opens the note; the Today
-             row above creates today's lazily on first tap. -->
-          <li
-            v-for="day in recentDays"
-            :key="day.id"
-            class="sidebar__item"
-            :class="{ 'sidebar__item--active': day.id === currentPageId }"
-          >
-            <button
-              type="button"
-              class="sidebar__row"
-              :aria-current="day.id === currentPageId ? 'page' : undefined"
-              @click="emit('select', day.id)"
-            >
-              <MsIcon name="calendar_month" :size="20" />
-              <UiTruncatedText class="sidebar__day-label" :text="dayLabel(day)" />
-            </button>
-            <UiMenu>
-              <template #trigger>
-                <UiIconButton
-                  icon="more_vert"
-                  :size="20"
-                  :label="t('sidebar.actions', { title: day.title })"
-                  variant="ghost"
-                  class="button--tiny sidebar__row-more"
-                />
-              </template>
-              <UiMenuItem danger icon="delete" @select="askRemove(day)">
-                {{ $t("sidebar.delete") }}
-              </UiMenuItem>
-            </UiMenu>
-          </li>
-        </ul>
-      </div>
-
-      <div class="sidebar__section">
+      <div class="sidebar__section sidebar__section--pages">
         <div class="sidebar__section-title">
           <span>{{ $t("sidebar.pages") }}</span>
           <div class="sidebar__section-actions">
+            <CategoriesDialog :store="store">
+              <UiIconButton
+                icon="category"
+                :label="$t('sidebar.categories')"
+                variant="ghost"
+                :size="20"
+              />
+            </CategoriesDialog>
             <NewPageDialog :store="store" @created="onCreated">
               <UiIconButton icon="add" :label="$t('sidebar.newPage')" variant="ghost" :size="20" />
             </NewPageDialog>
-            <!-- <CategoriesDialog :store="store">
-            <UiIconButton icon="category" :label="$t('sidebar.categories')" />
-          </CategoriesDialog> -->
           </div>
         </div>
 
@@ -390,7 +320,82 @@ function onCreated(page: PageMeta) {
         <p v-if="pages.length === 0" class="sidebar__empty">{{ $t("sidebar.noPages") }}</p>
       </div>
 
-      <div class="sidebar__section">
+      <div class="sidebar__section sidebar__section--daily">
+        <div class="sidebar__section-title">
+          <span>{{ $t("sidebar.daily") }}</span>
+          <div class="sidebar__section-actions">
+            <CalendarDialog :store="store" @select="emit('select', $event)">
+              <UiIconButton icon="calendar_month" :label="$t('sidebar.calendar')" variant="ghost" />
+            </CalendarDialog>
+          </div>
+        </div>
+
+        <ul class="sidebar__list">
+          <li
+            class="sidebar__item"
+            :class="{ 'sidebar__item--active': todayPage && todayPage.id === currentPageId }"
+          >
+            <button
+              type="button"
+              class="sidebar__row sidebar__row--today"
+              :aria-current="todayPage && todayPage.id === currentPageId ? 'page' : undefined"
+              @click="openToday"
+            >
+              <MsIcon name="calendar_today" :size="20" />
+              {{ $t("sidebar.today") }}
+            </button>
+            <UiMenu v-if="todayPage">
+              <template #trigger>
+                <UiIconButton
+                  icon="more_vert"
+                  :size="20"
+                  :label="t('sidebar.actions', { title: todayPage.title })"
+                  variant="ghost"
+                  class="button--tiny sidebar__row-more"
+                />
+              </template>
+              <UiMenuItem danger icon="delete" @select="askRemove(todayPage)">
+                {{ $t("sidebar.delete") }}
+              </UiMenuItem>
+            </UiMenu>
+          </li>
+
+          <!-- Day notes, most recent first. Tapping opens the note; the Today
+             row above creates today's lazily on first tap. -->
+          <li
+            v-for="day in recentDays"
+            :key="day.id"
+            class="sidebar__item"
+            :class="{ 'sidebar__item--active': day.id === currentPageId }"
+          >
+            <button
+              type="button"
+              class="sidebar__row"
+              :aria-current="day.id === currentPageId ? 'page' : undefined"
+              @click="emit('select', day.id)"
+            >
+              <MsIcon name="calendar_month" :size="20" />
+              <UiTruncatedText class="sidebar__day-label" :text="dayLabel(day)" />
+            </button>
+            <UiMenu>
+              <template #trigger>
+                <UiIconButton
+                  icon="more_vert"
+                  :size="20"
+                  :label="t('sidebar.actions', { title: day.title })"
+                  variant="ghost"
+                  class="button--tiny sidebar__row-more"
+                />
+              </template>
+              <UiMenuItem danger icon="delete" @select="askRemove(day)">
+                {{ $t("sidebar.delete") }}
+              </UiMenuItem>
+            </UiMenu>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar__section sidebar__section--plugins">
         <PluginSidebar @open-plugin="emit('openPlugin', $event)" />
       </div>
     </div>
@@ -506,17 +511,51 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__section {
-  padding: var(--space-3) var(--space-2);
+  padding: 0 var(--space-2) var(--space-3);
+}
+
+/* The line separates sections; the last one has nothing below it to separate
+   from, and a rule at the sidebar's bottom edge reads as a stray border. */
+.sidebar__section:not(:last-child) {
   border-bottom: 1px solid var(--color-border);
-  overflow-y: auto;
+}
+
+/* Desktop gives each section its own scroll area: Daily and Plugins cap at
+   40% (so Pages keeps at least 20%) and Pages takes the rest. Mobile keeps
+   one column scroll for the whole sidebar, with the headers stacking as they
+   stick. The sections themselves must stay non-scrolling so a sticky header
+   anchors to the sidebar's scroll area, not to a section that never scrolls. */
+@media (min-width: 769px) {
+  .sidebar__sections {
+    overflow: hidden;
+  }
+
+  .sidebar__section {
+    overflow-y: auto;
+  }
+
+  .sidebar__section--daily,
+  .sidebar__section--plugins {
+    flex: none;
+    max-height: 40%;
+  }
+
+  .sidebar__section--pages {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
 
 .sidebar__section-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding-left: var(--space-2);
+  padding: var(--space-2) 0 0 var(--space-2);
+  background: var(--color-surface);
   font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;
@@ -528,6 +567,16 @@ function onCreated(page: PageMeta) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* The plugin section's header lives in PluginSidebar; stick it like the other
+   section titles and give it the section's top spacing. */
+.sidebar__section .plugin-sidebar__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: var(--space-2);
+  background: var(--color-surface);
 }
 
 .sidebar__list {

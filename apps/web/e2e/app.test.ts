@@ -624,6 +624,35 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("refreshes the category lists after a category is added", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // Open the new-page dialog once so its category list is read and cached.
+    await page.locator('.sidebar button[aria-label="New page"]').click();
+    await page.waitForSelector(".dialog", { timeout: 30_000 });
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".dialog", { state: "detached", timeout: 30_000 });
+
+    // Add a category; the open dialog's own list must show it.
+    await page.locator('.sidebar button[aria-label="Categories"]').click();
+    await page.waitForSelector(".category-list", { timeout: 30_000 });
+    await page.getByPlaceholder("Category name").fill("Research");
+    await page.locator(".dialog").getByRole("button", { name: "Add" }).click();
+    await page.locator(".category-list__row", { hasText: "Research" }).waitFor({ timeout: 30_000 });
+
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".category-list", { state: "detached", timeout: 30_000 });
+
+    // The new-page dialog reads the same list; it must see the category too.
+    await page.locator('.sidebar button[aria-label="New page"]').click();
+    await page.waitForSelector(".dialog", { timeout: 30_000 });
+    await page.locator(".dialog .ui-select__trigger").nth(1).click();
+    await page.locator(".ui-select__item", { hasText: "Research" }).waitFor({ timeout: 30_000 });
+
+    await page.close();
+  });
+
   it("inserts a page link from the toolbar picker", async () => {
     const page = await createPage();
     await openApp(page);
