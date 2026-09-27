@@ -28,6 +28,7 @@ export {
 } from "./tauri";
 export type {
   CreatePageInput,
+  LoroPath,
   SourceSyncResult,
   SourceSyncStore,
   WorkspaceStoreOptions,
@@ -41,6 +42,7 @@ export {
   isPluginChange,
   isSourceChange,
   pagePath,
+  pathsOverlap,
   pluginDocId,
   pluginInstanceOf,
   pluginPath,

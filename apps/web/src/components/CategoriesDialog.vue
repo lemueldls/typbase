@@ -7,29 +7,28 @@ const props = defineProps<{
 
 const open = defineModel<boolean>("open", { default: false });
 
-// Loro lists are not reactive; the workspace bumps dataRevision on any change.
-const { dataRevision } = useWorkspace();
-
 const newName = ref("");
 const error = ref<string>();
 
-const categories = computed(() => {
-  void dataRevision.value;
-
-  return props.store.listCategories();
-});
-const categoryCounts = computed(() => {
-  void dataRevision.value;
-
-  const counts = new Map<string, number>();
-  for (const page of props.store.listPages()) {
-    if (page.categoryId) {
-      counts.set(page.categoryId, (counts.get(page.categoryId) ?? 0) + 1);
+const categories = useWorkspaceValue(
+  () => props.store,
+  ["categories"],
+  (store) => store.listCategories(),
+);
+const categoryCounts = useWorkspaceValue(
+  () => props.store,
+  ["pages"],
+  (store) => {
+    const counts = new Map<string, number>();
+    for (const page of store.listPages()) {
+      if (page.categoryId) {
+        counts.set(page.categoryId, (counts.get(page.categoryId) ?? 0) + 1);
+      }
     }
-  }
 
-  return counts;
-});
+    return counts;
+  },
+);
 
 async function add() {
   if (!newName.value.trim()) return;

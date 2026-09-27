@@ -6,12 +6,10 @@ const props = defineProps<{ instanceId: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 
 const plugins = usePlugins();
-const { dataRevision } = useWorkspace();
 
-const instance = computed(() => {
-  void dataRevision.value;
-  return plugins.instances.value.find((candidate) => candidate.id === props.instanceId);
-});
+const instance = computed(() =>
+  plugins.instances.value.find((candidate) => candidate.id === props.instanceId),
+);
 
 const title = computed(() => {
   if (!instance.value) return "";

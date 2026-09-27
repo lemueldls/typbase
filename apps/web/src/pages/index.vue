@@ -387,21 +387,25 @@ function syncModeToPage(pageId: string) {
   else if (page.kind === "document" && mode.value === "notebook") mode.value = "write";
 }
 
-/** The open page's kind, refreshed whenever workspace data changes. */
-const currentPageKind = computed(() => {
-  void dataRevision.value;
-
-  return currentPageId.value ? workspace.value?.getPage(currentPageId.value)?.kind : undefined;
-});
+/** The open page's kind, refreshed whenever page metadata changes. */
+const currentPageKind = useWorkspaceValue(
+  workspace,
+  ["pages"],
+  (store) => (currentPageId.value ? store.getPage(currentPageId.value)?.kind : undefined),
+  undefined,
+);
 
 /** Tab and window title for the open page: "Page · Workspace". */
-const pageTitle = computed(() => {
-  void dataRevision.value; // a rename arrives as a structure change, not a new read
+const pageTitle = useWorkspaceValue(
+  workspace,
+  ["pages", "settings"],
+  (store) => {
+    const page = currentPageId.value ? store.getPage(currentPageId.value) : undefined;
 
-  const page = currentPageId.value ? workspace.value?.getPage(currentPageId.value) : undefined;
-
-  return formatDocumentTitle(page?.title, workspace.value?.getSettings().name);
-});
+    return formatDocumentTitle(page?.title, store.getSettings().name);
+  },
+  formatDocumentTitle(),
+);
 
 useSeoMeta({
   title: () => pageTitle.value,

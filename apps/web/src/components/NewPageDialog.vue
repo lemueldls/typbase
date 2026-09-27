@@ -14,20 +14,17 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const open = defineModel<boolean>("open", { default: false });
 
-// Loro lists are not reactive; the workspace bumps dataRevision on any change.
-const { dataRevision } = useWorkspace();
-
 const title = ref("");
 const categoryId = ref<string>("");
 const kind = ref<PageKind>("document");
 const error = ref<string>();
 const creating = ref(false);
 
-const categories = computed(() => {
-  void dataRevision.value;
-
-  return props.store.listCategories();
-});
+const categories = useWorkspaceValue(
+  () => props.store,
+  ["categories"],
+  (store) => store.listCategories(),
+);
 const pathPreview = computed(() => `pages/${slugify(title.value || "untitled")}.typ`);
 
 const kindOptions = computed(() => [

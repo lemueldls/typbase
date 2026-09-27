@@ -58,7 +58,7 @@ const emit = defineEmits<{
   (e: "openGraph"): void;
 }>();
 
-const { workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
+const { workspace, workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
 const { show: showSearch } = useSearchPalette();
 const { t } = useI18n();
 
@@ -446,25 +446,28 @@ let unsubscribeFontScan: (() => void) | undefined;
 let detachScrollSync: (() => void) | undefined;
 let pageDisposed = false;
 
-/** Editor spellcheck follows the workspace setting; dataRevision re-reads it. */
-const spellcheckMode = computed(() => {
-  void dataRevision.value;
+/** Editor spellcheck follows the workspace setting. */
+const spellcheckMode = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (value) => value.getSettings().spellcheck ?? "off",
+  "off",
+);
 
-  return store?.getSettings().spellcheck ?? "off";
-});
+/** Harper's dictionary and silenced lints. */
+const spellcheckWords = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (value) => value.getSettings().spellcheckWords ?? [],
+  [],
+);
 
-/** Harper's dictionary and silenced lints; dataRevision re-reads both. */
-const spellcheckWords = computed(() => {
-  void dataRevision.value;
-
-  return store?.getSettings().spellcheckWords ?? [];
-});
-
-const spellcheckIgnoredLints = computed(() => {
-  void dataRevision.value;
-
-  return store?.getSettings().spellcheckIgnoredLints ?? [];
-});
+const spellcheckIgnoredLints = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (value) => value.getSettings().spellcheckIgnoredLints ?? [],
+  [],
+);
 
 /** The lint tooltip's "Add to dictionary" action writes through here. */
 function addSpellcheckWord(word: string): void {
@@ -481,18 +484,20 @@ function ignoreSpellcheckLint(lint: IgnoredSpellcheckLint): void {
   store.updateSettings({ spellcheckIgnoredLints: next });
 }
 
-/** Editor display options follow the workspace setting; dataRevision re-reads them. */
-const editorDisplay = computed(() => {
-  void dataRevision.value;
+/** Editor display options follow the workspace setting. */
+const editorDisplay = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (value) => value.getSettings().editor,
+  undefined,
+);
 
-  return store?.getSettings().editor;
-});
-
-const aiEnabled = computed(() => {
-  void dataRevision.value;
-
-  return store.getAiSettings().enabled;
-});
+const aiEnabled = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (value) => value.getAiSettings().enabled,
+  false,
+);
 
 const chat = useChat();
 

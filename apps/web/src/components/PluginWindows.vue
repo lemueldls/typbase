@@ -7,14 +7,10 @@
 import type { MaterialSymbol } from "material-symbols";
 
 const plugins = usePlugins();
-const { dataRevision } = useWorkspace();
 
-const openWindows = computed(() => {
-  void dataRevision.value;
-  return plugins
-    .instancesWithSurface("window")
-    .filter((instance) => plugins.windowOf(instance.id).open);
-});
+const openWindows = computed(() =>
+  plugins.instancesWithSurface("window").filter((instance) => plugins.windowOf(instance.id).open),
+);
 
 function titleOf(instanceId: string): string {
   const instance = plugins.instanceById(instanceId);

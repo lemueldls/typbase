@@ -29,7 +29,6 @@ const props = defineProps<{
 }>();
 
 const {
-  dataRevision,
   workspaceId,
   workspaces,
   activeWorkspaceId,
@@ -67,15 +66,18 @@ const updateHint = computed(() => {
   return t("updates.checkHint");
 });
 
-// Loro maps are not reactive; the workspace bumps dataRevision on any change.
-const settings = computed(() => {
-  void dataRevision.value;
-
-  return props.store.getSettings();
-});
+const settings = useWorkspaceValue(
+  () => props.store,
+  ["settings"],
+  (store) => store.getSettings(),
+);
 
 // Publish defaults (stored in workspace settings so they sync).
-const publishDefaults = computed(() => props.store.getPublishSettings());
+const publishDefaults = useWorkspaceValue(
+  () => props.store,
+  ["settings"],
+  (store) => store.getPublishSettings(),
+);
 const publishLangs = computed({
   get: () => publishDefaults.value.langs.join(", "),
   set: (value: string) =>
@@ -387,16 +389,12 @@ const aiKindOptions: SelectOption[] = [
   { value: "anthropic", label: "Anthropic" },
 ];
 
-const aiSettings = computed(() => {
-  void dataRevision.value;
-
-  return props.store.getAiSettings();
-});
-const aiProviders = computed(() => {
-  void dataRevision.value;
-
-  return aiSettings.value.providers;
-});
+const aiSettings = useWorkspaceValue(
+  () => props.store,
+  ["settings"],
+  (store) => store.getAiSettings(),
+);
+const aiProviders = computed(() => aiSettings.value.providers);
 
 /** Provider being edited in the panel; follows the list when it changes. */
 const activeProviderId = ref("");

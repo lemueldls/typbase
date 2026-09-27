@@ -31,7 +31,7 @@ const {
   tools,
   providers,
 } = useChat();
-const { workspace, dataRevision } = useWorkspace();
+const { workspace } = useWorkspace();
 
 const messages = ref<ChatMessage[]>([]);
 const draft = ref("");
@@ -49,19 +49,22 @@ if (seed && seed.threadId === props.threadId) {
 
 const thread = computed(() => {
   void chatRevision.value;
-  void dataRevision.value;
 
   return findThread(props.threadId);
 });
 
 const threadTitle = computed(() => thread.value?.title ?? t("chat.title"));
 const busy = computed(() => isStreaming(props.threadId));
-const pageTitle = computed(() => {
-  const id = contextPageId.value ?? thread.value?.pageId ?? null;
-  if (!id) return null;
+const pageTitle = useWorkspaceValue(
+  workspace,
+  ["pages"],
+  (store) => {
+    const id = contextPageId.value ?? thread.value?.pageId ?? null;
 
-  return workspace.value?.getPage(id)?.title ?? null;
-});
+    return id ? (store.getPage(id)?.title ?? null) : null;
+  },
+  null,
+);
 
 const providerId = computed(() => thread.value?.providerId ?? null);
 const model = computed(() => thread.value?.model ?? null);

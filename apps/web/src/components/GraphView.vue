@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { GraphSettings, ThemePaletteTokens } from "@typbase/typing";
+import type { GraphSettings } from "@typbase/typing";
 
 import { DEFAULT_SETTINGS } from "@typbase/typing";
 
@@ -17,31 +17,28 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { workspace, dataRevision } = useWorkspace();
+const { workspace } = useWorkspace();
 const { index, status, ensure } = useLinks();
 
 const graphCanvas = useTemplateRef<{ fit: () => void }>("graphCanvas");
 const query = ref("");
 const selectedId = ref<string | null>(null);
 
-const store = computed(() => workspace.value);
-const settings = computed<GraphSettings>(() => {
-  void dataRevision.value;
+const settings = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (store) => store.getSettings().graph ?? DEFAULT_SETTINGS.graph,
+  DEFAULT_SETTINGS.graph,
+);
 
-  return store.value?.getSettings().graph ?? DEFAULT_SETTINGS.graph;
-});
+const pages = useWorkspaceValue(workspace, ["pages"], (store) => store.listPages(), []);
 
-const pages = computed(() => {
-  void dataRevision.value;
-
-  return store.value?.listPages() ?? [];
-});
-
-const categories = computed(() => {
-  void dataRevision.value;
-
-  return store.value?.listCategories() ?? [];
-});
+const categories = useWorkspaceValue(
+  workspace,
+  ["categories"],
+  (store) => store.listCategories(),
+  [],
+);
 
 const tags = computed(() => {
   const set = new Set<string>();
@@ -65,14 +62,12 @@ const graph = computed(() => {
   });
 });
 
-const palette = computed<ThemePaletteTokens>(() => {
-  void dataRevision.value;
-  const value = store.value;
-
-  return value
-    ? resolveTheme(value.getSettings()).palette
-    : resolveTheme({ theme: "light" }).palette;
-});
+const palette = useWorkspaceValue(
+  workspace,
+  ["settings"],
+  (store) => resolveTheme(store.getSettings()).palette,
+  resolveTheme({ theme: "light" }).palette,
+);
 
 const matchIds = computed<Set<string> | null>(() => {
   const needle = query.value.trim().toLowerCase();
@@ -104,7 +99,7 @@ const labelOptions = computed(() => [
 ]);
 
 function update(patch: Partial<GraphSettings>): void {
-  const value = store.value;
+  const value = workspace.value;
   if (!value) return;
 
   value.updateSettings({ graph: { ...settings.value, ...patch } });
@@ -137,11 +132,11 @@ const labelsChoice = computed({
 });
 
 onMounted(() => {
-  if (store.value) ensure(store.value);
+  if (workspace.value) ensure(workspace.value);
   testApi.graphStats = () => ({ nodes: graph.value.nodes.length, edges: graph.value.edges.length });
 });
 
-watch(store, (value) => {
+watch(workspace, (value) => {
   if (value) ensure(value);
 });
 

@@ -60,7 +60,7 @@ export function useTheme(getStore: () => WorkspaceStore | undefined) {
       detach = undefined;
       if (!store) return;
 
-      detach = store.onStructureChange(refresh);
+      detach = store.onWorkspaceChange([["settings"]], refresh);
       refresh();
     },
     { immediate: true },

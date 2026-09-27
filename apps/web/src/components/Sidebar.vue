@@ -23,7 +23,7 @@ const emit = defineEmits<{
   (e: "collapseRequest"): void;
 }>();
 
-const { dataRevision, workspaces, activeWorkspaceId } = useWorkspace();
+const { workspaces, activeWorkspaceId } = useWorkspace();
 const { t, locale } = useI18n();
 
 /** The active workspace's registry icon; falls back to the default folder. */
@@ -32,23 +32,23 @@ const workspaceIcon = computed<MaterialSymbol>(() => {
   return (info?.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
 });
 
-const pages = computed(() => {
-  void dataRevision.value;
+const pages = useWorkspaceValue(
+  () => props.store,
+  ["pages"],
+  (store) => store.listPages(),
+);
 
-  return props.store.listPages();
-});
+const categories = useWorkspaceValue(
+  () => props.store,
+  ["categories"],
+  (store) => store.listCategories(),
+);
 
-const categories = computed(() => {
-  void dataRevision.value;
-
-  return props.store.listCategories();
-});
-
-const settings = computed(() => {
-  void dataRevision.value;
-
-  return props.store.getSettings();
-});
+const settings = useWorkspaceValue(
+  () => props.store,
+  ["settings"],
+  (store) => store.getSettings(),
+);
 
 const regularPages = computed(() => pages.value.filter((page) => !page.path.startsWith("daily/")));
 const uncategorized = computed(() => regularPages.value.filter((page) => !page.categoryId));
@@ -64,18 +64,16 @@ const todayISO = today.toISOString().slice(0, 10);
 const todayPage = computed(() => pages.value.find((page) => page.path === `daily/${todayISO}.typ`));
 
 /** Day notes except today's, newest first; the "Today" row covers today. */
-const recentDays = computed(() => {
-  void dataRevision.value;
-
-  return pages.value
+const recentDays = computed(() =>
+  pages.value
     .filter(
       (page) =>
         page.path.startsWith("daily/") &&
         page.path.slice("daily/".length, "daily/".length + 10) !== todayISO,
     )
     .sort((a, b) => b.path.localeCompare(a.path))
-    .slice(0, 7);
-});
+    .slice(0, 7),
+);
 
 function dayLabel(page: PageMeta): string {
   const iso = page.path.slice("daily/".length, "daily/".length + 10);

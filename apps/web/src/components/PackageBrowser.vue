@@ -24,7 +24,6 @@ const props = defineProps<{
 
 const open = defineModel<boolean>("open", { default: false });
 const { t } = useI18n();
-const { dataRevision } = useWorkspace();
 
 const entries = shallowRef<PackageEntry[]>([]);
 const loading = ref(false);
@@ -41,13 +40,11 @@ const sortOptions = computed(() => [
 const busy = ref<string>();
 const copied = ref<string>();
 const selected = reactive<Record<string, string>>({});
-const installed = ref<InstalledPackage[]>([]);
-
-/** Settings updates do not notify the sidebar, so re-read the list when the
- *  dialog opens and after every install or removal. */
-function refreshInstalled() {
-  installed.value = props.store.getSettings().installedPackages;
-}
+const installed = useWorkspaceValue(
+  () => props.store,
+  ["settings"],
+  (store) => store.getSettings().installedPackages,
+);
 
 const needle = computed(() => query.value.trim().toLowerCase());
 
@@ -80,10 +77,9 @@ const { list, containerProps, wrapperProps } = useVirtualList(filtered, {
   overscan: 6,
 });
 
-watch([open, dataRevision], ([value]) => {
+watch(open, (value) => {
   if (!value) return;
 
-  refreshInstalled();
   if (entries.value.length > 0 || loading.value) return;
 
   void loadIndex(false);
@@ -186,7 +182,6 @@ async function install(spec: InstalledPackage) {
       props.store.updateSettings({
         installedPackages: [...props.store.getSettings().installedPackages, spec],
       });
-      refreshInstalled();
     }
 
     // Open editors recompile on the revision bump, so a just-installed
@@ -217,7 +212,6 @@ async function remove(spec: InstalledPackage) {
         .getSettings()
         .installedPackages.filter((pkg) => !samePackage(pkg, spec)),
     });
-    refreshInstalled();
     bumpRenderRevision();
   } catch (cause) {
     actionError.value = cause instanceof Error ? cause.message : String(cause);

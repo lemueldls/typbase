@@ -9,18 +9,18 @@ const props = defineProps<{
 }>();
 
 const { t, locale } = useI18n();
-const { atproto, atprotoStatus, dataRevision } = useWorkspace();
+const { atproto, atprotoStatus } = useWorkspace();
 
 const busy = ref(false);
 const error = ref("");
 const copied = ref(false);
 const confirmOpen = ref(false);
 
-const meta = computed(() => {
-  void dataRevision.value;
-
-  return props.store.getPage(props.pageId);
-});
+const meta = useWorkspaceValue(
+  () => props.store,
+  ["pages"],
+  (store) => store.getPage(props.pageId),
+);
 
 const menuOpen = ref(false);
 

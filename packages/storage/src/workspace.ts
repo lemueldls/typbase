@@ -26,6 +26,28 @@ import { type LoroModule, loadLoro } from "./loro";
 
 const SNAPSHOT_DEBOUNCE_MS = 500;
 
+/**
+ * A container path inside a Loro doc, root first. Top-level containers are one
+ * segment (`["categories"]`); nested containers add the key or index
+ * (`["categories", 0]`, `["pages", "<id>"]`).
+ */
+export type LoroPath = readonly (string | number)[];
+
+/**
+ * True when one path is a prefix of the other. A change to a nested container
+ * matches a listener on its ancestor, and a change that replaces an ancestor
+ * (a page deleted from the `pages` map) matches a listener on the nested path.
+ */
+export function pathsOverlap(left: LoroPath, right: LoroPath): boolean {
+  const length = Math.min(left.length, right.length);
+
+  for (let index = 0; index < length; index++) {
+    if (left[index] !== right[index]) return false;
+  }
+
+  return true;
+}
+
 /** Nested settings are stored as JSON strings in the `settings` map. */
 function encodeSetting(value: unknown): string {
   return JSON.stringify(value);
@@ -243,9 +265,13 @@ export class WorkspaceStore {
   private dirtyDocs = new Set<LoroDoc>();
   private snapshotTimer: ReturnType<typeof setTimeout> | undefined;
   private structureListeners = new Set<() => void>();
-  private pageListeners = new Map<string, Set<() => void>>();
-  private pluginListeners = new Map<string, Set<() => void>>();
-  private chatListeners = new Map<string, Set<() => void>>();
+  private workspaceChangeListeners = new Set<{
+    paths: readonly LoroPath[];
+    listener: () => void;
+  }>();
+  private pageListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
+  private pluginListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
+  private chatListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
   private commitListeners = new Set<(docId: string) => void>();
   private commitTimer: ReturnType<typeof setTimeout> | undefined;
   private pendingCommits = new Set<string>();
@@ -288,10 +314,10 @@ export class WorkspaceStore {
     store.loro = loro;
     store.pathForDoc.set(doc, path);
 
-    doc.subscribe(() => {
+    doc.subscribe((batch) => {
       store.scheduleSave(doc);
       store.scheduleCommit(workspaceId);
-      store.emitStructure();
+      store.emitStructure(batch.events.map((event) => event.path));
     });
 
     if (!bytes) await store.seed(options.name);
@@ -1004,9 +1030,12 @@ export class WorkspaceStore {
     this.pathForDoc.set(doc, path);
     this.pageIdForDoc.set(doc, pageId);
 
-    doc.subscribe(() => {
+    doc.subscribe((batch) => {
       this.scheduleSave(doc);
-      this.emitPage(pageId);
+      this.emitPage(
+        pageId,
+        batch.events.map((event) => event.path),
+      );
       this.scheduleCommit(pageId);
     });
 
@@ -1023,9 +1052,12 @@ export class WorkspaceStore {
     this.pluginDocs.set(instanceId, doc);
     this.pathForDoc.set(doc, path);
 
-    doc.subscribe(() => {
+    doc.subscribe((batch) => {
       this.scheduleSave(doc);
-      this.emitPlugin(instanceId);
+      this.emitPlugin(
+        instanceId,
+        batch.events.map((event) => event.path),
+      );
       this.scheduleCommit(pluginDocId(instanceId));
     });
 
@@ -1042,9 +1074,12 @@ export class WorkspaceStore {
     this.chatDocs.set(threadId, doc);
     this.pathForDoc.set(doc, path);
 
-    doc.subscribe(() => {
+    doc.subscribe((batch) => {
       this.scheduleSave(doc);
-      this.emitChat(threadId);
+      this.emitChat(
+        threadId,
+        batch.events.map((event) => event.path),
+      );
       this.scheduleCommit(chatDocId(threadId));
     });
 
@@ -1074,8 +1109,12 @@ export class WorkspaceStore {
     doc.commit();
   }
 
-  /** Subscribe to a page doc's changes (content or meta). */
-  async onPageDocChange(pageId: string, listener: () => void): Promise<() => void> {
+  /** Subscribe to a page doc's changes (content or meta). The listener gets
+   *  the container paths that changed, for filtering. */
+  async onPageDocChange(
+    pageId: string,
+    listener: (paths: LoroPath[]) => void,
+  ): Promise<() => void> {
     await this.openPageDoc(pageId);
     let listeners = this.pageListeners.get(pageId);
     if (!listeners) {
@@ -1453,7 +1492,10 @@ export class WorkspaceStore {
     doc.commit();
   }
 
-  async onPluginDocChange(instanceId: string, listener: () => void): Promise<() => void> {
+  async onPluginDocChange(
+    instanceId: string,
+    listener: (paths: LoroPath[]) => void,
+  ): Promise<() => void> {
     await this.openPluginDoc(instanceId);
     let listeners = this.pluginListeners.get(instanceId);
     if (!listeners) {
@@ -1659,7 +1701,10 @@ export class WorkspaceStore {
     doc.commit();
   }
 
-  async onChatDocChange(threadId: string, listener: () => void): Promise<() => void> {
+  async onChatDocChange(
+    threadId: string,
+    listener: (paths: LoroPath[]) => void,
+  ): Promise<() => void> {
     await this.openChatDoc(threadId);
     let listeners = this.chatListeners.get(threadId);
     if (!listeners) {
@@ -1790,20 +1835,28 @@ export class WorkspaceStore {
     });
   }
 
-  private emitStructure(): void {
+  private emitStructure(paths: LoroPath[]): void {
     for (const listener of this.structureListeners) listener();
+
+    for (const entry of this.workspaceChangeListeners) {
+      if (
+        paths.some((changed) => entry.paths.some((declared) => pathsOverlap(declared, changed)))
+      ) {
+        entry.listener();
+      }
+    }
   }
 
-  private emitPage(pageId: string): void {
-    for (const listener of this.pageListeners.get(pageId) ?? []) listener();
+  private emitPage(pageId: string, paths: LoroPath[]): void {
+    for (const listener of this.pageListeners.get(pageId) ?? []) listener(paths);
   }
 
-  private emitPlugin(instanceId: string): void {
-    for (const listener of this.pluginListeners.get(instanceId) ?? []) listener();
+  private emitPlugin(instanceId: string, paths: LoroPath[]): void {
+    for (const listener of this.pluginListeners.get(instanceId) ?? []) listener(paths);
   }
 
-  private emitChat(threadId: string): void {
-    for (const listener of this.chatListeners.get(threadId) ?? []) listener();
+  private emitChat(threadId: string, paths: LoroPath[]): void {
+    for (const listener of this.chatListeners.get(threadId) ?? []) listener(paths);
   }
 
   /** Called on any workspace-level change (pages, categories, settings). */
@@ -1811,6 +1864,19 @@ export class WorkspaceStore {
     this.structureListeners.add(listener);
 
     return () => this.structureListeners.delete(listener);
+  }
+
+  /**
+   * Called only when a container at or below one of `paths` changes in the
+   * workspace doc. Empty paths mean any change. Use it instead of
+   * `onStructureChange` when the listener reads a known part of the doc, so a
+   * category rename does not invalidate a page list.
+   */
+  onWorkspaceChange(paths: readonly LoroPath[], listener: () => void): () => void {
+    const entry = { paths, listener };
+    this.workspaceChangeListeners.add(entry);
+
+    return () => this.workspaceChangeListeners.delete(entry);
   }
 
   private scheduleSave(doc: LoroDoc): void {

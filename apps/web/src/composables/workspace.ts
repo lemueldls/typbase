@@ -149,7 +149,12 @@ function useWorkspaceState() {
   const atprotoReady = ref(false);
   let ensurePromise: Promise<WorkspaceStore | null> | undefined;
 
-  /** Bumped whenever workspace-level data changes (pages, categories, settings). */
+  /**
+   * Bumped whenever workspace-level data changes (pages, categories,
+   * settings). Computed reads should use `useWorkspaceValue` instead, so a
+   * category rename does not invalidate a page list; this stays for watchers
+   * that need to run on any change.
+   */
   const dataRevision = ref(0);
 
   /** Bumped when files under `plugins/` change on disk (studio reload). */

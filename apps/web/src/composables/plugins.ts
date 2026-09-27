@@ -3,7 +3,6 @@ import type {
   PluginActionResult,
   PluginCapability,
   PluginContext,
-  PluginInstall,
   PluginInstance,
   PluginManifest,
   PluginPatch,
@@ -241,15 +240,19 @@ export function usePluginHost() {
     }
   });
 
-  const installs = computed<PluginInstall[]>(() => {
-    void dataRevision.value;
-    return workspace.value?.listPluginInstalls() ?? [];
-  });
+  const installs = useWorkspaceValue(
+    workspace,
+    ["plugins"],
+    (store) => store.listPluginInstalls(),
+    [],
+  );
 
-  const instances = computed<PluginInstance[]>(() => {
-    void dataRevision.value;
-    return workspace.value?.listPluginInstances() ?? [];
-  });
+  const instances = useWorkspaceValue(
+    workspace,
+    ["instances"],
+    (store) => store.listPluginInstances(),
+    [],
+  );
 
   function surfacesOf(instanceId: string): PluginSurface[] {
     const instance = workspace.value?.getPluginInstance(instanceId);
@@ -264,8 +267,6 @@ export function usePluginHost() {
 
   /** Instances of enabled plugins that declare a surface of this kind. */
   function instancesWithSurface(kind: PluginSurfaceKind): PluginInstance[] {
-    void dataRevision.value;
-
     return instances.value.filter((instance) => {
       const enabled = installs.value.find((record) => record.id === instance.pluginId)?.enabled;
       return enabled && surfacesOf(instance.id).some((surface) => surface.kind === kind);

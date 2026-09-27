@@ -37,7 +37,7 @@ export function useAppLocale(
         detach = undefined;
         if (!store) return;
 
-        detach = store.onStructureChange(() => apply(store.getSettings()));
+        detach = store.onWorkspaceChange([["settings"]], () => apply(store.getSettings()));
         apply(store.getSettings());
       },
       { immediate: true },

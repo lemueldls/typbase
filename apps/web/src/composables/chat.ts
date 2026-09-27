@@ -63,7 +63,7 @@ export function takeChatSeed(): ChatSeed | null {
 }
 
 function useChatState() {
-  const { workspace, dataRevision } = useWorkspace();
+  const { workspace } = useWorkspace();
   const { search, ensure } = useSearch();
 
   /** Bumped whenever the engine reports progress. */
@@ -182,12 +182,16 @@ function useChatState() {
     });
   });
 
-  const threads = computed<ChatThread[]>(() => {
-    void dataRevision.value;
-    void chatRevision.value;
+  const threads = useWorkspaceValue(
+    workspace,
+    ["chats"],
+    (store) => {
+      void chatRevision.value;
 
-    return workspace.value?.listChats() ?? [];
-  });
+      return store.listChats();
+    },
+    [],
+  );
 
   function thread(id: string): ChatThread | undefined {
     return workspace.value?.getChat(id);
@@ -278,22 +282,26 @@ function useChatState() {
 
       return messageToolRuns(messageId);
     },
-    providers: computed(() => {
-      void dataRevision.value;
+    providers: useWorkspaceValue(
+      workspace,
+      ["settings"],
+      (store) => store.getAiSettings().providers,
+      [],
+    ),
+    defaultProvider: useWorkspaceValue(
+      workspace,
+      ["settings"],
+      (store) => {
+        const settings = store.getAiSettings();
 
-      return workspace.value?.getAiSettings().providers ?? [];
-    }),
-    defaultProvider: computed(() => {
-      void dataRevision.value;
-      const settings = workspace.value?.getAiSettings();
-      if (!settings) return null;
-
-      try {
-        return resolveProviderSettings(settings);
-      } catch {
-        return null;
-      }
-    }),
+        try {
+          return resolveProviderSettings(settings);
+        } catch {
+          return null;
+        }
+      },
+      null,
+    ),
   };
 }
 

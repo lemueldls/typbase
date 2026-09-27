@@ -12,7 +12,6 @@ const emit = defineEmits<{
 }>();
 
 const { t, locale } = useI18n();
-const { dataRevision } = useWorkspace();
 
 const open = defineModel<boolean>("open", { default: false });
 
@@ -33,16 +32,19 @@ watch(selected, (day) => {
 });
 
 /** Dates that already have a daily note, for the dot marker. */
-const dailyDates = computed(() => {
-  void dataRevision.value;
-  const dates = new Set<string>();
-  for (const page of props.store.listPages()) {
-    const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
-    if (match) dates.add(match[1]!);
-  }
+const dailyDates = useWorkspaceValue(
+  () => props.store,
+  ["pages"],
+  (store) => {
+    const dates = new Set<string>();
+    for (const page of store.listPages()) {
+      const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
+      if (match) dates.add(match[1]!);
+    }
 
-  return dates;
-});
+    return dates;
+  },
+);
 
 function hasNote(day: DateValue): boolean {
   return dailyDates.value.has(day.toString());
