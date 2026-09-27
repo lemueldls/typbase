@@ -991,7 +991,7 @@ describe("typbase app", async () => {
     const row = page.locator(".sidebar__item", { hasText: "Categorize me" });
     await row.hover();
     await row.locator(".sidebar__row-more").click();
-    await page.locator(".menu__item", { hasText: "Category" }).click();
+    await page.locator(".menu__item", { hasText: "Set category" }).click();
     await page.locator(".menu__item", { hasText: "Research" }).click();
 
     const research = page.locator(".sidebar__group").filter({ hasText: "Research" });
@@ -1011,7 +1011,7 @@ describe("typbase app", async () => {
     // "No category" puts it back under General.
     await row.hover();
     await row.locator(".sidebar__row-more").click();
-    await page.locator(".menu__item", { hasText: "Category" }).click();
+    await page.locator(".menu__item", { hasText: "Set category" }).click();
     await page.locator(".menu__item", { hasText: "No category" }).click();
 
     const general = page.locator(".sidebar__group").filter({ hasText: "General" });

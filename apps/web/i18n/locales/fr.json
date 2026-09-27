@@ -6,6 +6,7 @@
     "open": "Ouvrir",
     "delete": "Supprimer",
     "rename": "Renommer",
+    "setCategory": "Définir la catégorie",
     "convertToNotebook": "Convertir en carnet",
     "convertToDocument": "Convertir en document",
     "close": "Fermer",

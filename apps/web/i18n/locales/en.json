@@ -6,6 +6,7 @@
     "open": "Open",
     "delete": "Delete",
     "rename": "Rename",
+    "setCategory": "Set category",
     "convertToNotebook": "Convert to notebook",
     "convertToDocument": "Convert to document",
     "close": "Close",

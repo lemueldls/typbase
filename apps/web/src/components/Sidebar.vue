@@ -249,7 +249,7 @@ function onCreated(page: PageMeta) {
                 <UiMenuItem icon="home" @select="setHome(page)">{{
                   $t("sidebar.setHome")
                 }}</UiMenuItem>
-                <UiMenuSub icon="category" :label="$t('newPage.category')">
+                <UiMenuSub icon="category" :label="$t('common.setCategory')">
                   <UiMenuItem :checked="!page.categoryId" @select="setCategory(page, null)">
                     {{ $t("newPage.noCategory") }}
                   </UiMenuItem>
@@ -328,7 +328,7 @@ function onCreated(page: PageMeta) {
                 <UiMenuItem icon="home" @select="setHome(page)">{{
                   $t("sidebar.setHome")
                 }}</UiMenuItem>
-                <UiMenuSub icon="category" :label="$t('newPage.category')">
+                <UiMenuSub icon="category" :label="$t('common.setCategory')">
                   <UiMenuItem :checked="!page.categoryId" @select="setCategory(page, null)">
                     {{ $t("newPage.noCategory") }}
                   </UiMenuItem>

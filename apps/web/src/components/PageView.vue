@@ -1236,7 +1236,7 @@ function setCategory(categoryId: string | null): void {
             }}
           </UiMenuItem>
 
-          <UiMenuSub icon="category" :label="$t('newPage.category')" :disabled="!ready">
+          <UiMenuSub icon="category" :label="$t('common.setCategory')" :disabled="!ready">
             <UiMenuItem :checked="!meta?.categoryId" @select="setCategory(null)">
               {{ $t("newPage.noCategory") }}
             </UiMenuItem>
