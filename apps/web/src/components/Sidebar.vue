@@ -509,7 +509,7 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__section {
-  padding: 0 var(--space-2) var(--space-3);
+  padding: 0 var(--space-2) var(--space-2);
 }
 
 /* The line separates sections; the last one has nothing below it to separate
