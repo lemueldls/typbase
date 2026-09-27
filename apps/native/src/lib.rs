@@ -3,6 +3,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, webview::PageLoadEvent, w
 
 mod fonts;
 mod storage;
+mod system_bars;
 mod update;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -41,6 +42,8 @@ pub fn run() {
             update::android_play_update_check,
             #[cfg(target_os = "android")]
             update::android_play_update_start,
+            #[cfg(target_os = "android")]
+            system_bars::system_bars_light,
         ]);
 
     #[cfg(desktop)]
@@ -59,7 +62,7 @@ pub fn run() {
 
     #[cfg(target_os = "android")]
     {
-        builder = builder.plugin(update::init());
+        builder = builder.plugin(update::init()).plugin(system_bars::init());
     }
 
     // #[cfg(any(debug_assertions, feature = "devtools"))]
