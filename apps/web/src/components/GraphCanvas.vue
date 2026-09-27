@@ -54,6 +54,8 @@ const FIT_MAX_ZOOM = 1.35;
 const AUTO_LABEL_ZOOM = 0.7;
 /** Pointer travel under this counts as a click, not a drag. */
 const CLICK_SLOP = 6;
+/** Fit-to-view camera tween; long enough to read, short enough to feel direct. */
+const CAMERA_ANIM_MS = 320;
 
 const simulation: Simulation<SimNode, SimLink> = forceSimulation<SimNode>([])
   .force(
@@ -96,6 +98,12 @@ let frame = 0;
 /** Deferred first fit; a camera interaction cancels it. */
 let pendingFit = false;
 let cameraTouched = false;
+/** In-flight fit-to-view tween; a pointer or wheel interaction drops it. */
+let cameraTween: {
+  from: { x: number; y: number; k: number };
+  to: { x: number; y: number; k: number };
+  start: number;
+} | null = null;
 
 /** Live pointer positions, keyed by pointer id; two mean pinch. */
 const pointerPositions = new Map<number, { x: number; y: number }>();
@@ -147,6 +155,7 @@ function neighborsOf(id: string): Set<string> {
 watch(
   () => props.data,
   (data) => {
+    const previousIds = new Set(nodeById.keys());
     const next = new Map<string, SimNode>();
     data.nodes.forEach((node, index) => {
       const existing = nodeById.get(node.id);
@@ -176,7 +185,12 @@ watch(
     simulation.nodes([...nodeById.values()]);
     (simulation.force("link") as ForceLink<SimNode, SimLink> | null)?.links(links);
 
-    if (!pendingFit && !cameraTouched && nodeById.size > 0) {
+    // Refit only when the node set changed. Edge-only updates (a mention
+    // added elsewhere, a resolution pass landing) keep the current framing
+    // instead of pulling the camera around while the user reads the graph.
+    const nodeSetChanged =
+      next.size !== previousIds.size || [...next.keys()].some((id) => !previousIds.has(id));
+    if (!pendingFit && !cameraTouched && nodeSetChanged && nodeById.size > 0) {
       pendingFit = true;
     }
     simulation.alpha(0.8).restart();
@@ -234,26 +248,68 @@ function fitView(): void {
   }
 
   const padding = 48;
-  camera.k = Math.min(
-    FIT_MAX_ZOOM,
-    Math.max(
-      MIN_ZOOM,
-      Math.min(
-        (viewport.width - padding * 2) / Math.max(1, maxX - minX),
-        (viewport.height - padding * 2) / Math.max(1, maxY - minY),
+  animateCamera({
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+    k: Math.min(
+      FIT_MAX_ZOOM,
+      Math.max(
+        MIN_ZOOM,
+        Math.min(
+          (viewport.width - padding * 2) / Math.max(1, maxX - minX),
+          (viewport.height - padding * 2) / Math.max(1, maxY - minY),
+        ),
       ),
     ),
-  );
-  camera.x = (minX + maxX) / 2;
-  camera.y = (minY + maxY) / 2;
+  });
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/**
+ * Eases the camera to a target instead of snapping. Zoom interpolates in log
+ * space so the rate reads even across magnitudes; the center stays linear. A
+ * pointer or wheel interaction drops the tween, and reduced-motion snaps.
+ */
+function animateCamera(to: { x: number; y: number; k: number }): void {
+  if (prefersReducedMotion()) {
+    cameraTween = null;
+    camera.x = to.x;
+    camera.y = to.y;
+    camera.k = to.k;
+    scheduleDraw();
+
+    return;
+  }
+
+  cameraTween = { from: { ...camera }, to, start: performance.now() };
   scheduleDraw();
+}
+
+/** Advances an in-flight camera tween; the rAF loop keeps itself alive. */
+function stepCamera(now: number): void {
+  if (!cameraTween) return;
+
+  // An rAF timestamp can predate the click that started the tween; clamp at
+  // zero so the first frame cannot overshoot.
+  const progress = Math.min(1, Math.max(0, (now - cameraTween.start) / CAMERA_ANIM_MS));
+  const eased = 1 - (1 - progress) ** 3;
+  const { from, to } = cameraTween;
+  camera.k = from.k * (to.k / from.k) ** eased;
+  camera.x = from.x + (to.x - from.x) * eased;
+  camera.y = from.y + (to.y - from.y) * eased;
+  if (progress >= 1) cameraTween = null;
 }
 
 function scheduleDraw(): void {
   if (frame) return;
-  frame = requestAnimationFrame(() => {
+  frame = requestAnimationFrame((now) => {
     frame = 0;
+    stepCamera(now);
     draw();
+    if (cameraTween) scheduleDraw();
   });
 }
 
@@ -368,6 +424,7 @@ function onPointerDown(event: PointerEvent): void {
   if (!element) return;
 
   cameraTouched = true;
+  cameraTween = null;
   element.setPointerCapture(event.pointerId);
   const point = localPoint(event);
   pointerPositions.set(event.pointerId, point);
@@ -476,6 +533,7 @@ function zoomBy(factor: number, point: { x: number; y: number }): void {
 function onWheel(event: WheelEvent): void {
   event.preventDefault();
   cameraTouched = true;
+  cameraTween = null;
   const point = localPoint(event);
   zoomBy(Math.exp(-event.deltaY * 0.0015), point);
   scheduleDraw();
