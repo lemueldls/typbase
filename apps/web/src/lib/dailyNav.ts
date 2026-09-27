@@ -1,11 +1,10 @@
 import type { PageMeta } from "@typbase/typing";
 
 /**
- * The daily notes next to a date, for `#typbase.daily-nav` and the prelude's
- * page context. Paths are ISO dates (`daily/2026-09-27.typ`), so string order
- * is date order. Resolving this from the live page list is what lets a note
- * created before its next day link to it later; creation-time placeholders
- * cannot.
+ * The daily notes next to a date, for the prelude's page context. Paths are
+ * ISO dates (`daily/2026-09-27.typ`), so string order is date order. Resolving
+ * this from the live page list is what lets a note created before its next day
+ * link to it later; creation-time placeholders cannot.
  */
 
 /** The ISO date of a daily note path, or null for anything else. */

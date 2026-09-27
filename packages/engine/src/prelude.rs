@@ -2,7 +2,9 @@
 //! every compile prepends.
 //!
 //! `TYPBASE_LIB` is inserted into the world once at construction and imported
-//! by the generated prelude as `typbase`. `style_prelude` builds the canonical
+//! by the generated prelude as `typbase`; it carries `query`, `page-link`,
+//! `embed`, and `section`. The prelude also binds `theme`, `note`,
+//! and the host values under `sys.inputs`. `style_prelude` builds the canonical
 //! document style (theme, body text, headings, links, strokes, math and raw
 //! fonts, code-block theme); the same text is exposed to JS through
 //! `stylePrelude` so exports and the project mirror cannot drift from the
@@ -14,12 +16,21 @@ use wasm_bindgen::prelude::*;
 use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, theme::ThemeColors};
 
 // The stdlib module, inserted into the world once at TypstState::new and
-// imported by the generated prelude as `typbase`. `typbase.query` loads JSON
-// the JS side synthesizes on demand (file request `/typbase/query/<kind>.json`);
-// `typbase.embed` includes another page's source (source request
-// `/typbase/src/<id>.typ`); `typbase.daily-nav` asks the same channel for the
-// daily notes next to a date. Filters ride in the path because the request
-// channel only carries paths, so keep filter values slug-safe.
+// imported by the generated prelude as `typbase`. Its functions are documented
+// inside the Typst source: that text is what note authors and models write
+// against, and `typbaseLib()` ships it to the AI dialect card and to exported
+// projects unchanged.
+//
+// `query` loads JSON the JS side synthesizes on demand (file request
+// `/typbase/query/<kind>.json`); `embed` includes another page's source
+// (source request `/typbase/src/<id>.typ`). Filters ride in the path because
+// the request channel only carries paths, so keep filter values slug-safe.
+//
+// The prelude around this module defines `theme` (the resolved palette),
+// `note` (the compiling page's own data), and the host values under
+// `sys.inputs` (`page`, `workspace`, `reason`). An included file sees none of
+// them: Typst evaluates `include` as its own module, so an embedded page that
+// uses `theme` or `note` fails unless it defines them itself.
 //
 // Paths are root-absolute so the same source compiles both in the wasm world
 // and in a plain Typst project rooted at the workspace (see `typbase/`).
@@ -27,6 +38,20 @@ use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, them
 // It is a module rather than a dict of closures: Typst cannot call dict
 // values with dot syntax (`typbase.query(...)`), but module functions can.
 pub const TYPBASE_LIB: &str = r#"
+// Typbase's document stdlib. Every compile imports it as `typbase`, and an
+// exported project ships the same source as `typbase/lib.typ`.
+
+// Workspace data as decoded JSON. `kind` is one of:
+//   "config"      -> { name, homePageId, font }
+//   "pages"       -> all pages; filter "by-id/<page-id>" or "by-category/<id>"
+//   "categories"  -> [{ id, name }]
+//   "daily"       -> all daily notes; filter "by-month/<YYYY-MM>"
+//   "backlinks"   -> pages that link the page id in the filter
+//   "sections"    -> one page's sections with "sections/<page-id>", or every
+//                    page's without a filter
+//   "content"     -> { id, title, path, text } for a page id or daily date
+//   "plugin-data" -> one plugin instance's stored collections
+// The app synthesizes the JSON from the workspace while it compiles.
 #let query(kind, filter: none) = {
   let target = if filter == none {
     "/typbase/query/" + kind + ".json"
@@ -36,17 +61,10 @@ pub const TYPBASE_LIB: &str = r#"
   json(target)
 }
 
-// The daily notes next to a date, from the live page list. A note created
-// before its next day keeps linking to it, which creation-time placeholders
-// cannot do.
-#let daily-nav(date) = query("daily", filter: "neighbors/" + str(date))
-
-// A navigable link to another page. Renders the page title (or the given
-// body) as a Typst link; the app intercepts `typbase://page/<id>` clicks in
-// the preview and opens that page for editing. Unlike embed, nothing is
-// compiled at link time, and a missing page renders a quiet placeholder
-// instead of failing the compile. A `none` target is that placeholder, so
-// `#typbase.page-link(note.next)` works when there is no next day.
+// A link to another page: the page's title, or `body` when given. A missing
+// page and a `none` target render the word "none" instead of failing the
+// compile, so `#typbase.page-link(note.next)` works when there is no next
+// day. The app turns `typbase://page/<id>` clicks into page opens.
 #let page-link(page-id, body: none) = {
   let id = if page-id == none { "none" } else { str(page-id) }
   let meta = json("/typbase/query/pages/by-id/" + id + ".json")
@@ -58,16 +76,21 @@ pub const TYPBASE_LIB: &str = r#"
   }
 }
 
+// Includes another page's raw source in place; `none` includes nothing.
+// Unlike `page-link`, the other page compiles as part of this one. It is
+// evaluated as its own module, so it can call `typbase` but not the host
+// page's `note`, `theme`, or `sys.inputs`.
 #let embed(id) = if id == none { [] } else { include("/typbase/src/" + str(id) + ".typ") }
 
-// A semantic block for app-side consumers (AI context, plugins).
-// The body renders where it sits; the app reads kind and range off the AST.
+// A named block for app-side consumers: the kind and source range land in the
+// page's section list, which the AI context and plugins read. The body renders
+// where it sits.
 #let section(kind: none, body) = body
 "#;
 
-// The import and the request paths are root-absolute: pages compile from
-// `pages/<id>.typ`, so a relative import would resolve next to the page
-// instead of at the workspace root.
+// The import and the request paths are root-absolute: pages compile from their
+// workspace path (`daily/2026-09-27.typ`), so a relative import would resolve
+// next to the page instead of at the workspace root.
 const TYPBASE_PRELUDE: &str = r#"
     #import "/typbase/lib.typ" as typbase
 "#;
