@@ -834,6 +834,23 @@ export class WorkspaceStore {
     this.writePageMeta(meta);
   }
 
+  /** Moves a page into a category, or out of one when `categoryId` is null. */
+  async updatePageCategory(id: string, categoryId: string | null): Promise<void> {
+    const meta = this.getPage(id);
+    if (!meta) return;
+
+    // A stale id would hide the page from both the category groups and the
+    // uncategorized list, so anything unknown reads as "no category".
+    const known =
+      categoryId !== null && this.listCategories().some((category) => category.id === categoryId);
+    const next = known ? categoryId : null;
+    if (meta.categoryId === next) return;
+
+    meta.categoryId = next;
+    meta.updatedAt = Date.now();
+    this.writePageMeta(meta);
+  }
+
   /** Sets the publish state after a successful publish/unpublish. */
   async setPagePublished(
     id: string,

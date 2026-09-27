@@ -57,4 +57,23 @@ describe("workspace change subscriptions", () => {
     await store.deletePage(page.id);
     expect(nested).toHaveBeenCalled();
   });
+
+  it("moves a page between categories and clears unknown ones", async () => {
+    const backend = new MemoryBackend();
+    const store = await WorkspaceStore.open(backend, "category-test");
+
+    const category = await store.addCategory("Research");
+    const page = store.listPages()[0]!;
+
+    await store.updatePageCategory(page.id, category.id);
+    expect(store.getPage(page.id)?.categoryId).toBe(category.id);
+
+    // A category that no longer exists must not hide the page from every group.
+    await store.updatePageCategory(page.id, "missing");
+    expect(store.getPage(page.id)?.categoryId).toBeNull();
+
+    await store.updatePageCategory(page.id, category.id);
+    await store.updatePageCategory(page.id, null);
+    expect(store.getPage(page.id)?.categoryId).toBeNull();
+  });
 });

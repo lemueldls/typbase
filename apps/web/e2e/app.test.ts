@@ -891,6 +891,59 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("moves an existing page into a category from its row menu", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const categoryId = await page.evaluate(async () => {
+      const store = window.__typbase.store as unknown as {
+        addCategory(name: string): Promise<{ id: string }>;
+      };
+
+      return (await store.addCategory("Research")).id;
+    });
+
+    const id = await createTestPage(page, {
+      title: "Categorize me",
+      content: "= Categorize me\n",
+    });
+    await showPage(page, id, "write");
+
+    // The row menu's Category submenu moves the page; the sidebar regroups it.
+    const row = page.locator(".sidebar__item", { hasText: "Categorize me" });
+    await row.hover();
+    await row.locator(".sidebar__row-more").click();
+    await page.locator(".menu__item", { hasText: "Category" }).click();
+    await page.locator(".menu__item", { hasText: "Research" }).click();
+
+    const research = page.locator(".sidebar__group").filter({ hasText: "Research" });
+    await research
+      .locator(".sidebar__row", { hasText: "Categorize me" })
+      .waitFor({ timeout: 30_000 });
+
+    const assigned = await page.evaluate((pageId) => {
+      const meta = window.__typbase.store.getPage(pageId) as
+        | { categoryId?: string | null }
+        | undefined;
+
+      return meta?.categoryId ?? null;
+    }, id);
+    expect(assigned).toBe(categoryId);
+
+    // "No category" puts it back under General.
+    await row.hover();
+    await row.locator(".sidebar__row-more").click();
+    await page.locator(".menu__item", { hasText: "Category" }).click();
+    await page.locator(".menu__item", { hasText: "No category" }).click();
+
+    const general = page.locator(".sidebar__group").filter({ hasText: "General" });
+    await general
+      .locator(".sidebar__row", { hasText: "Categorize me" })
+      .waitFor({ timeout: 30_000 });
+
+    await page.close();
+  });
+
   it("boots the shell offline once the worker has cached it", async () => {
     const page = await createPage();
     await openApp(page);

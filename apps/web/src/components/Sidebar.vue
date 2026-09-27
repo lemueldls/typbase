@@ -111,6 +111,11 @@ async function setHome(page: PageMeta) {
   await props.store.updateSettings({ homePageId: page.id });
 }
 
+/** Moves a page into a category, or out of one, from its row menu. */
+function setCategory(page: PageMeta, categoryId: string | null): void {
+  void props.store.updatePageCategory(page.id, categoryId);
+}
+
 /** Flips a page between document and notebook; the source is untouched. */
 function convertPage(page: PageMeta, kind: PageMeta["kind"]): void {
   void props.store.updatePageKind(page.id, kind);
@@ -233,6 +238,7 @@ function onCreated(page: PageMeta) {
                 </template>
 
                 <UiMenuItem
+                  icon="edit"
                   @select="
                     renameTarget = page;
                     renameTitle = page.title;
@@ -240,15 +246,34 @@ function onCreated(page: PageMeta) {
                 >
                   {{ $t("common.rename") }}
                 </UiMenuItem>
-                <UiMenuItem @select="setHome(page)">{{ $t("sidebar.setHome") }}</UiMenuItem>
-                <UiMenuItem v-if="page.kind === 'notebook'" @select="convertPage(page, 'document')">
+                <UiMenuItem icon="home" @select="setHome(page)">{{
+                  $t("sidebar.setHome")
+                }}</UiMenuItem>
+                <UiMenuSub icon="category" :label="$t('newPage.category')">
+                  <UiMenuItem :checked="!page.categoryId" @select="setCategory(page, null)">
+                    {{ $t("newPage.noCategory") }}
+                  </UiMenuItem>
+                  <UiMenuItem
+                    v-for="category in categories"
+                    :key="category.id"
+                    :checked="page.categoryId === category.id"
+                    @select="setCategory(page, category.id)"
+                  >
+                    {{ category.name }}
+                  </UiMenuItem>
+                </UiMenuSub>
+                <UiMenuItem
+                  v-if="page.kind === 'notebook'"
+                  icon="description"
+                  @select="convertPage(page, 'document')"
+                >
                   {{ $t("common.convertToDocument") }}
                 </UiMenuItem>
-                <UiMenuItem v-else @select="convertPage(page, 'notebook')">
+                <UiMenuItem v-else icon="view_agenda" @select="convertPage(page, 'notebook')">
                   {{ $t("common.convertToNotebook") }}
                 </UiMenuItem>
                 <UiMenuSeparator />
-                <UiMenuItem danger @select="askRemove(page)">
+                <UiMenuItem danger icon="delete" @select="askRemove(page)">
                   {{ $t("sidebar.delete") }}
                 </UiMenuItem>
               </UiMenu>
@@ -292,6 +317,7 @@ function onCreated(page: PageMeta) {
                 </template>
 
                 <UiMenuItem
+                  icon="edit"
                   @select="
                     renameTarget = page;
                     renameTitle = page.title;
@@ -299,15 +325,34 @@ function onCreated(page: PageMeta) {
                 >
                   {{ $t("common.rename") }}
                 </UiMenuItem>
-                <UiMenuItem @select="setHome(page)">{{ $t("sidebar.setHome") }}</UiMenuItem>
-                <UiMenuItem v-if="page.kind === 'notebook'" @select="convertPage(page, 'document')">
+                <UiMenuItem icon="home" @select="setHome(page)">{{
+                  $t("sidebar.setHome")
+                }}</UiMenuItem>
+                <UiMenuSub icon="category" :label="$t('newPage.category')">
+                  <UiMenuItem :checked="!page.categoryId" @select="setCategory(page, null)">
+                    {{ $t("newPage.noCategory") }}
+                  </UiMenuItem>
+                  <UiMenuItem
+                    v-for="category in categories"
+                    :key="category.id"
+                    :checked="page.categoryId === category.id"
+                    @select="setCategory(page, category.id)"
+                  >
+                    {{ category.name }}
+                  </UiMenuItem>
+                </UiMenuSub>
+                <UiMenuItem
+                  v-if="page.kind === 'notebook'"
+                  icon="description"
+                  @select="convertPage(page, 'document')"
+                >
                   {{ $t("common.convertToDocument") }}
                 </UiMenuItem>
-                <UiMenuItem v-else @select="convertPage(page, 'notebook')">
+                <UiMenuItem v-else icon="view_agenda" @select="convertPage(page, 'notebook')">
                   {{ $t("common.convertToNotebook") }}
                 </UiMenuItem>
                 <UiMenuSeparator />
-                <UiMenuItem danger @select="askRemove(page)">
+                <UiMenuItem danger icon="delete" @select="askRemove(page)">
                   {{ $t("sidebar.delete") }}
                 </UiMenuItem>
               </UiMenu>

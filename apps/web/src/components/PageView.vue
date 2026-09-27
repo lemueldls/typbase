@@ -499,6 +499,14 @@ const aiEnabled = useWorkspaceValue(
   false,
 );
 
+/** Category choices for the toolbar menu. */
+const categories = useWorkspaceValue(
+  workspace,
+  ["categories"],
+  (value) => value.listCategories(),
+  [],
+);
+
 const chat = useChat();
 
 /** Opens the chat pane seeded with this page (or the selection). */
@@ -1046,6 +1054,11 @@ function convertPageKind(): void {
   const kind = meta.value?.kind === "notebook" ? "document" : "notebook";
   void store.updatePageKind(props.pageId, kind);
 }
+
+/** Moves the open page into a category, or out of one, from the toolbar menu. */
+function setCategory(categoryId: string | null): void {
+  void store.updatePageCategory(props.pageId, categoryId);
+}
 </script>
 
 <template>
@@ -1222,6 +1235,20 @@ function convertPageKind(): void {
                 : $t("common.convertToNotebook")
             }}
           </UiMenuItem>
+
+          <UiMenuSub icon="category" :label="$t('newPage.category')" :disabled="!ready">
+            <UiMenuItem :checked="!meta?.categoryId" @select="setCategory(null)">
+              {{ $t("newPage.noCategory") }}
+            </UiMenuItem>
+            <UiMenuItem
+              v-for="category in categories"
+              :key="category.id"
+              :checked="meta?.categoryId === category.id"
+              @select="setCategory(category.id)"
+            >
+              {{ category.name }}
+            </UiMenuItem>
+          </UiMenuSub>
 
           <UiMenuItem icon="package_2" :disabled="degraded" @select="packagesOpen = true">
             {{ $t("packages.title") }}
