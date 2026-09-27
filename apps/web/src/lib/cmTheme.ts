@@ -31,8 +31,7 @@ export const typstEditorTheme = EditorView.theme({
     overflowX: "auto",
   },
   ".cm-content": {
-    fontFamily: "var(--font-mono)",
-    // padding: "1rem 1.25rem",
+    fontFamily: "var(--font-sans)",
   },
   ".cm-line": {
     padding: "0",

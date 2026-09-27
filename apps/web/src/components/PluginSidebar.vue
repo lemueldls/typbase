@@ -122,6 +122,7 @@ function openInstanceById(instanceId: string): void {
   width: 100%;
   padding: var(--space-2);
   font-size: var(--text-md);
+  font-family: inherit;
   text-align: left;
   color: var(--color-text);
   background: transparent;
