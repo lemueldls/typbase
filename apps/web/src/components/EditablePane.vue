@@ -167,8 +167,19 @@ function onDrop(event: DragEvent) {
 }
 
 const createView = () => {
+  const previous = view.value;
   const config = createStateConfig();
   config.doc = props.text.value;
+
+  if (previous) {
+    // A mode or engine-health rebuild keeps the text; keep the cursor with it
+    // instead of dropping to the start of the note.
+    const length = props.text.value.length;
+    config.selection = {
+      anchor: Math.min(previous.state.selection.main.anchor, length),
+      head: Math.min(previous.state.selection.main.head, length),
+    };
+  }
 
   view.value = new EditorView({
     parent: container.value!,

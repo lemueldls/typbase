@@ -229,15 +229,13 @@ function decorate({
 
     if (compileResult.requests.length > 0 && onRequests) {
       void Promise.resolve(onRequests(compileResult.requests, spaceId)).then((wasUpdated) => {
-        if (wasUpdated) {
-          const doc = update.view.state.doc.toString();
-          update.view.dispatch({
-            changes: { from: 0, to: doc.length, insert: doc },
-            // The cached result was compiled before the request was resolved;
-            // force a recompile instead of trusting it.
-            effects: typstRecompileEffect.of(null),
-          });
-        }
+        if (!wasUpdated) return;
+
+        // The cached result was compiled before the request was resolved;
+        // force a recompile instead of trusting it. Dispatch the effect alone:
+        // a no-op document change maps the selection into the replaced range
+        // and drops the cursor at the start of the note.
+        update.view.dispatch({ effects: typstRecompileEffect.of(null) });
       });
     }
 

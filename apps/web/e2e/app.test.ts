@@ -280,6 +280,51 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("keeps the cursor when a request resolves under the editor", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const targetId = await createTestPage(page, {
+      title: "Linked target",
+      content: "= Linked target\n",
+    });
+    const sourceId = await createTestPage(page, {
+      title: "Embed source",
+      content: "= Embed source\n\nA paragraph.\n",
+    });
+    await showPage(page, sourceId, "write");
+
+    // Wait for the page's own compile before counting its widgets.
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 1, null, {
+      timeout: 60_000,
+    });
+
+    // Type an embed at the end while the cursor sits in the first block. The
+    // compile requests the target's source; resolving it recompiles. The
+    // recompile used to dispatch a no-op document replacement, which mapped
+    // the selection into the replaced range and dropped it at 0.
+    await page.locator(".cm-content").click();
+    await page.evaluate((id) => {
+      const view = window.__typbase.view!;
+      const doc = view.state.doc.toString();
+
+      view.dispatch({
+        changes: { from: doc.length, insert: `\n#typbase.embed("${id}")\n` },
+        selection: { anchor: 3 },
+      });
+    }, targetId);
+
+    // The embed's frame only exists after the source request resolves.
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
+      timeout: 60_000,
+    });
+
+    const cursor = await page.evaluate(() => window.__typbase.view?.state.selection.main.head);
+    expect(cursor).toBe(3);
+
+    await page.close();
+  });
+
   it("keeps the pane stable when a heading shows its source", async () => {
     const page = await createPage();
     await openApp(page);
