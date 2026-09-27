@@ -2,7 +2,7 @@
 
 Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphere](https://atproto.com/).
 
-[![A one-minute walkthrough: inline editing, workspace queries, math, themes, and backlinks.](docs/images/hero-poster.png)](https://github.com/user-attachments/assets/46e29985-41cc-4c5b-81df-34cdc93e8f3a)
+[![A one-minute walkthrough: inline editing, workspace queries, math, themes, and backlinks.](docs/images/hero-poster.png)](https://github.com/user-attachments/assets/e519a3d4-0111-490e-875b-fb34b517670e)
 
 ## Features
 
