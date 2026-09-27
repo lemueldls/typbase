@@ -594,9 +594,20 @@ describe("typbase app", async () => {
     await showPage(page, sourceId, "write");
 
     // The picker is a reka Combobox: the toolbar button opens it, the input
-    // inside filters, and a click inserts the page link.
+    // inside filters, the option shows the page path, and a click inserts the
+    // page link.
     await page.locator('.edit-toolbar button[aria-label="Page link"]').click();
     await page.locator(".combobox__input").fill("Picker target");
+
+    const path = await page.evaluate(
+      (id) => window.__typbase.store.getPage(id)?.path ?? "",
+      targetId,
+    );
+    expect(path).toContain(".typ");
+    const optionText = await page.locator(".combobox__item").first().innerText();
+    expect(optionText).toContain("Picker target");
+    expect(optionText).toContain(path);
+
     await page.locator(".combobox__item").first().click();
 
     await page.waitForFunction(
@@ -611,6 +622,12 @@ describe("typbase app", async () => {
     );
     // Selecting closes the popover; the exit animation delays the unmount.
     await page.waitForSelector(".combobox", { state: "detached", timeout: 30_000 });
+
+    // Reopening starts from a clean search; the previous selection's id must
+    // not linger in the input.
+    await page.locator('.edit-toolbar button[aria-label="Page link"]').click();
+    await page.waitForSelector(".combobox__input", { timeout: 30_000 });
+    expect(await page.locator(".combobox__input").inputValue()).toBe("");
 
     await page.close();
   });

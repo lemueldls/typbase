@@ -95,13 +95,22 @@ const pages = computed(() => {
 
   return store
     .listPages()
-    .filter((page) => !needle || page.title.toLowerCase().includes(needle))
+    .filter(
+      (page) =>
+        !needle ||
+        page.title.toLowerCase().includes(needle) ||
+        page.path.toLowerCase().includes(needle),
+    )
     .slice(0, 50);
 });
 
 /** Options for the page-link autocomplete; UiCombobox takes them filtered. */
 const pageOptions = computed(() =>
-  pages.value.map((page) => ({ value: page.id, label: page.title })),
+  pages.value.map((page) => ({
+    value: page.id,
+    label: page.title,
+    description: page.path,
+  })),
 );
 
 // Every open starts from a full list; reka's trigger toggles `open`.
@@ -179,10 +188,6 @@ function run(item: ToolbarItem) {
             >
               <MsIcon name="add_link" :size="18" />
             </ToolbarButton>
-          </template>
-
-          <template #option="{ option }">
-            <UiTruncatedText :text="option.label" />
           </template>
         </UiCombobox>
       </template>

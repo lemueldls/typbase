@@ -15,7 +15,7 @@ defineOptions({ inheritAttrs: false });
 
 withDefaults(
   defineProps<{
-    options: Array<{ value: string; label: string }>;
+    options: Array<{ value: string; label: string; description?: string }>;
     placeholder?: string;
     /** Shown when `options` is empty. */
     empty?: string;
@@ -84,9 +84,14 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
             :value="option.value"
             :text-value="option.label"
             class="combobox__item"
-            @select="emit('select', option.value)"
+            @select.prevent="emit('select', option.value)"
           >
-            <slot name="option" :option="option">{{ option.label }}</slot>
+            <slot name="option" :option="option">
+              <span class="combobox__item-label">{{ option.label }}</span>
+              <span v-if="option.description" class="combobox__item-description">
+                {{ option.description }}
+              </span>
+            </slot>
           </ComboboxItem>
         </ComboboxViewport>
         <ComboboxEmpty class="combobox__empty">{{ empty }}</ComboboxEmpty>
@@ -142,12 +147,27 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
 }
 
 .combobox__item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-md);
   color: var(--color-text);
   border-radius: var(--radius-sm);
   cursor: pointer;
   user-select: none;
+}
+
+.combobox__item-label,
+.combobox__item-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combobox__item-description {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .combobox__item[data-highlighted] {

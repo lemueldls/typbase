@@ -14,6 +14,7 @@ interface StoreHandle {
     categoryId?: string | null;
   }): Promise<{ id: string; title: string }>;
   loadPageText(id: string): Promise<string>;
+  getPage(id: string): { id: string; title: string; path: string } | undefined;
   getPluginInstance(id: string): { id: string; title: string } | undefined;
   flush(): Promise<void>;
   updatePageKind(id: string, kind: "document" | "notebook"): Promise<void>;
