@@ -428,8 +428,11 @@ async function verifyAndRepair(
   for (let attempt = 0; attempt < context.settings.repairAttempts; attempt++) {
     if (context.controller.signal.aborted) return;
 
+    // Sequence numbers and the id check come from the store's view of the
+    // thread, which includes repairs appended by earlier attempts.
+    const existing = await store.readChatMessages(threadId);
     const repair: ChatMessage = {
-      id: createId(),
+      id: createId((id) => existing.some((entry) => entry.id === id)),
       role: "assistant",
       seq: 0,
       source: "",
@@ -443,8 +446,6 @@ async function verifyAndRepair(
       tools: [],
       error: null,
     };
-    // Sequence numbers come from the store's view of the thread.
-    const existing = await store.readChatMessages(threadId);
     repair.seq = (existing.at(-1)?.seq ?? 0) + 1;
     await store.appendChatMessage(threadId, repair);
     await store.updateChatMessage(threadId, message.id, { status: "repairing" });
@@ -587,8 +588,11 @@ export async function sendChat(input: SendChatInput): Promise<void> {
     includeSearch: !settings.tools || settings.pageContext,
   });
 
+  const existing = await store.readChatMessages(input.threadId);
+  const taken = new Set(existing.map((entry) => entry.id));
+
   const userMessage: ChatMessage = {
-    id: createId(),
+    id: createId((id) => taken.has(id)),
     role: "user",
     seq: 0,
     source: input.text,
@@ -602,11 +606,11 @@ export async function sendChat(input: SendChatInput): Promise<void> {
     tools: [],
     error: null,
   };
-  const existing = await store.readChatMessages(input.threadId);
+  taken.add(userMessage.id);
   userMessage.seq = (existing.at(-1)?.seq ?? 0) + 1;
 
   const assistant: ChatMessage = {
-    id: createId(),
+    id: createId((id) => taken.has(id)),
     role: "assistant",
     seq: userMessage.seq + 1,
     source: "",
@@ -620,6 +624,7 @@ export async function sendChat(input: SendChatInput): Promise<void> {
     tools: [],
     error: null,
   };
+  taken.add(assistant.id);
 
   await store.appendChatMessage(input.threadId, userMessage);
   if (thread.title === "New chat") {

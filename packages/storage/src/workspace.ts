@@ -15,13 +15,13 @@ import type {
 } from "@typbase/typing";
 import type { LoroDoc, LoroMap, VersionVector } from "loro-crdt";
 
-import { createId } from "@paralleldrive/cuid2";
 import { DEFAULT_SETTINGS } from "@typbase/typing";
 
 import type { StorageBackend, StorageEntryStat } from "./backend";
 
 import { pathSegments } from "./backend";
 import { blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
+import { createId } from "./ids";
 import { type LoroModule, loadLoro } from "./loro";
 
 const SNAPSHOT_DEBOUNCE_MS = 500;
@@ -788,7 +788,7 @@ export class WorkspaceStore {
     const now = Date.now();
     const kind = input.kind ?? "document";
     const meta: PageMeta = {
-      id: createId(),
+      id: createId((id) => id === this.workspaceId || this.getPage(id) !== undefined),
       path: this.uniquePath(input.path ?? `pages/${slugify(input.title)}.typ`),
       title: input.title.trim() || "Untitled",
       kind,
@@ -1351,7 +1351,7 @@ export class WorkspaceStore {
     config?: Record<string, unknown>;
   }): Promise<PluginInstance> {
     const instance: PluginInstance = {
-      id: createId(),
+      id: createId((id) => this.getPluginInstance(id) !== undefined),
       pluginId: input.pluginId,
       title: input.title,
       icon: input.icon ?? "",
@@ -1537,7 +1537,7 @@ export class WorkspaceStore {
   }): Promise<ChatThread> {
     const now = Date.now();
     const thread: ChatThread = {
-      id: createId(),
+      id: createId((id) => this.getChat(id) !== undefined),
       title: input.title?.trim() || "New chat",
       providerId: input.providerId ?? null,
       model: input.model ?? null,

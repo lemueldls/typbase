@@ -640,7 +640,7 @@ function useWorkspaceState() {
       return "local";
     }
 
-    const id = createId();
+    const id = createId((candidate) => all.some((entry) => entry.id === candidate));
     await reg.save({
       id,
       name: "My workspace",
@@ -692,8 +692,9 @@ function useWorkspaceState() {
 
   async function createWorkspace(name: string, icon?: string): Promise<WorkspaceInfo> {
     const reg = await ensureRegistry();
+    const known = await reg.list();
     const info: WorkspaceInfo = {
-      id: createId(),
+      id: createId((candidate) => known.some((entry) => entry.id === candidate)),
       name: name.trim() || "Untitled workspace",
       icon: icon || undefined,
       createdAt: Date.now(),
