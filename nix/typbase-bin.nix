@@ -19,7 +19,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "https://github.com/lemueldls/typbase/releases/download/typbase-v${finalAttrs.version}/Typbase_${finalAttrs.version}_amd64.deb";
-    sha256 = "sha256-TKhBlnhpDYKbtcTNreoEuoL2yoabCUDvs9CSPeEUkAY=";
+    sha256 = "sha256-zscOGXFET7Gc29OsKQXwo7Hs8pb8LB6jY6UQDr6/jI8=";
   };
 
   dontConfigure = true;
