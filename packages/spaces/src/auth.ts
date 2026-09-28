@@ -38,6 +38,9 @@ export interface SessionIdentity {
   pdsUrl: string;
 }
 
+/** atproto service that resolves handles (a PDS) when none is configured. */
+export const DEFAULT_HANDLE_RESOLVER = "https://bsky.social";
+
 /**
  * How a native shell hands OAuth responses back to the app. `redirectUri` must
  * be one of the redirect URIs in the client metadata the shell uses.
@@ -69,6 +72,36 @@ export interface SessionManagerOptions {
    * document lives on the deployed origin, which the dev webview is not.
    */
   clientId?: string;
+}
+
+export interface NativeClientOptions {
+  clientId: string;
+  responseMode: "fragment";
+  allowHttp: boolean;
+  handleResolver: string;
+  plcDirectoryUrl?: string;
+}
+
+/**
+ * Options for the native `BrowserOAuthClient`. The shell builds that client
+ * itself instead of going through airspace's browser entrypoint, so the
+ * handle-resolver default airspace applies has to be applied here too.
+ * Without a resolver the client throws before it can build an authorization
+ * URL, which surfaces as an account-not-found error at sign-in.
+ */
+export function nativeClientOptions(input: {
+  clientId: string;
+  allowHttp: boolean;
+  handleResolver?: string;
+  plcDirectoryUrl?: string;
+}): NativeClientOptions {
+  return {
+    clientId: input.clientId,
+    responseMode: "fragment",
+    allowHttp: input.allowHttp,
+    handleResolver: input.handleResolver ?? DEFAULT_HANDLE_RESOLVER,
+    ...(input.plcDirectoryUrl ? { plcDirectoryUrl: input.plcDirectoryUrl } : {}),
+  };
 }
 
 /** 127.0.0.1 form of a loopback app URL, for the sign-in guard message. */
@@ -124,7 +157,7 @@ export class SessionManager {
         metadataPath: OAUTH_METADATA_PATH,
         responseMode: "fragment",
         allowHttp: this.allowHttp(),
-        ...(this.options.handleResolver ? { handleResolver: this.options.handleResolver } : {}),
+        handleResolver: this.options.handleResolver ?? DEFAULT_HANDLE_RESOLVER,
         ...(this.options.plcDirectoryUrl ? { plcDirectoryUrl: this.options.plcDirectoryUrl } : {}),
       });
     }
@@ -146,13 +179,14 @@ export class SessionManager {
       }
 
       const { BrowserOAuthClient } = await import("@atproto/oauth-client-browser");
-      this.nativeClient = await BrowserOAuthClient.load({
-        clientId,
-        responseMode: "fragment",
-        allowHttp: this.allowHttp(),
-        ...(this.options.handleResolver ? { handleResolver: this.options.handleResolver } : {}),
-        ...(this.options.plcDirectoryUrl ? { plcDirectoryUrl: this.options.plcDirectoryUrl } : {}),
-      });
+      this.nativeClient = await BrowserOAuthClient.load(
+        nativeClientOptions({
+          clientId,
+          allowHttp: this.allowHttp(),
+          handleResolver: this.options.handleResolver,
+          plcDirectoryUrl: this.options.plcDirectoryUrl,
+        }),
+      );
     }
 
     return this.nativeClient;

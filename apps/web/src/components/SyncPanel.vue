@@ -56,7 +56,13 @@ async function onSignIn() {
     await atproto.value.signIn(handle);
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
-    unknownHandle.value = /handle|resolve/i.test(message);
+    // Only the resolution failures get the friendly account-not-found copy;
+    // anything else (a missing resolver, a network or CORS failure) shows the
+    // real message so the cause is not hidden.
+    unknownHandle.value =
+      /does not resolve to a DID|does not include the handle|Invalid handle|Unable to resolve handle/i.test(
+        message,
+      );
     error.value = unknownHandle.value
       ? t("settings.syncUnknownHandle", { identifier: handle })
       : message;
