@@ -213,15 +213,11 @@ const localeSetting = computed({
   set: (value: string) => appLocale.set(value),
 });
 
-function onDailyTemplateChange(event: Event) {
-  props.store.updateSettings({
-    dailyNoteTemplate: (event.target as HTMLTextAreaElement).value,
-  });
+function onDailyTemplateChange(value: string) {
+  props.store.updateSettings({ dailyNoteTemplate: value });
 }
-function onPagePreludeChange(event: Event) {
-  props.store.updateSettings({
-    pagePrelude: (event.target as HTMLTextAreaElement).value,
-  });
+function onPagePreludeChange(value: string) {
+  props.store.updateSettings({ pagePrelude: value });
 }
 
 // Selects run through UiSelect, so each setting gets an options list and a
@@ -609,33 +605,29 @@ async function renameWorkspace(event: Event) {
           </div>
         </section>
 
-        <!-- Long Typst-source textareas live on their own tab so General stays
-             a short form: name, icon, language. -->
+        <!-- Long Typst-source fields live on their own tab so General stays a
+             short form: name, icon, language. -->
         <section v-show="activeTab === 'content'" class="settings__tabpanel">
-          <Label class="settings__field">
+          <div class="settings__field">
             <span>{{ $t("settings.template") }}</span>
-            <textarea
-              class="settings__input settings__textarea"
+            <TypstSourceField
               :value="settings.dailyNoteTemplate"
-              rows="5"
-              spellcheck="false"
+              :aria-label="$t('settings.template')"
               @change="onDailyTemplateChange"
             />
             <span class="settings__hint">{{ $t("settings.templateHint") }}</span>
-          </Label>
+          </div>
 
-          <Label class="settings__field">
+          <div class="settings__field">
             <span>{{ $t("settings.prelude") }}</span>
-            <textarea
-              class="settings__input settings__textarea"
+            <TypstSourceField
               :value="settings.pagePrelude ?? ''"
-              rows="4"
-              spellcheck="false"
+              :aria-label="$t('settings.prelude')"
               placeholder="#set text(size: 11pt)  // runs before every page, after theme/fonts"
               @change="onPagePreludeChange"
             />
             <span class="settings__hint">{{ $t("settings.preludeHint") }}</span>
-          </Label>
+          </div>
 
           <Label class="settings__field">
             <span>{{ $t("settings.spellcheck") }}</span>

@@ -1007,6 +1007,63 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("edits the daily template and page prelude as Typst source", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const before = await page.evaluate(() => {
+      const settings = window.__typbase.store.getSettings();
+
+      return {
+        dailyNoteTemplate: settings.dailyNoteTemplate,
+        pagePrelude: settings.pagePrelude ?? "",
+      };
+    });
+
+    await page.locator('[aria-label="Workspace settings"]').click();
+    await page.waitForSelector(".settings", { timeout: 30_000 });
+    await page.locator('[data-tab="content"]').click();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".settings .source-field .cm-content").count()).resolves.toBe(2);
+
+    // The template is a Typst editor: the engine-free scanner colors keywords
+    // while typing.
+    const template = page.locator('.source-field [aria-label="Daily note template"]');
+    await template.click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.type("= #note.title\n\n#let x = 1");
+    await expect(page.locator(".source-field .typ-key").first().innerText()).resolves.toBe("#let");
+
+    // Blur commits, like the text fields beside it.
+    await page.locator(".settings__heading").first().click();
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.store.getSettings().dailyNoteTemplate), {
+        timeout: 30_000,
+      })
+      .toBe("= #note.title\n\n#let x = 1");
+
+    // The prelude field behaves the same.
+    const prelude = page.locator('.source-field [aria-label="Page prelude"]');
+    await prelude.click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.type("#set text(size: 12pt)");
+    await page.locator(".settings__heading").first().click();
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.store.getSettings().pagePrelude), {
+        timeout: 30_000,
+      })
+      .toBe("#set text(size: 12pt)");
+
+    // Bracket pairs come from the Typst language data, no language server.
+    await prelude.click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.type("#f(");
+    await expect(prelude.innerText()).resolves.toBe("#f()");
+
+    await page.evaluate((previous) => window.__typbase.store.updateSettings(previous), before);
+    await page.close();
+  });
+
   it("exposes the compile inputs to page sources", async () => {
     const page = await createPage();
     await openApp(page);
