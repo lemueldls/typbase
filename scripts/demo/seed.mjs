@@ -173,7 +173,9 @@ export async function seedWorkspace(page, { workspaceId }) {
       await backend.write(
         "workspaces.json",
         new TextEncoder().encode(
-          JSON.stringify([{ id, name: "Demo", createdAt: Date.now(), lastOpenedAt: Date.now() }]),
+          JSON.stringify([
+            { id, name: "Demo", icon: "kid_star", createdAt: Date.now(), lastOpenedAt: Date.now() },
+          ]),
         ),
       );
 
