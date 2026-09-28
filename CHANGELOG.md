@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.2] - 2026-09-28
+
+### New
+
+- Typst source field for settings
+
+### Fixed
+
+- Search input forwarding
+
 ## [0.3.1] - 2026-09-28
 
 ### New
