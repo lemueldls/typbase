@@ -3,7 +3,7 @@ defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(
   defineProps<{
-    /** Full text; also the tooltip content. */
+    /** Full text, also used as the tooltip content. */
     text?: string;
     /** Tooltip placement. */
     side?: "top" | "right" | "bottom" | "left";

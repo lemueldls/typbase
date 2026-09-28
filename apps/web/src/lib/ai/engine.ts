@@ -28,7 +28,7 @@ import { buildRepairPrompt, hasErrors, toChatDiagnostics, summarizeDiagnostics }
  * compile the finished source with the engine, and run bounded repair turns
  * until the pristine compile is clean.
  *
- * Rendering and verification happen in the chat worker; this module only
+ * Rendering and verification happen in the chat worker. This module only
  * orchestrates. The Vue layer subscribes for updates and reads rendered HTML
  * out of the map below.
  */
@@ -97,7 +97,7 @@ export function chatConfigured(): boolean {
   return deps !== null;
 }
 
-/** Aborts every stream; call on workspace switch or teardown. */
+/** Aborts every stream. Call on workspace switch or teardown. */
 export function resetChat(): void {
   for (const entry of active.values()) entry.controller.abort();
   active.clear();
@@ -176,7 +176,7 @@ function stopReasonText(): string {
 
 /**
  * Streams one assistant turn, including tool rounds. Text accumulates across
- * rounds; each tool round appends the model's tool call and its result to the
+ * rounds. Each tool round appends the model's tool call and its result to the
  * provider conversation.
  */
 export async function runAssistantTurn(input: {
@@ -314,7 +314,7 @@ async function runReplyTurn(
     renderTimer = setTimeout(() => {
       renderTimer = undefined;
       void renderProgress(context, source).catch(() => {
-        // Progressive render is best-effort; the final verify always runs.
+        // Progressive render is best-effort. The final verify always runs.
       });
     }, RENDER_DEBOUNCE_MS);
   };
@@ -386,8 +386,8 @@ async function renderProgress(context: TurnContext, source: string): Promise<voi
 }
 
 /**
- * The acceptance gate. A clean pristine compile marks the message verified;
- * otherwise the repair budget is spent on visible repair turns.
+ * The acceptance gate. A clean pristine compile marks the message verified.
+ * Otherwise the repair budget is spent on visible repair turns.
  */
 async function verifyAndRepair(
   context: TurnContext,
@@ -583,7 +583,7 @@ export async function sendChat(input: SendChatInput): Promise<void> {
     pageId: input.pageId ?? thread.pageId,
     selection: input.selection ?? null,
     includePage: settings.pageContext,
-    // Tools do their own retrieval; the prefetch is for models that answer
+    // Tools do their own retrieval. The prefetch is for models that answer
     // straight away, so only add it when there is no tool loop.
     includeSearch: !settings.tools || settings.pageContext,
   });

@@ -1,7 +1,7 @@
 /**
  * The dev-only `window.__typbase` handle as the e2e suite sees it. Kept in one
  * file so `app.test.ts` and `plugins.test.ts` cannot declare conflicting
- * shapes; `apps/web/src/lib/testApi.ts` is the runtime counterpart.
+ * shapes. `apps/web/src/lib/testApi.ts` is the runtime counterpart.
  */
 
 import type { EditorView } from "@codemirror/view";

@@ -68,7 +68,7 @@ describe("plugin system", async () => {
       { timeout: 60_000 },
     );
 
-    // Opening the pane subscribes its surface; it compiles the patched state.
+    // Opening the pane subscribes its surface. It compiles the patched state.
     await page.evaluate((id) => window.__typbase.openPlugin(id), instanceId);
     await page.waitForFunction(
       ({ id, title }) =>
@@ -78,7 +78,7 @@ describe("plugin system", async () => {
       { timeout: 60_000 },
     );
 
-    // A view-only action (selecting a day) must re-render on its own; before,
+    // A view-only action (selecting a day) must re-render on its own. Before,
     // the outline only moved after some other action forced a render.
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
     await page.evaluate(
@@ -174,7 +174,7 @@ describe("plugin system", async () => {
     await page.waitForFunction((id) => window.__typbase.pluginWindowOpen(id), instanceId, {
       timeout: 30_000,
     });
-    // The window mounts its surface asynchronously; the canvas host appends
+    // The window mounts its surface asynchronously. The canvas host appends
     // the real canvas on mount.
     await page.waitForSelector(".plugin-window canvas.tb-canvas", { timeout: 30_000 });
 
@@ -289,7 +289,7 @@ describe("plugin system", async () => {
     await page.waitForSelector(".studio__plugin", { timeout: 180_000 });
 
     // A click can land before the client-only page finishes mounting, which
-    // would be dropped; retry until the selection sticks.
+    // would be dropped. Retry until the selection sticks.
     let tabs = 0;
     for (let attempt = 0; attempt < 10 && tabs === 0; attempt++) {
       await page

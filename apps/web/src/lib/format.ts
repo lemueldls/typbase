@@ -4,7 +4,7 @@ function toDate(value: string | number | Date): Date {
   if (typeof value === "number") return new Date(value);
 
   if (typeof value === "string") {
-    // ISO date-only strings are UTC days; keep the calendar stable across
+    // ISO date-only strings are UTC days, so keep the calendar stable across
     // timezones (daily notes are UTC-keyed).
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(`${value}T00:00:00Z`);
     return new Date(value);
@@ -13,7 +13,7 @@ function toDate(value: string | number | Date): Date {
   return value;
 }
 
-/** Formats a date; ISO date-only inputs stay in UTC. */
+/** Formats a date. ISO date-only inputs stay in UTC. */
 export function formatDate(
   value: string | number | Date,
   options: Intl.DateTimeFormatOptions,

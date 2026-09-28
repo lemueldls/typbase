@@ -10,7 +10,7 @@
 //! Writes go through a temp file and a rename, so a crash mid-snapshot leaves
 //! the previous file intact instead of a torn Loro document.
 
-// `#[tauri::command]` hands `State` and argument strings over by value; the
+// `#[tauri::command]` hands `State` and argument strings over by value. The
 // macro needs that signature shape, so the pedantic lint does not apply here.
 #![allow(clippy::needless_pass_by_value)]
 
@@ -73,7 +73,7 @@ pub struct StorageStateInfo {
     app_root: String,
     device_root: Option<String>,
     configured: bool,
-    /// Desktop can open a native folder picker; mobile cannot reach arbitrary
+    /// Desktop can open a native folder picker. Mobile cannot reach arbitrary
     /// folders without SAF/bookmarks, so Device mode stays app-scoped there.
     can_pick_folder: bool,
 }
@@ -107,7 +107,7 @@ impl StorageState {
             .map_err(|error| io_error(format!("no app data dir: {error}")))?
             .join(STORAGE_DIR);
         // `document_dir` is unavailable on Android when external storage is not
-        // mounted; Device mode is then offered as unusable in the setup screen.
+        // mounted. Device mode is then offered as unusable in the setup screen.
         let device_root = app
             .path()
             .document_dir()
@@ -250,7 +250,7 @@ pub fn storage_configure(
 /// Opens the native folder picker on desktop. Returns null when cancelled.
 ///
 /// The dialog plugin is called from Rust, so no `dialog:*` capability is
-/// needed; the JS side never reaches the plugin directly.
+/// needed. The JS side never reaches the plugin directly.
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn storage_pick_directory<R: Runtime>(
@@ -494,7 +494,7 @@ pub fn storage_watch<R: Runtime>(
     path: String,
 ) -> Result<(), String> {
     let root = state.resolve(&path)?;
-    // A fresh workspace may not have flushed its first snapshot yet; the
+    // A fresh workspace may not have flushed its first snapshot yet. The
     // watcher owns the directory from here on.
     if let Err(error) = fs::create_dir_all(&root) {
         return Err(format!("failed to create {}: {error}", root.display()));

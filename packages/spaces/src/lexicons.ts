@@ -3,11 +3,11 @@ import { defineLexicons, field, space } from "airspace/lexicon";
 /**
  * The workspace space's record types, defined once and used for both the
  * permissioned space and the public repo. `update` and `snapshot` carry Loro
- * bytes as base64 (airspace records are JSON; the PDS caps records around a
+ * bytes as base64 (airspace records are JSON, and the PDS caps records around a
  * megabyte). `post` is a note: the space record is the draft, `publish()`
  * copies it to the public repo at the same key.
  *
- * The space NSID is `at.typbase.workspace`; the key is the local workspace
+ * The space NSID is `at.typbase.workspace`. The key is the local workspace
  * id, so every workspace gets its own space under the signed-in account.
  */
 export default defineLexicons("at.typbase", {

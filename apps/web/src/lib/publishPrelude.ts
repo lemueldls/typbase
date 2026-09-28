@@ -9,7 +9,7 @@ import { resolveLightTheme, resolveTheme } from "~/lib/themes";
 export interface PublishPreludeOptions {
   /**
    * "light" (the default) normalizes to a light palette so documents stay
-   * readable on white and print well; "workspace" keeps the active palette and
+   * readable on white and print well. "workspace" keeps the active palette and
    * fills pages with its surface, so a dark theme exports as a dark document.
    */
   theme?: "light" | "workspace";
@@ -17,10 +17,10 @@ export interface PublishPreludeOptions {
   pageSize?: "a4" | "letter";
   /**
    * Emit `#set page(...)`. Paged targets (PDF, SVG, the project `.typ`) need
-   * it; HTML export has no pages.
+   * it. HTML export has no pages.
    */
   paged?: boolean;
-  /** Body text size in pt; defaults to the workspace's configured size. */
+  /** Body text size in pt. Defaults to the workspace's configured size. */
   textSize?: number;
   /**
    * The `note` binding for the page being compiled, built by
@@ -43,7 +43,7 @@ export function publishThemePalette(
 /**
  * The code-block theme for an export palette: the generated tmTheme plus the
  * virtual path the prelude references. Project bundles write it next to
- * `lib.typ`; the render worker inserts it into its own world.
+ * `lib.typ`. The render worker inserts it into its own world.
  */
 export async function publishSyntaxTheme(
   settings: WorkspaceSettings,
@@ -59,7 +59,7 @@ export async function publishSyntaxTheme(
  * The document prelude for exports, publishing, and the project mirror. The
  * style block (theme, text, headings, fonts, code-block theme) comes from the
  * wasm engine's `stylePrelude`, so it is byte-for-byte the prelude the app
- * compiles with; only the page geometry and the user's prelude are added here.
+ * compiles with. Only the page geometry and the user's prelude are added here.
  */
 export async function publishPrelude(
   settings: WorkspaceSettings,

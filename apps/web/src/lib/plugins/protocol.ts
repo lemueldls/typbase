@@ -38,7 +38,7 @@ export interface PluginSurfaceInput {
   styles?: string[];
   /** Binary files the request loop resolved (query JSON, images, ...). */
   files?: PluginSurfaceFile[];
-  /** Packages the request loop fetched; installed before the compile. */
+  /** Packages the request loop fetched. Installed before the compile. */
   packages?: PluginSurfacePackage[];
   ctx: unknown;
   style: PluginSurfaceStyle;
@@ -48,7 +48,7 @@ export interface PluginSurfaceResult {
   html: string;
   diagnostics: unknown[];
   requests: TypstRequest[];
-  /** Which engine compiled this surface; local is the worker fallback. */
+  /** Which engine compiled this surface. Local is the worker fallback. */
   engine?: "worker" | "local";
   /** Why the worker was abandoned, when it was. */
   fallbackReason?: string;

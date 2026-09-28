@@ -28,7 +28,7 @@ const SNAPSHOT_DEBOUNCE_MS = 500;
 
 /**
  * A container path inside a Loro doc, root first. Top-level containers are one
- * segment (`["categories"]`); nested containers add the key or index
+ * segment (`["categories"]`). Nested containers add the key or index
  * (`["categories", 0]`, `["pages", "<id>"]`).
  */
 export type LoroPath = readonly (string | number)[];
@@ -108,7 +108,7 @@ export interface SourceSyncResult {
   imported: string[];
   /** Pages created from files that had no page. */
   created: string[];
-  /** Files that changed while the page also changed; the doc won. */
+  /** Files that changed while the page also changed. The doc won. */
   conflicts: string[];
   /** Source files written from the doc (new or re-exported). */
   exported: number;
@@ -134,7 +134,7 @@ interface SourceFileInfo {
   modifiedAt?: number;
 }
 
-/** FNV-1a, hex. Change detection only; not security relevant. */
+/** FNV-1a, hex. Change detection only, not security relevant. */
 function hashText(text: string): string {
   let hash = 0x811c9dc5;
   for (let index = 0; index < text.length; index++) {
@@ -210,7 +210,7 @@ export function isPluginChange(relativePath: string): boolean {
   return name.endsWith(".typ") || name.endsWith(".css") || name.endsWith(".json");
 }
 
-/** Doc id space for plugin instance docs; sync treats them like page docs. */
+/** Doc id space for plugin instance docs. Sync treats them like page docs. */
 export function pluginDocId(instanceId: string): string {
   return `plugin:${instanceId}`;
 }
@@ -224,7 +224,7 @@ export function chatPath(workspaceId: string, threadId: string): string {
   return `${workspaceRoot(workspaceId)}/state/chats/${threadId}.loro`;
 }
 
-/** Doc id space for chat threads; sync treats them like page docs. */
+/** Doc id space for chat threads. Sync treats them like page docs. */
 export function chatDocId(threadId: string): string {
   return `chat:${threadId}`;
 }
@@ -235,9 +235,9 @@ export function chatIdOf(docId: string): string | null {
 }
 
 export interface WorkspaceStoreOptions {
-  /** Snapshot writes are debounced by this much; a crash loses at most this window. */
+  /** Snapshot writes are debounced by this much. A crash loses at most this window. */
   snapshotDebounceMs?: number;
-  /** Settings name for a workspace doc created from scratch; ignored otherwise. */
+  /** Settings name for a workspace doc created from scratch. Ignored otherwise. */
   name?: string;
 }
 
@@ -342,7 +342,7 @@ export class WorkspaceStore {
     }
   }
 
-  /** Enables the source mirror; call once the device state exists. */
+  /** Enables the source mirror. Call once the device state exists. */
   attachSourceSync(sync: SourceSyncStore): void {
     this.sourceSync = sync;
   }
@@ -391,7 +391,7 @@ export class WorkspaceStore {
 
   /**
    * Writes a file into the generated project view. Request payloads arrive
-   * root-absolute (`/typbase/...`); anything outside `typbase/` is rejected so
+   * root-absolute (`/typbase/...`). Anything outside `typbase/` is rejected so
    * a stray path cannot land on a page source.
    */
   async writeProjectFile(path: string, bytes: Uint8Array): Promise<void> {
@@ -492,7 +492,7 @@ export class WorkspaceStore {
    * - when both changed, the doc wins and the file is re-exported;
    * - pages with no file are exported, so the tree is complete.
    *
-   * Deleting a file never deletes a page; remove those in the app.
+   * Deleting a file never deletes a page. Remove those in the app.
    */
   syncSources(): Promise<SourceSyncResult> {
     this.sourceSyncPromise ??= this.doSyncSources().finally(() => {
@@ -614,7 +614,7 @@ export class WorkspaceStore {
       result.exported++;
     }
 
-    // Export any dirty docs last; this re-records their hashes too.
+    // Export any dirty docs last. This re-records their hashes too.
     await this.flush();
     await this.saveSourceHashes();
 
@@ -634,7 +634,7 @@ export class WorkspaceStore {
 
     // Templates from before the context binding are broken: the app no longer
     // substitutes `{title}` and friends. Swap the old shape for the current
-    // default; a template without placeholders is left alone.
+    // default. A template without placeholders is left alone.
     if (settings.dailyNoteTemplate.includes("{title}")) {
       settings.dailyNoteTemplate = DEFAULT_SETTINGS.dailyNoteTemplate;
     }
@@ -680,7 +680,7 @@ export class WorkspaceStore {
     );
     settings.installedPackages = Array.isArray(installedPackages) ? installedPackages : [];
 
-    // Array fields ride the same JSON-string path; bad entries from another
+    // Array fields ride the same JSON-string path. Bad entries from another
     // writer are dropped rather than trusted.
     const words = decodeJson<unknown>(map.get("spellcheckWords"), []);
     settings.spellcheckWords = Array.isArray(words)
@@ -812,7 +812,7 @@ export class WorkspaceStore {
       pageDoc.getText("content").update(`= ${meta.title}\n`);
     }
     // Without the commit no subscribe fires and the page snapshot never gets
-    // written; a reload then finds the page doc missing and renders it blank.
+    // written. A reload then finds the page doc missing and renders it blank.
     pageDoc.commit();
 
     return meta;
@@ -889,7 +889,7 @@ export class WorkspaceStore {
 
     if (meta) {
       await this.backend.delete(this.sourcePath(meta)).catch(() => {
-        // A missing mirror is fine; the page is what matters.
+        // A missing mirror is fine. The page is what matters.
       });
       if (this.sourceHashes) {
         delete this.sourceHashes[meta.path];
@@ -1109,7 +1109,7 @@ export class WorkspaceStore {
 
   /**
    * Fires once per debounced commit batch with the doc id that changed. The
-   * sync engine exports an update per batch from here; a crash between
+   * sync engine exports an update per batch from here. A crash between
    * commits loses nothing because exports are relative to the last exported
    * version, not to a queue of snapshots.
    */
@@ -1219,7 +1219,7 @@ export class WorkspaceStore {
 
       return VersionVector.parseJSON(new Map(entries.map(([k, v]) => [k as never, v])));
     } catch {
-      // The wasm binding requires the argument (even for "none"); undefined
+      // The wasm binding requires the argument (even for "none"). Undefined
       // means an empty vector.
       return new VersionVector(undefined);
     }
@@ -1236,7 +1236,7 @@ export class WorkspaceStore {
       const value = map.get(key);
       if (!value || typeof value !== "object") continue;
 
-      // Mergeable children read back as LoroMap; plain values are already data.
+      // Mergeable children read back as LoroMap. Plain values are already data.
       const plain =
         typeof (value as LoroMap).toJSON === "function"
           ? (value as LoroMap).toJSON()
@@ -1489,7 +1489,7 @@ export class WorkspaceStore {
   }
 
   //
-  // Thread metadata is a record in the workspace doc's `chats` map; messages
+  // Thread metadata is a record in the workspace doc's `chats` map. Messages
   // live in the thread's own doc (`chat:<threadId>`). The sync engine already
   // walks listDocIds/getDocById, so threads sync like page and plugin docs.
 
@@ -1700,7 +1700,7 @@ export class WorkspaceStore {
   /**
    * Stores bytes under a truncated content address. Writing the same bytes
    * twice is a no-op. The first 16 hex chars of the SHA-256 give 64 bits of
-   * address; if two different files ever land on the same address, the second
+   * address. If two different files ever land on the same address, the second
    * is stored under the full digest instead of aliasing the first.
    */
   async putBlob(bytes: Uint8Array): Promise<BlobEntry> {
@@ -1732,7 +1732,7 @@ export class WorkspaceStore {
     return { hash: id, size: bytes.byteLength, modifiedAt: Date.now() };
   }
 
-  /** Byte comparison for an existing blob; the caller compares sizes first. */
+  /** Byte comparison for an existing blob. The caller compares sizes first. */
   private async blobBytesMatch(path: string, bytes: Uint8Array): Promise<boolean> {
     const stored = await this.backend.read(path);
     if (!stored || stored.byteLength !== bytes.byteLength) return false;

@@ -103,7 +103,7 @@ let pluginCurrentPageId: string | null = null;
 export function setPluginCurrentPage(id: string | null): void {
   if (pluginCurrentPageId === id) return;
   pluginCurrentPageId = id;
-  // Surfaces read `ctx.page`; a page switch has to rebuild them or a window
+  // Surfaces read `ctx.page`. A page switch has to rebuild them or a window
   // keeps offering actions against the page that was open when it rendered.
   bumpPluginsRevision();
 }
@@ -126,7 +126,7 @@ export const DEFAULT_WINDOW_SIZE = { width: 620, height: 480 };
 export function usePluginHost() {
   const { workspace, backend, localState, dataRevision, pluginFilesRevision } = useWorkspace();
   const { locale } = useI18n();
-  // Plugin AI actions go through the chat runtime; instantiate it so the
+  // Plugin AI actions go through the chat runtime. Instantiate it so the
   // engine deps exist even when no chat pane is open (for example /debug).
   useChat();
 
@@ -137,7 +137,7 @@ export function usePluginHost() {
   const listeners = new Map<string, Set<(state: PluginSurfaceState) => void>>();
   const docUnsubscribes = new Map<string, () => void>();
   const renderQueues = new Map<string, Promise<void>>();
-  /** One in-flight `ai.stream` per plugin instance; a new one aborts the old. */
+  /** One in-flight `ai.stream` per plugin instance. A new one aborts the old. */
   const aiStreams = new Map<string, AbortController>();
   const views = shallowRef<Record<string, Record<string, unknown>>>({});
   const windows = ref<Record<string, PluginWindowPlacement>>({});
@@ -149,7 +149,7 @@ export function usePluginHost() {
 
   const keyOf = (instanceId: string, kind: PluginSurfaceKind): string => `${instanceId}:${kind}`;
 
-  /** Diagnostics for the plugin studio; newest first, capped. */
+  /** Diagnostics for the plugin studio. Newest first, capped. */
   function log(entry: Omit<PluginLogEntry, "at">): void {
     logs.value = [{ at: Date.now(), ...entry }, ...logs.value].slice(0, 200);
   }
@@ -186,7 +186,7 @@ export function usePluginHost() {
     const localIds = new Set(local.map((entry) => entry.manifest.id));
     catalog.value = [...local, ...bundled.filter((entry) => !localIds.has(entry.manifest.id))];
 
-    // Notes import plugin modules through the request channel; keep the
+    // Notes import plugin modules through the request channel. Keep the
     // served copy in sync with what surfaces compile against.
     registerPluginSources([
       { path: UI_LIBRARY_PATH, text: uiLibrarySource },
@@ -229,7 +229,7 @@ export function usePluginHost() {
   watch(backend, () => void refreshCatalog(), { immediate: true });
 
   // External edits under `plugins/` (an editor outside the app) reload the
-  // catalog; saves from the studio call refreshCatalog directly.
+  // catalog. Saves from the studio call refreshCatalog directly.
   watch(pluginFilesRevision, () => void refreshCatalog());
 
   // Plugin source or data changes rebuild every mounted surface.
@@ -382,7 +382,7 @@ export function usePluginHost() {
     await store.deletePluginInstance(instanceId);
   }
 
-  /** Renames one instance; the sidebar row, window title, and manager show it. */
+  /** Renames one instance. The sidebar row, window title, and manager show it. */
   async function renameInstance(instanceId: string, title: string): Promise<void> {
     const store = workspace.value;
     const trimmed = title.trim();
@@ -623,7 +623,7 @@ export function usePluginHost() {
     return next;
   }
 
-  /** Re-renders the instance's mounted surfaces; unmounted ones render on
+  /** Re-renders the instance's mounted surfaces. Unmounted ones render on
    *  mount, and their stale cache entries were dropped by the patch. */
   function rerenderInstance(instanceId: string): void {
     for (const slot of surfacesOf(instanceId)) {
@@ -817,7 +817,7 @@ export function usePluginHost() {
         });
       }
 
-      // A broken plugin shows its error instead of the recovery render; the
+      // A broken plugin shows its error instead of the recovery render. The
       // editor's partial-input recovery has no place on a plugin surface.
       if (compileErrors.length) {
         const first = compileErrors[0]!;
@@ -856,7 +856,7 @@ export function usePluginHost() {
           await store.applyPluginPatch(instanceId, validated.patch.state);
           patched = true;
           statePatched = true;
-          // Notes embedding this plugin's data recompile; other surfaces
+          // Notes embedding this plugin's data recompile. Other surfaces
           // re-render through the revision watcher.
           bumpPluginsRevision();
         }
@@ -876,7 +876,7 @@ export function usePluginHost() {
         // This render predates the patch. Drop the cached HTML for every
         // surface of the instance so a surface that mounts later compiles the
         // patched state instead of replaying stale markup. State patches go
-        // through the revision watcher; a view-only patch has no revision to
+        // through the revision watcher. A view-only patch has no revision to
         // wait for, so the instance's mounted surfaces re-render here.
         for (const slot of manifest.surfaces) {
           renderStates.delete(keyOf(instanceId, slot.kind));
@@ -1064,7 +1064,7 @@ export function usePluginHost() {
         const next = `${current}${separator}${text}\n`;
         await store.setPageText(page.id, next);
 
-        // Sections feed the note index and plugin data; refresh them now so
+        // Sections feed the note index and plugin data. Refresh them now so
         // plugins see fresh content without a page switch.
         const typstState = await useTypst().catch(() => null);
         if (typstState) {
@@ -1218,7 +1218,7 @@ export function usePluginHost() {
   /**
    * Streaming AI calls write the growing text into one plugin record, so a
    * surface can render its own live chat without new protocol. The field is
-   * patched on a debounce; `<field>Status` tracks streaming/done/error.
+   * patched on a debounce. `<field>Status` tracks streaming/done/error.
    */
   async function runAiStream(
     instanceId: string,
@@ -1266,7 +1266,7 @@ export function usePluginHost() {
       timer = setTimeout(() => {
         timer = undefined;
         void patch().catch(() => {
-          // A deleted record stops the stream from the plugin's side; the
+          // A deleted record stops the stream from the plugin's side. The
           // completion patch below will recreate nothing.
         });
       }, 150);

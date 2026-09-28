@@ -97,7 +97,7 @@ export const useAppUpdates = createSharedComposable(() => {
         return;
       }
 
-      // Desktop relaunches here; the Android installer replaces the process.
+      // Desktop relaunches here. The Android installer replaces the process.
       status.value = "installing";
       open.value = false;
     } catch (cause) {

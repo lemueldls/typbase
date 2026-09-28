@@ -78,7 +78,7 @@ function alphaChannel(value: string | undefined): number {
 /**
  * Canonical hex for a color string. The palette editor (reka's ColorField)
  * parses hex and comma rgb(), but not `rgb(r g b / a)`, and the renderer
- * palette parser only reads hex; normalizing here keeps both happy.
+ * palette parser only reads hex, so normalizing here keeps both happy.
  */
 export function normalizeCssColor(value: string): string {
   const trimmed = value.trim();
@@ -105,7 +105,7 @@ export function normalizeCssColor(value: string): string {
     .join("")}${alpha === 255 ? "" : alpha.toString(16).padStart(2, "0")}`;
 }
 
-/** `weight` is the share of `color`; the rest comes from `base`. */
+/** `weight` is the share of `color`. The rest comes from `base`. */
 function mixHex(color: string, base: string, weight: number): string {
   const [cr, cg, cb] = parseColor(color);
   const [br, bg, bb] = parseColor(base);
@@ -148,7 +148,7 @@ function onColor(accent: RgbTriple, background: RgbTriple): RgbTriple {
 
 /**
  * The `ThemeColors` slots in constructor order. Callers wrap each triple in a
- * fresh wasm Rgb; wasm-bindgen moves those, so instances can never be shared.
+ * fresh wasm Rgb, and wasm-bindgen moves those, so instances can never be shared.
  */
 export function paletteSlots(palette: ThemePaletteTokens): RgbTriple[] {
   const surface = parseColor(palette.surface);

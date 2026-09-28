@@ -72,7 +72,7 @@ const graph = computed(() => {
   });
 });
 
-/** The local graph's root page; the header names it so the scope is obvious. */
+/** The local graph's root page. The header names it so the scope is obvious. */
 const rootPage = computed(() => {
   if (!settings.value.local || !props.pageId) return null;
 

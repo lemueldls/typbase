@@ -18,7 +18,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-/** Dialog state; the app bar opens it from the overflow menu or a trigger. */
+/** Dialog state. The app bar opens it from the overflow menu or a trigger. */
 const open = defineModel<boolean>("open", { default: false });
 const busy = ref(false);
 const error = ref("");
@@ -60,8 +60,8 @@ async function run(): Promise<void> {
   error.value = "";
   try {
     if (!engineAvailable()) {
-      // The project export reads the stdlib out of the engine; the render
-      // worker is separate but a half-built project bundle is worse than an
+      // The project export reads the stdlib out of the engine. The render
+      // worker is separate, but a half-built project bundle is worse than an
       // honest stop. The failed toast carries the recovery actions.
       error.value = t("engine.failedBody");
 

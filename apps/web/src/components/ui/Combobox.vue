@@ -19,7 +19,7 @@ withDefaults(
     placeholder?: string;
     /** Shown when `options` is empty. */
     empty?: string;
-    /** Tooltip text for the trigger; an empty string disables it. */
+    /** Tooltip text for the trigger. An empty string disables it. */
     label?: string;
     disabled?: boolean;
     align?: "start" | "center" | "end";
@@ -38,7 +38,7 @@ withDefaults(
 );
 
 const open = defineModel<boolean>("open", { default: false });
-/** The input text; bind it to filter `options` in the caller. */
+/** The input text. Bind it to filter `options` in the caller. */
 const query = defineModel<string>({ default: "" });
 
 // Back closes the combobox before it navigates.

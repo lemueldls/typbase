@@ -5,7 +5,7 @@
 // - `metadata.json` (Google's font metadata, copied from the material-symbols
 //   repo) carries the tag synonyms that make text search useful ("house"
 //   finds `home`).
-// Only names present in both make it out; tags for icons outside our glyph
+// Only names present in both make it out. Tags for icons outside our glyph
 // version would break rendering, so they are dropped.
 // Run after bumping the font version: `node scripts/symbols/transform.mjs`.
 import * as fs from "node:fs/promises";

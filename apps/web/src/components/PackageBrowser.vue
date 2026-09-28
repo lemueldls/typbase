@@ -68,7 +68,7 @@ const filtered = computed(() => {
   return list;
 });
 
-// The index has a few thousand rows; render only what the dialog shows. Rows
+// The index has a few thousand rows, so render only what the dialog shows. Rows
 // stack their actions under the text on narrow screens, so they need more
 // height there. Mirrors `--breakpoint-sm` in tokens.css.
 const compact = useMediaQuery("(max-width: 40rem)");
@@ -232,7 +232,7 @@ async function copySpec(entry: PackageEntry) {
   try {
     await navigator.clipboard.writeText(spec);
   } catch {
-    // Clipboard API is missing outside secure contexts; the textarea trick
+    // Clipboard API is missing outside secure contexts. The textarea trick
     // still works in the Tauri webview.
     const area = document.createElement("textarea");
     area.value = spec;

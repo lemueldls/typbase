@@ -6,7 +6,7 @@ import { bytesToBase64, base64ToBytes } from "./base64";
  * repo inside the workspace space, and pulls what the other devices wrote.
  * Compaction writes a snapshot and deletes the updates it covers.
  *
- * Pulling lists records newest first and stops at the last rkey seen; update
+ * Pulling lists records newest first and stops at the last rkey seen. Update
  * and snapshot keys are TIDs, so that is enough for an incremental poll. Every
  * few minutes the engine scans the whole collection anyway, so an update from
  * a device whose clock trails ours is still picked up.
@@ -34,7 +34,7 @@ export interface SyncHost {
   importSnapshot(docId: string, bytes: Uint8Array): Promise<void>;
   /** Version vector JSON of the local doc, "" when empty/unknown. */
   localVersion(docId: string): Promise<string>;
-  /** Called after imported changes landed; the app refreshes editors/previews. */
+  /** Called after imported changes landed. The app refreshes editors/previews. */
   onImported(docIds: string[]): void;
   engineLog(level: "info" | "warn" | "error", message: string): void;
 }
@@ -87,7 +87,7 @@ interface DocSyncState {
   importedVersion: string | null;
   /** Update rkeys written since the last snapshot, for compaction cleanup. */
   written: string[];
-  /** Snapshot rkeys this device wrote; each new snapshot supersedes them. */
+  /** Snapshot rkeys this device wrote. Each new snapshot supersedes them. */
   snapshots: string[];
 }
 
@@ -121,7 +121,7 @@ const emptyState = (): SyncState => ({
   lastImportAt: 0,
 });
 
-/** Version vectors are `{ "<actor>": counter }` maps; compare by counters. */
+/** Version vectors are `{ "<actor>": counter }` maps. Compare by counters. */
 function parseVersionVector(json: string): Record<string, number> {
   try {
     const value = JSON.parse(json) as unknown;
@@ -134,7 +134,7 @@ function parseVersionVector(json: string): Record<string, number> {
       return out;
     }
   } catch {
-    // Not JSON (empty or legacy format); treat as no version.
+    // Not JSON (empty or legacy format), so treat as no version.
   }
 
   return {};
@@ -219,7 +219,7 @@ export class TypbaseSync {
 
   /**
    * Called by the storage layer after each local commit batch (debounced
-   * upstream). Exports the update into the durable queue immediately; the
+   * upstream). Exports the update into the durable queue immediately. The
    * upload happens on flush, so offline edits never block typing.
    */
   async onLocalCommit(docId: string): Promise<void> {

@@ -123,7 +123,7 @@ impl TypstState {
 
     /// SVG export of the paged document: one entry per page, or a single
     /// merged document. Uses the PDF page geometry so the sheets match the
-    /// PDF export; the caller sets the page width through `resize`.
+    /// PDF export. The caller sets the page width through `resize`.
     #[wasm_bindgen(js_name = "renderSvg")]
     pub fn render_svg(
         &mut self,
@@ -164,7 +164,7 @@ impl TypstState {
     }
 
     /// PDF publishing, compiled only when the `pdf` cargo feature is on.
-    /// Returns the PDF bytes plus diagnostics; the caller uploads the bytes
+    /// Returns the PDF bytes plus diagnostics. The caller uploads the bytes
     /// as a blob on `at.typbase.post`.
     #[cfg(feature = "pdf")]
     #[wasm_bindgen(js_name = "renderPdf")]
@@ -179,7 +179,7 @@ impl TypstState {
         sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
 
         let mut ctx = self.render_context(id).unwrap();
-        // Exports get the delimiter repair too; they compile the render source.
+        // Exports get the delimiter repair too. They compile the render source.
         let (document, mut diagnostics) = compile_export_document(&mut ctx);
 
         let bytes = match document {

@@ -25,8 +25,8 @@ export interface WorkspaceExportOptions extends ExportOptions {
 }
 
 /**
- * Bundle stem for a page's rendered artifacts. Sources keep their `page.path`;
- * renders live under `artifacts/` so the two never collide.
+ * Bundle stem for a page's rendered artifacts. Sources keep their `page.path`.
+ * Renders live under `artifacts/` so the two never collide.
  */
 function artifactStem(path: string): string {
   return `artifacts/${path.replace(/\.typ$/i, "")}`;
@@ -66,7 +66,7 @@ export async function buildWorkspaceExport(
 
   const collect = (outcome: RenderOutcome): void => {
     for (const payload of outcome.payloads) {
-      // Packages were installed into the worker's world; the exported project
+      // Packages were installed into the worker's world. The exported project
       // references them by spec instead of vendoring the tarball.
       if (payload.type === "package") continue;
 
@@ -83,11 +83,11 @@ export async function buildWorkspaceExport(
     pagePath: string;
     /** Bundle path of the source file, mirroring the workspace tree. */
     sourceName: string;
-    /** Artifact stem under `artifacts/`; sheet suffixes are appended. */
+    /** Artifact stem under `artifacts/`. Sheet suffixes are appended. */
     stem: string;
-    /** The page's `note` binding; empty for the combined document. */
+    /** The page's `note` binding. Empty for the combined document. */
     context: string;
-    /** Page id for `sys.inputs`; null for the combined document. */
+    /** Page id for `sys.inputs`. Null for the combined document. */
     pageId: string | null;
     title?: string;
   }): Promise<void> => {
@@ -216,7 +216,7 @@ export async function buildWorkspaceExport(
       return `#{\n  let note = ${typstContextValue(pageContext(pages, page))}\n  [\n${source}\n  ]\n}`;
     });
 
-    // Paged targets get real page breaks; HTML has no paging, so a rule
+    // Paged targets get real page breaks. HTML has no paging, so a rule
     // separates the notes there. All daily notes make the document a diary.
     const paged = `${wrapped.join("\n#pagebreak(weak: true)\n")}\n`;
     const flowed = `${wrapped.join("\n\n#horizontalrule()\n\n")}\n`;

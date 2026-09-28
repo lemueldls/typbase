@@ -2,7 +2,7 @@ import type { LoroPath, WorkspaceStore } from "@typbase/storage";
 
 /**
  * Top-level containers of the workspace doc a selector can depend on. The
- * union is what makes `useWorkspaceValue` dependencies typo-checked; add a
+ * union is what makes `useWorkspaceValue` dependencies typo-checked. Add a
  * name here when the store grows a new top-level container.
  */
 export type WorkspaceContainer =
@@ -20,7 +20,7 @@ export type WorkspaceContainer =
  * re-reads.
  *
  * The `fallback` overload is for callers whose store can be absent (the
- * shared `workspace` ref before boot or during a teardown); it keeps the
+ * shared `workspace` ref before boot or during a teardown). It keeps the
  * computed non-null.
  */
 export function useWorkspaceValue<T>(

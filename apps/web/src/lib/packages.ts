@@ -31,7 +31,7 @@ export interface PackageEntry {
 
 /**
  * Template categories are not useful as dependencies. Universe tags them on
- * the index; the browser hides them the same way mnemo does.
+ * the index. The browser hides them the same way mnemo does.
  */
 const TEMPLATE_CATEGORIES = new Set([
   "book",
@@ -63,7 +63,7 @@ let indexPromise: Promise<PackageEntry[]> | undefined;
 
 /**
  * The Universe index, fetched once per session. A failed load clears the
- * promise so opening the browser again retries; `force` skips both the
+ * promise so opening the browser again retries, while `force` skips both the
  * in-memory promise and the HTTP cache.
  */
 export function loadPackageIndex(force = false): Promise<PackageEntry[]> {
@@ -106,7 +106,7 @@ async function fetchPackageIndex(force: boolean): Promise<PackageEntry[]> {
   return entries;
 }
 
-/** Newest entry for a package; `versions` is sorted newest first. */
+/** Newest entry for a package. `versions` is sorted newest first. */
 export function latestVersion(entry: PackageEntry): UniversePackage | undefined {
   return entry.versions[0];
 }
@@ -133,7 +133,7 @@ export function matchScore(entry: PackageEntry, needle: string): number {
 
 /**
  * Entries matching a query, best first. Name matches beat keywords, keywords
- * beat the description; ties fall back to the name. An empty query returns
+ * beat the description, and ties fall back to the name. An empty query returns
  * the entries untouched.
  */
 export function searchPackages(entries: PackageEntry[], query: string): PackageEntry[] {

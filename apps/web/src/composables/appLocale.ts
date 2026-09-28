@@ -29,7 +29,7 @@ export function useAppLocale(
   }
 
   if (getStore) {
-    // Follow the active workspace; a switch detaches the old settings echo.
+    // Follow the active workspace. A switch detaches the old settings echo.
     watch(
       getStore,
       (store) => {

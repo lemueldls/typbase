@@ -73,8 +73,8 @@ function pushFailedToast(): void {
 }
 
 /**
- * False while the engine is failed. Engine-backed surfaces bail out on false;
- * the failed toast comes back up so a user who dismissed it still learns why
+ * False while the engine is failed. Engine-backed surfaces bail out on false.
+ * The failed toast comes back up so a user who dismissed it still learns why
  * their action did nothing.
  */
 export function engineAvailable(): boolean {
@@ -108,7 +108,7 @@ export function setEngineRetryHandler(handler: (() => void | Promise<void>) | un
 
 /**
  * Retry from the failed toast or the editor strip. The editor registers a
- * handler so it can rebind after the rebuild; without one (no editor open),
+ * handler so it can rebind after the rebuild. Without one (no editor open),
  * rebuilding is enough because the next mount picks up the fresh state.
  */
 export function requestEngineRetry(): void {

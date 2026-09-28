@@ -2,11 +2,11 @@
 //! every compile prepends.
 //!
 //! `TYPBASE_LIB` is inserted into the world once at construction and imported
-//! by the generated prelude as `typbase`; it carries `query`, `page-link`,
+//! by the generated prelude as `typbase`. It carries `query`, `page-link`,
 //! `embed`, and `section`. The prelude also binds `theme`, `note`,
 //! and the host values under `sys.inputs`. `style_prelude` builds the canonical
 //! document style (theme, body text, headings, links, strokes, math and raw
-//! fonts, code-block theme); the same text is exposed to JS through
+//! fonts, code-block theme). The same text is exposed to JS through
 //! `stylePrelude` so exports and the project mirror cannot drift from the
 //! engine.
 
@@ -22,7 +22,7 @@ use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, them
 // projects unchanged.
 //
 // `query` loads JSON the JS side synthesizes on demand (file request
-// `/typbase/query/<kind>.json`); `embed` includes another page's source
+// `/typbase/query/<kind>.json`). `embed` includes another page's source
 // (source request `/typbase/src/<id>.typ`). Filters ride in the path because
 // the request channel only carries paths, so keep filter values slug-safe.
 //
@@ -43,9 +43,9 @@ pub const TYPBASE_LIB: &str = r#"
 
 // Workspace data as decoded JSON. `kind` is one of:
 //   "config"      -> { name, homePageId, font }
-//   "pages"       -> all pages; filter "by-id/<page-id>" or "by-category/<id>"
+//   "pages"       -> all pages. Filter "by-id/<page-id>" or "by-category/<id>"
 //   "categories"  -> [{ id, name }]
-//   "daily"       -> all daily notes; filter "by-month/<YYYY-MM>"
+//   "daily"       -> all daily notes. Filter "by-month/<YYYY-MM>"
 //   "backlinks"   -> pages that link the page id in the filter
 //   "sections"    -> one page's sections with "sections/<page-id>", or every
 //                    page's without a filter
@@ -76,7 +76,7 @@ pub const TYPBASE_LIB: &str = r#"
   }
 }
 
-// Includes another page's raw source in place; `none` includes nothing.
+// Includes another page's raw source in place. `none` includes nothing.
 // Unlike `page-link`, the other page compiles as part of this one. It is
 // evaluated as its own module, so it can call `typbase` but not the host
 // page's `note`, `theme`, or `sys.inputs`.
@@ -97,7 +97,7 @@ const TYPBASE_PRELUDE: &str = r#"
 
 /// The canonical document style: theme, body text, headings, links, shape
 /// strokes, math and raw fonts, and the code-block theme. Live compiles append
-/// the render-target page config in [`TypstState::prelude`]; exports and the
+/// the render-target page config in [`TypstState::prelude`]. Exports and the
 /// project mirror call it through the `stylePrelude` binding, so the app and
 /// the files it writes cannot drift.
 fn style_prelude(

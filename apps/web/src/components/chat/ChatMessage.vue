@@ -61,7 +61,7 @@ async function copySource(): Promise<void> {
   try {
     await navigator.clipboard.writeText(props.message.source);
   } catch {
-    // Clipboard permissions are optional; the source toggle still shows it.
+    // Clipboard permissions are optional. The source toggle still shows it.
   }
 }
 </script>

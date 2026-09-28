@@ -219,7 +219,7 @@ export async function typingSimulation(
 
   try {
     for (let end = 1; end <= source.length; end++) {
-      // Compile at every character; each round at least compiles once.
+      // Compile at every character. Each round at least compiles once.
       await compileForLab(typstState, store as never, spaceId, source.slice(0, end));
       prefixes++;
     }

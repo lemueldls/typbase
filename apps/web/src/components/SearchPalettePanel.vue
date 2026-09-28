@@ -19,10 +19,10 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { ensure, search, status } = useSearch();
 
-/** Touch devices lose the keyboard hints; the shell turns into a drawer. */
+/** Touch devices lose the keyboard hints. The shell turns into a drawer. */
 const isTouch = useMediaQuery("(hover: none) and (pointer: coarse)");
 
-/** One recent page; hits come from the search index instead. */
+/** One recent page. Hits come from the search index instead. */
 interface RecentItem {
   pageId: string;
   path: string;
@@ -85,7 +85,7 @@ const modeKey = computed(() => {
   return keys[searchQueryMode(status.value)];
 });
 
-/** The chip shows a short label; the tooltip keeps the full mode sentence. */
+/** The chip shows a short label. The tooltip keeps the full mode sentence. */
 const chipLabel = computed(() => {
   const s = status.value;
   if (s?.model === "downloading") {
@@ -139,7 +139,7 @@ const indexProgress = computed(() => {
 
 const modelDraft = ref(settings.value.embeddingModel);
 
-/** Block kinds worth naming; "other" is the default paragraph. */
+/** Block kinds worth naming, since "other" is the default paragraph. */
 function kindKey(kind: string): string | null {
   const keys: Record<string, string> = {
     heading: "palette.kindHeading",

@@ -9,7 +9,7 @@ import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
  * strings, and math delimiters across lines and tags what it recognizes with
  * the same `typ-*` classes the wasm highlighter emits, so the theme applies
  * unchanged. Expression extents are guessed, so `#foo[bar] baz` colors `baz`
- * as code; that is the trade for never calling wasm.
+ * as code. That is the trade for never calling wasm.
  */
 
 type Mode = "markup" | "code" | "math" | "raw" | "comment";
@@ -18,7 +18,7 @@ interface ScanState {
   mode: Mode;
   /** Mode to return to when the closing `$` arrives. */
   mathReturn: "markup" | "code";
-  /** Backtick run length that closes the current raw block; 0 when not raw. */
+  /** Backtick run length that closes the current raw block, or 0 when not raw. */
   fence: number;
   /** Open bracket count in code, so `#let x = (\n...\n)` stays code. */
   depth: number;
@@ -212,7 +212,7 @@ function markupToken(line: string, i: number, state: ScanState, emit: Emit): num
     const run = runLength(line, i);
     const close = findFence(line, run, i + run);
     if (close < 0) {
-      // Inline raw runs to the end of the line; a fenced block continues.
+      // Inline raw runs to the end of the line, while a fenced block continues.
       emit(i + run, line.length, "typ-raw");
       if (run >= 3) {
         state.mode = "raw";

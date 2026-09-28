@@ -12,7 +12,7 @@ import { initTypstState, installPayload, payloadKey, requestKey } from "./typstW
  * Worker entry for dynamic link resolution. One warm `TypstState` compiles
  * the pages the index asks for: the rendered HTML carries the anchors a query
  * loop produced, and `extractPageTargets` turns them into page ids. Requests
- * resolve through the main thread; a purge drops the cached query files when
+ * resolve through the main thread. A purge drops the cached query files when
  * workspace data moves.
  */
 
@@ -45,7 +45,7 @@ function applyStyle(typstState: TypstState, next: LinkWorkerStyle, spaceId: stri
   typstState.setCodeFont(config, next.codeFont);
   typstState.setTextSize(config, next.textSize);
   // The code-block theme file referenced by the prelude is generated from the
-  // palette; setting it installs that file into the world.
+  // palette. Setting it installs that file into the world.
   typstState.setTheme(config, themeColorsFromPalette(next.palette));
 }
 
@@ -55,7 +55,7 @@ let insertedKeys = new Set<string>();
 let resolving = false;
 let purgePending = false;
 
-/** Drops the cached query files; deferred while a compile is running so the
+/** Drops the cached query files. Deferred while a compile is running so the
  *  request loop does not lose files mid-pass. */
 function applyPurge(): void {
   if (state) {

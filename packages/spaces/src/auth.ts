@@ -28,7 +28,7 @@ import { createBrowserOAuth } from "airspace/oauth/browser";
  * A local dev origin gets an RFC 8252 loopback client id (`http://localhost`
  * plus redirect and scope params) because the metadata document has to live
  * at an HTTPS URL. Loopback redirects must use an IP literal, so web sign-in
- * has to happen at 127.0.0.1; `localhost` is a different origin with its own
+ * has to happen at 127.0.0.1. `localhost` is a different origin with its own
  * IndexedDB and OPFS.
  */
 
@@ -227,8 +227,8 @@ export class SessionManager {
   }
 
   /**
-   * Full-page redirect flow on the web; system browser + deep link on native.
-   * The web promise only settles if the user navigates back; the callback is
+   * Full-page redirect flow on the web. System browser + deep link on native.
+   * The web promise only settles if the user navigates back. The callback is
    * completed by `restore()` on the next load.
    */
   async login(identifier: string): Promise<OAuthSession> {

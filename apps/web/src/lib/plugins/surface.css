@@ -5,7 +5,7 @@
  * Rules here are generic primitives and host components only. Anything that
  * looks like one bundled plugin (calendar cells, event chips) belongs in that
  * plugin's style.css. Theme custom properties inherit through the shadow
- * boundary from <html>; the fallbacks only cover a detached test mount.
+ * boundary from <html>. The fallbacks only cover a detached test mount.
  */
 
 :host {

@@ -4,7 +4,7 @@ import type { MaterialSymbol } from "material-symbols";
 withDefaults(
   defineProps<{
     name: MaterialSymbol;
-    /** Icon size in px at the default interface size; the chrome scale multiplies it. */
+    /** Icon size in px at the default interface size. The chrome scale multiplies it. */
     size?: number;
     /** Solid fill instead of the outlined style. */
     fill?: boolean;

@@ -46,7 +46,7 @@ export default defineNuxtConfig({
         {
           // Runs before first paint. The workspace doc is async, so without
           // this the boot splash paints in the default palette and then
-          // switches; the cache holds the exact vars applyThemeToDom writes.
+          // switches. The cache holds the exact vars applyThemeToDom writes.
           // With no cache (first run, or unreadable storage) it follows the
           // OS: #1b1d21 is the default theme's dark surface, so a dark-mode
           // launch never paints a white canvas before the workspace lands.
@@ -73,7 +73,7 @@ export default defineNuxtConfig({
 
             // Nuxt dev serves public JS through a virtual module, which a
             // service worker cannot evaluate. Serve the raw file so the
-            // offline test can register it; production copies public/ as-is.
+            // offline test can register it. Production copies public/ as-is.
             if (request.url?.split("?")[0] === "/sw.js") {
               void readFile(new URL("./public/sw.js", import.meta.url), "utf8").then(
                 (source) => {

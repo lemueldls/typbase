@@ -6,7 +6,7 @@ import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 const props = defineProps<{
   mode: "create" | "edit";
-  /** Required in edit mode; the name/icon are seeded from it. */
+  /** Required in edit mode. The name/icon are seeded from it. */
   workspace?: WorkspaceInfo | null;
 }>();
 

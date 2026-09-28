@@ -14,7 +14,7 @@ export interface UpdateInfo {
   /** Changelog body, plain text. */
   notes?: string;
   date?: string;
-  /** Download size in bytes; the Android manifest carries it per ABI. */
+  /** Download size in bytes. The Android manifest carries it per ABI. */
   size?: number;
   /** Play owns the download and install UI. */
   play?: boolean;
@@ -25,7 +25,7 @@ export interface UpdateProgress {
   total: number | null;
 }
 
-/** How a start attempt ended. Play reports a cancel; the installer paths do not. */
+/** How a start attempt ended. Play reports a cancel, but the installer paths do not. */
 export type UpdateOutcome = "installed" | "canceled";
 
 export interface AppUpdate {
@@ -171,7 +171,7 @@ async function checkSideload(): Promise<AppUpdate | null> {
         onEvent: channel,
       });
 
-      // The system installer replaces the app; this call may never resolve.
+      // The system installer replaces the app. This call may never resolve.
       await invoke("android_update_install", { path });
       return "installed";
     },

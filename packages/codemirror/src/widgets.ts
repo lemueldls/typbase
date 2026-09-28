@@ -83,7 +83,7 @@ interface BuildDecorationsArgs {
   /**
    * Measured source heights for the active blocks, keyed by line start. The
    * first pass runs while the blocks' widgets are still mounted, so the view
-   * reports the render height for those lines; the remeasure pass fills this
+   * reports the render height for those lines. The remeasure pass fills this
    * from the source lines once they exist.
    */
   lineHeights?: Map<number, number>;
@@ -174,7 +174,7 @@ interface DecorateArgs {
   onRequests?: TypstRequestHandler;
   onPanic?: (fileId: FileId) => void;
   onCompile?: () => void;
-  /** Opens a link clicked inside a rendered frame; see ExternalLinkOpener. */
+  /** Opens a link clicked inside a rendered frame. See ExternalLinkOpener. */
   onExternalLink?: ExternalLinkOpener;
   notebook?: NotebookOptions;
 }
@@ -231,8 +231,8 @@ function decorate({
       void Promise.resolve(onRequests(compileResult.requests, spaceId)).then((wasUpdated) => {
         if (!wasUpdated) return;
 
-        // The cached result was compiled before the request was resolved;
-        // force a recompile instead of trusting it. Dispatch the effect alone:
+        // The cached result was compiled before the request was resolved.
+        // Force a recompile instead of trusting it. Dispatch the effect alone:
         // a no-op document change maps the selection into the replaced range
         // and drops the cursor at the start of the note.
         update.view.dispatch({ effects: typstRecompileEffect.of(null) });
@@ -283,7 +283,7 @@ function decorate({
       ),
       tooltips,
       frames,
-      // Notebook cells do their own source-height handling; there is no
+      // Notebook cells do their own source-height handling, so there is no
       // around-the-widget remeasure to schedule.
       active: [],
     };
@@ -324,7 +324,7 @@ export interface TypstViewPluginOptions {
   revision?: () => string | number | undefined;
   /** See TypstPluginOptions#onPanic. */
   onPanic?: (fileId: FileId) => void;
-  /** Called after a compile pass succeeds; the host resets its health and
+  /** Called after a compile pass succeeds. The host resets its health and
    *  heap watchdog on it. */
   onCompile?: () => void;
   /** See TypstPluginOptions#onExternalLink. */
@@ -352,7 +352,7 @@ export const typstViewPlugin = (
     let firstUpdate = true;
     let resizeTimer: number | undefined;
 
-    // Dedupes remeasure requests for this view; the latest one wins.
+    // Dedupes remeasure requests for this view. The latest one wins.
     const remeasureKey = {};
 
     /**
@@ -380,7 +380,7 @@ export const typstViewPlugin = (
           if (!heights) return;
 
           queueMicrotask(() => {
-            // Another update changed the inputs; that pass schedules its own
+            // Another update changed the inputs. That pass schedules its own
             // remeasure.
             if (stale()) return;
 

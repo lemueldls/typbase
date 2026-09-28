@@ -34,7 +34,7 @@ pub struct LinkSpan {
     /// the target expression for a dynamic call.
     pub target_from: usize,
     pub target_to: usize,
-    /// True when the target is computed at compile time; the index resolves
+    /// True when the target is computed at compile time. The index resolves
     /// the ids from a compile and this span only locates the call.
     pub dynamic: bool,
 }
@@ -94,14 +94,14 @@ fn link_call(node: &LinkedNode, call: &FuncCall) -> Option<RawLink> {
                 return None;
             }
 
-            // The node covers the quotes; two bytes is the shortest string.
+            // The node covers the quotes. Two bytes is the shortest string.
             let range = argument.range();
             (range.start + 1..range.end - 1, target, false)
         }
         None => (argument.range(), String::new(), true),
     };
 
-    // The FuncCall node starts after the `#`; include the hash so the whole
+    // The FuncCall node starts after the `#`. Include the hash so the whole
     // written call is one reveal range.
     let mut full = node.range();
     if let Some(prev) = node.prev_sibling_with_trivia() {
@@ -212,7 +212,7 @@ mod tests {
 
     #[test]
     fn ranges_are_utf16() {
-        // "é" is one UTF-16 unit in two UTF-8 bytes; the emoji is two units in
+        // "é" is one UTF-16 unit in two UTF-8 bytes. The emoji is two units in
         // four bytes. Offsets after them must count code units, not bytes.
         let text = "Héllo 🎉\n\n#typbase.page-link(\"page-a\")\n";
         let link = &extract_links(text)[0];

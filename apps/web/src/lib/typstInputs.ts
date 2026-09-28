@@ -6,7 +6,7 @@ import type { TypstState } from "@typbase/engine";
  * page or the reason changes, not per keystroke.
  */
 
-/** Why a compile runs; documents can branch on `sys.inputs.reason`. */
+/** Why a compile runs. Documents can branch on `sys.inputs.reason`. */
 export type CompileReason = "editor" | "resolve" | "render" | "chat";
 
 export function setTypstInputs(

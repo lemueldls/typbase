@@ -69,7 +69,7 @@ impl TypstDiagnostic {
             .filter_map(|mut diagnostic| {
                 if diagnostic.message == "failed to load file" {
                     // The span can point at the missing file itself, which is
-                    // not in the world yet; every step here stays optional so
+                    // not in the world yet. Every step here stays optional so
                     // an unanswered request cannot panic the render.
                     if let Some(id) = diagnostic.span.id() {
                         if let (Ok(source), Some(range)) =
@@ -112,7 +112,7 @@ impl TypstDiagnostic {
 
 /// Path and 1-based line for a diagnostic span that points outside the
 /// context's own compile sources, for example a plugin module. Owned spans
-/// keep `file: none`; the caller already maps their range into the note.
+/// keep `file: none`. The caller already maps their range into the note.
 fn foreign_site(
     span: DiagSpan,
     context: &SourceContext,
@@ -142,7 +142,7 @@ pub fn map_synth_span(
 
 /// Like [`map_synth_span`], but also reports which source file the range
 /// belongs to. Diagnostics can point into the pristine synth or the render
-/// source; callers need the id to pick the matching mapper.
+/// source. Callers need the id to pick the matching mapper.
 pub fn map_synth_span_id(
     span: impl Into<DiagSpan>,
     is_error: bool,
@@ -191,7 +191,7 @@ pub fn map_raw_span(
     let synth_range = map_synth_span_id(span, is_error, trace, context, world);
 
     let raw_range = if let Some((file_id, synth_range)) = synth_range {
-        // Render-source positions go back through the repaired text;
+        // Render-source positions go back through the repaired text, while
         // pristine-synth positions use the index map directly.
         let (raw_start, raw_end) = if file_id == context.render_id {
             (

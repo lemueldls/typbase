@@ -10,8 +10,8 @@
 /**
  * Scopes requested at sign-in, verified against @atproto/oauth-scopes
  * 0.0.0-spaces-alpha-20260913191958 and the PDS's own `assertSpaceScope`
- * checks. `collection=*` covers read/create/update/delete on space records;
- * `manage=create` is what `com.atproto.simplespace.createSpace` asserts; the
+ * checks. `collection=*` covers read/create/update/delete on space records, and
+ * `manage=create` is what `com.atproto.simplespace.createSpace` asserts. The
  * wildcard blob scope covers the post HTML/PDF uploads and future assets.
  * Wide by design: access is per user, and a workspace gets its own skey.
  */
@@ -29,7 +29,7 @@ export const OAUTH_CLIENT_NAME = "typbase";
 
 /**
  * Web client metadata document, served at the URL used as `client_id`.
- * airspace's `clientMetadata()` defaults to this path; the constant is passed
+ * airspace's `clientMetadata()` defaults to this path. The constant is passed
  * explicitly so the route and the client cannot disagree.
  */
 export const OAUTH_METADATA_PATH = "/oauth-client-metadata.json";

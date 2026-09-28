@@ -50,7 +50,7 @@ fn math_fixture_has_equation_tooltips() {
 
 /// Tooltips exist per equation the renderer groups, so the snapshot covers
 /// fixtures with and without them. An empty list is the pin that a fixture
-/// grew no tooltips; a repaired equation can legitimately produce none.
+/// grew no tooltips. A repaired equation can legitimately produce none.
 #[test]
 fn tooltip_snapshots() {
     if !harness::fonts_available() {

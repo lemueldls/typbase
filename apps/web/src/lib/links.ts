@@ -5,14 +5,14 @@ import type { PageMeta } from "@typbase/typing";
 /**
  * Link records, backlinks, and the incremental link index.
  *
- * The engine's `extractLinks` pass finds the calls; this module resolves them
+ * The engine's `extractLinks` pass finds the calls. This module resolves them
  * against the page list, keeps the context line the UI shows, and answers both
  * directions of a page's links. Calls whose target is computed at compile time
  * (`#typbase.page-link(page.id)` in a query loop) stay unresolved until a
- * surface asks for them; the injected `DynamicLinkResolver` compiles the page
+ * surface asks for them. The injected `DynamicLinkResolver` compiles the page
  * and the resolved ids merge into the same records, so backlinks, the graph,
  * and `#typbase.query("backlinks")` all see them. Nothing here imports wasm or
- * Vue, so the pure helpers unit-test in node; the app supplies the extractor
+ * Vue, so the pure helpers unit-test in node. The app supplies the extractor
  * and resolver through `lib/linkIndex.ts`.
  */
 
@@ -20,7 +20,7 @@ import type { PageMeta } from "@typbase/typing";
 export interface LinkRecord extends LinkSpan {
   /** Page the call sits in. */
   sourceId: string;
-  /** Resolved target page id; null when nothing matches (dangling). */
+  /** Resolved target page id. Null when nothing matches (dangling). */
   targetId: string | null;
   /** Context line around the call, for backlink lists. */
   snippet: LinkSnippet;
@@ -39,13 +39,13 @@ export interface BacklinkGroup {
   mentions: LinkRecord[];
 }
 
-/** Resolves one page source into link spans; the engine pass in the app. */
+/** Resolves one page source into link spans, the engine pass in the app. */
 export type LinkExtractor = (text: string) => LinkSpan[] | Promise<LinkSpan[]>;
 
 /**
  * Compiles one page and returns the page ids its rendered links point at.
  * Only called for pages with dynamic calls, and only while a surface wants
- * them; see `lib/linkIndex.ts` for the worker-backed implementation.
+ * them. See `lib/linkIndex.ts` for the worker-backed implementation.
  */
 export type DynamicLinkResolver = (pageId: string, source: string) => Promise<string[]>;
 
@@ -58,7 +58,7 @@ export interface LinkStatus {
   pending: number;
   /** Page the resolver is compiling, if any. */
   resolving: string | null;
-  /** Last extraction failure; the index keeps serving stale records. */
+  /** Last extraction failure. The index keeps serving stale records. */
   error: string | null;
 }
 
@@ -230,7 +230,7 @@ export async function workspaceBacklinks(
 /**
  * Regex extraction for degraded mode: the engine is failed, or a query lands
  * before the index starts. It over-matches (comments and raw blocks are not
- * excluded) and misses dynamic targets; the engine pass is the real one.
+ * excluded) and misses dynamic targets. The engine pass is the real one.
  */
 export function extractLinksFallback(text: string): LinkSpan[] {
   const patterns: Array<{ kind: string; re: RegExp }> = [
@@ -267,7 +267,7 @@ export function extractLinksFallback(text: string): LinkSpan[] {
 /**
  * Incremental link index for one workspace.
  *
- * An initial sweep extracts every page; content changes re-extract only the
+ * An initial sweep extracts every page. Content changes re-extract only the
  * changed pages (through the store's commit batches), and page-set changes
  * re-resolve the whole workspace because an id or path shift can turn
  * dangling links into real ones. Records are per-session data: a reload
@@ -275,7 +275,7 @@ export function extractLinksFallback(text: string): LinkSpan[] {
  *
  * Dynamic calls are resolved separately and only for the pages a surface
  * asks for (`setWanted`), one compile at a time. Resolved targets merge into
- * `allRecords()` so backlinks and the graph see them; a page/category change
+ * `allRecords()` so backlinks and the graph see them. A page/category change
  * marks every resolution stale and re-resolves in place, so the old targets
  * keep answering until the fresh ones land.
  */
@@ -296,7 +296,7 @@ export class LinkIndex {
    */
   private stale = new Set<string>();
   /**
-   * Surface -> the pages it wants resolved; the union drives the queue. A
+   * Surface -> the pages it wants resolved. The union drives the queue. A
    * null set means every pending page, which the panel needs because backlinks
    * come from pages it does not know yet.
    */
@@ -380,7 +380,7 @@ export class LinkIndex {
     this.wanted.clear();
   }
 
-  /** Re-extracts everything; used when the engine comes back from a trap. */
+  /** Re-extracts everything when the engine comes back from a trap. */
   retry(): void {
     for (const id of this.pages.keys()) this.dirty.add(id);
     for (const id of this.resolved.keys()) this.stale.add(id);
@@ -447,7 +447,7 @@ export class LinkIndex {
     return this.pages.get(pageId)?.title ?? pageId;
   }
 
-  /** Diffs the page list; a changed id/path set invalidates resolution. */
+  /** Diffs the page list. A changed id/path set invalidates resolution. */
   private refreshPages(): void {
     const next = new Map(this.store.listPages().map((page) => [page.id, page]));
     let resolutionChanged = next.size !== this.pages.size;
@@ -492,7 +492,7 @@ export class LinkIndex {
     }, FLUSH_DEBOUNCE_MS);
   }
 
-  /** Serializes flushes; work that lands mid-flush is picked up by the next. */
+  /** Serializes flushes. Work that lands mid-flush is picked up by the next. */
   private flush(): Promise<void> {
     this.flushing ??= this.doFlush().finally(() => {
       this.flushing = undefined;
@@ -523,7 +523,7 @@ export class LinkIndex {
         // eslint-disable-next-line no-await-in-loop
         const spans = await this.extract(text);
         this.records.set(id, toLinkRecords(id, spans, targets, text));
-        // The source moved; its resolved targets describe the old text.
+        // The source moved. Its resolved targets describe the old text.
         this.resolved.delete(id);
         this.stale.delete(id);
         this.statusValue.error = null;
@@ -605,7 +605,7 @@ export class LinkIndex {
     return count;
   }
 
-  /** Union of every surface's wanted pages; null sets mean all pending. */
+  /** Union of every surface's wanted pages. Null sets mean all pending. */
   private effectiveWanted(): Set<string> {
     const out = new Set<string>();
     for (const ids of this.wanted.values()) {
@@ -655,7 +655,7 @@ export class LinkIndex {
       this.statusValue.error = null;
     } catch (error) {
       // Nothing to show, but mark it done so a failing page cannot spin the
-      // queue; the next page change clears the entry and tries again.
+      // queue. The next page change clears the entry and tries again.
       this.resolved.set(next, []);
       this.stale.delete(next);
       this.statusValue.error = error instanceof Error ? error.message : String(error);

@@ -1,5 +1,5 @@
 /**
- * Chat types. A thread is one conversation with a model; messages are the
+ * Chat types. A thread is one conversation with a model, and messages are the
  * turns. Chat threads live in the workspace like pages and plugins: a `chats`
  * map in the workspace doc plus one Loro doc per thread, so they are
  * local-first and sync through the same registry.
@@ -55,9 +55,9 @@ export interface ChatToolRun {
 export interface ChatMessage {
   id: string;
   role: ChatRole;
-  /** Position in the thread; ascending. Gaps are fine after deletions. */
+  /** Position in the thread, ascending. Gaps are fine after deletions. */
   seq: number;
-  /** Model output is Typst; user messages are plain text. */
+  /** Model output is Typst, while user messages are plain text. */
   source: string;
   status: ChatMessageStatus;
   /** Provider settings id the turn used, when an assistant wrote it. */
@@ -67,7 +67,7 @@ export interface ChatMessage {
   updatedAt: number;
   /** A repair turn points at the message whose errors it fixes. */
   repairOf: string | null;
-  /** Problems from the last verification pass; empty when verified. */
+  /** Problems from the last verification pass. Empty when verified. */
   diagnostics: ChatDiagnostic[];
   /** Tool calls made before or during the reply. */
   tools: ChatToolRun[];
@@ -78,11 +78,11 @@ export interface ChatMessage {
 export interface ChatThread {
   id: string;
   title: string;
-  /** Provider used by default in this thread; null follows workspace default. */
+  /** Provider used by default in this thread. Null follows workspace default. */
   providerId: string | null;
-  /** Model id used by default in this thread; null follows provider config. */
+  /** Model id used by default in this thread. Null follows provider config. */
   model: string | null;
-  /** Page the thread is grounded in; null for no page context. */
+  /** Page the thread is grounded in. Null for no page context. */
   pageId: string | null;
   createdAt: number;
   updatedAt: number;

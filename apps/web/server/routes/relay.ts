@@ -2,7 +2,7 @@ import { defineWebSocketHandler } from "nitro/h3";
 
 /**
  * Relay: per-workspace fanout, no data at rest. Peers connect to
- * `/relay?workspace=<id>`; each peer subscribes to a workspace-scoped topic,
+ * `/relay?workspace=<id>`. Each peer subscribes to a workspace-scoped topic,
  * so rooms stay isolated without a custom upgrade hook (the upgrade hook
  * stalls the handshake in this nightly, hence the topic approach).
  * Messages are opaque JSON (Loro updates, awareness payloads) forwarded
@@ -30,7 +30,7 @@ export default defineWebSocketHandler({
     const workspace = workspaceOf(peer.request);
     if (!workspace) return;
 
-    // no room; the client reconnects with a workspace
+    // No room. The client reconnects with a workspace.
     peer.subscribe(topic(workspace));
     peer.publish(topic(workspace), { t: "join", peer: peer.id });
   },

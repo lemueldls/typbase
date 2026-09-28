@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Popover shell: trigger slot, portaled content. Attrs (including `class`)
- * land on the content, so callers style the surface; menu-shaped popovers
+ * land on the content, so callers style the surface. Menu-shaped popovers
  * use `class="menu"`, matching `UiMenu`.
  */
 defineOptions({ inheritAttrs: false });

@@ -37,7 +37,7 @@ const {
   openStorageSetup,
 } = useWorkspace();
 
-/** The active workspace's registry icon; setter writes it through the registry. */
+/** The active workspace's registry icon. The setter writes it through the registry. */
 const workspaceIcon = computed({
   get: () => {
     const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
@@ -113,7 +113,7 @@ function togglePdf(value: boolean) {
   });
 }
 
-// AI providers and behavior (see the AI panel below); keys stay device-local.
+// AI providers and behavior (see the AI panel below). Keys stay device-local.
 
 // Theme picker: named themes from the registry plus a custom palette. The
 // custom editor seeds from the resolved palette, so selecting it starts from
@@ -141,13 +141,13 @@ function selectTheme(id: string) {
   }
 
   props.store.updateSettings(patch);
-  // Apply immediately; the structure-change echo also refreshes, but the
+  // Apply immediately. The structure-change echo also refreshes, but the
   // editor should not wait on it.
   applyTheme(props.store.getSettings());
   bumpRenderRevision();
 }
 
-/** Draft palette while the custom editor is open; null for named themes. */
+/** Draft palette while the custom editor is open. Null for named themes. */
 const paletteDraft = ref<ThemePaletteTokens | null>(null);
 
 function syncPaletteDraft(): void {
@@ -178,7 +178,7 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
   bumpRenderRevision();
 }
 
-/** Settings tab ids; each one maps to a panel below. */
+/** Settings tab ids. Each one maps to a panel below. */
 type SettingsTab = "general" | "content" | "appearance" | "publish" | "ai" | "sync" | "export";
 
 /** Section rail. Icons carry the scan on phones, where labels can truncate. */
@@ -198,7 +198,7 @@ const open = ref(false);
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
 // every compile. Both sync through settings like everything else.
-// UiSelect drives the settings selects; each computed maps to a store write.
+// UiSelect drives the settings selects. Each computed maps to a store write.
 const localeOptions = computed<SelectOption[]>(() => [
   { value: "auto", label: t("settings.languageAuto") },
   { value: "en", label: "English" },
@@ -261,7 +261,7 @@ const notebookCounters = computed({
     }),
 });
 
-// Display-only editor options; the pane reconfigures them in place.
+// Display-only editor options. The pane reconfigures them in place.
 const editorLineNumbers = computed({
   get: () => settings.value.editor?.lineNumbers ?? false,
   set: (value: boolean) =>
@@ -392,7 +392,7 @@ const aiSettings = useWorkspaceValue(
 );
 const aiProviders = computed(() => aiSettings.value.providers);
 
-/** Provider being edited in the panel; follows the list when it changes. */
+/** Provider being edited in the panel. Follows the list when it changes. */
 const activeProviderId = ref("");
 watch(
   aiProviders,
@@ -478,7 +478,7 @@ const textSize = computed<number | null>({
 
     props.store.updateSettings({ textSize: size });
     // Push the size into the wasm space context before the render revision
-    // triggers recompiles; the structure-change echo re-applies it anyway.
+    // triggers recompiles. The structure-change echo re-applies it anyway.
     void applyWorkspaceStyleToTypst(workspaceId.value, props.store).then(() => {
       bumpRenderRevision();
     });
@@ -1374,7 +1374,7 @@ async function renameWorkspace(event: Event) {
 }
 
 /* Custom palette editor: one row per token with a color swatch, name, and
-   value field. ColorSwatch paints through --reka-color-swatch-color; the
+   value field. ColorSwatch paints through --reka-color-swatch-color, and the
    checkerboard below it shows through translucent values. */
 .palette-grid {
   display: flex;

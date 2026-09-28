@@ -3,7 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 /**
  * SyncHost implementation over the local store. The engine deals in bytes
- * and version strings; this is where Loro docs come in. All the version math
+ * and version strings. This is where Loro docs come in. All the version math
  * (JSON version vectors) belongs to the store.
  */
 export function createSyncHost(store: WorkspaceStore, log: SyncHost["engineLog"]): SyncHost {
@@ -19,7 +19,7 @@ export function createSyncHost(store: WorkspaceStore, log: SyncHost["engineLog"]
     },
     localVersion: (docId) => store.getDocVersion(docId),
     onImported: (docIds) => {
-      // The store's own subscriptions already refresh open editors; the
+      // The store's own subscriptions already refresh open editors. The
       // event exists for side systems like the search index that watch from
       // outside (settings, palette, query cache).
       window.dispatchEvent(new CustomEvent("typbase:imported", { detail: docIds }));

@@ -104,7 +104,7 @@ const pages = computed(() => {
     .slice(0, 50);
 });
 
-/** Options for the page-link autocomplete; UiCombobox takes them filtered. */
+/** Options for the page-link autocomplete. UiCombobox takes them filtered. */
 const pageOptions = computed(() =>
   pages.value.map((page) => ({
     value: page.id,
@@ -113,12 +113,12 @@ const pageOptions = computed(() =>
   })),
 );
 
-// Every open starts from a full list; reka's trigger toggles `open`.
+// Every open starts from a full list, because reka's trigger toggles `open`.
 watch(pickerOpen, (open) => {
   if (open) pickerQuery.value = "";
 });
 
-/** A picked page becomes `#typbase.page-link("<id>")`; a selection wraps. */
+/** A picked page becomes `#typbase.page-link("<id>")`. A selection wraps. */
 function insertPageLink(pageId: string): void {
   const view = props.view;
   if (!view) return;

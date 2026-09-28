@@ -37,7 +37,7 @@ const DEVICES = {
   tablet10: {
     dir: "play-tablet-10",
     viewport: { width: 800, height: 1280 }, // 1600x2560 at 2x
-    // The 769px breakpoint; 10" tablets get the sidebar shell.
+    // 10" tablets get the sidebar shell at the 769px breakpoint.
     wide: true,
   },
 };

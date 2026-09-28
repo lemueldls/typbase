@@ -118,7 +118,7 @@ export class AtprotoService {
     );
 
     // The OAuth client init touches IndexedDB and fetches the client
-    // metadata; in an odd browser context it can stall. Bounded here so a
+    // metadata. In an odd browser context it can stall. Bounded here so a
     // hung restore degrades to guest instead of stalling the boot step.
     const session = await withTimeout(
       this.sessions.restore(),
@@ -171,7 +171,7 @@ export class AtprotoService {
       session = await this.sessions.login(identifier);
     } catch (error) {
       // A loopback guard or a rejected authorization. The caller surfaces the
-      // message; the status line shows it for anyone else reading the popover.
+      // message. The status line shows it for anyone else reading the popover.
       this.setError(`Sign-in failed: ${String(error)}`);
       throw error;
     }
@@ -198,7 +198,7 @@ export class AtprotoService {
 
   /**
    * Ensures the workspace space exists with member-list read/write and open app
-   * access, then starts syncing. Called on every boot with a session; `ensure`
+   * access, then starts syncing. Called on every boot with a session. `ensure`
    * is a no-op once the space is configured.
    */
   private async attach(): Promise<void> {
@@ -219,7 +219,7 @@ export class AtprotoService {
         appAccess: "open",
       });
     } catch (error) {
-      // The session is fine; this PDS just cannot host the workspace space
+      // The session is fine. This PDS just cannot host the workspace space
       // (bsky.social does not run the spaces alpha). Publishing still works.
       if (isSpacesUnsupported(error)) {
         this.setError(
@@ -288,14 +288,14 @@ export class AtprotoService {
       this.relayVersions.set(docId, exported.version);
       this.relay.sendUpdate(docId, exported.bytes);
     } catch {
-      // Relay is best effort; the sync queue is the durable path.
+      // Relay is best effort. The sync queue is the durable path.
     }
   }
 
   private startRelay(): void {
     if (this.relay) return;
 
-    // Static deploys have no Nitro relay; `relayUrl` lets a hosted one take
+    // Static deploys have no Nitro relay. `relayUrl` lets a hosted one take
     // over. Without it the relay targets the app origin and just never opens,
     // which leaves the polling sync loop as the only path.
     const base = (this.opts.relayUrl?.trim() || this.opts.appUrl).replace(/\/$/, "");
@@ -388,7 +388,7 @@ export class AtprotoService {
 
   /**
    * Stops the sync loop and relay. Called when the workspace composable's
-   * shared scope is disposed (last consumer unmounted); the persisted state in
+   * shared scope is disposed (last consumer unmounted). The persisted state in
    * local.json survives, so re-opening the workspace resumes where it left.
    */
   dispose(): void {

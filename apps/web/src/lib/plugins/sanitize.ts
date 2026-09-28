@@ -3,7 +3,7 @@ import type { PluginPatch } from "@typbase/typing";
 /**
  * Sanitizes plugin HTML before it reaches the sandboxed frame and lifts the
  * hidden patch element out of it. Typst emits semantic HTML plus the
- * `data-tb-*` attributes the runtime understands; anything else is dropped.
+ * `data-tb-*` attributes the runtime understands. Anything else is dropped.
  *
  * The frame is an opaque origin with a locked-down CSP, so this is defense in
  * depth rather than the only wall. Keep the allowlist tight anyway.
@@ -228,7 +228,7 @@ export interface SanitizedSurface {
 }
 
 /** Parses the patch, strips its holder, and rewrites the DOM safely. Chat
- *  replies pass through this too; model-generated Typst can emit arbitrary
+ *  replies pass through this too. Model-generated Typst can emit arbitrary
  *  HTML elements, and the same allowlist keeps them out. */
 export function sanitizeHtml(raw: string): SanitizedSurface {
   const errors: string[] = [];
@@ -277,7 +277,7 @@ export function sanitizeHtml(raw: string): SanitizedSurface {
     if (UNSAFE_STYLE.test(style.textContent ?? "")) style.remove();
   }
 
-  // Typst's HTML export can put generated CSS in the head; keep it with the
+  // Typst's HTML export can put generated CSS in the head. Keep it with the
   // fragment so classes keep working after the body is injected.
   const headStyles: string[] = [];
   for (const style of doc.head.querySelectorAll("style")) {

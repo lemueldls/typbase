@@ -19,7 +19,7 @@ interface Asset extends BlobEntry {
 
 const { t } = useI18n();
 
-/** Dialog state; the app bar opens it from the overflow menu or a trigger. */
+/** Dialog state. The app bar opens it from the overflow menu or a trigger. */
 const open = defineModel<boolean>("open", { default: false });
 const assets = ref<Asset[]>([]);
 const loading = ref(false);
@@ -76,7 +76,7 @@ async function refresh(): Promise<void> {
       });
     }
 
-    // A newer refresh started while this one read the store; drop the stale
+    // A newer refresh started while this one read the store. Drop the stale
     // batch so its object URLs do not leak and old rows do not win.
     if (seq !== refreshSeq) {
       for (const asset of next) {
@@ -121,7 +121,7 @@ function copyReference(asset: Asset): void {
   navigator.clipboard
     .writeText(text)
     .then(() => pushToast({ titleKey: "assets.copied", duration: 2500 }))
-    // Clipboard access can be blocked; show the text so it can be copied by hand.
+    // Clipboard access can be blocked. Show the text so it can be copied by hand.
     .catch(() => pushToast({ title: text, duration: 8000 }));
 }
 
@@ -145,7 +145,7 @@ async function download(asset: Asset): Promise<void> {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
-  // The download has started; release the URL once it has had time to read.
+  // The download has started. Release the URL once it has had time to read.
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
@@ -194,7 +194,7 @@ async function upload(event: Event): Promise<void> {
     input.value = "";
     await refresh();
 
-    // A fresh upload is what the user meant to pick; insert it straight away.
+    // A fresh upload is what the user meant to pick. Insert it straight away.
     const uploaded = assets.value.find((asset) => asset.hash === entry.hash);
     if (uploaded) choose(uploaded);
   } catch (cause) {
@@ -382,7 +382,7 @@ function formatSize(bytes: number): string {
   right: var(--space-1);
 }
 
-/* The trigger sits over the thumbnail; a surface fill keeps it legible. */
+/* The trigger sits over the thumbnail. A surface fill keeps it legible. */
 .picker__menu .button {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

@@ -152,7 +152,7 @@ self.addEventListener("install", (event) => {
         const assets = new Set([...html.matchAll(SHELL_ASSET)].map((match) => match[1]));
         await Promise.allSettled([...assets].map((url) => cache.add(url)));
       } catch {
-        // Runtime caching still fills the shell; install must not fail.
+        // Runtime caching still fills the shell. Install must not fail.
       }
     })(),
   );

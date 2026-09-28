@@ -8,7 +8,7 @@ const { atproto, atprotoStatus, atprotoReady } = useWorkspace();
 /**
  * Sign-in runs through the PDS's OAuth flow, which has no account creation
  * step, so people who arrive without an account get pointed at one. Bluesky
- * is the account most atproto newcomers already have; the protocol itself
+ * is the account most atproto newcomers already have. The protocol itself
  * works with any PDS.
  */
 const CREATE_ACCOUNT_URL = "https://bsky.app/";
@@ -17,10 +17,10 @@ const SPACES_ALPHA_URL = "https://atproto.com/blog/atproto-spaces-alpha";
 const identifier = ref("");
 const busy = ref(false);
 const error = ref("");
-/** The last failure was an unresolvable handle; offer account creation. */
+/** The last failure was an unresolvable handle, so offer account creation. */
 const unknownHandle = ref(false);
 
-// Web sign-in redirects the page away, so the promise never settles; native
+// Web sign-in redirects the page away, so the promise never settles. Native
 // opens the system browser and waits on a deep link. Clear the busy flag
 // either way so someone who comes back without a session can retry.
 const { start: resetBusy } = useTimeoutFn(
@@ -31,7 +31,7 @@ const { start: resetBusy } = useTimeoutFn(
   { immediate: false },
 );
 
-/** Handles are written "name.host"; the OAuth client takes the bare handle or a DID. */
+/** Handles are written "name.host". The OAuth client takes the bare handle or a DID. */
 function normalizeIdentifier(raw: string): string {
   const value = raw.trim();
   if (value.startsWith("did:")) return value;
@@ -56,8 +56,8 @@ async function onSignIn() {
     await atproto.value.signIn(handle);
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
-    // Only the resolution failures get the friendly account-not-found copy;
-    // anything else (a missing resolver, a network or CORS failure) shows the
+    // Only the resolution failures get the friendly account-not-found copy.
+    // Anything else (a missing resolver, a network or CORS failure) shows the
     // real message so the cause is not hidden.
     unknownHandle.value =
       /does not resolve to a DID|does not include the handle|Invalid handle|Unable to resolve handle/i.test(
@@ -75,7 +75,7 @@ async function onSignOut() {
   await atproto.value?.signOut();
 }
 
-/** DIDs are long; show the method prefix and the tail. */
+/** DIDs are long, so show the method prefix and the tail. */
 function shortDid(did: string | null): string {
   if (!did) return "";
 

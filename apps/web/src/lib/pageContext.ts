@@ -26,7 +26,7 @@ export interface PageContext {
   next: string | null;
 }
 
-/** Builds one page's context; neighbors come from the live page list. */
+/** Builds one page's context. Neighbors come from the live page list. */
 export function pageContext(
   pages: ReadonlyArray<Pick<PageMeta, "id" | "path">>,
   page: Pick<PageMeta, "id" | "title" | "path" | "kind" | "categoryId" | "tags">,
@@ -69,7 +69,7 @@ export function typstContextBinding(context: PageContext): string {
   return `#let note = ${typstContextValue(context)}`;
 }
 
-/** The binding for a workspace page; empty when the page is gone. */
+/** The binding for a workspace page. Empty when the page is gone. */
 export function pageContextBinding(store: WorkspaceStore, pageId: string | null): string {
   if (!pageId) return "";
 
@@ -80,7 +80,7 @@ export function pageContextBinding(store: WorkspaceStore, pageId: string | null)
 }
 
 function typstString(value: string): string {
-  // Typst strings take \" and \\; control characters would need \u{...} and
+  // Typst strings take \" and \\. Control characters would need \u{...} and
   // never belong in a title or tag, so collapse them to spaces.
   const clean = value.replace(/\p{Cc}/gu, " ");
 

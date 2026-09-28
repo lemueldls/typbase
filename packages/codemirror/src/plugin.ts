@@ -30,15 +30,15 @@ export interface TypstPluginOptions {
   /**
    * Called when a compile into the wasm instance threw. On wasm32 a panic
    * aborts the instance, so the host must recreate `typstState` and remount
-   * the editor; the plugin drops the decorations for the failed pass.
+   * the editor. The plugin drops the decorations for the failed pass.
    */
   onPanic?: (fileId: FileId) => void;
-  /** Called after a compile pass succeeds; the host resets its health and
+  /** Called after a compile pass succeeds. The host resets its health and
    *  heap watchdog on it. */
   onCompile?: () => void;
   /**
    * Opens a link clicked inside a rendered frame. Defaults to a new browser
-   * tab; the app passes its Tauri-aware `openExternal`.
+   * tab. The app passes its Tauri-aware `openExternal`.
    */
   onExternalLink?: (url: string) => void;
   /**

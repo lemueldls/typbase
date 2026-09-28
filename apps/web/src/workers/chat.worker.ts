@@ -19,7 +19,7 @@ let wasmModuleUrl: string | undefined;
 let state: TypstState | undefined;
 let style: ChatWorkerStyle | undefined;
 let styleKey = "";
-/** Inputs the state was last configured with; setting them rebuilds the
+/** Inputs the state was last configured with. Setting them rebuilds the
  *  library, and the chat streams many renders of the same page. */
 let inputsKey = "";
 
@@ -48,7 +48,7 @@ function applyStyle(typstState: TypstState, next: ChatWorkerStyle, spaceId: stri
   typstState.setCodeFont(config, next.codeFont);
   typstState.setTextSize(config, next.textSize);
   // The code-block theme file referenced by the prelude is generated from the
-  // palette; setting it installs that file into the world.
+  // palette. Setting it installs that file into the world.
   typstState.setTheme(config, themeColorsFromPalette(next.palette));
 }
 
@@ -94,7 +94,7 @@ self.addEventListener(
     try {
       const typstState = await ensureState();
       if (style) applyStyle(typstState, style, spaceId);
-      // Setting inputs rebuilds the library; the chat streams many renders of
+      // Setting inputs rebuilds the library. The chat streams many renders of
       // the same page, so only do it when the values change.
       const inputs = `chat:${spaceId}`;
       if (inputs !== inputsKey) {

@@ -3,10 +3,10 @@ defineOptions({ inheritAttrs: false });
 
 withDefaults(
   defineProps<{
-    /** "plain" is the default bordered button; "ghost" is borderless. */
+    /** "plain" is the default bordered button and "ghost" is borderless. */
     variant?: "plain" | "primary" | "danger" | "ghost";
     size?: "default" | "small" | "tiny";
-    /** Submit buttons inside forms; everything else stays a plain button. */
+    /** Submit buttons inside forms. Everything else stays a plain button. */
     type?: "button" | "submit" | "reset";
     /** Render as a different element, e.g. a label wrapping a file input. */
     as?: string | Component;

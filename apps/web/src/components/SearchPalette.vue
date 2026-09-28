@@ -10,10 +10,10 @@ const emit = defineEmits<{
   (e: "open", payload: { pageId: string; from?: number; to?: number }): void;
 }>();
 
-/** Touch devices get a drawer they can swipe or tap away; desktop gets the box. */
+/** Touch devices get a drawer they can swipe or tap away. Desktop gets the box. */
 const isTouch = useMediaQuery("(hover: none) and (pointer: coarse)");
 
-/** The drawer is always mounted open; any close reason surfaces as one event. */
+/** The drawer is always mounted open, so any close reason surfaces as one event. */
 function onDrawerOpen(open: boolean) {
   if (!open) emit("close");
 }
@@ -62,7 +62,7 @@ function onDrawerOpen(open: boolean) {
   width: min(560px, calc(100vw - var(--space-8)));
   /* One height, so results do not resize the box under the pointer. */
   height: min(62dvh, 520px);
-  /* The input and footer stay put; only the results scroll. */
+  /* The input and footer stay put. Only the results scroll. */
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -95,7 +95,7 @@ function onDrawerOpen(open: boolean) {
 
 .search-palette__sheet {
   /* Extra room past the bottom edge so an upward drag shows the sheet, not the
-     page; the negative margin parks it below the viewport. */
+     page. The negative margin parks it below the viewport. */
   --bleed: 40px;
   position: fixed;
   inset-inline: 0;

@@ -9,7 +9,7 @@ import { ref } from "vue";
 
 const sources = new Map<string, string>();
 
-/** Bumped when plugin sources or plugin data change; open editors recompile. */
+/** Bumped when plugin sources or plugin data change. Open editors recompile. */
 export const pluginsRevision = ref(0);
 
 export function registerPluginSources(entries: Array<{ path: string; text: string }>): void {

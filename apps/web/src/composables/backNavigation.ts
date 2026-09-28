@@ -82,7 +82,7 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
 
         closing = false;
         removeEntry(entry);
-        // A newer layer owns the current entry; leaving ours behind costs one
+        // A newer layer owns the current entry. Leaving ours behind costs one
         // extra back but must not pop theirs.
         if (stack.length > 0) return;
 
@@ -99,7 +99,7 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
     pushed = false;
     removeEntry(entry);
     // No `history.back()` here: the dispose can be part of a route change,
-    // and going back would undo it. The entry is left behind; the next back
+    // and going back would undo it. The entry is left behind. The next back
     // lands on it and re-renders the same state.
   });
 
@@ -113,7 +113,7 @@ export function hasBackLayer(): boolean {
 
 /**
  * Marks the top layer's entry as consumed by a navigation. The caller closes
- * the overlay; its watcher then skips the `history.back()`.
+ * the overlay. Its watcher then skips the `history.back()`.
  */
 export function consumeTopBackLayer(): boolean {
   const entry = stack.at(-1);

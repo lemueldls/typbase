@@ -15,7 +15,7 @@ fn main() {
     }
 
     // WASM-specific link arguments for size optimization. These are wasm-ld
-    // flags; passing them to the host linker breaks `cargo bench` and any
+    // flags. Passing them to the host linker breaks `cargo bench` and any
     // other host build of the cdylib.
     if is_wasm && profile == "release" {
         println!("cargo:rustc-link-arg=--no-entry");

@@ -207,7 +207,7 @@ function post(input: {
 
 /**
  * Resolves one page's dynamic link calls to page ids. Jobs run one at a time
- * in call order; the caller is responsible for only asking for pages a
+ * in call order. The caller is responsible for only asking for pages a
  * surface still wants.
  */
 export function resolvePageLinks(input: {

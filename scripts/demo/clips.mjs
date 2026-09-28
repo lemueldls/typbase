@@ -30,7 +30,7 @@ import {
  *   pnpm dev                   # in another terminal
  *   node scripts/demo/clips.mjs [--only=typing]
  *
- * Playwright records the whole page session, including boot; the action window
+ * Playwright records the whole page session, including boot. The action window
  * is timed and ffmpeg trims to it. Raw webm files stay in /tmp.
  */
 

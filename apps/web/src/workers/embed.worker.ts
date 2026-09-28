@@ -1,8 +1,8 @@
 /**
  * Embedding worker: transformers.js feature extraction. The model downloads
- * on first use (~9MB quantized for bge-small) and is cached by the browser; semantic
- * search is off until the user turns it on in settings, and the UI reports
- * model state here.
+ * on first use (~9MB quantized for bge-small) and is cached by the browser.
+ * Semantic search is off until the user turns it on in settings, and the UI
+ * reports model state here.
  */
 
 import type { FeatureExtractionPipeline, ProgressInfo } from "@huggingface/transformers";
@@ -24,7 +24,7 @@ export interface EmbedResponse {
   error?: string;
 }
 
-/** Download progress for the palette; not tied to one embed request. */
+/** Download progress for the palette. Not tied to one embed request. */
 export interface EmbedProgress {
   type: "progress";
   progress: number;
@@ -60,7 +60,7 @@ self.addEventListener("message", async (event: MessageEvent<EmbedRequest>) => {
     const output = await extractor(texts, { pooling: "mean", normalize: true });
     const tensors = Array.isArray(output) ? output : [output];
     const vectors: number[][] = [];
-    // A batch comes back as one [texts.length, dim] tensor; split it so each
+    // A batch comes back as one [texts.length, dim] tensor. Split it so each
     // text keeps its own row. Tensor's surface differs per branch, so pull the
     // data out explicitly and trust the last dimension.
     for (const tensor of tensors) {

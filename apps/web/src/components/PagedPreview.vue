@@ -10,14 +10,14 @@ const props = defineProps<{
   text: TextRef;
   prelude: TextRef;
   typstState: TypstState;
-  /** Bumped when workspace data changes; pages using queries re-render. */
+  /** Bumped when workspace data changes, so pages using queries re-render. */
   dataRevision: number;
   /** Bumped when rendering state changed (e.g. system fonts installed). */
   renderRevision: number;
   onRequests?: (requests: unknown[], spaceId: string) => Promise<boolean> | boolean;
-  /** Fired when a compile call trapped; the parent rebuilds the wasm state. */
+  /** Fired when a compile call trapped. The parent rebuilds the wasm state. */
   onPanic?: () => void;
-  /** Fired after a compile succeeds; the parent resets engine health. */
+  /** Fired after a compile succeeds, so the parent resets engine health. */
   onCompile?: () => void;
 }>();
 
@@ -52,7 +52,7 @@ function linkAt(event: MouseEvent, frameEl: HTMLElement | null): string | null {
 }
 
 // App-internal links (typbase://page/<id>, typbase://plugin/<id>) stay in the
-// app; external links leave it, so confirm first and open in a new tab.
+// app. External links leave it, so confirm first and open in a new tab.
 // Alt-click skips activation and jumps into the link source instead, so it can
 // be edited. Everything else in a frame is click-to-jump: the click maps back
 // into the compiled document and the parent reveals that source position.
@@ -86,7 +86,7 @@ function onPreviewClick(event: MouseEvent) {
     return;
   }
 
-  // Alt-click on a link falls through to here; stop the SVG anchor from
+  // Alt-click on a link falls through to here. Stop the SVG anchor from
   // following the href before jumping.
   if (href !== null) event.preventDefault();
 
@@ -152,7 +152,7 @@ watch(
   () => scheduleRender(),
 );
 
-/** Platform scrollbars vary; erring low keeps frames inside the pane. */
+/** Platform scrollbars vary, so erring low keeps frames inside the pane. */
 const SCROLLBAR_ALLOWANCE = 12;
 
 function measureWidth(): number {
@@ -185,7 +185,7 @@ useResizeObserver(scroller, () => {
   try {
     changed = props.typstState.resize(props.fileId, width);
   } catch (error) {
-    // The engine is dead; the parent is already handling it. Do not let the
+    // The engine is dead. The parent is already handling it. Do not let the
     // trap escape the observer callback.
     console.error("[typst] preview resize panicked:", error);
     props.onPanic?.();
@@ -261,7 +261,7 @@ interface PlacedFrame {
 }
 
 /**
- * Source-aligned layout. The first frame sits at the top; each later frame
+ * Source-aligned layout. The first frame sits at the top. Each later frame
  * follows the source lines that separate it from the previous one. A frame is
  * pushed below the previous one when the render is taller than its source
  * lines, but a blank source line keeps at least one line of space, so a tall
@@ -288,7 +288,7 @@ const layout = computed<{ placed: PlacedFrame[]; height: number }>(() => {
 
     if (previousLine !== undefined) {
       const gap = Math.max(1, currentLine - previousLine);
-      // One line break is one line; a run of blank lines adds one more.
+      // One line break is one line, and a run of blank lines adds one more.
       effectiveLine += gap > 1 ? 2 : 1;
       spacing = gap > 1 ? lineHeight : 0;
     }

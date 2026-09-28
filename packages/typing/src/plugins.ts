@@ -1,6 +1,6 @@
 /**
  * Plugin protocol types. A plugin is a Typst package plus a manifest plus a
- * data schema; the host compiles its surfaces to sandboxed HTML and applies
+ * data schema. The host compiles its surfaces to sandboxed HTML and applies
  * the patches the render returns. These shapes are what the app, the storage
  * layer, and (later) atproto records all speak.
  *
@@ -55,14 +55,14 @@ export interface PluginManifest {
   name: string;
   version: string;
   description?: string;
-  /** Host protocol version; only `typbase.host.v2` is accepted. */
+  /** Host protocol version. Only `typbase.host.v2` is accepted. */
   api: string;
   /** Entry module, relative to the plugin root, e.g. `main.typ`. */
   entry: string;
   icon?: string;
   capabilities: PluginCapability[];
   collections: Record<string, PluginCollectionSchema>;
-  /** At most one of each kind; each renders for every instance. */
+  /** At most one of each kind. Each renders for every instance. */
   surfaces: PluginSurface[];
   /** Host components the surface may mount (canvas, board, ...). */
   hostComponents?: string[];
@@ -85,7 +85,7 @@ export interface PluginInstance {
   id: string;
   pluginId: string;
   title: string;
-  /** Material Symbol name; empty means the manifest icon or a default. */
+  /** Material Symbol name. Empty means the manifest icon or a default. */
   icon: string;
   /** Plugin-owned instance config as JSON. */
   config: string;
@@ -108,7 +108,7 @@ export type PluginPatchOp =
 
 /**
  * What the plugin's render returns alongside its HTML. `state` mutates the
- * synced plugin doc; `view` shallow-merges into device-local view state (open
+ * synced plugin doc. `view` shallow-merges into device-local view state (open
  * month, revealed card, ...). Both are applied before the post-action render.
  */
 export interface PluginPatch {

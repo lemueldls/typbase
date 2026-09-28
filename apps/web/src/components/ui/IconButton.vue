@@ -7,11 +7,11 @@ withDefaults(
   defineProps<{
     /** Accessible name, also used as the tooltip text. */
     label: string;
-    /** Glyph name; omit to fill the button from the default slot. */
+    /** Glyph name. Omit it to fill the button from the default slot. */
     icon?: MaterialSymbol;
     disabled?: boolean;
     pressed?: boolean;
-    /** "plain" is the default bordered button; "ghost" is borderless. */
+    /** "plain" is the default bordered button and "ghost" is borderless. */
     variant?: "plain" | "ghost" | "primary";
     /** Colors the button as destructive (red icon and hover tint). */
     danger?: boolean;

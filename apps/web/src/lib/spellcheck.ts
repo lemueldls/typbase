@@ -20,13 +20,13 @@ export const spellcheckCompartment = new Compartment();
 const SUGGESTION_REMOVE = 1;
 const SUGGESTION_INSERT_AFTER = 2;
 
-/** Kinds the user dictionary can fix; everything else is "Ignore" territory. */
+/** Kinds the user dictionary can fix. Everything else is "Ignore" territory. */
 const SPELLING_KINDS = new Set(["Spelling", "Typo"]);
 
 export interface SpellcheckOptions {
-  /** Harper's user dictionary; unused by the native checker. */
+  /** Harper's user dictionary. Unused by the native checker. */
   words?: readonly string[];
-  /** Silenced lints; unused by the native checker. */
+  /** Silenced lints. Unused by the native checker. */
   ignoredLints?: readonly IgnoredSpellcheckLint[];
   /** Adds one word to the workspace dictionary (the lint tooltip action). */
   onAddWord?: (word: string) => void;
@@ -36,7 +36,7 @@ export interface SpellcheckOptions {
 
 let harper: Promise<import("harper.js").WorkerLinter> | undefined;
 
-/** Loads the checker on first use; off means the chunk is never fetched. */
+/** Loads the checker on first use. Off means the chunk is never fetched. */
 function harperLinter(): Promise<import("harper.js").WorkerLinter> {
   harper ??= (async () => {
     const [{ WorkerLinter }, { binaryInlined }] = await Promise.all([
@@ -91,7 +91,7 @@ function syncHarper(
         try {
           await worker.importIgnoredLints(nextIgnored);
         } catch (cause) {
-          // Harper owns this format; a shape change must not take spelling down.
+          // Harper owns this format. A shape change must not take spelling down.
           console.error("[spellcheck] ignored lints import failed:", cause);
         }
         appliedIgnored = nextIgnored;
@@ -213,7 +213,7 @@ function harperSource(options: SpellcheckOptions): Extension {
   );
 }
 
-/** Spellcheck extension for one mode; off returns an empty extension. */
+/** Spellcheck extension for one mode. Off returns an empty extension. */
 export function spellcheckExtension(
   mode: SpellcheckMode | undefined,
   options: SpellcheckOptions = {},

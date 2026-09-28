@@ -13,7 +13,7 @@
 //     surface([ ... ], ..patch)
 //   }
 //
-// Every interactive element carries data-tb-* attributes; the sandbox runtime
+// Every interactive element carries data-tb-* attributes. The sandbox runtime
 // turns clicks and field values into actions. Colors come from `ctx.theme`
 // (camelCase palette tokens: text, textSecondary, accent, accentSoft, red,
 // orange, yellow, green, cyan, blue, violet, code, ...).
@@ -25,7 +25,7 @@
 )
 
 // Runs several host actions in order from one element. Entries are
-// `(name: "...", args: (:))`; fields from the enclosing form are sent to each.
+// `(name: "...", args: (:))`. Fields from the enclosing form are sent to each.
 // `button(actions: ...)` builds this attribute for you.
 #let action-chain(entries) = (
   "data-tb-chain": json.encode(
@@ -80,7 +80,7 @@
   html.elem("button", attrs: attrs)
 }
 
-// Material Symbols ligature; the host loads the icon font.
+// Material Symbols ligature. The host loads the icon font.
 #let icon(name, size: none) = html.elem(
   "span",
   attrs: (class: "tb-icon") + (if size != none { (style: "font-size:" + size) } else { (:) }),
@@ -232,7 +232,7 @@
 )
 
 // Paint surface. `strokes` round-trips to the canvas as
-// `((color:, width:, points: ()))`; each point is `(x, y)`.
+// `((color:, width:, points: ()))`. Each point is `(x, y)`.
 #let canvas(action, strokes: (), color: "#1f2328", width: 3, height: 320) = html.elem(
   "div",
   attrs: (
@@ -274,13 +274,13 @@
 //
 // AI calls arrive back at the plugin as a render whose `ctx.action` is
 // `ai.result` with `text`, `diagnostics`, and `error` in its args. A surface
-// that wants to keep the answer stores it through its patch; a surface that
-// only displays it can branch on the action name.
+// that wants to keep the answer stores it through its patch, while a surface
+// that only displays it can branch on the action name.
 //
 // `format: "typst"` runs the app's dialect prompt and the compile check, so
 // the text is validated Typst (and repaired first when it does not compile).
 
-// One-shot call; the answer arrives as an `ai.result` action.
+// One-shot call. The answer arrives as an `ai.result` action.
 #let ai-complete(prompt, format: "text", args: (:), kind: "default", label: "Ask AI") = button(
   label,
   action: "ai.complete",

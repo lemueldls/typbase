@@ -147,8 +147,8 @@ impl TypstState {
         panic!("debugPanic");
     }
 
-    /// Current WASM heap size in bytes. The lab watches this to catch leaks;
-    /// the wasm allocator rarely returns memory to the browser, so growth
+    /// Current WASM heap size in bytes. The lab watches this to catch leaks.
+    /// The wasm allocator rarely returns memory to the browser, so growth
     /// here usually means a compile loop.
     #[wasm_bindgen(js_name = "memoryBytes")]
     #[must_use]
@@ -323,7 +323,7 @@ impl TypstState {
 }
 
 impl TypstState {
-    /// The raw-to-synth map for a note. Read-only; the debug lab and the
+    /// The raw-to-synth map for a note. Read-only. The debug lab and the
     /// benches use it to inspect segment counts.
     #[must_use]
     pub fn source_map(&self, id: &TypstFileId) -> Option<&crate::source::SourceMap> {
@@ -333,7 +333,7 @@ impl TypstState {
     }
 
     /// Plain-Rust core of [`Self::check_index`]. Host tests call this
-    /// directly; the wasm boundary only serializes the report.
+    /// directly, while the wasm boundary only serializes the report.
     #[must_use]
     pub fn check_index_report(
         &mut self,
@@ -573,7 +573,7 @@ impl TypstState {
 #[wasm_bindgen]
 impl TypstState {
     /// Plain-text flattening per block for the search index, plus the byte
-    /// map back to raw source. Pure syntax pass; no state needed.
+    /// map back to raw source. Pure syntax pass. No state needed.
     #[wasm_bindgen(js_name = "flattenDocument")]
     pub fn flatten_document(&self, text: &str) -> Result<Vec<Ts<FlattenedBlock>>, JsError> {
         Ok(crate::flatten::flatten_document(text)
@@ -592,8 +592,8 @@ impl TypstState {
     }
 
     /// Extracts the app's link calls (`typbase.page-link`, `typbase.embed`,
-    /// and `typbase://page/` URLs) with UTF-16 ranges. Pure syntax pass; no
-    /// state needed.
+    /// and `typbase://page/` URLs) with UTF-16 ranges. Pure syntax pass
+    /// that needs no state.
     #[wasm_bindgen(js_name = "extractLinks")]
     pub fn extract_links(&self, text: &str) -> Result<Vec<Ts<LinkSpan>>, JsError> {
         Ok(crate::links::extract_links(text)
@@ -603,7 +603,7 @@ impl TypstState {
     }
 
     /// Extracts notebook cells (`// %%` markers) as UTF-16 spans, ready for
-    /// CodeMirror positions. Pure syntax pass; no state needed.
+    /// CodeMirror positions. Pure syntax pass with no state needed.
     #[wasm_bindgen(js_name = "extractCells")]
     pub fn extract_cells(&self, text: &str) -> Result<Vec<Ts<CellSpan>>, JsError> {
         Ok(crate::flatten::extract_cells(text)
@@ -798,7 +798,7 @@ impl TypstState {
     }
 
     /// Serves the generated tmTheme for a palette as a virtual project file.
-    /// The prelude references it; the same file name is what exports bundle.
+    /// The prelude references it. The same file name is what exports bundle.
     fn insert_syntax_theme(&mut self, theme: &ThemeColors) {
         let path = theme.syntax_theme_path();
         let file_id = FileId::new(RootedPath::new(
@@ -844,7 +844,7 @@ impl TypstState {
 }
 
 /// The minimal borrow a render pass needs. Built by
-/// [`TypstState::render_context`]; the paged and HTML renderers take this
+/// [`TypstState::render_context`]. The paged and HTML renderers take this
 /// instead of the whole state.
 pub struct RenderContext<'a> {
     pub world: &'a mut TypstWorld,

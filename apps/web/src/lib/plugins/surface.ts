@@ -6,9 +6,9 @@ import hostCss from "./surface.css?inline";
  * Hosts one plugin surface in a shadow root. The sanitized HTML never leaves
  * the document, so there is no frame or postMessage bridge: events are wired
  * directly and actions call back into the host. Shadow DOM keeps plugin CSS
- * scoped; the sanitizer guarantees no scripts or network URLs.
+ * scoped. The sanitizer guarantees no scripts or network URLs.
  *
- * Host styles come from surface.css; the plugin's own stylesheets arrive on
+ * Host styles come from surface.css. The plugin's own stylesheets arrive on
  * each render and are replaced in place, which makes studio saves apply
  * without remounting the surface.
  */
@@ -16,7 +16,7 @@ import hostCss from "./surface.css?inline";
 export interface PluginSurfaceOptions {
   /** Plugin stylesheet texts, injected after the host sheet. */
   styles?: string[];
-  /** Host components the manifest declares; anything else reports an error. */
+  /** Host components the manifest declares. Anything else reports an error. */
   components?: string[];
   onAction: (action: PluginAction) => void;
   onError: (message: string) => void;
@@ -221,7 +221,7 @@ export function attachPluginSurface(
       const y = Math.round(moving.y ?? parseFloat(handle.getAttribute("data-tb-y") ?? "0"));
       moving = undefined;
       if (actionName) {
-        // Static args carry the record id; x/y win over any stale ones.
+        // Static args carry the record id, but x/y win over any stale ones.
         options.onAction({
           id: newId(),
           name: actionName,

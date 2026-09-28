@@ -15,13 +15,13 @@ const { t, locale } = useI18n();
 
 const open = defineModel<boolean>("open", { default: false });
 
-/** Month the calendar shows; reka updates it on prev/next navigation.
+/** Month the calendar shows. reka updates it on prev/next navigation.
  *  shallowRef: ref() maps class values structurally and drops the DateValue brand. */
 const placeholder = shallowRef<DateValue>(today(getLocalTimeZone()));
 
 /**
  * Picked day. reka's cell trigger selects on click and on Enter/Space, so the
- * watch is what opens the note; it resets immediately so picking the same day
+ * watch is what opens the note. It resets immediately so picking the same day
  * again still counts as a change.
  */
 const selected = shallowRef<DateValue>();

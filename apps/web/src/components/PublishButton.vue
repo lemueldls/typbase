@@ -38,7 +38,7 @@ const label = computed(() => {
   return `${t("pageView.republish")} · ${formatPublished(page.publishedAt)}`;
 });
 
-// Tint the trigger after a failed action; opening the popover shows the text.
+// Tint the trigger after a failed action. Opening the popover shows the text.
 const failed = computed(() => error.value.length > 0);
 
 async function onPublish() {
@@ -63,7 +63,7 @@ async function copyLink() {
   try {
     await navigator.clipboard.writeText(uri);
   } catch {
-    // Clipboard API is missing outside secure contexts; the textarea trick
+    // Clipboard API is missing outside secure contexts, so the textarea trick
     // still works in the Tauri webview.
     const area = document.createElement("textarea");
     area.value = uri;

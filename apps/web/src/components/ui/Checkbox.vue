@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
  * Checkbox with an integrated label. The root is reka's `Label` (a `<label>`
- * element), so clicking the text toggles the box; the label prop can be
+ * element), so clicking the text toggles the box. The label prop can be
  * replaced by the default slot.
  */
 const model = defineModel<boolean>({ default: false });
 
 withDefaults(
   defineProps<{
-    /** Visible label text; the default slot takes precedence. */
+    /** Visible label text, though the default slot takes precedence. */
     label?: string;
     disabled?: boolean;
   }>(),
@@ -91,8 +91,8 @@ withDefaults(
   place-content: center;
 }
 
-/* The mark pops in with a small overshoot; indeterminate swaps the check for
-   a dash. Both stay mounted so unchecking animates out too. */
+/* The mark pops in with a small overshoot, and indeterminate swaps the check
+   for a dash. Both stay mounted so unchecking animates out too. */
 .ui-checkbox__mark {
   grid-area: 1 / 1;
   opacity: 0;

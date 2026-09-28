@@ -25,7 +25,7 @@
 //!
 //! Marks are applied right to left, so each edit leaves the ranges of the
 //! expressions still to be marked valid. The map records each wrapper through
-//! [`SourceMap::insert`](crate::source::SourceMap::insert); there is no manual
+//! [`SourceMap::insert`](crate::source::SourceMap::insert). There is no manual
 //! anchor bookkeeping.
 //!
 //! The wrapper puts the token back into a content block, where markup
@@ -245,7 +245,7 @@ pub fn try_mark_errornous(
             continue;
         }
 
-        // `#undefined` in math is a code expression; the diagnostic span
+        // `#undefined` in math is a code expression. The diagnostic span
         // covers the name, not the `#`. Replacing the `#` with the wrapper
         // turns the name into literal red text. Leaving the `#` outside would
         // put it in front of the inserted code and fail the same way again.
@@ -263,7 +263,7 @@ pub fn try_mark_errornous(
         // The wrapper puts the token inside a content block, where markup
         // characters like `_` or `$` are syntax again and would fail the same
         // compile. Swap them for a same-byte placeholder so the mark renders
-        // instead of spinning recovery; record it as generated or the map
+        // instead of spinning recovery. Record it as generated or the map
         // still claims the old bytes.
         let marked_text = sanitize_marked_text(&original_text);
         if marked_text != original_text {
@@ -307,7 +307,7 @@ pub fn try_mark_errornous(
     }
 
     // Translate the pre-edit ranges to final coordinates. `pending` is in
-    // reverse order; sorting ascending makes every earlier mark entirely to
+    // reverse order. Sorting ascending makes every earlier mark entirely to
     // the left, so each contributes its own wrapper length of shift.
     pending.sort_by_key(|mark| mark.original.start);
 
@@ -585,7 +585,7 @@ pub fn remove_unmappable_block<T: Output>(
 ///
 /// Narrows to the block's only call expression when it has exactly one, so
 /// `#render("digraph { a -> }")` underlines the call instead of the whole
-/// paragraph. Multi-call blocks stay at block granularity; guessing which call
+/// paragraph. Multi-call blocks stay at block granularity. Guessing which call
 /// reached the failing package would point at the wrong line.
 pub fn blamed_raw_range(
     block: &SynthBlock,

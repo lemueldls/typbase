@@ -12,7 +12,7 @@ import { compileSurface } from "~/lib/plugins/compile";
 
 /**
  * Worker entry: owns one TypstState for plugin surfaces. The host posts every
- * source and the JSON context with each request; compiles never touch the
+ * source and the JSON context with each request. Compiles never touch the
  * editor's wasm instance. Crashes are reported back with a stack before the
  * worker dies, so the host can fall back and the plugin lab can show why.
  */
@@ -22,7 +22,7 @@ let state: TypstState | undefined;
 async function ensureState(url: string): Promise<TypstState> {
   if (state) return state;
 
-  // The explicit asset URL avoids Vite 8's wasm-module plugin; loading the
+  // The explicit asset URL avoids Vite 8's wasm-module plugin, because loading the
   // default `new URL(..., import.meta.url)` path in a worker corrupts the heap.
   await init({ module_or_path: url });
   const typstState = new TypstState();
@@ -46,7 +46,7 @@ function reportCrash(message: string, stack?: string): void {
   try {
     self.postMessage({ type: "crash", message, stack } satisfies PluginCompileResponse);
   } catch {
-    // The worker is already gone; the host's error handler takes over.
+    // The worker is already gone. The host's error handler takes over.
   }
 }
 

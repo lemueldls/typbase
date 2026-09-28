@@ -38,7 +38,7 @@ const FIELD_TYPES: Record<PluginFieldType, true> = {
   json: true,
 };
 
-/** `local:calendar` -> `local-calendar`; safe for Typst virtual paths. */
+/** `local:calendar` -> `local-calendar`, safe for Typst virtual paths. */
 export function pluginSlug(id: string): string {
   const slug = id
     .toLowerCase()
@@ -182,7 +182,7 @@ function fieldMatches(type: PluginFieldType, value: unknown): boolean {
 
 /**
  * Filters a plugin-supplied patch to declared collections and typed fields.
- * Dropped ops are reported; the caller keeps the errors for the lab.
+ * Dropped ops are reported. The caller keeps the errors for the lab.
  */
 export function validatePatch(
   patch: PluginPatch,
@@ -203,7 +203,7 @@ export function validatePatch(
 
     const clean: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(record)) {
-      // `id` is the record key, added by the runtime; schemas never declare it.
+      // `id` is the record key, added by the runtime. Schemas never declare it.
       if (key === "id") continue;
 
       const field = schema.fields[key];

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Debug lab for the plugin runtime: engine health, catalog and error counts,
- * and the runtime log. Authoring lives on /plugins (the studio); this page
+ * and the runtime log. Authoring lives on /plugins (the studio). This page
  * stays for diagnosing the compiler and the worker fallback.
  */
 const plugins = usePlugins();

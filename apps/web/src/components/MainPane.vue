@@ -24,7 +24,7 @@ const emit = defineEmits<{
   (e: "closeGraph"): void;
 }>();
 
-/** Dock width in px; persisted like the sidebar's layout. */
+/** Dock width in px, persisted like the sidebar's layout. */
 const dockWidth = useLocalStorage("typbase:dockWidth", 380);
 
 function clampDock(width: number): number {

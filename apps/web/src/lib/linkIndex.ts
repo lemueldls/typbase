@@ -21,7 +21,7 @@ import { publishPrelude } from "~/lib/publishPrelude";
  */
 const indexes = new Map<string, LinkIndex>();
 
-/** The workspace's index, created on first use; callers still `start()` it. */
+/** The workspace's index, created on first use. Callers still `start()` it. */
 export function getLinkIndex(store: WorkspaceStore): LinkIndex {
   let index = indexes.get(store.workspaceId);
   if (!index) {

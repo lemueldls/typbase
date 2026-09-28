@@ -7,7 +7,7 @@ import { parseManifest, pluginSlug } from "./manifest";
 export interface CatalogPlugin {
   manifest: PluginManifest;
   slug: string;
-  /** `bundled` ships with the app; `local` came from the storage tree. */
+  /** `bundled` ships with the app. `local` came from the storage tree. */
   source: "bundled" | "local";
   /** Storage folder for local plugins, e.g. `plugins/calendar`. */
   storageDir?: string;

@@ -89,7 +89,7 @@ function extension(mime: string): string {
   return mime.split("/")[1]?.split("+")[0]?.toUpperCase() ?? "FILE";
 }
 
-/** Rows can be dragged into an editor; the editor reads this payload. */
+/** Rows can be dragged into an editor. The editor reads this payload. */
 function onDragStart(event: DragEvent, row: AssetRow): void {
   if (!event.dataTransfer) return;
   event.dataTransfer.setData(
@@ -124,7 +124,7 @@ async function copyReference(row: AssetRow): Promise<void> {
     await navigator.clipboard.writeText(text);
     status.value = t("explorer.assetCopied");
   } catch {
-    // Clipboard can be blocked; show the text so it can be copied by hand.
+    // Clipboard can be blocked. Show the text so it can be copied by hand.
     status.value = text;
   }
 }

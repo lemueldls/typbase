@@ -5,7 +5,7 @@ defineOptions({ inheritAttrs: false });
 
 withDefaults(
   defineProps<{
-    /** Tooltip text; an empty string disables the tooltip. */
+    /** Tooltip text. An empty string disables the tooltip. */
     text: string;
     side?: "top" | "right" | "bottom" | "left";
     disabled?: boolean;

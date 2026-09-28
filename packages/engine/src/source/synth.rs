@@ -86,11 +86,11 @@ pub fn sync_source_state(
 /// - The **raw** text, exactly what the user typed. All editor positions are
 ///   in raw coordinates.
 /// - The **pristine synth** (`context.synth_id`), built from the raw text. It
-///   is never mutated after this call; [`SourceMap`] describes it, and
+///   is never mutated after this call. [`SourceMap`] describes it, and
 ///   diagnostics-only compiles read it.
 /// - The **render synth** (`context.render_id`), built from the *repaired*
 ///   raw text (missing `$` and quotes closed). Error recovery rewrites ranges
-///   of it; the pristine file stays untouched.
+///   of it. The pristine file stays untouched.
 ///
 /// When no repair is needed the render synth is byte-identical to the
 /// pristine one and the two maps match.
@@ -279,7 +279,7 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
             } else if !leaf.trim().is_empty() {
                 // A newline-bearing leaf outside a block is content of its
                 // own. The parser folds an unclosed raw block or comment into
-                // one error leaf whose text still contains newlines; closing
+                // one error leaf whose text still contains newlines. Closing
                 // the previous block again here wrapped it twice and produced
                 // an out-of-order map.
                 last_kind = Some(node.kind());

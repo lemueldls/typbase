@@ -22,7 +22,7 @@ import { useRuntimeConfig } from "nitro/runtime-config";
  * client and for the loopback client ids used in local dev.
  *
  * Prerendered (see `nitro.prerender.routes`), so a static deploy serves it
- * without a worker. The origin is baked at build time; set
+ * without a worker. The origin is baked at build time, so set
  * `NUXT_PUBLIC_APP_URL` when building.
  */
 export default defineEventHandler(() => {

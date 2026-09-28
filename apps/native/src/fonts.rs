@@ -8,13 +8,13 @@ use tauri::ipc::Response;
 enum FontSource {
     /// Read when the file is requested.
     Path(PathBuf),
-    /// Embedded data (fontdb's in-memory sources); kept in the index.
+    /// Embedded data (fontdb's in-memory sources), kept in the index.
     Bytes(Vec<u8>),
 }
 
 #[derive(Serialize, Clone)]
 pub struct SystemFontFace {
-    /// Unique family names in this file; used by the settings picker.
+    /// Unique family names in this file, used by the settings picker.
     pub families: Vec<String>,
     /// Human-readable styles, e.g. "Regular, Bold Italic".
     pub style: String,
@@ -23,9 +23,9 @@ pub struct SystemFontFace {
     pub math: bool,
     /// Every face carries MATH, so the file is a math font, not a text font.
     pub math_only: bool,
-    /// Any face covers basic Latin letters; filters out symbol/emoji fonts.
+    /// Any face covers basic Latin letters, filtering out symbol/emoji fonts.
     pub text: bool,
-    /// Position in the index; pass to `system_font_file`.
+    /// Position in the index. Pass to `system_font_file`.
     pub index: usize,
     #[serde(skip)]
     source: FontSource,
@@ -165,7 +165,7 @@ fn build_index() -> Vec<SystemFontFace> {
             .cmp(&b.families.first())
             .then_with(|| a.style.cmp(&b.style))
     });
-    // Sorting invalidates the build-time index; rebind it to the final order.
+    // Sorting invalidates the build-time index, so rebind it to the final order.
     for (position, entry) in entries.iter_mut().enumerate() {
         entry.index = position;
     }
@@ -177,7 +177,7 @@ fn system_fonts() -> &'static Vec<SystemFontFace> {
     SYSTEM_FONTS.get_or_init(build_index)
 }
 
-/// Metadata for every installed font file; no bytes are read here.
+/// Metadata for every installed font file. No bytes are read here.
 #[tauri::command]
 pub async fn system_font_index() -> Result<Vec<SystemFontFace>, String> {
     tauri::async_runtime::spawn_blocking(|| system_fonts().clone())

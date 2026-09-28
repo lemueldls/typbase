@@ -17,7 +17,7 @@ export function toSections(spans: SectionSpan[], source: string): Section[] {
 }
 
 /** Re-extracts `#typbase.section` spans into the page doc after content changes.
- *  The extractor returns null when the engine cannot run; the stored sections
+ *  The extractor returns null when the engine cannot run. The stored sections
  *  stay as they are rather than being wiped. */
 export async function refreshSections(
   store: WorkspaceStore,

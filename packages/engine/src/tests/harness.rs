@@ -24,7 +24,7 @@ pub fn fonts_dir() -> PathBuf {
 }
 
 /// True when every font file exists on disk. Render tests bail early without
-/// this; they still assert synth/mapper structure.
+/// this, but they still assert synth/mapper structure.
 #[must_use]
 pub fn fonts_available() -> bool {
     FONTS.iter().all(|rel| fonts_dir().join(rel).is_file())
@@ -52,7 +52,7 @@ pub fn page(state: &mut TypstState, name: &str) -> TypstFileId {
 
 /// Compiles a page the way the editor does: SVG target through the chunked
 /// recovery path. The editor inserts the page text under the synth id before
-/// the first compile; the renderer replaces it with the built synth on sync.
+/// the first compile. The renderer replaces it with the built synth on sync.
 pub fn compile(state: &mut TypstState, id: &TypstFileId, text: &str) -> PagedRender {
     state.insert_source(id, text.to_string());
 

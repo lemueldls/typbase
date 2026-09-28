@@ -17,7 +17,7 @@ import { noteCompileSuccess } from "~/lib/engineHealth";
  * Notebook session state. Everything here is per open page and per session:
  * execution counters, output visibility, collapse, and the active cell.
  * Counters and cleared flags are keyed by cell index, so a structural edit
- * shifts them; closing the page resets them the way a Jupyter restart does.
+ * shifts them. Closing the page resets them the way a Jupyter restart does.
  *
  * Outputs are always live: the editor recompiles as the text changes, and a
  * run only records the counter and clears any explicitly cleared output.
@@ -42,7 +42,7 @@ export function createNotebookSession(): NotebookSession {
   }) as NotebookSession;
 }
 
-/** Engine cells are UTF-16 spans; the package's shape matches field for field. */
+/** Engine cells are UTF-16 spans. The package's shape matches field for field. */
 export function extractNotebookCells(typstState: TypstState, text: string): NotebookCell[] {
   return typstState.extractCells(text) as NotebookCell[];
 }
@@ -66,7 +66,7 @@ export function createNotebookController(args: {
 }): NotebookController {
   const { store, typstState, session, labels, onCommandMode } = args;
 
-  /** Run request waiting for its compile; set by onRun, consumed by onCompile. */
+  /** Run request waiting for its compile. Set by onRun and consumed by onCompile. */
   let pendingRun: number | "all" | null = null;
 
   const refresh = (view: EditorView | undefined): void => {
@@ -107,7 +107,7 @@ export function createNotebookController(args: {
     counters: () => store.getSettings().notebook.showCounters,
     labels,
     onCells: (cells) => {
-      // Structural changes invalidate output visibility; counters survive,
+      // Structural changes invalidate output visibility. Counters survive,
       // the way Jupyter keeps execution counts across cell moves.
       if (cells.length !== session.cells.length) session.cleared = {};
       session.cells = cells;
@@ -121,7 +121,7 @@ export function createNotebookController(args: {
     },
     onCompile: () => {
       // The compile that a run waits on is also the one that proves the
-      // engine recovered; report it so a notebook that was mid-run when the
+      // engine recovered. Report it so a notebook that was mid-run when the
       // engine died does not leave the failure breaker set.
       noteCompileSuccess();
 

@@ -12,8 +12,8 @@
 //!
 //! - [`SourceMap::forward`] walks source positions through the copies and
 //!   picks a side at generated spans.
-//! - [`SourceMap::backward`] walks target positions back to source positions;
-//!   positions inside generated text clamp to the source position the text was
+//! - [`SourceMap::backward`] walks target positions back to source positions.
+//!   Positions inside generated text clamp to the source position the text was
 //!   inserted at.
 //!
 //! There is no sortedness precondition to violate: the segment list is built
@@ -25,8 +25,8 @@
 //!
 //! A source position exactly at a generated span is ambiguous: it is both the
 //! end of the preceding copy and the start of the following one. Callers pick
-//! with [`Side`]. Span mapping uses `After` for starts and `Before` for ends;
-//! recovery that blanks a whole block uses `Before` for the start and `After`
+//! with [`Side`]. Span mapping uses `After` for starts and `Before` for ends.
+//! Recovery that blanks a whole block uses `Before` for the start and `After`
 //! for the end to include the generated wrappers.
 
 use std::ops::Range;
@@ -40,7 +40,7 @@ pub enum Side {
     After,
 }
 
-/// What a segment came from. Labels only; the mapper maps bytes.
+/// What a segment came from. Labels only. The mapper maps bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SegmentKind {
     /// Text copied from the source.
@@ -351,7 +351,7 @@ impl SourceMap {
                 if from == range.start {
                     // Generated text may sit immediately before this copy at
                     // the same source position. Before picks the start of that
-                    // group; after picks the copy start.
+                    // group, while after picks the copy start.
                     let mut start = to.start;
                     for earlier in self.segments[..index - 1].iter().rev() {
                         match earlier {

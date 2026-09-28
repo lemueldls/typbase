@@ -13,7 +13,7 @@ defineOptions({ inheritAttrs: false });
 withDefaults(
   defineProps<{
     options: SelectOption<T>[];
-    /** Accessible name; the trigger has no visible label. */
+    /** Accessible name, since the trigger has no visible label. */
     label: string;
     /** Shown when no value is selected. */
     placeholder?: string;

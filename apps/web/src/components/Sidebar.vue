@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const { workspaces, activeWorkspaceId } = useWorkspace();
 const { t, locale } = useI18n();
 
-/** The active workspace's registry icon; falls back to the default folder. */
+/** The active workspace's registry icon. Falls back to the default folder. */
 const workspaceIcon = computed<MaterialSymbol>(() => {
   const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
   return (info?.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
@@ -60,10 +60,10 @@ function pagesForCategory(categoryId: string) {
 const today = new Date();
 const todayISO = today.toISOString().slice(0, 10);
 
-/** Today's daily note when it exists; the Today row's menu deletes it. */
+/** Today's daily note when it exists. The Today row's menu deletes it. */
 const todayPage = computed(() => pages.value.find((page) => page.path === `daily/${todayISO}.typ`));
 
-/** Day notes except today's, newest first; the "Today" row covers today. */
+/** Day notes except today's, newest first. The "Today" row covers today. */
 const recentDays = computed(() =>
   pages.value
     .filter(
@@ -116,7 +116,7 @@ function setCategory(page: PageMeta, categoryId: string | null): void {
   void props.store.updatePageCategory(page.id, categoryId);
 }
 
-/** Flips a page between document and notebook; the source is untouched. */
+/** Flips a page between document and notebook. The source is untouched. */
 function convertPage(page: PageMeta, kind: PageMeta["kind"]): void {
   void props.store.updatePageKind(page.id, kind);
 }
@@ -405,7 +405,7 @@ function onCreated(page: PageMeta) {
             </UiMenu>
           </li>
 
-          <!-- Day notes, most recent first. Tapping opens the note; the Today
+          <!-- Day notes, most recent first. Tapping opens the note. The Today
              row above creates today's lazily on first tap. -->
           <li
             v-for="day in recentDays"
@@ -566,7 +566,7 @@ function onCreated(page: PageMeta) {
   padding: 0 var(--space-2) var(--space-2);
 }
 
-/* The line separates sections; the last one has nothing below it to separate
+/* The line separates sections. The last one has nothing below it to separate
    from, and a rule at the sidebar's bottom edge reads as a stray border. */
 .sidebar__section:not(:last-child) {
   border-bottom: 1px solid var(--color-border);
@@ -621,7 +621,7 @@ function onCreated(page: PageMeta) {
   gap: var(--space-2);
 }
 
-/* The plugin section's header lives in PluginSidebar; stick it like the other
+/* The plugin section's header lives in PluginSidebar. Stick it like the other
    section titles and give it the section's top spacing. */
 .sidebar__section .plugin-sidebar__header {
   position: sticky;

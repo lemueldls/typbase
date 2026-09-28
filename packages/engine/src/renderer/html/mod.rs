@@ -131,7 +131,7 @@ pub fn render(
                         context.map_repaired_to_render(repaired_range.start, Side::Before);
 
                     // Earlier passes shrink the synth while the map still
-                    // describes the original text; clamp before blanking.
+                    // describes the original text, so clamp before blanking.
                     let source = context.render_source_mut(&mut state.world).unwrap();
                     let len = source.text().len();
                     let start_byte = start_byte.min(len);
@@ -162,7 +162,7 @@ pub fn render(
                         Some(&raw),
                     ));
 
-                    // The search blanked the block; drop it from the
+                    // The search blanked the block. Drop it from the
                     // candidate list so it cannot be selected again.
                     blocks.remove(index);
                 } else {
@@ -227,7 +227,7 @@ pub struct RenderHtmlResult {
     /// Diagnostics and warnings produced during rendering.
     pub diagnostics: Vec<TypstDiagnostic>,
     /// Requests the caller must satisfy before re-rendering (query JSON,
-    /// embedded pages). The editor's `compileHTML` carries them too; the
+    /// embedded pages). The editor's `compileHTML` carries them too, but the
     /// publish worker needs them on this path.
     pub requests: Vec<TypstRequest>,
 }

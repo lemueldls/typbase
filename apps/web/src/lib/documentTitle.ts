@@ -1,6 +1,6 @@
 /**
  * Tab and native window titles. The pages set them through Nuxt's head
- * composables; `formatDocumentTitle` keeps the parts consistent, and the Tauri
+ * composables. `formatDocumentTitle` keeps the parts consistent, and the Tauri
  * shell mirrors the result into the OS window (see `apps/native/src/lib.rs`).
  */
 

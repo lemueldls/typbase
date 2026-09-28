@@ -56,7 +56,7 @@
 
 #let is-digit(ch) = "0123456789".contains(ch)
 
-// A note line becomes an event when it starts with a list marker; an
+// A note line becomes an event when it starts with a list marker. An
 // `HH:MM` prefix is kept as the time.
 #let parse-note-line(line) = {
   let trimmed = line.trim()

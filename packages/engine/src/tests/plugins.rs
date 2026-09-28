@@ -11,7 +11,7 @@ const UI_LIB: &str = include_str!("../../../../apps/web/public/plugins/ui.typ");
 const CALENDAR: &str = include_str!("../../../../apps/web/public/plugins/calendar/main.typ");
 const DRAWING: &str = include_str!("../../../../apps/web/public/plugins/drawing/main.typ");
 
-/// Placeholder JSON replaced per test; both fields are spliced raw.
+/// Placeholder JSON replaced per test. Both fields are spliced raw.
 const BASE_CTX: &str = r##"{
   "plugin": { "id": "local:demo", "name": "Demo", "version": "0.1.0" },
   "instance": { "id": "inst-1", "title": "Demo" },
@@ -76,7 +76,7 @@ fn compile_surface(
     let plugin_id = state.create_file_id(&format!("/typbase/plugin/demo/{entry}"));
     state.insert_source(&plugin_id, source.to_string());
 
-    // The host resolves query requests before the final compile; the test
+    // The host resolves query requests before the final compile, so the test
     // provides the same JSON up front.
     for (path, text) in files {
         let id = state.create_file_id(path);
@@ -138,7 +138,7 @@ fn calendar_surface_compiles_and_emits_a_patch() {
     assert!(html.contains("Dentist"), "existing event missing from: {html}");
     assert!(html.contains("cal-day--selected"), "selected day has no tone: {html}");
     assert!(html.contains("event.create"), "create action missing from: {html}");
-    // The action render carries the appended record in its patch; the UI
+    // The action render carries the appended record in its patch. The UI
     // itself stays pre-patch until the host rerenders.
     assert!(
         html.contains("&quot;op&quot;: &quot;append&quot;"),
@@ -155,7 +155,7 @@ fn unresolved_requests_render_recovery_instead_of_panicking() {
         return;
     }
 
-    // The host answers `#typbase.query` after the first compile; that pass
+    // The host answers `#typbase.query` after the first compile. That pass
     // sees missing-file diagnostics and must not panic on them.
     let ctx = ctx(
         "{}",

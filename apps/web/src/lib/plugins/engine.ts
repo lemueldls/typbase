@@ -15,7 +15,7 @@ import { compileSurface } from "./compile";
 
 /**
  * Plugin compile client. The worker is the default so a plugin compile never
- * blocks the editor; when it cannot start (crash, module load failure) the
+ * blocks the editor. When it cannot start (crash, module load failure) the
  * host falls back to the shared main-thread TypstState and keeps working.
  */
 
@@ -122,7 +122,7 @@ function compileInWorker(input: PluginSurfaceInput): Promise<PluginSurfaceResult
 async function compileLocally(input: PluginSurfaceInput): Promise<PluginSurfaceResult> {
   if (useEngineHealth().value.status === "failed") {
     // The fallback compiles on the shared main-thread state, which traps
-    // while failed. The caller shows this in the plugin's error list; the
+    // while failed. The caller shows this in the plugin's error list, and the
     // engine toast already explains how to recover.
     throw new Error("The Typst engine stopped; retry it before loading plugin surfaces.");
   }

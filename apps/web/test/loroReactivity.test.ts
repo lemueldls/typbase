@@ -52,7 +52,7 @@ describe("workspace change subscriptions", () => {
     const nested = vi.fn();
     store.onWorkspaceChange([["pages", page.id]], nested);
 
-    // Deleting from the `pages` map emits the parent path; the nested
+    // Deleting from the `pages` map emits the parent path. The nested
     // listener must still hear it or a deleted page would go stale.
     await store.deletePage(page.id);
     expect(nested).toHaveBeenCalled();

@@ -30,7 +30,7 @@ watchImmediate(routeDid, async (input) => {
   }
 
   try {
-    // Read-only airspace over one account's public posts; identity resolution
+    // Read-only airspace over one account's public posts. Identity resolution
     // (handle -> DID -> PDS) happens inside.
     const client = createPublicPostsClient(input);
     const identity = await client.identity();
@@ -75,7 +75,7 @@ function tagList(value: unknown): string[] {
 
 const { t } = useI18n();
 
-/** Author name once identity resolves; the DID is the fallback. */
+/** Author name once identity resolves. The DID is the fallback. */
 const profileName = computed(() => author.value.handle ?? author.value.did);
 
 /** Public profile title: "Author · Typbase". */

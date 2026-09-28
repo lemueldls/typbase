@@ -15,7 +15,7 @@ interface TypstRequestHandler {
   (requests: TypstRequest[], spaceId: string): Promise<boolean> | boolean;
 }
 
-/** Plugin surfaces only see their own plugin data; notes see everything. */
+/** Plugin surfaces only see their own plugin data. Notes see everything. */
 export interface RequestScope {
   pluginId: string;
   /** False strips page content from the channel (no `pages.read`). */
@@ -36,7 +36,7 @@ const EMBED_PRELUDE = '#import "/typbase/lib.typ" as typbase\n';
  * - `typbase/src/<id>.typ` source requests are other pages' content
  *   (the `#typbase.embed` stdlib includes them).
  *
- * The inserted query files go stale when workspace data changes; callers
+ * The inserted query files go stale when workspace data changes. Callers
  * `purge()` them and force a recompile.
  */
 export interface TypstRequestService {
@@ -47,7 +47,7 @@ export interface TypstRequestService {
 
 /**
  * Raw payloads a request resolves to, without touching any wasm instance.
- * The editor service inserts them into its own TypstState; the publish
+ * The editor service inserts them into its own TypstState. The publish
  * worker forwards them to the worker's instance.
  */
 export type RequestPayload =
@@ -87,12 +87,12 @@ export async function resolveRequestPayloads(
       if (path.startsWith("typbase/src/")) {
         if (scope && scope.allowPages === false) continue;
         const id = path.slice("typbase/src/".length, -".typ".length);
-        // Self-embeds would recurse forever; a comment keeps the include quiet.
+        // Self-embeds would recurse forever. A comment keeps the include quiet.
         const text =
           id === currentPage
             ? "// self-embed\n"
             : store.getPage(id)
-              ? // Page docs load lazily; the embed must not depend on the
+              ? // Page docs load lazily. The embed must not depend on the
                 // editor having opened this page already.
                 EMBED_PRELUDE + (await store.loadPageText(id))
               : `// no page named ${JSON.stringify(id)}\n`;
@@ -185,7 +185,7 @@ export function createTypstRequestService(
 
   function purge(): void {
     // Embedded page sources and query JSON both go stale when workspace data
-    // changes; dropping them forces a re-request on the next compile. Blobs
+    // changes. Dropping them forces a re-request on the next compile. Blobs
     // are content-addressed and immutable, so they stay in the world: media
     // does not need to be re-read and re-copied on every change.
     for (const path of insertedSources) {
@@ -248,7 +248,7 @@ export async function buildQueryJson(
     case "pages": {
       if (query.filterName === "by-id" && query.filterValue) {
         const page = pages.find((candidate) => candidate.id === query.filterValue);
-        // Typst's json() turns "null" into none; #typbase.page-link uses that
+        // Typst's json() turns "null" into none. #typbase.page-link uses that
         // for missing pages instead of failing the compile.
         return page ? JSON.stringify(page) : "null";
       }
@@ -302,7 +302,7 @@ export async function buildQueryJson(
       if (!filterValue) return "null";
       const instance = store.getPluginInstance(filterValue);
       if (!instance) return "null";
-      // Plugin surfaces read their own data only; note content reads all.
+      // Plugin surfaces read their own data only. Note content reads all.
       if (scope && instance.pluginId !== scope.pluginId) return "null";
 
       return JSON.stringify(await store.readPluginState(filterValue));
@@ -319,13 +319,13 @@ export async function buildQueryJson(
     }
   }
 
-  // Every query kind returns above; keep the fallthrough explicit.
+  // Every query kind returns above. Keep the fallthrough explicit.
   return null;
 }
 
 /**
  * Pages that link `targetId`. The running link index answers when the engine
- * is healthy; a failed or unstarted index falls back to the regex scan so a
+ * is healthy. A failed or unstarted index falls back to the regex scan so a
  * query never fails a compile. Self-links are not backlinks, matching the
  * panel.
  */
@@ -347,7 +347,7 @@ async function incomingPages(
         return new Set(sources);
       }
     } catch {
-      // Fall through to the scan; a broken index must not fail the compile.
+      // Fall through to the scan. A broken index must not fail the compile.
     }
   }
 

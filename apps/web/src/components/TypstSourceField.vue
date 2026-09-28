@@ -8,7 +8,7 @@ import { insertTabLike, typstLanguageData, typstStaticHighlighting } from "@typb
 const props = defineProps<{
   value: string;
   placeholder?: string;
-  /** Accessible name; the settings row's text is not tied to the editor. */
+  /** Accessible name, since the settings row's text is not tied to the editor. */
   ariaLabel?: string;
 }>();
 
@@ -57,7 +57,7 @@ const fieldTheme = EditorView.theme({
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
     backgroundColor: "color-mix(in srgb, var(--color-accent) 30%, transparent)",
   },
-  // The editor scales headings up; a settings field keeps its line height, so
+  // The editor scales headings up. A settings field keeps its line height, so
   // only the colors carry over.
   ".typ-heading, .typ-heading-level-1, .typ-heading-level-2, .typ-heading-level-3, .typ-heading-level-4, .typ-heading-level-5, .typ-heading-level-6":
     {

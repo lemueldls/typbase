@@ -53,7 +53,7 @@ const thread = useWorkspaceValue(workspace, ["chats"], (store) => store.getChat(
 
 const threadTitle = computed(() => thread.value?.title ?? t("chat.title"));
 const busy = computed(() => isStreaming(props.threadId));
-/** The page this thread is about; the open seed can override the stored id. */
+/** The page this thread is about. The open seed can override the stored id. */
 const contextPage = useWorkspaceValue(
   workspace,
   ["pages"],
@@ -160,7 +160,7 @@ function updateModel(value: string): void {
   store.updateChat(props.threadId, { model: value || null });
 }
 
-/** Re-grounds the thread on another page; a selection came from the old page
+/** Re-grounds the thread on another page. A selection came from the old page
  *  and would be read against the wrong text. */
 function updateContextPage(id: string | null): void {
   const current = contextPageId.value ?? thread.value?.pageId ?? null;
@@ -178,7 +178,7 @@ async function insertMessage(message: ChatMessage): Promise<void> {
     return;
   }
 
-  // Only the acceptance gate makes a reply safe to graft into a note; the
+  // Only the acceptance gate makes a reply safe to graft into a note. The
   // user can still insist, but the warning names the risk.
   if (message.status !== "verified" && !window.confirm(t("chat.insertUnverified"))) return;
 

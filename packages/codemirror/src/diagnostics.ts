@@ -71,7 +71,7 @@ export interface TypstLinterOptions {
  *
  * This runs in every editor mode and combines with other sources (the
  * spellcheck linter), so neither one replaces the other. The WYSIWYG plugin's
- * compile feeds the cache; split and source mode fall back to a compile here
+ * compile feeds the cache. Split and source mode fall back to a compile here
  * so they get diagnostics too.
  */
 export const typstLinter = (

@@ -12,7 +12,7 @@ import { LRUCache } from "lru-cache";
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
 /**
- * Opens an external link for the host. Browsers get a new tab; the app passes
+ * Opens an external link for the host. Browsers get a new tab. The app passes
  * its `openExternal`, which hands the URL to the system browser in Tauri
  * (a webview has no tab strip, so `window.open` is dropped there).
  */
@@ -47,8 +47,8 @@ export function frameSize(frame: SvgRangedFrame): { width: number; height: numbe
  * container keeps max-width: 100% so it never exceeds the line. An explicit
  * container width would make CodeMirror's flex layout grow the content width
  * forever (resize -> wider widget -> wider content). The pinned SVG overflows
- * the clamped container while the pane is narrower than the compiled width;
- * the scroller clips it, so the render stays its size instead of scaling.
+ * the clamped container while the pane is narrower than the compiled width.
+ * The scroller clips it, so the render stays its size instead of scaling.
  */
 export function syncFrameContainer(container: HTMLElement, frame: SvgRangedFrame): void {
   const size = frameSize(frame);
@@ -164,7 +164,7 @@ export function frameIsInactive(
  * the source stays visible with the frame's height reserved, so the pane does
  * not jump between render and source. Matches the inline WYSIWYG behavior.
  *
- * `lineHeights` carries measured source heights from the remeasure pass; when
+ * `lineHeights` carries measured source heights from the remeasure pass. When
  * it is absent the view still reports the widget's height for those lines.
  */
 export function frameActiveDecorations(
@@ -217,7 +217,7 @@ export class TypstWidget extends WidgetType {
 
     const cached = containerCache.get(frame.render.hash);
 
-    // The content hash does not include pane width; a reused container may
+    // The content hash does not include pane width, so a reused container may
     // hold a frame laid out for a wider pane. Refresh its markup when the
     // geometry differs, so resizing the editor reflows the inline preview.
     if (cached?.isConnected) {

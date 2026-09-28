@@ -2,7 +2,7 @@ import { isTauri } from "@typbase/storage";
 
 /**
  * Opens a URL outside the app. A Tauri webview has no tab strip, so
- * `window.open` would be dropped; the opener plugin hands the URL to the
+ * `window.open` would be dropped. The opener plugin hands the URL to the
  * system browser instead.
  */
 export function openExternal(url: string): void {

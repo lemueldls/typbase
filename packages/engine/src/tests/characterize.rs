@@ -1,5 +1,5 @@
 //! Characterization tests. These print what the parser and the current
-//! render path do with the broken fixtures; they are the evidence behind the
+//! render path do with the broken fixtures. They are the evidence behind the
 //! recovery rules. Run with `-- --nocapture` to read the dumps.
 
 use typst_syntax::{LinkedNode, SyntaxKind};

@@ -15,7 +15,7 @@
 //!   font/theme/file/package setters the host drives. [`state::RenderContext`]
 //!   hands a renderer the world and one note without the rest of the state.
 //! - [`renderer::paged`] is the chunked SVG pipeline (editor) and the SVG and
-//!   PDF exports; [`renderer::html`] is the inline frames renderer and
+//!   PDF exports. [`renderer::html`] is the inline frames renderer and
 //!   [`renderer::html::document`] the full-document HTML render. The
 //!   `#[wasm_bindgen]` entry points live next to the code they call.
 //! - [`prelude`] holds the app stdlib module and the generated document style.
@@ -35,7 +35,7 @@
 //!   coordinates.
 //!
 //! - The `synth` source is a synthesized file built from the raw source plus a
-//!   generated prelude. It is never mutated after it is built; the index
+//!   generated prelude. It is never mutated after it is built, and the index
 //!   mapper tracks raw/synth offsets.
 //!
 //! - The `render` source is the file Typst actually compiles. It is built from
@@ -118,7 +118,7 @@ fn start() {
 /// The two wasm tasks write the same `pkg/` directory, so a stray
 /// `engine:build-dev` edge in a release graph silently swaps the optimized
 /// engine for the unoptimized one. Release tooling can read this before
-/// publishing; custom sections cannot key that kind of check because wasm-opt
+/// publishing. Custom sections cannot key that kind of check because wasm-opt
 /// and wasm-bindgen rewrite them.
 // wasm-bindgen only accepts non-const functions.
 #[allow(clippy::missing_const_for_fn)]

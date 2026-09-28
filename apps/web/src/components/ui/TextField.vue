@@ -4,7 +4,7 @@ defineOptions({ inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
     modelValue?: string;
-    /** Accessible name; use a wrapping label when there is one. */
+    /** Accessible name. Use a wrapping label when there is one. */
     label?: string;
     disabled?: boolean;
     size?: "small" | "default" | "large";
@@ -17,7 +17,7 @@ const emit = defineEmits<{ (e: "update:modelValue", value: string): void }>();
 const attrs = useAttrs();
 const input = useTemplateRef<HTMLInputElement>("input");
 
-// class/style size the field (the root); everything else is input semantics.
+// class/style size the field (the root). Everything else is input semantics.
 const inputAttrs = computed(() => {
   const { class: _class, style: _style, ...rest } = attrs;
 

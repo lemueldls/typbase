@@ -73,8 +73,8 @@ class StorageSetupPending extends Error {
   }
 }
 
-// Boot progress. The load gate waits only for storage + the workspace doc;
-// the atproto session boots in the background (bootAtproto) bounded by a
+// Boot progress. The load gate waits only for storage + the workspace doc.
+// The atproto session boots in the background (bootAtproto) bounded by a
 // timeout, so a slow OAuth init can never hold the editor hostage.
 
 export type BootStepId = "storage" | "workspace" | "atproto";
@@ -121,12 +121,12 @@ function appUrl(configured: string): string {
  * The local workspaces: one Loro workspace doc plus one doc per page per
  * workspace, on whichever backend the platform offers (Tauri commands, a
  * picked folder, OPFS, or memory). Signing in attaches a space to the active
- * workspace; a signing guest keeps the identical pipeline minus atproto.
+ * workspace. A signing guest keeps the identical pipeline minus atproto.
  *
  * Shared via createSharedComposable: every consumer sees the same active
  * store, and the setup is torn down when the last consumer unmounts.
  * Switching workspaces disposes the previous store service and re-opens the
- * next from the active backend; `workspaceGeneration` is the remount key for
+ * next from the active backend. `workspaceGeneration` is the remount key for
  * the shell.
  */
 function useWorkspaceState() {
@@ -152,7 +152,7 @@ function useWorkspaceState() {
   /**
    * Bumped whenever workspace-level data changes (pages, categories,
    * settings). Computed reads should use `useWorkspaceValue` instead, so a
-   * category rename does not invalidate a page list; this stays for watchers
+   * category rename does not invalidate a page list. This stays for watchers
    * that need to run on any change.
    */
   const dataRevision = ref(0);
@@ -175,7 +175,7 @@ function useWorkspaceState() {
   const activeWorkspaceId = ref<string | null>(null);
   /** Workspace id currently being opened, null when idle. Drives switch UI. */
   const switching = ref<string | null>(null);
-  /** Bumped whenever the active workspace changes; key the shell on it. */
+  /** Bumped whenever the active workspace changes. Key the shell on it. */
   const workspaceGeneration = ref(0);
 
   const backendRef = shallowRef<StorageBackend>();
@@ -271,7 +271,7 @@ function useWorkspaceState() {
 
         throw new StorageSetupPending();
       }
-      // The handle is gone (cleared site data); fall back to OPFS.
+      // The handle is gone (cleared site data). Fall back to OPFS.
       localStorage.removeItem(STORAGE_MODE_KEY);
     }
 
@@ -326,7 +326,7 @@ function useWorkspaceState() {
     } catch (reason) {
       if (reason instanceof StorageSetupPending) throw reason;
 
-      // Privacy contexts can deny OPFS; a memory backend keeps the app
+      // Privacy contexts can deny OPFS. A memory backend keeps the app
       // runnable at the cost of durability.
       console.warn("[storage] persistent storage unavailable:", reason);
       backendRef.value = new MemoryBackend();
@@ -437,7 +437,7 @@ function useWorkspaceState() {
     const token = ++openingSeq;
     updateBootStep("atproto", { status: "active", detail: "in background" });
     try {
-      // AI keys are device-only state. Load once; writes go through the
+      // AI keys are device-only state. Load once. Writes go through the
       // setter so settings UI and generators see the same object.
       const keys = (await local.get<AiKeyState>("aiKeys")) ?? {};
       initAiKeys(keys, (next) => void local.set("aiKeys", next));
@@ -537,7 +537,7 @@ function useWorkspaceState() {
       if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
 
       updateBootStep("workspace", { status: "active" });
-      // A fresh doc seeds from the registry name; an existing doc's settings
+      // A fresh doc seeds from the registry name. An existing doc's settings
       // name wins and is copied back into the registry below.
       const store = await WorkspaceStore.open(backendRef.value!, id, { name: info.name });
       if (token !== openingSeq) return store;
@@ -564,7 +564,7 @@ function useWorkspaceState() {
       localStorage.setItem(LAST_WORKSPACE_KEY, id);
       void refreshWorkspaceList();
 
-      // Device-local state doubles as the source-mirror bookkeeping; create it
+      // Device-local state doubles as the source-mirror bookkeeping. Create it
       // before atproto boots so the page tree can sync right away.
       const local = new LocalState(backendRef.value!, localStatePath(id));
       localState.value = local;
@@ -583,7 +583,7 @@ function useWorkspaceState() {
         })
         .catch((reason) => console.warn("[sources] sync failed:", reason));
 
-      // Native and picked-folder backends push changes as they land; the
+      // Native and picked-folder backends push changes as they land. The
       // focus/visibility sweep still covers engines without a watcher.
       unwatchSources = store.watchSources(syncExternalChanges, () => {
         pluginFilesRevision.value += 1;
@@ -655,17 +655,17 @@ function useWorkspaceState() {
 
     ensurePromise ??= (async () => {
       await ensureBackend();
-      // One-time move off the pre-restructure layout; see
+      // One-time move off the pre-restructure layout. See
       // `packages/storage/src/migrate.ts` for the removal recipe.
       await migrateLayout(backendRef.value!);
       const reg = await ensureRegistry();
       const id = await chooseWorkspaceId(reg);
-      if (!id) return null; // nothing to open; the shell shows the chooser
+      if (!id) return null; // nothing to open. The shell shows the chooser
 
       return openWorkspace(id);
     })().catch((reason) => {
       if (reason instanceof StorageSetupPending) {
-        // The shell renders the setup screen; `configureStorage` restarts
+        // The shell renders the setup screen. `configureStorage` restarts
         // the boot once a location is chosen.
         return null;
       }
@@ -682,7 +682,7 @@ function useWorkspaceState() {
     try {
       ensurePromise = undefined;
       await openWorkspace(id);
-      // A switch may land on a workspace with no pages; the shell picks
+      // A switch may land on a workspace with no pages. The shell picks
       // home/first page off the generation key.
     } catch (reason) {
       error.value = reason;
@@ -756,7 +756,7 @@ function useWorkspaceState() {
       ensurePromise = undefined;
       if (workspaces.value.length === 0) localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
 
-      // Boot the next workspace that exists (if any); the shell falls back to
+      // Boot the next workspace that exists (if any). The shell falls back to
       // the chooser when none do.
       const next = workspaces.value[0];
       if (next) await switchWorkspace(next.id);

@@ -15,7 +15,7 @@ import { formatAgo } from "~/lib/format";
 /**
  * Debug surface for the active storage backend: a semantic view of the
  * workspace registry and Loro docs, and a raw tree over the same byte paths.
- * Actions that mutate workspace metadata go through the store; raw file
+ * Actions that mutate workspace metadata go through the store, while raw file
  * actions only touch bytes and can break a workspace if misused.
  */
 
@@ -239,7 +239,7 @@ async function download(node: FileNode): Promise<void> {
   if (!active || node.kind !== "file") return;
 
   // The native shell has no reliable webview download path, so it goes
-  // through the save dialog; browsers get the anchor download.
+  // through the save dialog. Browsers get the anchor download.
   if (isTauri()) {
     try {
       if (await exportTauriStorageFile(node.path)) return;

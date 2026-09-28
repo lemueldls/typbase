@@ -23,10 +23,10 @@ describe("typbase app", async () => {
     setupTimeout: 300_000,
   });
 
-  /** First run shows the storage chooser; set the mode before the app boots. */
+  /** First run shows the storage chooser, so set the mode before the app boots. */
   async function openApp(page: NuxtPage, path = "/"): Promise<void> {
     await page.addInitScript(() => localStorage.setItem("typbase:storageMode", "opfs"));
-    // NuxtPage.goto does not resolve the path; `url()` does.
+    // NuxtPage.goto does not resolve the path. `url()` does.
     await page.goto(url(path), { waitUntil: "load" });
 
     await page.waitForSelector(".sidebar", { timeout: 180_000 });
@@ -62,7 +62,7 @@ describe("typbase app", async () => {
     await page.waitForSelector(".cm-editor", { timeout: 120_000 });
   }
 
-  /** Graph settings persist across the shared context; local mode from an
+  /** Graph settings persist across the shared context. Local mode from an
    *  earlier test would scope the graph to a single page. */
   async function resetGraphLocal(page: NuxtPage): Promise<void> {
     await page.evaluate(() => {
@@ -123,7 +123,7 @@ describe("typbase app", async () => {
     const paths = await page.evaluate(async () => {
       const found: string[] = [];
       // The OPFS backend roots at a `typbase` directory under the origin's
-      // OPFS root; the paths below are storage-relative, as the registry sees
+      // OPFS root. The paths below are storage-relative, as the registry sees
       // them.
       const root = await (await navigator.storage.getDirectory()).getDirectoryHandle("typbase");
 
@@ -172,7 +172,7 @@ describe("typbase app", async () => {
     await page.keyboard.press("Control+End");
     await page.keyboard.type(" typed");
 
-    // The autosave debounce has not fired yet; the shortcut must flush now.
+    // The autosave debounce has not fired yet, so the shortcut must flush now.
     await page.keyboard.press("Control+s");
     await page.waitForSelector(".ui-toast", { timeout: 10_000 });
     await expect(page.locator(".ui-toast").innerText()).resolves.toContain("Saved");
@@ -208,7 +208,7 @@ describe("typbase app", async () => {
     expect(await page.locator(".tb-cell-header").count()).toBe(2);
     await page.waitForSelector(".tb-cell-output svg", { timeout: 60_000 });
 
-    // Run the code cell; the counter appears.
+    // Run the code cell, and the counter appears.
     await page.locator(".tb-cell-btn--run").nth(1).click();
     await page.waitForSelector(".tb-cell-counter", { timeout: 60_000 });
     await expect(page.locator(".tb-cell-counter").nth(1).innerText()).resolves.toContain("1");
@@ -309,7 +309,7 @@ describe("typbase app", async () => {
     });
 
     // Type an embed at the end while the cursor sits in the first block. The
-    // compile requests the target's source; resolving it recompiles. The
+    // compile requests the target's source. Resolving it recompiles. The
     // recompile used to dispatch a no-op document replacement, which mapped
     // the selection into the replaced range and dropped it at 0.
     await page.locator(".cm-content").click();
@@ -376,7 +376,7 @@ describe("typbase app", async () => {
     await page.waitForTimeout(500);
 
     const after = await measure();
-    // The heading is source now, so only the paragraph widget remains; its
+    // The heading is source now, so only the paragraph widget remains. Its
     // top must not move.
     expect(after).toHaveLength(1);
     expect(Math.abs(after[0]!.top - before[1]!.top)).toBeLessThan(0.5);
@@ -412,7 +412,7 @@ describe("typbase app", async () => {
     });
     await showPage(page, id, "write");
 
-    // Trap the instance directly. The evaluate sees the trap; the editor's
+    // Trap the instance directly. The evaluate sees the trap. The editor's
     // next compile is what reports it to the health state.
     await page.evaluate(() => {
       try {
@@ -422,7 +422,7 @@ describe("typbase app", async () => {
       }
     });
 
-    // Typing forces a compile; the trap lands in the plugin's catch, which
+    // Typing forces a compile. The trap lands in the plugin's catch, which
     // reports it. The character must survive the trap (the highlight guard
     // keeps the transaction from aborting), which the degraded check below
     // proves along with the later text.
@@ -507,7 +507,7 @@ describe("typbase app", async () => {
     await expect(page.evaluate(() => window.__typbase.engineStatus())).resolves.toBe("ok");
     // `memoryBytes()` is the wasm linear memory size, which only grows (V8
     // doubles it) and never shrinks, so it is a high-water mark, not live
-    // usage. The watchdog evicts at 1 GB to stop the growth there; the loop
+    // usage. The watchdog evicts at 1 GB to stop the growth there. The loop
     // must not reach the 4 GB ceiling or OOM.
     const memory = await page.evaluate(() => window.__typbase.engineMemory());
     expect(memory).toBeGreaterThan(0);
@@ -712,7 +712,7 @@ describe("typbase app", async () => {
     await page.keyboard.press("Escape");
     await page.waitForSelector(".dialog", { state: "detached", timeout: 30_000 });
 
-    // Add a category; the open dialog's own list must show it.
+    // Add a category. The open dialog's own list must show it.
     await page.locator('.sidebar button[aria-label="Categories"]').click();
     await page.waitForSelector(".category-list", { timeout: 30_000 });
     await page.getByPlaceholder("Category name").fill("Research");
@@ -722,7 +722,7 @@ describe("typbase app", async () => {
     await page.keyboard.press("Escape");
     await page.waitForSelector(".category-list", { state: "detached", timeout: 30_000 });
 
-    // The new-page dialog reads the same list; it must see the category too.
+    // The new-page dialog reads the same list. It must see the category too.
     await page.locator('.sidebar button[aria-label="New page"]').click();
     await page.waitForSelector(".dialog", { timeout: 30_000 });
     await page.locator(".dialog .ui-select__trigger").nth(1).click();
@@ -772,10 +772,10 @@ describe("typbase app", async () => {
       targetId,
       { timeout: 30_000 },
     );
-    // Selecting closes the popover; the exit animation delays the unmount.
+    // Selecting closes the popover, and the exit animation delays the unmount.
     await page.waitForSelector(".combobox", { state: "detached", timeout: 30_000 });
 
-    // Reopening starts from a clean search; the previous selection's id must
+    // Reopening starts from a clean search. The previous selection's id must
     // not linger in the input.
     await page.locator('.edit-toolbar button[aria-label="Page link"]').click();
     await page.waitForSelector(".combobox__input", { timeout: 30_000 });
@@ -797,8 +797,8 @@ describe("typbase app", async () => {
     });
     await page.waitForTimeout(200);
 
-    // The toolbar menu restores focus to its trigger after the palette mounts;
-    // the input has to win anyway so typing lands in the search box.
+    // The toolbar menu restores focus to its trigger after the palette mounts.
+    // The input has to win anyway so typing lands in the search box.
     await page.locator('[aria-label="More actions"]').first().click();
     await page.getByRole("menuitem", { name: "Search" }).click();
     await page.waitForSelector(".search-palette", { timeout: 30_000 });
@@ -826,7 +826,7 @@ describe("typbase app", async () => {
       .toContain("welcome");
 
     // Wait for a real hit, then open it. The reveal focuses the editor while
-    // the key event is still in flight; the editor must not gain a newline.
+    // the key event is still in flight. The editor must not gain a newline.
     await page.waitForSelector(".search-palette [data-hit]", { timeout: 90_000 });
     const before = await page.evaluate(() => window.__typbase.view?.state.doc.length ?? 0);
     await page.keyboard.press("Enter");
@@ -850,7 +850,7 @@ describe("typbase app", async () => {
       content: `= Source\n\n#typbase.page-link("${targetId}")\n`,
     });
 
-    // The links panel remembers its open state; turn it on before the page
+    // The links panel remembers its open state. Turn it on before the page
     // mounts so the toggle click is not part of the assertion.
     await page.evaluate(() => localStorage.setItem("typbase:linksPanel", "true"));
     await showPage(page, targetId, "write");
@@ -995,7 +995,7 @@ describe("typbase app", async () => {
       timeout: 60_000,
     });
 
-    // The newest note has no next day yet; a `none` neighbor must render
+    // The newest note has no next day yet. A `none` neighbor must render
     // (three frames: heading, previous, next) and must not fail the compile.
     await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 3, null, {
       timeout: 60_000,
@@ -1095,7 +1095,7 @@ describe("typbase app", async () => {
     await showPage(page, id, "write");
 
     const openPicker = async (): Promise<void> => {
-      // Wide panes carry a toolbar trigger; narrow ones hide it in the
+      // Wide panes carry a toolbar trigger, while narrow ones hide it in the
       // overflow menu.
       const trigger = page.locator('[aria-label="Assets"]').first();
       if ((await trigger.count()) > 0) {
@@ -1107,7 +1107,7 @@ describe("typbase app", async () => {
       await page.waitForSelector(".asset-dialog", { timeout: 30_000 });
     };
 
-    // A real 1x1 PNG; the picker selects a fresh upload right away.
+    // A real 1x1 PNG. The picker selects a fresh upload right away.
     await openPicker();
     await page.setInputFiles('.asset-dialog input[type="file"]', {
       name: "dot.png",
@@ -1126,7 +1126,7 @@ describe("typbase app", async () => {
       { timeout: 30_000 },
     );
 
-    // Copy shows a toast; clipboard access can be blocked, in which case the
+    // Copy shows a toast. Clipboard access can be blocked, in which case the
     // fallback toast carries the reference text.
     await openPicker();
     await page.locator('.asset-dialog [aria-label="Asset actions"]').first().click();
@@ -1186,7 +1186,7 @@ describe("typbase app", async () => {
       "Dock host",
     );
 
-    // Expand moves the chat into the pane; close leaves the page behind it.
+    // Expand moves the chat into the pane, and close leaves the page behind it.
     await page.locator('.chat-pane [aria-label="Expand chat"]').click();
     await page.waitForFunction(() => !new URL(location.href).searchParams.get("aside"), null, {
       timeout: 30_000,
@@ -1253,7 +1253,7 @@ describe("typbase app", async () => {
     await page.evaluate(() => window.__typbase.openGraph());
     await page.waitForSelector(".graph canvas", { timeout: 60_000 });
 
-    // Every filter select gets a visible label; the toolbar itself stays to
+    // Every filter select gets a visible label. The toolbar itself stays to
     // the search, the scope switch, and the popover trigger.
     await page.locator(".graph__toolbar button", { hasText: "Filters" }).click();
     await page.waitForSelector(".graph__filters", { timeout: 30_000 });
@@ -1404,7 +1404,7 @@ describe("typbase app", async () => {
     });
     await showPage(page, id, "write");
 
-    // The row menu's Category submenu moves the page; the sidebar regroups it.
+    // The row menu's Category submenu moves the page. The sidebar regroups it.
     const row = page.locator(".sidebar__item", { hasText: "Categorize me" });
     await row.hover();
     await row.locator(".sidebar__row-more").click();
@@ -1443,7 +1443,7 @@ describe("typbase app", async () => {
     const page = await createPage();
     await openApp(page);
 
-    // The app registers the worker in production only; the suite registers it
+    // The app registers the worker in production only, but the suite registers it
     // directly so the offline path runs against the dev server too.
     await page.evaluate(async () => {
       await navigator.serviceWorker.register("/sw.js");

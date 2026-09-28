@@ -15,7 +15,7 @@ export interface PageMeta {
   path: string;
   title: string;
   /**
-   * How the page is edited. "notebook" splits the source into `// %%` cells;
+   * How the page is edited. "notebook" splits the source into `// %%` cells, and
    * "document" is the plain editor. Older docs read back as "document".
    */
   kind: PageKind;
@@ -28,7 +28,7 @@ export interface PageMeta {
   publishUri: string | null;
 }
 
-/** Page editing shape; the notebook marker syntax is in AGENTS.md. */
+/** Page editing shape. The notebook marker syntax is in AGENTS.md. */
 export type PageKind = "document" | "notebook";
 
 /** A page category. Categories are named groups in the sidebar. */
@@ -40,9 +40,9 @@ export interface Category {
 /** One workspace in the local registry (`workspaces.json`). */
 export interface WorkspaceInfo {
   id: string;
-  /** Cache of the workspace doc's `settings.name`; refreshed on open/rename. */
+  /** Cache of the workspace doc's `settings.name`. Refreshed on open/rename. */
   name: string;
-  /** Material Symbols glyph name (e.g. "folder"); empty means the default. */
+  /** Material Symbols glyph name (e.g. "folder"). Empty means the default. */
   icon?: string;
   createdAt: number;
   lastOpenedAt: number;
@@ -67,7 +67,7 @@ export interface Section {
 export interface AssetMeta {
   /** Content hash in the workspace's local blob store. */
   hash?: string;
-  /** atproto blob CID; absent until the asset is uploaded to a space. */
+  /** atproto blob CID. Absent until the asset is uploaded to a space. */
   cid?: string;
   mime: string;
   size: number;
@@ -82,7 +82,7 @@ export interface PublishSettings {
 }
 
 /**
- * A configured model endpoint. The API key never lives here; it is stored in
+ * A configured model endpoint. The API key never lives here. It is stored in
  * device-local state keyed by `id`. Provider lists sync with the workspace,
  * keys do not.
  */
@@ -107,9 +107,9 @@ export type AiProviderKind = "openai-compatible" | "anthropic" | "ollama";
 export interface AiSettings {
   enabled: boolean;
   providers: AiProviderSettings[];
-  /** Provider the composer starts on; null follows the first entry. */
+  /** Provider the composer starts on. Null follows the first entry. */
   defaultProviderId: string | null;
-  /** Automatic repair turns after a reply fails to compile; 0 disables. */
+  /** Automatic repair turns after a reply fails to compile. 0 disables. */
   repairAttempts: number;
   /** Render the Typst reply progressively while it streams. */
   liveRender: boolean;
@@ -120,7 +120,7 @@ export interface AiSettings {
 }
 
 export interface SearchSettings {
-  /** Semantic search costs a model download; off by default. */
+  /** Semantic search costs a model download. Off by default. */
   semantic: boolean;
   /** HuggingFace model id used for embeddings. */
   embeddingModel: string;
@@ -136,7 +136,7 @@ export interface NotebookSettings {
 export interface EditorSettings {
   /** Show source line numbers in the gutter. */
   lineNumbers: boolean;
-  /** Wrap long lines at the pane width; off scrolls them horizontally. */
+  /** Wrap long lines at the pane width. Off scrolls them horizontally. */
   softWrap: boolean;
   /** Leave scroll room below the last line so the cursor is not pinned to the bottom. */
   scrollPastEnd: boolean;
@@ -153,7 +153,7 @@ export type UiSize = "small" | "default" | "large";
 /** Interface density preset. Scales padding and gaps only. */
 export type UiDensity = "compact" | "default" | "spacious";
 
-/** Corner radius preset. Scales the radius tokens; pills stay pills. */
+/** Corner radius preset. Scales the radius tokens, but pills stay pills. */
 export type UiRadius = "square" | "default" | "round";
 
 /**
@@ -163,7 +163,7 @@ export type UiRadius = "square" | "default" | "round";
 export type SpellcheckMode = "off" | "native" | "harper";
 
 /**
- * Theme seed names, in display order. A theme authors these; the resolver
+ * Theme seed names, in display order. A theme authors these, and the resolver
  * derives soft variants, mode-dependent overlay, and on-* text from them.
  */
 export const THEME_SEED_KEYS = [
@@ -201,7 +201,7 @@ export type ThemeSeeds = Record<ThemeSeedToken, string>;
 
 /**
  * Resolved palette token names, in display order. The custom palette editor
- * edits these; the chrome reads them as `--color-*` and the Typst renderer
+ * edits these. The chrome reads them as `--color-*` and the Typst renderer
  * mirrors the ones that are not chrome-only (see `THEME_COLOR_KEYS`).
  */
 export const THEME_PALETTE_TOKEN_KEYS = [
@@ -238,7 +238,7 @@ export type ThemePaletteToken = (typeof THEME_PALETTE_TOKEN_KEYS)[number];
 /**
  * A theme palette as token -> CSS color. The renderer palette is derived
  * from these, so a custom theme only needs the same tokens the app chrome
- * uses; values are CSS color strings.
+ * uses. Values are CSS color strings.
  */
 export type ThemePaletteTokens = Record<ThemePaletteToken, string>;
 
@@ -252,7 +252,7 @@ export interface InstalledPackage {
 
 /**
  * A lint the user silenced with "Ignore". Harper's context hash is a u64, so
- * it does not fit a JS number; `hash` carries the exact decimal digits.
+ * it does not fit a JS number, so `hash` carries the exact decimal digits.
  */
 export interface IgnoredSpellcheckLint {
   hash: string;
@@ -277,10 +277,10 @@ export interface WorkspaceSettings {
   /**
    * User prelude appended after the generated one on every compile (editor,
    * previews, published pages). This is the escape hatch for custom styling
-   * and Typst-driven views; theme/fonts stay in their own settings.
+   * and Typst-driven views. Theme/fonts stay in their own settings.
    */
   pagePrelude: string;
-  /** UI language and date formatting locale; "auto" follows the browser. */
+  /** UI language and date formatting locale. "auto" follows the browser. */
   locale: string;
   font: string;
   mathFont: string | null;
@@ -290,7 +290,7 @@ export interface WorkspaceSettings {
    * shows 16px source text, so the default 16pt matches it).
    */
   textSize: number;
-  /** Editor spellcheck provider; synced with the workspace like fonts. */
+  /** Editor spellcheck provider. Synced with the workspace like fonts. */
   spellcheck: SpellcheckMode;
   /**
    * Harper's user dictionary: words the checker should not flag. Synced with
@@ -303,7 +303,7 @@ export interface WorkspaceSettings {
    * neighboring tokens, so editing around one can bring it back.
    */
   spellcheckIgnoredLints: IgnoredSpellcheckLint[];
-  /** Theme mode; "auto" follows the OS preference. Synced like everything else. */
+  /** Theme mode. "auto" follows the OS preference. Synced like everything else. */
   theme: ThemeMode;
   /** Named theme from the registry ("default", "catppuccin", "custom", ...). */
   themeName: string;
@@ -315,7 +315,7 @@ export interface WorkspaceSettings {
   uiRadius: UiRadius;
   /**
    * Universe packages the workspace depends on. The spec list syncs with the
-   * workspace; the tarballs stay in a device-local cache and are re-fetched
+   * workspace. The tarballs stay in a device-local cache and are re-fetched
    * on demand.
    */
   installedPackages: InstalledPackage[];
@@ -419,7 +419,7 @@ export type QueryCategories = Category[];
 /** `typbase/query/daily.json` (optionally filtered by `YYYY-MM`). */
 export type QueryDaily = PageMeta[];
 
-/** Graph view display settings; synced with the workspace like the theme. */
+/** Graph view display settings. Synced with the workspace like the theme. */
 export interface GraphSettings {
   /** Restrict the graph to the open page's neighborhood. */
   local: boolean;
@@ -427,11 +427,11 @@ export interface GraphSettings {
   localDepth: number;
   /** Keep pages with no visible links. */
   showOrphans: boolean;
-  /** Only pages in this category; null shows every category. */
+  /** Only pages in this category. Null shows every category. */
   categoryId: string | null;
-  /** Only pages carrying this tag; null shows every tag. */
+  /** Only pages carrying this tag. Null shows every tag. */
   tag: string | null;
-  /** When node labels render; hovered and selected nodes always label. */
+  /** When node labels render. Hovered and selected nodes always label. */
   labels: "auto" | "always" | "never";
 }
 

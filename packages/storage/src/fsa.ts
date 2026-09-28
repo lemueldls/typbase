@@ -65,7 +65,7 @@ export async function saveDirectoryHandle(handle: FileSystemDirectoryHandle): Pr
     await withStore("readwrite", (store) => store.put(handle, HANDLE_KEY));
   } catch {
     // Persistence can fail (private windows, storage pressure). The handle
-    // still works for this session; the next boot falls back to OPFS.
+    // still works for this session. The next boot falls back to OPFS.
   }
 }
 

@@ -11,7 +11,7 @@ const props = withDefaults(
     /** Which manifest surface to render for this instance. */
     surface: PluginSurfaceKind;
     title?: string;
-    /** Widgets size to their content; panes and windows fill. */
+    /** Widgets size to their content. Panes and windows fill. */
     autoHeight?: boolean;
     minHeight?: number;
     maxHeight?: number;

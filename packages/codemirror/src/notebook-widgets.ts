@@ -179,7 +179,7 @@ interface OutputArgs {
   frames: SvgRangedFrame[];
   diagnostics: TypstDiagnostic[];
   cleared: boolean;
-  /** The cell has been run at least once; only then does "No output" show. */
+  /** The cell has been run at least once. Only then does "No output" show. */
   hasRun: boolean;
   labels: NotebookLabels;
 }
@@ -195,7 +195,7 @@ class NotebookOutputWidget extends WidgetType {
     super();
   }
 
-  /** Hash of everything the DOM depends on; DOM identity is expensive. */
+  /** Hash of everything the DOM depends on, since DOM identity is expensive. */
   private get key(): string {
     // Frame height is not in the render hash: a list item's chunk grows with
     // the compiled spacing while its ink stays the same. Keep the size in the
@@ -355,7 +355,7 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
       );
     }
 
-    // Collapse hides the source; a code cell keeps its output, a markup cell
+    // Collapse hides the source. A code cell keeps its output, a markup cell
     // has nothing else to show.
     const hideContent = cellState.collapsed && cell.content_end > cell.content_start;
     if (hideContent) {
@@ -383,7 +383,7 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
       return;
     }
 
-    // Code cells keep their source visible; the render moves below the cell.
+    // Code cells keep their source visible, and the render moves below the cell.
     const outputPos =
       cell.content_end > cell.content_start
         ? state.doc.lineAt(cell.content_end).to

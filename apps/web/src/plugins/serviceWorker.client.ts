@@ -11,7 +11,7 @@ export default defineNuxtPlugin(() => {
 
   // Persistent storage keeps OPFS and the shell cache from being evicted.
   void navigator.storage?.persist?.().catch(() => {
-    // Denied or unsupported; both stores still work until eviction.
+    // Denied or unsupported, but both stores still work until eviction.
   });
 
   window.addEventListener("load", () => {

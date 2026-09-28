@@ -79,7 +79,7 @@ export const typstEditorTheme = EditorView.theme({
 
   // Gutters. CM sizes each element to its line block, so sharing the content
   // font and line-height puts every number on the baseline of its line. The
-  // count grows leftward from a fixed right edge; centering would shift the
+  // count grows leftward from a fixed right edge. Centering would shift the
   // digits as the number gains a column.
   ".cm-gutters": {
     backgroundColor: "transparent",
@@ -110,7 +110,7 @@ export const typstEditorTheme = EditorView.theme({
     padding: "0",
   },
   ".cm-lint-marker": {
-    // The base theme paints an SVG with `content:`; swap it for a dot.
+    // The base theme paints an SVG with `content:`. Swap it for a dot.
     content: "none",
     width: "0.5rem",
     height: "0.5rem",
@@ -274,7 +274,7 @@ export const typstEditorTheme = EditorView.theme({
     overflow: "auto",
     overscrollBehavior: "contain",
   },
-  // Docs hovers arrive as <pre>; wrap instead of scrolling sideways.
+  // Docs hovers arrive as <pre>. Wrap instead of scrolling sideways.
   ".cm-tooltip pre": {
     margin: "0",
     fontFamily: "var(--font-mono)",
@@ -348,7 +348,7 @@ export const typstEditorTheme = EditorView.theme({
   },
 
   // Autocomplete icons are Material Symbols ligatures, same font as MsIcon.
-  // The ::after content holds the glyph name; the font turns it into a
+  // The ::after content holds the glyph name. The font turns it into a
   // pictogram. CodeMirror's default glyphs (ƒ, ○) would win, so the mapping
   // has to live in the theme.
   ".cm-completionIcon": {
@@ -391,7 +391,7 @@ export const typstEditorTheme = EditorView.theme({
     content: "'tag'",
   },
 
-  // The lint hover tooltip is a section inside the hover host; the host's
+  // The lint hover tooltip is a section inside the hover host. The host's
   // max-height and overflow handle long diagnostic lists.
   ".cm-tooltip-lint": {
     padding: "0",

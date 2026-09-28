@@ -1,6 +1,6 @@
 //! Update channel reporting and the Android sideload updater.
 //!
-//! Desktop installs check through `tauri-plugin-updater` from the frontend; this
+//! Desktop installs check through `tauri-plugin-updater` from the frontend. This
 //! module only reports which update path an install should use. Sideloaded
 //! Android builds cannot use that plugin (it is desktop-only), so the manifest
 //! fetch, APK download, checksum, and installer handoff live here behind app
@@ -58,8 +58,8 @@ const CHANNEL_DESKTOP_PACKAGE_MANAGED: &str = "desktop-package-managed";
 const CHANNEL_UNSUPPORTED: &str = "unsupported";
 
 /// Registers the Kotlin `UpdaterPlugin` that owns the installer intent, the
-/// install-unknown-apps settings flow, and the Play Core update. Android only;
-/// there is no Kotlin half on other targets.
+/// install-unknown-apps settings flow, and the Play Core update. Android only.
+/// There is no Kotlin half on other targets.
 #[cfg(target_os = "android")]
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     PluginBuilder::new("update")
@@ -113,7 +113,7 @@ fn desktop_channel<R: Runtime>(app: &AppHandle<R>) -> String {
     }
 }
 
-/// Installs from Google Play get Play Core updates; everything else (direct APK,
+/// Installs from Google Play get Play Core updates. Everything else (direct APK,
 /// sideload managers like Obtainium) gets the manifest-driven updater.
 #[cfg(target_os = "android")]
 fn android_channel<R: Runtime>(app: &AppHandle<R>) -> Result<String, String> {
@@ -340,7 +340,7 @@ pub async fn android_update_can_install<R: Runtime>(app: AppHandle<R>) -> Result
 }
 
 /// Opens the "install unknown apps" settings screen for Typbase. Resolves when
-/// the user comes back; re-check `android_update_can_install` after it.
+/// the user comes back, so re-check `android_update_can_install` after it.
 #[tauri::command]
 #[cfg(target_os = "android")]
 pub async fn android_update_request_permission<R: Runtime>(
@@ -386,7 +386,7 @@ pub async fn android_play_update_check<R: Runtime>(
 }
 
 /// Starts Play's update flow. Immediate updates replace the screen with Play's
-/// own UI; the result reports whether the user completed it.
+/// own UI, and the result reports whether the user completed it.
 #[tauri::command]
 #[cfg(target_os = "android")]
 pub async fn android_play_update_start<R: Runtime>(
@@ -437,7 +437,7 @@ fn plugin_error(cause: tauri::plugin::mobile::PluginInvokeError) -> String {
     cause.to_string()
 }
 
-/// reqwest's rustls backend has no bundled provider; Tauri and the updater
+/// reqwest's rustls backend has no bundled provider. Tauri and the updater
 /// plugin install `ring` on first use, so do the same before the first request.
 ///
 /// The Android platform verifier needs a JNI context that is only set up by the

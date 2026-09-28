@@ -39,7 +39,7 @@ function concat(parts: Uint8Array[], total: number): Uint8Array {
   return out;
 }
 
-/** DOS date for 2026-01-01; ZIP needs a timestamp and exports are not archival. */
+/** DOS date for 2026-01-01. ZIP needs a timestamp and exports are not archival. */
 const DOS_DATE = ((2026 - 1980) << 9) | (1 << 5) | 1;
 
 export function createZip(entries: ZipEntry[]): Uint8Array {

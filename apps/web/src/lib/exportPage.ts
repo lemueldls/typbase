@@ -28,7 +28,7 @@ export interface ExportOptions {
 }
 
 export interface ExportFile {
-  /** Bundle-relative path; forward slashes. */
+  /** Bundle-relative path. Forward slashes. */
   name: string;
   bytes: Uint8Array;
 }
@@ -93,7 +93,7 @@ export async function buildExport(
 
   const collect = (outcome: RenderOutcome): void => {
     for (const payload of outcome.payloads) {
-      // Packages were installed into the worker's world; the exported project
+      // Packages were installed into the worker's world. The exported project
       // references them by spec instead of vendoring the tarball.
       if (payload.type === "package") continue;
 
@@ -183,7 +183,7 @@ export async function buildExport(
     }
   }
 
-  // One artifact stays a single file; more than one becomes a zip with an
+  // One artifact stays a single file. More than one becomes a zip with an
   // index that works without a local server.
   if (files.length > 1) {
     const readme = buildReadme(page.title, base, options);
@@ -213,8 +213,8 @@ export async function saveExport(base: string, files: ExportFile[]): Promise<voi
 
 async function saveOne(name: string, bytes: Uint8Array): Promise<void> {
   if (isTauri()) {
-    // The native dialog is the only save path that works in the webview;
-    // anchor downloads there are treated as file: navigations and blocked.
+    // The native dialog is the only save path that works in the webview.
+    // Anchor downloads there are treated as file: navigations and blocked.
     await saveExportFile(name, bytes);
 
     return;
@@ -225,7 +225,7 @@ async function saveOne(name: string, bytes: Uint8Array): Promise<void> {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
-  // The download has started; release the URL once it has had time to read.
+  // The download has started. Release the URL once it has had time to read.
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 

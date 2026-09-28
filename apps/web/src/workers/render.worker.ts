@@ -9,14 +9,14 @@ import { initTypstState, installPayload, payloadKey, requestKey } from "~/worker
 
 /**
  * Worker entry: owns one TypstState for publish and export renders. The page
- * source and prelude arrive with each request; `#typbase.query` and
+ * source and prelude arrive with each request. `#typbase.query` and
  * `#typbase.embed` resolve through the main thread, which posts insert
  * messages that land in THIS instance (file ids are created from the request
  * paths, so the world's roots stay consistent). Compiles loop until no
- * requests remain; a pass that makes no progress stops instead of recompiling.
+ * requests remain. A pass that makes no progress stops instead of recompiling.
  */
 
-/** The wasm asset URL arrives in a configure message; the main thread already
+/** The wasm asset URL arrives in a configure message. The main thread already
  *  loaded it, and worker-side asset resolution is not portable. */
 let wasmModuleUrl: string | undefined;
 let state: TypstState | undefined;
@@ -111,7 +111,7 @@ self.addEventListener(
         }
 
         // renderPdf is compiled behind the wasm `pdf` feature and absent
-        // from the default build's typings; pdfAvailable() proved the call
+        // from the default build's typings. pdfAvailable() proved the call
         // is safe. RenderPdfResult mirrors the Rust struct.
         const pdfState = typstState as unknown as {
           renderPdf(

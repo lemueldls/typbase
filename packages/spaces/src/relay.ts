@@ -3,7 +3,7 @@
  * updates and awareness payloads. Bears no secrets and stores nothing: the
  * relay is a plain WebSocket, the room is the workspace id, and the server
  * never writes anything down. When it drops, the poll loop in TypbaseSync is
- * the fallback; presence is best-effort by design.
+ * the fallback. Presence is best-effort by design.
  */
 
 export type RelayMessage =

@@ -35,7 +35,7 @@ fn invalid_inputs_clear_sys_inputs() {
 
     let mut state = harness::state();
     state.set_inputs(Some("p1".into()), Some("demo".into()), "test".into());
-    // A later call replaces the whole set; omitted values must not linger.
+    // A later call replaces the whole set. Omitted values must not linger.
     state.set_inputs(None, None, "test".into());
 
     let id = harness::page(&mut state, "inputs-empty");

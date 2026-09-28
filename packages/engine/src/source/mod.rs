@@ -23,14 +23,14 @@
 //!
 //! The [`SourceMap`](map::SourceMap) describes each text as a sequence of
 //! copied and generated segments, so compiler output can be translated back to
-//! coordinates the editor understands. Every lookup is total and monotone;
-//! callers pick a [`Side`](map::Side) at generated spans.
+//! coordinates the editor understands. Every lookup is total and monotone.
+//! Callers pick a [`Side`](map::Side) at generated spans.
 //!
 //! ## Invariant
 //!
 //! `sync_source_context` rebuilds the pristine synth and render source from
 //! scratch on every call. The pristine file does not change until the next
-//! sync; the render file changes during a render (delimiter repair, error
+//! sync. The render file changes during a render (delimiter repair, error
 //! marks, block blanking) and is rebuilt on the next sync.
 
 mod context;

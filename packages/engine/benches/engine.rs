@@ -1,7 +1,7 @@
 //! Criterion benches for the engine hot paths.
 //!
 //! Run with `moon run engine:bench` (or `cargo bench --bench engine`). Compile
-//! benches need the bundled fonts; they skip with a printed note when the
+//! benches need the bundled fonts. They skip with a printed note when the
 //! font files are missing. Numbers are only comparable on the same machine
 //! and profile.
 

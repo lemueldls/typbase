@@ -22,7 +22,7 @@ export interface NotebookCell {
 
 /** Per-cell state the host owns: run counters and visibility. */
 export interface NotebookCellState {
-  /** Execution counter shown as `[n]`; undefined until the cell is run. */
+  /** Execution counter shown as `[n]`. Undefined until the cell is run. */
   count?: number;
   /** Output hidden until the next run. */
   cleared?: boolean;
@@ -52,7 +52,7 @@ export interface NotebookCompileResult {
 }
 
 export interface NotebookOptions {
-  /** Cells for a document text; the host reads them from the engine. */
+  /** Cells for a document text. The host reads them from the engine. */
   cells: (text: string) => NotebookCell[];
   /** Run/visibility state per cell index. */
   state?: (index: number) => NotebookCellState | undefined;
@@ -63,7 +63,7 @@ export interface NotebookOptions {
   onCells?: (cells: NotebookCell[]) => void;
   /** Fires when the cursor moves to a different cell. */
   onActiveCell?: (index: number | null) => void;
-  /** Fires after every compile that ran; `run` carries the requested cell. */
+  /** Fires after every compile that ran. `run` carries the requested cell. */
   onRun?: (index: number | "all") => void;
   /** Fires after a compile with the fresh frames and diagnostics. */
   onCompile?: (result: NotebookCompileResult) => void;
@@ -99,7 +99,7 @@ export function hasMarker(cell: NotebookCell): boolean {
   return cell.marker_end > cell.marker_start;
 }
 
-/** Index of the cell containing `pos`; gaps belong to the cell above. */
+/** Index of the cell containing `pos`. Gaps belong to the cell above. */
 export function cellIndexAt(cells: NotebookCell[], pos: number): number {
   let index = cells.length ? 0 : -1;
 
@@ -155,8 +155,8 @@ export function insertCellText(
 
   const cell = cells[index]!;
   const from = where === "above" ? cellStart(cell) : blockEnd(cells, index, text);
-  // A blank line after the new cell keeps it a separate paragraph; the gap
-  // before the following marker is already there when inserting above.
+  // A blank line after the new cell keeps it a separate paragraph. The
+  // gap before the following marker is already there when inserting above.
   const insert = `${marker}\n${content ? `${content}\n` : ""}\n`;
 
   return {
@@ -241,7 +241,7 @@ export function mergeCellText(text: string, cells: NotebookCell[], index: number
   const cell = cells[index]!;
   if (index === 0 || !hasMarker(cell)) return null;
 
-  // Drop the marker line; the gap before it becomes the paragraph break.
+  // Drop the marker line, so the gap before it becomes the paragraph break.
   return {
     changes: { from: cell.marker_start, to: cell.content_start, insert: "" },
     anchor: cell.marker_start,
@@ -293,7 +293,7 @@ function dispatchEdit(view: EditorView, edit: CellEdit): boolean {
   return true;
 }
 
-/** Compiles and reports through `onRun`; does not move the cursor. */
+/** Compiles and reports through `onRun`, but does not move the cursor. */
 export function runCell(view: EditorView, index: number): boolean {
   if (!notebookOptions(view.state) || index < 0) return false;
 

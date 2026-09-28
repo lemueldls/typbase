@@ -1,5 +1,5 @@
 /**
- * Search palette visibility. The palette renders once in the app shell; the
+ * Search palette visibility. The palette renders once in the app shell, and the
  * keyboard shortcut and the search buttons in the sidebar and page toolbar
  * all open it through this shared state.
  */

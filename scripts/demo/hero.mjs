@@ -25,7 +25,7 @@ import {
 /**
  * Records the hero video: one unbroken walk through the app, notebook mode
  * excluded on purpose. Playwright records the whole page session including
- * the seed and boot; ffmpeg trims from the first staged frame using the wall
+ * the seed and boot. ffmpeg trims from the first staged frame using the wall
  * clock captured when the page was created.
  *
  *   pnpm dev
@@ -150,7 +150,7 @@ async function main() {
     // Hover info: the computed bindings, not just function docs.
     await hoverToken(page, "nums");
     await hoverToken(page, "fib");
-    // Reveal the paragraph so its reference can be hovered too; the tooltip
+    // Reveal the paragraph so its reference can be hovered too. The tooltip
     // resolves it to the current value.
     await page.evaluate(() => {
       const api = window.__typbase;

@@ -109,7 +109,7 @@ const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
 
 const notebookSession = createNotebookSession();
 const notebookController = shallowRef<NotebookController>();
-/** Cell selected in command mode (editor blurred); null while editing. */
+/** Cell selected in command mode (editor blurred). Null while editing. */
 const notebookSelected = ref<number | null>(null);
 let pendingNotebookDelete = false;
 let pendingDeleteTimer: ReturnType<typeof setTimeout> | undefined;
@@ -404,14 +404,14 @@ function reloadApp() {
 }
 
 // Remote cursor rendering + reporting. Extra CM extensions ride the same
-// list; the EditablePane remounts per page id so the closure stays honest.
+// list. The EditablePane remounts per page id so the closure stays honest.
 const extraExtensions = computed(() => {
   if (!fileId.value) return [];
 
   return [
     presenceCursors(props.pageId, () => presence.value as Map<string, PresencePeer>),
     EditorView.updateListener.of((update) => {
-      // Focusing the editor leaves command mode; the cursor cell becomes the
+      // Focusing the editor leaves command mode. The cursor cell becomes the
       // active one again.
       if (update.focusChanged && update.view.hasFocus) notebookSelected.value = null;
       if (!update.selectionSet && !update.docChanged) return;
@@ -561,8 +561,8 @@ async function pushPendingText(): Promise<boolean> {
   }
 }
 
-/** Flushes pending text and the store snapshot. False when either failed;
- *  pagehide and page-switch callers ignore it and let the next flush retry. */
+/** Flushes pending text and the store snapshot. False when either failed.
+ *  Pagehide and page-switch callers ignore it and let the next flush retry. */
 async function flushText(): Promise<boolean> {
   let ok = await pushPendingText();
   if (store) {
@@ -623,7 +623,7 @@ async function setupPage() {
   if (engineHealth.value.status === "failed") {
     // No wasm calls while failed. The text is loaded and the watchers from the
     // previous page go away so they cannot write this page's text into that
-    // one; `handlePanic` rebinds the open page when the user retries.
+    // one. `handlePanic` rebinds the open page when the user retries.
     unsubscribeSave?.();
     unsubscribeSave = undefined;
     unsubscribeFontScan?.();
@@ -638,7 +638,7 @@ async function setupPage() {
     typstState.value = await useTypst();
     if (pageDisposed || token !== setupToken) return;
     requestService = createTypstRequestService(typstState.value, store);
-    // The space context survives later createSourceId calls (see state.rs);
+    // The space context survives later createSourceId calls (see state.rs).
     // this one call is what gives pages their fonts/theme.
     await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
     if (pageDisposed || token !== setupToken) return;
@@ -657,7 +657,7 @@ async function setupPage() {
           fontFamiliesInSource(text.value),
         );
         requestService?.purge();
-        // A prelude edit must recompile with the new text; the page context
+        // A prelude edit must recompile with the new text. The page context
         // moved with it, so the daily neighbors stay current.
         prelude.value = [
           pageContextBinding(store, props.pageId),
@@ -716,7 +716,7 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
       if (current !== text.value) text.value = current;
     })
     .then((stop) => {
-      // The subscription promise can resolve after the page changed; release
+      // The subscription promise can resolve after the page changed. Release
       // it instead of leaking a dead listener.
       if (pageDisposed || token !== setupToken) stop();
       else unsubscribePage = stop;
@@ -757,18 +757,18 @@ onMounted(() => {
     try {
       return typstState.value?.memoryBytes() ?? 0;
     } catch {
-      // A dead instance traps; the watchdog cannot read it either.
+      // A dead instance traps. The watchdog cannot read it either.
       return -1;
     }
   };
   testApi.crashEngine = () => {
-    // `debugPanic` exists in debug wasm only; the cast keeps this compiling
+    // `debugPanic` exists in debug wasm only. The cast keeps this compiling
     // against release typings too.
     const state = typstState.value as unknown as { debugPanic?: () => void } | undefined;
     state?.debugPanic?.();
   };
 
-  // Backstop for idle tabs and for stretches with no compiles at all; the
+  // Backstop for idle tabs and for stretches with no compiles at all. The
   // per-compile check in `onEngineCompile` handles the busy case.
   heapTimer = setInterval(() => {
     const state = typstState.value;
@@ -830,7 +830,7 @@ function onPreviewJump(range: { from: number; to: number }) {
 }
 
 // Search palette / generated-content reveal requests for this page. The
-// palette can navigate here, so a request may arrive before the page is bound;
+// palette can navigate here, so a request may arrive before the page is bound.
 // wait for `ready` and check once on mount for requests that got here first.
 watch(
   [revealRequests, ready],
@@ -903,7 +903,7 @@ function insertAsset(asset: { hash: string; mime: string; reference: string }): 
     : `#link("${asset.reference}")[${extension.toUpperCase()}]`;
 
   editorPane.value?.insertAt(position, insert);
-  // The dialog restores focus to its trigger as it closes; take it back.
+  // The dialog restores focus to its trigger as it closes, so take it back.
   void nextTick(() => view?.focus());
 }
 
@@ -914,7 +914,7 @@ function onRequests(requests: unknown[], spaceId: string) {
 const editorRevision = () =>
   `${dataRevision.value}:${renderRevision.value}:${pluginsRevision.value}`;
 
-// Plugin sources and plugin data are request-channel files; when they change
+// Plugin sources and plugin data are request-channel files. When they change
 // the injected copies must go so the next compile re-requests them.
 watch(pluginsRevision, () => {
   if (engineHealth.value.status !== "ok") return;
@@ -924,10 +924,10 @@ watch(pluginsRevision, () => {
 });
 
 // Template bindings unwrap refs (":text=\"text\"" passes the string). The
-// editor/preview need the ref objects themselves; v-bind spread keeps them.
+// editor/preview need the ref objects themselves, and v-bind spread keeps them.
 const sharedState = computed(() => ({ text, prelude }));
 
-// System fonts were installed; the typeface set changed under the docs.
+// System fonts were installed, so the typeface set changed under the docs.
 watch(renderRevision, () => {
   editorPane.value?.recompile();
 });
@@ -965,7 +965,7 @@ function syncFromEditor(view: EditorView, scroller: HTMLElement) {
   const block = view.lineBlockAtHeight(Math.min(y, view.contentHeight - 1));
   const pos = block ? block.from : 0;
 
-  // The top of the viewport can sit in a blank-line gap between frames; fall
+  // The top of the viewport can sit in a blank-line gap between frames. Fall
   // back to the next frame, or the last one when past the end.
   let index = layout.ranges.findIndex(
     (range) => pos >= range.start && pos <= Math.max(range.start, range.end - 1),
@@ -1035,7 +1035,7 @@ function startSplitDrag(event: PointerEvent) {
 }
 
 const modes = computed<Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }>>(() =>
-  // Notebook mode belongs to notebook pages; `meta` refreshes on dataRevision,
+  // Notebook mode belongs to notebook pages. `meta` refreshes on dataRevision,
   // so converting the open page updates the tabs in place.
   VIEW_MODES.filter((mode) => mode.id !== "notebook" || meta.value?.kind === "notebook").map(
     (mode) => ({
@@ -1061,7 +1061,7 @@ function onModeKeydown(event: KeyboardEvent) {
   if (next) emit("update:modelValue", next.id);
 }
 
-/** The open page's kind flip; index.vue syncs the view mode to it. */
+/** The open page's kind flip. index.vue syncs the view mode to it. */
 function convertPageKind(): void {
   const kind = meta.value?.kind === "notebook" ? "document" : "notebook";
   void store.updatePageKind(props.pageId, kind);
@@ -1431,7 +1431,7 @@ function setCategory(categoryId: string | null): void {
   flex: none;
 }
 
-/* Chevron pinned to the strip's right edge; matches the edit button size. */
+/* Chevron pinned to the strip's right edge. Matches the edit button size. */
 .page-view__format .page-view__format-collapse {
   display: inline-flex;
   align-items: center;

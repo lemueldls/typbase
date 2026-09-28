@@ -29,7 +29,7 @@ import { sanitizeHtml } from "~/lib/plugins/sanitize";
 import { publishPrelude } from "~/lib/publishPrelude";
 
 /**
- * Vue binding for the chat runtime. The engine itself is framework-free; this
+ * Vue binding for the chat runtime. The engine itself is framework-free. This
  * composable supplies the workspace store, the main-thread engine (for the
  * dialect card), the search index (for grounding), and the chat worker
  * (progressive render + acceptance check).
@@ -82,7 +82,7 @@ function useChatState() {
     return store;
   }
 
-  /** Settings-derived worker style; only pushed when it changes. */
+  /** Settings-derived worker style. Only pushed when it changes. */
   function applyWorkerStyle(
     store: ReturnType<typeof currentStore>,
     palette?: ThemePaletteTokens,
@@ -120,7 +120,7 @@ function useChatState() {
         return { html: result.html ?? "", diagnostics: result.diagnostics };
       },
       check: async ({ source, prelude, palette, spaceId }) => {
-        // The check can run before the first progressive render; the worker's
+        // The check can run before the first progressive render. The worker's
         // world needs the palette's code-block theme either way.
         applyWorkerStyle(currentStore(), palette);
         const result = await checkChatMessage({ source, prelude, spaceId });
@@ -183,7 +183,7 @@ function useChatState() {
     if (!manager || !workspace.value) return;
     installDeps(workspace.value);
     void ensure(workspace.value).catch(() => {
-      // Search is best-effort; chat works without it.
+      // Search is best-effort. Chat works without it.
     });
   });
 

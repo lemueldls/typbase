@@ -13,7 +13,7 @@ export function editorDisplayExtension(settings: EditorSettings | undefined): Ex
   const extensions: Extension[] = [];
 
   if (settings?.softWrap === false) {
-    // The class flips the scroller to horizontal overflow; the base theme
+    // The class flips the scroller to horizontal overflow. The base theme
     // hides it because wrapped lines normally leave nothing to scroll.
     extensions.push(EditorView.editorAttributes.of({ class: "cm-soft-wrap-off" }));
   } else {

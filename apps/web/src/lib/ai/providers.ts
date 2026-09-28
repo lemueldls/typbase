@@ -7,7 +7,7 @@ import type { AiProviderKind, AiProviderSettings } from "@typbase/typing";
  * chat pane renders (and validates) while tokens arrive.
  *
  * The browser talks to providers directly. Anthropic needs the
- * `anthropic-dangerous-direct-browser-access` header for that; Ollama needs
+ * `anthropic-dangerous-direct-browser-access` header for that. Ollama needs
  * its origin allowed (`OLLAMA_ORIGINS`). A custom OpenAI-compatible endpoint
  * needs CORS.
  */
@@ -23,7 +23,7 @@ export interface ProviderMessage {
   content: string;
   /** Tool calls an assistant turn requested. */
   toolCalls?: ProviderToolCall[];
-  /** The call a tool result answers. Anthropic requires it; others ignore it. */
+  /** The call a tool result answers. Anthropic requires it, but others ignore it. */
   toolCallId?: string;
   /** Tool name for tool results (Ollama). */
   name?: string;
@@ -151,7 +151,7 @@ class OpenAICompatibleProvider implements AiProvider {
     if (!response.ok) throw await providerError(response);
     if (!response.body) throw new Error("Provider returned no stream");
 
-    // Tool call deltas arrive fragmented across chunks; keyed by the stream's
+    // Tool call deltas arrive fragmented across chunks. Keyed by the stream's
     // own index, arguments concatenate until the call is complete.
     const calls = new Map<number, { id: string; name: string; args: string }>();
     let stopReason: string | null = null;

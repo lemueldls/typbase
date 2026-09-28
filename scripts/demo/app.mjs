@@ -44,7 +44,7 @@ export const SHOT_SETTINGS = {
 /**
  * GIF settings shared by the clip and hero captures: 13 fps at 1200px with a
  * 160-color bayer-dithered palette. Long captures stay watchable without
- * ballooning; the full hero lands around 10 MB.
+ * ballooning. The full hero lands around 10 MB.
  */
 export const GIF_FILTER =
   "fps=13,scale=1200:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=160[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3";
@@ -61,8 +61,8 @@ export async function installChromePreferences(context) {
 
 /**
  * A fake pointer for the clips: Playwright video does not render the real
- * cursor. The overlay follows `mousemove`; `moveCursor` below dispatches real
- * moves over time, so the pointer glides instead of teleporting. The press
+ * cursor. The overlay follows `mousemove`, and `moveCursor` below dispatches
+ * real moves over time, so the pointer glides instead of teleporting. The press
  * scale and ripple are CSS, driven by real mousedown/mouseup events.
  */
 export async function installCursor(context) {
@@ -196,7 +196,7 @@ function easeInOutCubic(t) {
 /** Last animated pointer position, so moves start where the last one ended. */
 let cursorPoint = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
 
-/** Lets the overlay track the pointer; see the guard in `installCursor`. */
+/** Lets the overlay track the pointer. See the guard in `installCursor`. */
 async function armCursor(page) {
   await page.evaluate(() => {
     window.__demoCursorArmed = true;
@@ -303,7 +303,7 @@ export async function show(page, pageId, mode, { editor = true } = {}) {
   await page.waitForFunction(() => document.fonts.status === "loaded", null, { timeout: 60_000 });
   await page.waitForTimeout(900);
   if (!editor) return;
-  // The linter runs after the editor compile; wait for a clean gutter so no
+  // The linter runs after the editor compile. Wait for a clean gutter so no
   // red squiggles land in the shot.
   await page
     .waitForFunction(
@@ -377,7 +377,7 @@ export async function clickToken(page, text, pause = 600) {
 
 /**
  * Accepts a completion by label. Assumes the popup is already open from
- * typing; retries with an explicit trigger if it is not. The engine ranks
+ * typing. Retries with an explicit trigger if it is not. The engine ranks
  * completions by context, so the wanted item is not always the first.
  */
 export async function acceptCompletion(page, labels) {

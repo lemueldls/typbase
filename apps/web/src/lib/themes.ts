@@ -32,7 +32,7 @@ export interface ThemeDefinition {
   label: string;
   /** Key colors for readability in the picker. */
   swatch: { background: string; text: string; accent: string };
-  /** Seeds per mode; `light` may be null for dark-only themes. */
+  /** Seeds per mode. `light` may be null for dark-only themes. */
   variants: { light: ThemeSeeds | null; dark: ThemeSeeds };
 }
 
@@ -437,7 +437,7 @@ export function resolveLightTheme(settings: {
 
 /**
  * Resolves a theme + mode into concrete tokens.
- * - "custom" merges settings.themeCustom over the default palette; named
+ * - "custom" merges settings.themeCustom over the default palette. Named
  *   themes ignore a leftover custom palette so switching back and forth does
  *   not silently mask them.
  * - a theme without a light variant stays dark even in light mode.
@@ -488,7 +488,7 @@ function prefersDarkScheme(): boolean {
 
 /**
  * Stored custom palettes can predate the current token set or carry syntax no
- * parser downstream understands. Normalize what we can; unknown keys merge
+ * parser downstream understands. Normalize what we can. Unknown keys merge
  * over the base as usual.
  */
 function normalizeCustom(custom: Partial<ThemePaletteTokens>): Partial<ThemePaletteTokens> {
@@ -512,7 +512,7 @@ export interface AppChromeSettings extends AppFontSettings {
   uiSize?: UiSize;
   uiDensity?: UiDensity;
   uiRadius?: UiRadius;
-  /** Document text size in pt; the editor renders 1pt as 1px. */
+  /** Document text size in pt. The editor renders 1pt as 1px. */
   textSize?: number;
 }
 
@@ -526,7 +526,7 @@ const UI_DENSITY_SCALE: Record<UiDensity, number> = {
 const UI_RADIUS_SCALE: Record<UiRadius, number> = { square: 0.25, default: 1, round: 1.5 };
 
 function cssFamily(family: string): string {
-  // Family names are user data; quote and escape so a stray quote cannot
+  // Family names are user data. Quote and escape so a stray quote cannot
   // break the declaration.
   return `"${family.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
@@ -567,7 +567,7 @@ export function themeCssVars(
 ): Record<string, string> {
   const vars: Record<string, string> = {};
 
-  // Token keys are camelCase (`surface2`); the stylesheets read kebab-case
+  // Token keys are camelCase (`surface2`). The stylesheets read kebab-case
   // (`--color-surface-2`). Without the conversion the multiword tokens never
   // reached the DOM and themes fell back to the default palette.
   for (const [token, value] of Object.entries(resolved.palette)) {
@@ -582,11 +582,11 @@ export function themeCssVars(
     vars["--font-math"] = stacks.math;
   }
 
-  // Size presets multiply the token scale; tokens.css carries the fallbacks.
+  // Size presets multiply the token scale. tokens.css carries the fallbacks.
   vars["--ui-size"] = String(UI_SIZE_SCALE[settings?.uiSize ?? "default"]);
   vars["--ui-density"] = String(UI_DENSITY_SCALE[settings?.uiDensity ?? "default"]);
   vars["--ui-radius"] = String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]);
-  // The editor and the rendered headings follow the document text size; the
+  // The editor and the rendered headings follow the document text size. The
   // engine gets the same number for compiled output.
   vars["--doc-text-size"] = `${settings?.textSize ?? 16}px`;
 
@@ -605,7 +605,7 @@ export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSet
 }
 
 // Last-applied settings cache. Workspace theme settings live in a Loro doc,
-// which is async and boot-time-slow; painting the correct palette on page
+// which is async and boot-time-slow. Painting the correct palette on page
 // load needs it earlier. Every apply writes the settings here, and a client
 // plugin restores them before the first app frame.
 
@@ -636,7 +636,7 @@ export function cacheThemeSettings(settings: CachedThemeSettings): void {
       } satisfies CachedThemeSettings),
     );
   } catch {
-    // Storage can be unavailable; the workspace apply still runs later.
+    // Storage can be unavailable. The workspace apply still runs later.
   }
 }
 

@@ -9,16 +9,16 @@ import { useRuntimeConfig } from "nitro/runtime-config";
 
 /**
  * Client metadata for the native shells (Tauri). Discoverable clients have to
- * live at an HTTPS URL, so this document is served by the deployed app; the
+ * live at an HTTPS URL, so this document is served by the deployed app. The
  * shell's client_id is `${appUrl}${NATIVE_OAUTH_METADATA_PATH}`. The redirect
  * is a private-use URI scheme: the OS opens Typbase with the response, which
  * `apps/web/src/lib/nativeAuth.ts` feeds into `initCallback`.
  *
  * Hand-written because airspace's `clientMetadata()` always emits a web client
- * with the redirect under the app origin; this one needs
+ * with the redirect under the app origin. This one needs
  * `application_type: "native"` and the deep-link scheme.
  *
- * Prerendered alongside the web document; see that route for the build note.
+ * Prerendered alongside the web document. See that route for the build note.
  */
 export default defineEventHandler(() => {
   const config = useRuntimeConfig();

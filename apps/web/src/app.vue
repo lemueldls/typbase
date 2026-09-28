@@ -31,7 +31,7 @@ function onKeydown(event: KeyboardEvent): void {
     });
 }
 
-// app.vue renders on the server too; `window` only exists on the client.
+// app.vue renders on the server too, so `window` only exists on the client.
 onMounted(() => {
   useEventListener(window, "keydown", onKeydown, { capture: true });
 });

@@ -1,5 +1,5 @@
 /**
- * Loro is a wasm package; load it lazily so the Nuxt server build never
+ * Loro is a wasm package. Load it lazily so the Nuxt server build never
  * touches it.
  */
 export type LoroModule = typeof import("loro-crdt");

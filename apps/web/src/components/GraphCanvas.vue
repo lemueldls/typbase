@@ -31,7 +31,7 @@ const props = withDefaults(
     data: GraphData;
     palette: ThemePaletteTokens;
     labels?: "auto" | "always" | "never";
-    /** Title-search matches; null means no search is active. */
+    /** Title-search matches. Null means no search is active. */
     matchIds?: Set<string> | null;
     selectedId?: string | null;
   }>(),
@@ -47,20 +47,20 @@ const host = useTemplateRef<HTMLDivElement>("host");
 const canvas = useTemplateRef<HTMLCanvasElement>("canvas");
 
 const CATEGORY_HUES = ["blue", "cyan", "green", "yellow", "orange", "red", "violet"] as const;
-/** Zoom range; below 0.15 the graph is a dot cloud, above 4 labels overlap. */
+/** Zoom range. Below 0.15 the graph is a dot cloud, above 4 labels overlap. */
 const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 4;
 /** Fit-to-view stops here so a two-node graph does not fill the pane. */
 const FIT_MAX_ZOOM = 1.35;
-/** Auto labels hold until this zoom; below it the halo text is unreadable. */
+/** Auto labels hold until this zoom. Below it the halo text is unreadable. */
 const AUTO_LABEL_ZOOM = 0.7;
 /** Pointer travel under this counts as a click, not a drag. */
 const CLICK_SLOP = 6;
-/** Fit-to-view camera tween; long enough to read, short enough to feel direct. */
+/** Fit-to-view camera tween, long enough to read and short enough to feel direct. */
 const CAMERA_ANIM_MS = 320;
 /** Extra tween time per doubling of the zoom ratio, so a wide refit glides. */
 const CAMERA_ANIM_PER_OCTAVE_MS = 240;
-/** Cap for the scaled tween; past a second the camera feels sleepy. */
+/** Cap for the scaled tween. Past a second the camera feels sleepy. */
 const CAMERA_ANIM_MAX_MS = 1000;
 /** The layout has cooled enough to frame once alpha drops below this. */
 const FIT_ALPHA = 0.15;
@@ -88,7 +88,7 @@ const simulation: Simulation<SimNode, SimLink> = forceSimulation<SimNode>([])
 simulation.on("tick", () => {
   scheduleDraw();
 
-  // Fit once the layout has spread out; fitting on the phyllotaxis seed would
+  // Fit once the layout has spread out. Fitting on the phyllotaxis seed would
   // frame the seed, not the graph, and read as a huge zoom-in. The quiet
   // window lets a burst of resolved nodes land before the camera commits.
   if (
@@ -111,12 +111,12 @@ const viewport = { width: 0, height: 0, dpr: 1 };
 const font = { family: "sans-serif", size: 10 };
 let hoverId: string | null = null;
 let frame = 0;
-/** Deferred first fit; a camera interaction cancels it. */
+/** Deferred first fit that a camera interaction cancels. */
 let pendingFit = false;
 /** When the node set last changed, so a burst of additions refits once. */
 let lastNodeChangeAt = 0;
 let cameraTouched = false;
-/** In-flight fit-to-view tween; a pointer or wheel interaction drops it. */
+/** In-flight fit-to-view tween. A pointer or wheel interaction drops it. */
 let cameraTween: {
   from: { x: number; y: number; k: number };
   to: { x: number; y: number; k: number };
@@ -124,7 +124,7 @@ let cameraTween: {
   duration: number;
 } | null = null;
 
-/** Live pointer positions, keyed by pointer id; two mean pinch. */
+/** Live pointer positions, keyed by pointer id. Two mean pinch. */
 const pointerPositions = new Map<number, { x: number; y: number }>();
 interface DragState {
   pointerId: number;
@@ -345,7 +345,7 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Eases the camera to a target instead of snapping. Zoom interpolates in log
- * space so the rate reads even across magnitudes; the center stays linear. A
+ * space so the rate reads even across magnitudes. The center stays linear. A
  * pointer or wheel interaction drops the tween, and reduced-motion snaps.
  */
 function animateCamera(to: { x: number; y: number; k: number }): void {
@@ -359,7 +359,7 @@ function animateCamera(to: { x: number; y: number; k: number }): void {
     return;
   }
 
-  // A wide reframe gets proportionally more time; unchecking local can span
+  // A wide reframe gets proportionally more time. Unchecking local can span
   // two or three doublings of the zoom, which 320ms reads as a snap.
   const octaves = Math.abs(Math.log2(to.k / camera.k));
   const duration = Math.min(
@@ -370,11 +370,11 @@ function animateCamera(to: { x: number; y: number; k: number }): void {
   scheduleDraw();
 }
 
-/** Advances an in-flight camera tween; the rAF loop keeps itself alive. */
+/** Advances an in-flight camera tween. The rAF loop keeps itself alive. */
 function stepCamera(now: number): void {
   if (!cameraTween) return;
 
-  // An rAF timestamp can predate the click that started the tween; clamp at
+  // An rAF timestamp can predate the click that started the tween. Clamp at
   // zero so the first frame cannot overshoot.
   const progress = Math.min(1, Math.max(0, (now - cameraTween.start) / cameraTween.duration));
   const eased = 1 - (1 - progress) ** 3;
@@ -638,7 +638,7 @@ function measure(): void {
   surface.style.width = `${rect.width}px`;
   surface.style.height = `${rect.height}px`;
 
-  // Canvas text does not inherit CSS; snapshot the host's type once per size
+  // Canvas text does not inherit CSS. Snapshot the host's type once per size
   // change instead of reading computed style every frame. Labels sit a step
   // below chrome text so a zoomed-in graph does not read as a wall of type.
   const styles = getComputedStyle(element);

@@ -28,7 +28,7 @@ fn closing_pages_releases_their_files() {
     );
 }
 
-/// An unfinished construct is repaired on every compile; the world and its
+/// An unfinished construct is repaired on every compile. The world and its
 /// maps must not grow across them.
 #[test]
 fn repeated_incomplete_compiles_keep_the_world_stable() {

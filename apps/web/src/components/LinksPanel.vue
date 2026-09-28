@@ -29,7 +29,7 @@ const resolving = computed(() => {
   return Boolean(value && (value.resolving !== null || value.pending > 0));
 });
 
-/** Records and backlinks re-read when the index emits; the page id rebinds. */
+/** Records and backlinks re-read when the index emits. The page id rebinds. */
 const records = computed(() => {
   void status.value;
   void props.pageId;

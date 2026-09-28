@@ -283,7 +283,7 @@ impl FileSlot {
 }
 
 /// A file, source, or package the compiler asked for but the world does not
-/// have. Every compile returns the requests it accumulated; the caller
+/// have. Every compile returns the requests it accumulated, and the caller
 /// resolves them (workspace source, blob bytes, package tarball) and recompiles.
 #[derive(Tsify, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "kebab-case")]

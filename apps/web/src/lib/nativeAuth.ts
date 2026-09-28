@@ -9,12 +9,12 @@ import { NATIVE_OAUTH_REDIRECT_URI } from "@typbase/typing";
  * redirect, so sign-in always runs in the system browser and the response
  * comes back through the `at.typbase.app` deep link registered in
  * `tauri.conf.json`. The matching client metadata is served from the deployed
- * origin at `NATIVE_OAUTH_METADATA_PATH`; Tauri dev loads the Nuxt dev server
+ * origin at `NATIVE_OAUTH_METADATA_PATH`. Tauri dev loads the Nuxt dev server
  * but still uses that document, so desktop dev needs `NUXT_PUBLIC_APP_URL` set
  * to the deployed HTTPS origin.
  *
  * The shell registers the scheme at startup on Linux and Windows debug builds
- * (`register_all` in `apps/native/src/lib.rs`); macOS only registers bundled
+ * (`register_all` in `apps/native/src/lib.rs`). macOS only registers bundled
  * apps, so use `pnpm tauri build --debug` there.
  */
 
@@ -79,7 +79,7 @@ function paramsOf(urls: readonly string[]): URLSearchParams | null {
       const fragment = new URLSearchParams(url.hash.replace(/^#/, ""));
       if (hasResponse(fragment)) return fragment;
     } catch {
-      // Not a URL; ignore it.
+      // Not a URL, so ignore it.
     }
   }
 

@@ -15,7 +15,7 @@ use typst_syntax::{
 };
 
 /// One flattened source block. `map[i]` is the raw byte offset of plain byte
-/// `i`; FTS offsets in `plain` translate through it to editor positions.
+/// `i`. FTS offsets in `plain` translate through it to editor positions.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct FlattenedBlock {
     pub kind: String,
@@ -25,7 +25,7 @@ pub struct FlattenedBlock {
     pub map: Vec<u32>,
 }
 
-/// A `#typbase.section(kind: ...)[...]` block. Ranges are raw source bytes;
+/// A `#typbase.section(kind: ...)[...]` block. Ranges are raw source bytes.
 /// `content_start..content_end` is the markup inside the brackets.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SectionSpan {
@@ -231,8 +231,8 @@ fn section_span(call: &FuncCall, node: &LinkedNode, text: &str) -> Option<Sectio
     }
     let kind = kind?;
 
-    // The content block sits directly inside the Args node (after the parens);
-    // its Markup child carries the content range. AST wrappers do not expose
+    // The content block sits directly inside the Args node (after the parens).
+    // Its Markup child carries the content range. AST wrappers do not expose
     // ranges, so walk with LinkedNode directly.
     let mut content_range = None;
     for arg_list in node.children() {
@@ -364,7 +364,7 @@ pub fn extract_cells(text: &str) -> Vec<CellSpan> {
 
     let mut cells: Vec<CellBytes> = Vec::new();
 
-    // Content above the first marker is a cell of its own; a document that
+    // Content above the first marker is a cell of its own, but a document that
     // starts with a marker does not get an empty leading cell.
     let leading_end = trim_trailing_blank(text, 0, markers[0].0);
     if !text[..leading_end].trim().is_empty() {
@@ -404,7 +404,7 @@ fn line_end(text: &str, start: usize) -> usize {
         .map_or(text.len(), |offset| start + offset)
 }
 
-/// First byte after the line ending at `end`; the end of the text when the
+/// First byte after the line ending at `end`, or the end of the text when the
 /// line has no newline.
 fn after_line(text: &str, end: usize) -> usize {
     if end < text.len() && text.as_bytes()[end] == b'\n' {
@@ -613,7 +613,7 @@ mod tests {
 
     #[test]
     fn cell_ranges_are_utf16() {
-        // "é" is one UTF-16 unit in two UTF-8 bytes; the emoji is two units in
+        // "é" is one UTF-16 unit in two UTF-8 bytes. The emoji is two units in
         // four bytes. Offsets after them must count code units, not bytes.
         let text = "// %%\nHéllo 🎉\n\n// %%\n#x\n";
         let cells = extract_cells(text);

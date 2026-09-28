@@ -3,8 +3,8 @@
 // CI deploys files only. `wispctl deploy --spa`/`--directory` replaces the
 // whole settings record, which would drop the COOP/COEP headers the app needs
 // for cross-origin isolation, so this script owns that record instead. It
-// runs after the deploy and talks to the PDS directly with an app password;
-// the wisp firehose picks the change up like any other settings update.
+// runs after the deploy and talks to the PDS directly with an app password.
+// The wisp firehose picks the change up like any other settings update.
 //
 // Usage: WISPCTL_APP_PASSWORD=... node scripts/ci/wisp-settings.mjs <handle> <site>
 //
@@ -26,7 +26,7 @@ if (!password) {
 // path-scoped and non-overlapping: a path that matches none of them keeps the
 // host default (10 minutes, revalidate), which is what the entry document
 // wants. Hashed build output never changes under its URL, so it can be
-// immutable; `sw.js` must revalidate or a deploy would not replace the worker.
+// immutable. `sw.js` must revalidate or a deploy would not replace the worker.
 const headers = [
   { name: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { name: "Cross-Origin-Embedder-Policy", value: "credentialless" },

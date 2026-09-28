@@ -62,7 +62,7 @@ const pagesCount = computed(() => {
   return store.value?.listPages().length ?? 0;
 });
 
-/* wasm memory meter refreshes on activity; bump with the lab runs */
+/* wasm memory meter refreshes on activity. Bump with the lab runs */
 const wasmMemoryMB = ref(0);
 onMounted(() => {
   const tick = () => {
@@ -219,7 +219,7 @@ async function resetWorkspace() {
     await ensure();
     await wipeStorage();
   } catch {
-    // Nothing left to wipe; the reload still resets the in-memory state.
+    // Nothing left to wipe. The reload still resets the in-memory state.
   }
   window.location.reload();
 }

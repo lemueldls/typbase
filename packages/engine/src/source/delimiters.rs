@@ -51,7 +51,7 @@ pub enum FixKind {
     /// `#none` placeholder for a math attachment with no argument.
     MathAttachment,
     /// Closing backticks for an unclosed raw. `run` is the opener's backtick
-    /// count; `block` adds a leading newline so a fence lands on its own line.
+    /// count. `block` adds a leading newline so a fence lands on its own line.
     Raw { run: usize, block: bool },
     /// Closing `}` for an unclosed code block.
     CodeBlock,
@@ -260,7 +260,7 @@ fn utf16_len(text: &str) -> usize {
 /// Finds every repair in the tree.
 ///
 /// Children are visited before their parent so that closers pushed at one
-/// offset come out inner-first. Equations keep their own pass; code inside
+/// offset come out inner-first. Equations keep their own pass. Code inside
 /// them is still visited, but math strings are not treated as code strings.
 fn walk(node: &LinkedNode, text: &str, in_equation: bool, fixes: &mut Vec<DelimiterFix>) {
     if node.kind() == SyntaxKind::Equation && !in_equation {
@@ -296,7 +296,7 @@ fn collect_container_fix(node: &LinkedNode, text: &str, fixes: &mut Vec<Delimite
     };
 
     // An unclosed construct parses its opening token as an error leaf
-    // (`Error "("`); a closed one starts with LeftParen/LeftBrace/LeftBracket.
+    // (`Error "("`). A closed one starts with LeftParen/LeftBrace/LeftBracket.
     let opener = match kind {
         FixKind::CodeBlock => "{",
         FixKind::ContentBlock => "[",
@@ -402,7 +402,7 @@ fn collect_equation_fixes(node: &LinkedNode, text: &str, fixes: &mut Vec<Delimit
         let close = close_offset(text, node.range());
 
         // A quote placed right before the user's own `$` closes both the
-        // string and the equation; adding a second `$` there would make the
+        // string and the equation. Adding a second `$` there would make the
         // trailing delimiter content.
         let covered = string_fixes
             .iter()

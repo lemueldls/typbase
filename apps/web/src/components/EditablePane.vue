@@ -55,7 +55,7 @@ const props = defineProps<{
   prelude: TextRef;
   /** WYSIWYG (inline previews) vs plain source editing. */
   wysiwyg: boolean;
-  /** Notebook cell rendering; undefined outside notebook mode. */
+  /** Notebook cell rendering. Undefined outside notebook mode. */
   notebook?: NotebookOptions;
   /**
    * Engine failed: install only engine-free extensions so the user keeps
@@ -63,11 +63,11 @@ const props = defineProps<{
    * are gone.
    */
   degraded?: boolean;
-  /** Spellcheck provider; reconfigured in place when it changes. */
+  /** Spellcheck provider, reconfigured in place when it changes. */
   spellcheck?: SpellcheckMode;
-  /** Line numbers and scroll-past-end; reconfigured in place when they change. */
+  /** Line numbers and scroll-past-end, reconfigured in place when they change. */
   editor?: EditorSettings;
-  /** Harper's user dictionary; the native checker keeps its own. */
+  /** Harper's user dictionary. The native checker keeps its own. */
   spellcheckWords?: string[];
   /** Lints silenced with "Ignore". */
   spellcheckIgnoredLints?: IgnoredSpellcheckLint[];
@@ -80,9 +80,9 @@ const props = defineProps<{
   revision?: () => string | number | undefined;
   /** Extra CodeMirror extensions (presence cursors, AI menus, search scroll). */
   extensions?: Extension[];
-  /** Fired when the plugin's compile trapped; the parent rebuilds the wasm state. */
+  /** Fired when the plugin's compile trapped. The parent rebuilds the wasm state. */
   onPanic?: () => void;
-  /** Fired after a compile succeeds; the parent resets engine health. */
+  /** Fired after a compile succeeds, so the parent resets engine health. */
   onCompile?: () => void;
   /** Fired when a Typbase link inside a rendered widget is clicked. */
   onNavigate?: (pageId: string) => void;
@@ -109,7 +109,7 @@ function isAssetDrag(event: DragEvent): boolean {
   return types.includes("Files") || types.includes(ASSET_MIME);
 }
 
-// The indicator follows the line under the pointer; drops insert there.
+// The indicator follows the line under the pointer, and drops insert there.
 function onDragOver(event: DragEvent) {
   if (!props.onAssetDrop || !isAssetDrag(event)) return;
   event.preventDefault();
@@ -172,7 +172,7 @@ const createView = () => {
   config.doc = props.text.value;
 
   if (previous) {
-    // A mode or engine-health rebuild keeps the text; keep the cursor with it
+    // A mode or engine-health rebuild keeps the text. Keep the cursor with it
     // instead of dropping to the start of the note.
     const length = props.text.value.length;
     config.selection = {
@@ -191,7 +191,7 @@ const createView = () => {
 };
 
 // typbase.page-link and plugin embeds render as typbase:// anchors inside
-// the widget SVG; the widget no longer claims anchor clicks, so route them.
+// the widget SVG. The widget no longer claims anchor clicks, so route them.
 function onWidgetClick(event: MouseEvent) {
   const target = event.target as Element | null;
   const anchor = target?.closest?.('a[href^="typbase://"]') as HTMLAnchorElement | null;
@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
   testApi.fileId = null;
 });
 
-// Write, notebook, and source mode need different extension sets; rebuild on
+// Write, notebook, and source mode need different extension sets. Rebuild on
 // switch. The notebook prop's identity is stable per page, so only the mode
 // flag matters. Degraded drops the engine-backed set entirely.
 watch(
@@ -244,7 +244,7 @@ watch(
 
 // External writers replace the page text under an open editor: a plugin's
 // `app.page-append`, a source-mirror import, an atproto pull. Adopt the new
-// text when it differs from the doc; the editor's own edits echo back equal,
+// text when it differs from the doc. The editor's own edits echo back equal,
 // so this never fires mid-typing. PageView only updates `text` when the
 // editor is idle, so a pending keystroke cannot be clobbered here.
 watch(
@@ -262,7 +262,7 @@ watch(
   },
 );
 
-/** The options a reconfigure captures; props are read at call time. */
+/** The options a reconfigure captures. Props are read at call time. */
 function spellcheckOptions(): SpellcheckOptions {
   return {
     words: props.spellcheckWords,
@@ -272,7 +272,7 @@ function spellcheckOptions(): SpellcheckOptions {
   };
 }
 
-// The spellcheck provider and its dictionary are swapped in place; the Harper
+// The spellcheck provider and its dictionary are swapped in place. The Harper
 // source only loads its worker once something selects it. `getSettings()`
 // hands out fresh arrays, so compare a signature instead of identities.
 const spellcheckSignature = computed(() =>
@@ -291,7 +291,7 @@ watch(spellcheckSignature, () => {
   });
 });
 
-// Display flags are swapped in place too; the mode watcher above rebuilds the
+// Display flags are swapped in place too. The mode watcher above rebuilds the
 // view and picks the current props up from `createStateConfig`.
 const editorDisplaySignature = computed(() =>
   JSON.stringify([
@@ -316,7 +316,7 @@ function createStateConfig(): EditorStateConfig {
 
   if (props.degraded) {
     // Engine-free editing: keep text sync, keymap, language data, and
-    // spellcheck; drop everything that calls into the wasm state. The static
+    // spellcheck. Drop everything that calls into the wasm state. The static
     // highlighter keeps the source readable while previews are gone.
     extensions.push(
       EditorView.updateListener.of((update) => {
@@ -348,7 +348,7 @@ function createStateConfig(): EditorStateConfig {
       ),
     );
   } else {
-    // Write mode syncs text through the typst plugin's update hook; the
+    // Write mode syncs text through the typst plugin's update hook. The
     // split/source extension set has no plugin, so sync here or edits never
     // reach the store or the preview.
     extensions.push(
@@ -359,7 +359,7 @@ function createStateConfig(): EditorStateConfig {
       typstHoverTooltip(props.fileId, props.typstState),
       typstKeymap,
       typstLanguageData,
-      // The WYSIWYG plugin installs the same source; Split and Source mode
+      // The WYSIWYG plugin installs the same source. Split and Source mode
       // need it too or the editor has no completions at all.
       autocompletion({
         override: [(context) => autocomplete(context, props.fileId, props.typstState)],
@@ -410,7 +410,7 @@ function createStateConfig(): EditorStateConfig {
 
 /** Forces a recompile even though the doc did not change (data/fonts did). */
 function recompile() {
-  // The document text size can have changed with the same doc text; measure
+  // The document text size can have changed with the same doc text. Measure
   // before recompiling so widget heights and line boxes match the new font.
   view.value?.requestMeasure();
   view.value?.dispatch({ effects: typstRecompileEffect.of(null) });

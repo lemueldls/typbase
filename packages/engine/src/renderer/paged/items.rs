@@ -78,7 +78,7 @@ pub fn chunk_by_items_ctx(
     ctx.world.main_id = Some(ctx.note.synth_id);
 
     // If recovery marked ranges, update the patched source IDE queries trace
-    // against. The pristine parse source stays untouched; the patch keeps the
+    // against. The pristine parse source stays untouched. The patch keeps the
     // file compilable without moving spans.
     if !ctx.note.marked_raw_ranges.is_empty() {
         ctx.note.rebuild_ide_source(ctx.world);
@@ -407,7 +407,7 @@ pub fn chunk_by_items_with_blocks(
 
                     // The render source stays at the placeholder text. The
                     // next sync rebuilds it from the raw source, so there is
-                    // nothing to restore here; the pristine synth was never
+                    // nothing to restore here. The pristine synth was never
                     // touched.
                     return PagedRender {
                         chunks: marked_render.chunks,
@@ -517,7 +517,7 @@ pub fn chunk_by_items_with_blocks(
 
             // Empty content reports an infinite bounding box (Typst uses
             // `Rect` at +/-inf for "nothing here"). Chunks get filtered by the
-            // positivity check in the partition loop; tooltips need the same
+            // positivity check in the partition loop, but tooltips need the same
             // guard or the SVG renderer asserts on a non-finite size.
             let width = block_end_width - block_start_width;
             let height = block_end_height - block_start_height;
@@ -559,7 +559,7 @@ pub fn chunk_by_items_with_blocks(
             let raw_lines = raw_source.lines();
             // Pad by one byte so the editor range covers the whole first/last
             // token. A block at offset 0 (the date heading of a daily note,
-            // say) must not underflow; neither may the end pad run past the
+            // say) must not underflow. Neither may the end pad run past the
             // source. When the padded boundary lands mid-character (multibyte
             // text), fall back to the exact boundary rather than dropping the
             // block from the editor map.
@@ -598,7 +598,7 @@ pub fn chunk_by_items_with_blocks(
 
 /// Whether a frame item paints anything, and so has to stay inside its
 /// chunk's crop. The synth wraps every block in a `#block(stroke: 0pt)`, and
-/// tags are position markers; neither draws, so they do not clamp the top.
+/// tags are position markers. Neither draws, so they do not clamp the top.
 fn clamps_crop_top(item: &FrameItem) -> bool {
     match item {
         FrameItem::Text(_) | FrameItem::Image(..) | FrameItem::Group(..) => true,

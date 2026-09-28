@@ -63,7 +63,7 @@ export function useTypst() {
 
 /**
  * Replaces the cached instance after a wasm panic. Future useTypst() callers
- * get the fresh state; open panes recompile through their own remount keys.
+ * get the fresh state. Open panes recompile through their own remount keys.
  */
 export function replaceTypstState(state: TypstState): void {
   statePromise = Promise.resolve(state);
@@ -71,8 +71,8 @@ export function replaceTypstState(state: TypstState): void {
 
 /**
  * Clears Typst's memoization caches when an engine instance is already
- * loaded. The caches speed up repeated compiles but grow for the session;
- * workspace switches call this because the next compiles are cold anyway.
+ * loaded. The caches speed up repeated compiles but grow for the session.
+ * Workspace switches call this because the next compiles are cold anyway.
  */
 export function evictTypstCaches(): void {
   void statePromise?.then((state) => state.evictCaches()).catch(() => undefined);
@@ -154,7 +154,7 @@ function installedFor(typstState: TypstState): Set<string> {
   return families;
 }
 
-/** Browsers expose names only, so bucket by name; the shell sends metadata. */
+/** Browsers expose names only, so bucket by name. The shell sends metadata. */
 const MATH_NAME = /math|stix|xits|asana|neo euler/i;
 const MONO_NAME =
   /mono|code|consol|courier|menlo|iosevka|jetbrains|fira|hack|inconsolata|cascadia|typewriter/i;
@@ -215,7 +215,7 @@ async function installMissingFonts(
       }
     }
   } catch (error) {
-    // Font loading is additive; surface the reason and keep the app running.
+    // Font loading is additive. Surface the reason and keep the app running.
     systemFontsError.value = error instanceof Error ? error.message : String(error);
     return;
   }
@@ -230,8 +230,8 @@ async function installMissingFonts(
 }
 
 /**
- * Enumerates installed fonts. On desktop the shell's fontdb index is used;
- * browsers need the Local Font Access API (Chromium). Only the `families`
+ * Enumerates installed fonts. On desktop the shell's fontdb index is used,
+ * while browsers need the Local Font Access API (Chromium). Only the `families`
  * passed in are installed into the engine.
  */
 export async function loadSystemFonts(

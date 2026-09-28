@@ -11,7 +11,7 @@ const props = withDefaults(
     /** Defaults to "Cancel" / "Delete" from the common strings. */
     confirmLabel?: string;
     cancelLabel?: string;
-    /** Danger styles the confirm button; set false for a neutral confirm. */
+    /** Danger styles the confirm button. Set false for a neutral confirm. */
     danger?: boolean;
   }>(),
   { description: undefined, confirmLabel: undefined, cancelLabel: undefined, danger: true },

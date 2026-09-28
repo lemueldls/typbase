@@ -38,7 +38,7 @@ export interface ContextRequest {
   selection: string | null;
   includePage: boolean;
   includeSearch: boolean;
-  /** Character budget for the dynamic sections; defaults to 24k. */
+  /** Character budget for the dynamic sections. Defaults to 24k. */
   budget?: number;
 }
 
@@ -106,7 +106,7 @@ function clip(text: string, max: number): string {
   return `${cut}\n… [truncated ${text.length - max} characters]`;
 }
 
-/** The static dialect card; the engine's own library is the contract. */
+/** The static dialect card. The engine's own library is the contract. */
 export function dialectCard(typstState: TypstState): string {
   return [
     "## The Typbase Typst library (the only app API)",
@@ -163,7 +163,7 @@ export async function buildContext(
         spend(`## Related notes from search\n\n${lines.join("\n\n")}`);
       }
     } catch {
-      // Search is optional; a failure just means less context.
+      // Search is optional. A failure just means less context.
     }
   }
 

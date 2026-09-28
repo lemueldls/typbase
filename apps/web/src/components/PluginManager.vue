@@ -7,7 +7,7 @@ import { isFsaSupported } from "@typbase/storage";
 /**
  * Install, enable, and shape plugin instances. Shared by the sidebar dialog
  * and the debug lab (the lab renders it inline). Compile problems live in the
- * studio; this list only shows a per-plugin issue count.
+ * studio. This list only shows a per-plugin issue count.
  */
 const emit = defineEmits<{ (e: "openInstance", instanceId: string): void }>();
 

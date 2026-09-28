@@ -4,7 +4,7 @@ import type { StorageBackend } from "./backend";
 
 /**
  * The workspace registry: one JSON manifest at the backend root listing every
- * workspace. `lastOpenedAt` is the only ordering signal; the name is a cache
+ * workspace. `lastOpenedAt` is the only ordering signal. The name is a cache
  * of the workspace doc's `settings.name`, kept fresh on open/rename.
  */
 
@@ -56,7 +56,7 @@ export class WorkspaceRegistry {
 
 /**
  * Deletes everything under `workspaces/<id>`, children first, then the
- * directory itself. OPFS treats directories as entries; the recursive walk
+ * directory itself. OPFS treats directories as entries. The recursive walk
  * makes the same code work for the flat memory backend.
  */
 export async function removeWorkspace(backend: StorageBackend, workspaceId: string): Promise<void> {
@@ -72,6 +72,6 @@ async function removeEntryRecursive(backend: StorageBackend, path: string): Prom
     }
   }
   await backend.delete(path).catch(() => {
-    // Already gone; fine.
+    // Already gone, which is fine.
   });
 }

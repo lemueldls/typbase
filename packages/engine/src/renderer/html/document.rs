@@ -30,7 +30,7 @@ use crate::{
 #[wasm_bindgen]
 impl TypstState {
     /// Renders the whole note to one HTML document, with recovery. Used by
-    /// publish, export, and chat; the editor's inline frames use
+    /// publish, export, and chat. The editor's inline frames use
     /// `compileHTML` instead.
     #[wasm_bindgen(js_name = renderHtml)]
     pub fn render_html(
@@ -83,8 +83,8 @@ pub(crate) fn render_html_ctx(
     let mut diagnostics = Vec::new();
     let mut compiled_warnings = None;
 
-    // Recovery blanks blocks of the render source; the pristine synth stays
-    // available to the editor.
+    // Recovery blanks blocks of the render source, while the pristine synth
+    // stays available to the editor.
     ctx.world.main_id = Some(ctx.note.render_id);
 
     let mut document = None;
@@ -112,8 +112,8 @@ pub(crate) fn render_html_ctx(
                             ctx.world,
                         ));
 
-                        // The document compiled; the export pass is what
-                        // failed. Blanking blocks cannot help, so stop
+                        // The document compiled, but the export pass is
+                        // what failed. Blanking blocks cannot help, so stop
                         // instead of recompiling the same document forever.
                         break;
                     }

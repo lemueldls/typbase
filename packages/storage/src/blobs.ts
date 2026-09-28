@@ -1,6 +1,6 @@
 /**
  * Local media store. Blobs are content-addressed under
- * `workspaces/<id>/blobs/<sha256>`; nothing here talks to atproto, it is the
+ * `workspaces/<id>/blobs/<sha256>`. Nothing here talks to atproto, it is the
  * cache and the only copy until a page is published to a space.
  */
 
@@ -71,7 +71,7 @@ export function sniffMime(bytes: Uint8Array): string {
   if (startsWith(bytes, "wOFF")) return "font/woff";
   if (startsWith(bytes, "OTTO") || startsWith(bytes, "\x00\x01\x00\x00")) return "font/ttf";
 
-  // SVG is text; decode a bounded prefix so a huge file cannot stall.
+  // SVG is text. Decode a bounded prefix so a huge file cannot stall.
   const head = new TextDecoder().decode(bytes.slice(0, 512)).trimStart();
   if (head.startsWith("<svg") || (head.startsWith("<?xml") && head.includes("<svg"))) {
     return "image/svg+xml";

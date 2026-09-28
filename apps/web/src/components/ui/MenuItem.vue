@@ -13,7 +13,7 @@ withDefaults(
     danger?: boolean;
     /**
      * Check-list item. `true` shows the check, `false` reserves its slot so a
-     * list of choices stays aligned; leave unset for a plain item.
+     * list of choices stays aligned. Leave unset for a plain item.
      */
     checked?: boolean;
   }>(),

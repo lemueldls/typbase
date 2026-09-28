@@ -10,7 +10,7 @@ import { collections, workspaceSpace } from "./collections";
 /** The NSID of the workspace space type. */
 export const WORKSPACE_SPACE_TYPE = "at.typbase.workspace";
 
-/** `com.atproto.repo.applyWrites`-style batch limit; keep deletes in chunks of this size. */
+/** `com.atproto.repo.applyWrites`-style batch limit. Keep deletes in chunks of this size. */
 const MAX_BATCH = 200;
 
 export interface WorkspaceClientOptions {
@@ -42,7 +42,7 @@ export function createWorkspaceClient(options: WorkspaceClientOptions) {
 
 /**
  * Read-only client for one account's public posts. `identity` is a handle or
- * a DID; the PDS lookup happens on first use.
+ * a DID, and the PDS lookup happens on first use.
  */
 export function createPublicPostsClient(identity: string | { did: string; service: string }) {
   return createAirspace({
@@ -66,7 +66,7 @@ export type PostValue = PostRecord["value"];
 
 /**
  * The sync engine's transport over the space's update and snapshot
- * collections. Records come back newest first; the engine stops at the last
+ * collections. Records come back newest first. The engine stops at the last
  * rkey it saw, which is why updates are keyed by TID.
  */
 export function createAirspaceTransport(space: WorkspaceSpace): SyncTransport {

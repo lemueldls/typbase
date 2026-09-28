@@ -93,10 +93,10 @@ pub(crate) struct SyncedInput {
 ///   tracked by [`RawFixups`]. Only needed for documents the parser would
 ///   otherwise swallow.
 /// - **synth**: the pristine synthesized source, `synth_id`. Built from the
-///   raw text on every sync. Never mutated after that; [`Self::index_map`]
+///   raw text on every sync. Never mutated after that. [`Self::index_map`]
 ///   describes it and diagnostics-only compiles read it.
 /// - **render**: the disposable source the renderer compiles, `render_id`.
-///   Built from the repaired text; error recovery marks and blanks ranges of
+///   Built from the repaired text. Error recovery marks and blanks ranges of
 ///   it and updates [`Self::render_map`] instead of touching the pristine
 ///   pair. IDE queries parse it too, because tracing an expression compiles
 ///   [`TypstWorld::main`], and the pristine synth of a page with errors does
@@ -127,7 +127,7 @@ pub struct SourceContext {
     /// `world.main`, so IDE queries need a compilable main. This file is a
     /// byte-length-equal copy of the pristine synth with each marked range
     /// replaced by a valid expression. Queries outside the marked ranges parse
-    /// this file and set `main` to it, so tracing works; queries inside a
+    /// this file and set `main` to it, so tracing works. Queries inside a
     /// marked range parse the pristine synth instead, where the token under
     /// the cursor is still the user's.
     pub ide_id: FileId,
@@ -141,8 +141,8 @@ pub struct SourceContext {
     pub index_map: SourceMap,
 
     /// Byte-offset correspondence between the repaired source and the render
-    /// source. Cloned from [`Self::index_map`] when no repair was needed;
-    /// error recovery splices its edits into this map.
+    /// source. Cloned from [`Self::index_map`] when no repair was needed.
+    /// Error recovery splices its edits into this map.
     pub render_map: SourceMap,
 
     /// Delimiter insertions applied between raw and repaired text. Empty for
@@ -150,7 +150,7 @@ pub struct SourceContext {
     pub render_fixups: RawFixups,
 
     /// Raw ranges error recovery marked in the current render. Used to build
-    /// the patched IDE trace source; cleared on every sync.
+    /// the patched IDE trace source. Cleared on every sync.
     pub marked_raw_ranges: Vec<Range<usize>>,
 
     /// The most recently compiled paged document for this note, if any.
@@ -327,7 +327,7 @@ impl SourceContext {
 
     /// Whether a span belongs to one of this note's compile sources. Spans
     /// from the render source show up in diagnostics and frame items after
-    /// recovery; spans from the pristine synth show up in IDE queries.
+    /// recovery. Spans from the pristine synth show up in IDE queries.
     #[must_use]
     pub fn owns_span(&self, id: FileId) -> bool {
         id == self.synth_id || id == self.render_id
@@ -362,7 +362,7 @@ impl SourceContext {
     }
 
     /// Repaired offset to render offset. Recovery internals work in these two
-    /// spaces directly; blocks and equation ranges come from the repaired
+    /// spaces directly. Blocks and equation ranges come from the repaired
     /// parse.
     #[must_use]
     pub fn map_repaired_to_render(&self, repaired: usize, side: Side) -> usize {

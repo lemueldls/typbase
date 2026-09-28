@@ -36,8 +36,8 @@ export async function mirrorPageProject(
   const page = store.getPage(pageId);
   if (!page) return;
 
-  // A dev server started before the last wasm build serves stale constructors;
-  // skip the lib rather than failing the page load over the mirror.
+  // A dev server started before the last wasm build serves stale constructors,
+  // so skip the lib rather than failing the page load over the mirror.
   if (typstState && typeof typstState.typbaseLib === "function") {
     await store.writeProjectFile("typbase/lib.typ", encoder.encode(typstState.typbaseLib()));
   }

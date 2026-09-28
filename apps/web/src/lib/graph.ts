@@ -4,7 +4,7 @@ import type { LinkRecord } from "~/lib/links";
 
 /**
  * Graph data prep: pages plus link records in, nodes and deduplicated edges
- * out. Pure and unit-tested; the canvas only lays out and draws what this
+ * out. Pure and unit-tested. The canvas only lays out and draws what this
  * returns, and the filters live in `WorkspaceSettings.graph`.
  */
 
@@ -14,7 +14,7 @@ export interface GraphNode {
   kind: PageKind;
   categoryId: string | null;
   tags: string[];
-  /** Daily notes are pages; the flag drives the label tooltip. */
+  /** Daily notes are pages. The flag drives the label tooltip. */
   daily: boolean;
   /** Undirected degree in the filtered graph. */
   degree: number;
@@ -23,7 +23,7 @@ export interface GraphNode {
 export interface GraphEdge {
   source: string;
   target: string;
-  /** Link calls between the pair; parallel mentions collapse to one edge. */
+  /** Link calls between the pair. Parallel mentions collapse to one edge. */
   weight: number;
 }
 

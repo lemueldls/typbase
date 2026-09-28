@@ -1,7 +1,7 @@
 /**
  * Ctrl/Cmd+S is captured at the app level so the browser's save dialog never
  * opens, including on routes where no editor is mounted. The open PageView
- * registers a handler that flushes its text and snapshot; without one there
+ * registers a handler that flushes its text and snapshot. Without one there
  * is nothing pending to save and the shortcut stays silent.
  */
 

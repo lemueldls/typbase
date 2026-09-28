@@ -6,7 +6,7 @@ import symbols from "~/assets/symbols.json";
 export interface SymbolEntry {
   id: MaterialSymbol;
   title: string;
-  /** Google's font-metadata tags ("house" for `home`); the search matches them. */
+  /** Google's font-metadata tags ("house" for `home`). The search matches them. */
   synonyms: string[];
 }
 
@@ -20,7 +20,7 @@ export const DEFAULT_WORKSPACE_ICON: MaterialSymbol = "folder";
 /**
  * Curated set shown first when the search box is empty. Without it the grid
  * opens on "123", "360", "10k" (alphabetically first, practically useless).
- * All ids are verified against the glyph union; sorting by this list is what
+ * All ids are verified against the glyph union. Sorting by this list is what
  * makes the picker inviting on first open.
  */
 export const POPULAR_WORKSPACE_ICONS: MaterialSymbol[] = [
@@ -61,7 +61,7 @@ export interface SymbolSearchResult {
 /**
  * Text search over icon names. Matches the underscored id, the title-cased name,
  * the font metadata synonyms ("house" finds `home`), and per-word prefixes
- * ("cal" finds "calendar_month"). The grid renders `limit` entries at most;
+ * ("cal" finds "calendar_month"). The grid renders `limit` entries at most.
  * `total` carries the full count so the picker can say when the list was cut.
  */
 export function searchSymbols(query: string, limit = 300): SymbolSearchResult {

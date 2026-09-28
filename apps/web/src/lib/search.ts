@@ -38,27 +38,27 @@ export interface SearchStatus {
   docs: number;
   blocks: number;
   semantic: boolean;
-  /** sqlite-vec is present in this build; semantic queries need it. */
+  /** sqlite-vec is present in this build. Semantic queries need it. */
   vecReady: boolean;
   model: "idle" | "downloading" | "ready" | "error";
-  /** Download percentage while `model` is "downloading"; null when unknown. */
+  /** Download percentage while `model` is "downloading". Null when unknown. */
   modelProgress: number | null;
   error: string | null;
-  /** Last index worker failure; indexing is broken while this is set. */
+  /** Last index worker failure. Indexing is broken while this is set. */
   indexError: string | null;
 }
 
 const INDEX_DEBOUNCE_MS = 2000;
 const QUERY_TIMEOUT_MS = 8000;
 const MAX_HITS = 24;
-/** Ceiling for one embedding call; the first one downloads the model. */
+/** Ceiling for one embedding call. The first one downloads the model. */
 const EMBED_TIMEOUT_MS = 120_000;
-/** Backoff between index worker load attempts; Vite's optimizer needs a moment. */
+/** Backoff between index worker load attempts. Vite's optimizer needs a moment. */
 const WORKER_RETRY_DELAYS = [1000, 3000, 8000];
 
 export type SearchQueryMode = "text" | "hybrid" | "loading" | "unavailable";
 
-/** Text search always runs; semantic only fuses in when the model is ready. */
+/** Text search always runs. Semantic only fuses in when the model is ready. */
 export function searchQueryMode(status: SearchStatus | null): SearchQueryMode {
   if (!status?.semantic) return "text";
   if (!status.vecReady || status.model === "error") return "unavailable";
@@ -79,10 +79,10 @@ export class SearchManager {
   /** Last indexed `PageMeta.updatedAt`, so settings writes don't re-embed. */
   private indexedAt = new Map<string, number>();
   private indexErrors = new Map<string, string>();
-  // FTS offsets are UTF-8 byte offsets; snippets need the decoded text back.
+  // FTS offsets are UTF-8 byte offsets. Snippets need the decoded text back.
   private encoder = new TextEncoder();
   private decoder = new TextDecoder();
-  // Debounce via the global useDebounceFn; outside a component scope it never
+  // Debounce via the global useDebounceFn. Outside a component scope it never
   // auto-disposes, which is fine: the manager lives for the app's lifetime.
   private flushIndexDebounced = useDebounceFn(() => void this.flushIndex(), INDEX_DEBOUNCE_MS);
   private statusValue: SearchStatus = {
@@ -102,7 +102,7 @@ export class SearchManager {
 
   constructor(private readonly store: WorkspaceStore) {}
 
-  /** The workspace this index belongs to; switches rebuild the manager. */
+  /** The workspace this index belongs to. Switches rebuild the manager. */
   get workspaceId(): string {
     return this.store.workspaceId;
   }
@@ -130,7 +130,7 @@ export class SearchManager {
         live.add(page.id);
         if (this.indexedAt.get(page.id) !== page.updatedAt) this.markDirty(page.id);
       }
-      // Pages that disappeared still have index rows; marking them dirty
+      // Pages that disappeared still have index rows. Marking them dirty
       // routes through the delete branch in `indexDoc`.
       for (const docId of this.indexedAt.keys()) {
         if (!live.has(docId)) this.markDirty(docId);
@@ -199,7 +199,7 @@ export class SearchManager {
 
   /**
    * Re-reads the synced search settings. The settings UI can flip semantic
-   * search at any time; indexing and queries branch on this flag, so a stale
+   * search at any time. Indexing and queries branch on this flag, so a stale
    * value made the toggle a no-op until the app reloaded.
    */
   private refreshSettings(): void {
@@ -214,7 +214,7 @@ export class SearchManager {
     this.emit();
   }
 
-  /** Drops the model worker and resolves pending calls; it restarts on demand. */
+  /** Drops the model worker and resolves pending calls. It restarts on demand. */
   private resetEmbedWorker(): void {
     for (const resolve of this.embedPending.values()) resolve(null);
     this.embedPending.clear();
@@ -237,14 +237,14 @@ export class SearchManager {
       await this.indexDoc(docId, typstState);
     }
 
-    // The worker owns the doc/block counts; ask for a fresh status once the
+    // The worker owns the doc/block counts. Ask for a fresh status once the
     // batch is in so the settings panel reflects the index.
     this.worker?.postMessage({ type: "status" });
   }
 
   private async indexDoc(docId: string, typstState: TypstState): Promise<void> {
     if (docId === this.store.workspaceId) {
-      // The workspace doc holds metadata, not page content; pages index it.
+      // The workspace doc holds metadata, not page content. Pages index it.
       await this.indexWorkspaceMeta(typstState);
       return;
     }
@@ -269,7 +269,7 @@ export class SearchManager {
     }
     this.indexMaps.set(docId, maps);
     this.indexedAt.set(docId, page.updatedAt);
-    // The worker answers with the row ids of the blocks it stored; the
+    // The worker answers with the row ids of the blocks it stored. The
     // embedding pass needs those, so it starts from the "upserted" reply.
     this.blocksByDoc.set(docId, blocks);
 
@@ -284,7 +284,7 @@ export class SearchManager {
   }
 
   private async indexWorkspaceMeta(typstState: TypstState): Promise<void> {
-    // No full-text content in the workspace doc; page upserts keep the
+    // No full-text content in the workspace doc. Page upserts keep the
     // pages table current.
     void typstState;
     this.emit();
@@ -299,7 +299,7 @@ export class SearchManager {
     const rowIds = this.blockIds.get(docId);
     if (!rowIds || rowIds.length === 0 || !this.ensureEmbedWorker()) return;
 
-    // The model takes a batch at a time; long pages still get every block.
+    // The model takes a batch at a time. Long pages still get every block.
     const batch = 64;
     for (let start = 0; start < blocks.length; start += batch) {
       const chunk = blocks.slice(start, start + batch);
@@ -309,7 +309,7 @@ export class SearchManager {
 
       for (let i = 0; i < chunk.length && i < vectors.length; i++) {
         // A newer upsert may have replaced these rows while the model was
-        // busy; drop the stale writes instead of re-adding orphan vectors.
+        // busy. Drop the stale writes instead of re-adding orphan vectors.
         if (this.blockIds.get(docId) !== rowIds) return;
 
         const rowid = rowIds[start + i];
@@ -342,7 +342,7 @@ export class SearchManager {
           error?: string;
           progress?: number;
         };
-        // Progress is not tied to a request; it keeps the panel's bar moving
+        // Progress is not tied to a request. It keeps the panel's bar moving
         // while the first download runs.
         if (message.type === "progress") {
           this.statusValue.model = "downloading";
@@ -390,7 +390,7 @@ export class SearchManager {
 
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
-        // The first call downloads the model, so give it room; a wedged load
+        // The first call downloads the model, so give it room. A wedged load
         // would otherwise hold the indexing pass open forever.
         this.embedPending.delete(id);
         resolve(null);
@@ -433,7 +433,7 @@ export class SearchManager {
         });
       }
     } else if (mode === "loading" && this.statusValue.model === "idle") {
-      // Warm the model without holding up the text results; the next
+      // Warm the model without holding up the text results. The next
       // keystroke can fuse once it reports ready.
       if (this.ensureEmbedWorker()) void this.requestVectors([query]);
     }
@@ -617,7 +617,7 @@ export class SearchManager {
       this.statusValue.vecReady = message.status.vecReady;
       this.emit();
     }
-    // Query failures are transient and resolve through `queryWorker`; only
+    // Query failures are transient and resolve through `queryWorker`. Only
     // indexing and init failures belong in the status.
     const queryRequest =
       message.requestType === "query" || message.requestType === "semantic-query";

@@ -5,14 +5,14 @@ import sqliteWasmUrl from "sqlite-wasm-vec/sqlite3.wasm?url";
  * Search index worker. Owns `index.sqlite` (OPFS when cross-origin isolation
  * allows it, memory otherwise) with FTS5 plus an optional sqlite-vec table
  * for semantic search. The main thread sends flattened blocks (see the wasm
- * `flattenDocument` pass) and asks queries here; all text search state lives
+ * `flattenDocument` pass) and asks queries here. All text search state lives
  * in this worker and nowhere else.
  */
 
 export interface IndexedBlock {
   kind: string;
   plain: string;
-  /** Wasm `FlattenedBlock` fields are snake_case; keep them as sent. */
+  /** Wasm `FlattenedBlock` fields are snake_case. Keep them as sent. */
   range_start: number;
   range_end: number;
   /** raw byte offset per plain byte, as a plain number array over the wire */
@@ -67,13 +67,13 @@ type WorkerResponse = {
   blockIds?: number[];
   docId?: string;
   vectors?: Array<{ blockId: number; vector: number[] }>;
-  /** Request type that failed; lets `queryWorker` resolve its callers. */
+  /** Request type that failed. Lets `queryWorker` resolve its callers. */
   requestType?: string;
   error?: string;
 };
 
 type Sqlite3 = Awaited<ReturnType<typeof sqlite3InitModule>>;
-// sqlite3.oo1.DB is the constructor; the instance is what we hold.
+// sqlite3.oo1.DB is the constructor. The instance is what we hold.
 type SqliteDb = InstanceType<Sqlite3["oo1"]["DB"]>;
 
 let sqlite3: Sqlite3 | undefined;
@@ -81,7 +81,7 @@ let db: SqliteDb | undefined;
 let mode: "opfs" | "memory" = "memory";
 let vecReady = false;
 
-/** bge-small embedding width; the vec table is declared with it. */
+/** bge-small embedding width. The vec table is declared with it. */
 const VECTOR_DIM = 384;
 
 async function ensureDb(dbName: string): Promise<void> {
@@ -89,12 +89,12 @@ async function ensureDb(dbName: string): Promise<void> {
 
   // Ask Vite for the wasm asset URL instead of letting the package resolve it.
   // Vite's wasm plugin serves `.wasm` module ids as wasm-bindgen glue, which
-  // the Emscripten loader cannot instantiate; the query makes the dev server
+  // the Emscripten loader cannot instantiate. The query makes the dev server
   // return the raw binary.
   const binary = `${sqliteWasmUrl}${sqliteWasmUrl.includes("?") ? "&" : "?"}binary`;
   sqlite3 = await sqlite3InitModule({ locateFile: () => binary });
   // OpfsDb is installed only when the OPFS VFS is available (see the
-  // package docs); `"opfs" in sqlite3` never matches because the property
+  // package docs). `"opfs" in sqlite3` never matches because the property
   // lives on sqlite3.oo1.
   const hasOpfs = "OpfsDb" in sqlite3.oo1;
   mode = hasOpfs ? "opfs" : "memory";
@@ -119,7 +119,7 @@ async function ensureDb(dbName: string): Promise<void> {
     CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(plain);
   `);
   try {
-    // The OPFS VFS has no shared memory, so WAL is not available there; the
+    // The OPFS VFS has no shared memory, so WAL is not available there. The
     // default journal is fine for a rebuildable cache. Keep this separate
     // from the schema so a refusal cannot take the whole index down.
     opened.exec("PRAGMA journal_mode = WAL");
@@ -170,7 +170,7 @@ async function handle(request: WorkerRequest): Promise<void> {
         );
         for (const [i, block] of request.blocks.entries()) {
           if (!block.plain.trim()) {
-            // Keep blockIds aligned with the request; 0 means "not stored".
+            // Keep blockIds aligned with the request. 0 means "not stored".
             blockIds.push(0);
             continue;
           }
@@ -221,7 +221,7 @@ async function handle(request: WorkerRequest): Promise<void> {
         break;
       }
       const match = `"${terms.join('" "')}"`;
-      // No `offsets()` in this sqlite build; `highlight()` marks the matches
+      // No `offsets()` in this sqlite build. `highlight()` marks the matches
       // with control characters and the marker positions give the same range.
       const rows = db.selectArrays(
         `SELECT b.doc_id, b.block_index, b.kind, b.plain, b.range_start, b.range_end,

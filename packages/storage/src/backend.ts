@@ -44,7 +44,7 @@ declare global {
 
 /**
  * Storage backends. The whole local tree is a flat set of byte-addressed
- * files; the registry decides what lives where.
+ * files, and the registry decides what lives where.
  *
  * Layout:
  *
@@ -59,7 +59,7 @@ export interface StorageEntryStat {
   kind: "file" | "directory";
   /** Bytes for files, 0 for directories. */
   size: number;
-  /** Epoch milliseconds; absent when the backend has no timestamps. */
+  /** Epoch milliseconds, absent when the backend has no timestamps. */
   modifiedAt?: number;
 }
 
@@ -77,7 +77,7 @@ export interface StorageBackend {
   stat(path: string): Promise<StorageEntryStat | null>;
   /**
    * Calls `listener` with paths relative to `path` when files under it
-   * change. Backends without change notifications leave this out; the source
+   * change. Backends without change notifications leave this out. The source
    * sync then falls back to its focus sweep. Resolves to a disposer.
    */
   watch?(path: string, listener: (relativePath: string) => void): Promise<() => void>;
@@ -141,7 +141,7 @@ export class DirectoryHandleBackend implements StorageBackend {
 
   constructor(protected readonly root: FileSystemDirectoryHandle) {}
 
-  /** Looks up a directory without creating it; null when a segment is missing. */
+  /** Looks up a directory without creating it. Null when a segment is missing. */
   protected async resolveDir(segments: string[]): Promise<FileSystemDirectoryHandle | null> {
     let dir = this.root;
     let prefix = "";
@@ -205,7 +205,7 @@ export class DirectoryHandleBackend implements StorageBackend {
     const name = segments.at(-1)!;
     const handle = await dir.getFileHandle(name, { create: true });
     const writable = await handle.createWritable();
-    // Copy into an ArrayBuffer-owned view; TS 5.9 types reject generic
+    // Copy into an ArrayBuffer-owned view. TS 5.9 types reject generic
     // Uint8Array views on the write API.
     await writable.write(new Uint8Array(data).buffer);
     await writable.close();
@@ -221,7 +221,7 @@ export class DirectoryHandleBackend implements StorageBackend {
     try {
       await dir.removeEntry(segments.at(-1)!, { recursive: true });
     } catch {
-      // Already gone; not worth surfacing.
+      // Already gone. Not worth surfacing.
     }
   }
 
@@ -253,7 +253,7 @@ export class DirectoryHandleBackend implements StorageBackend {
 
       return { kind: "file", size: file.size, modifiedAt: file.lastModified };
     } catch {
-      // Not a file; fall through to the directory probe.
+      // Not a file, so fall through to the directory probe.
     }
 
     try {

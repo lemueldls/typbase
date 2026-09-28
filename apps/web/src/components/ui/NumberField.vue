@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    /** Accessible name for the input; the step buttons use reka's labels. */
+    /** Accessible name for the input. The step buttons use reka's labels. */
     label: string;
     min?: number;
     max?: number;

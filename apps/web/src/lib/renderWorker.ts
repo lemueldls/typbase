@@ -17,9 +17,9 @@ export interface RenderWorkerRequest {
   /** SVG only: merge all pages into a single document. */
   merged?: boolean;
   spaceId: string;
-  /** Page id for `sys.inputs`; null for a combined document. */
+  /** Page id for `sys.inputs`. Null for a combined document. */
   pageId?: string | null;
-  /** Export palette; the worker installs it so the code-block theme exists. */
+  /** Export palette. The worker installs it so the code-block theme exists. */
   theme?: ThemePaletteTokens;
 }
 
@@ -49,14 +49,14 @@ export interface RenderOutcome {
   payloads: RequestPayload[];
 }
 
-/** A render can idle behind a slow compile; without a message for this long,
+/** A render can idle behind a slow compile. Without a message for this long,
  *  assume the worker is wedged and restart it instead of hanging the UI. */
 const RENDER_IDLE_TIMEOUT_MS = 30_000;
 
 let worker: Worker | undefined;
 let nextId = 1;
 let requestStore: WorkspaceStore | undefined;
-/** Renders share one worker and its request loop; run them one at a time so a
+/** Renders share one worker and its request loop. Run them one at a time so a
  *  concurrent publish and export cannot interleave request passes. */
 let renderQueue: Promise<unknown> = Promise.resolve();
 
@@ -134,7 +134,7 @@ function ensureWorker(): Worker {
       const error = new Error(message.error ?? "Render failed");
       entry.reject(error);
 
-      // A trap killed the worker's wasm instance; every later render would
+      // A trap killed the worker's wasm instance. Every later render would
       // trap in the same place. Drop the worker so the next render starts
       // clean, and say so, since the export just failed.
       if (isWasmTrap(error)) {

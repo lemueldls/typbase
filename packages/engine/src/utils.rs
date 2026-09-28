@@ -3,7 +3,7 @@ use std::sync::Mutex;
 /// The most recent panic message, drained by `takePanicGlobal`.
 ///
 /// A panic on wasm32-unknown-unknown aborts the instance (no unwinding), so
-/// JS cannot catch it in Rust; it sees a trap at the call boundary. Recording
+/// JS cannot catch it in Rust, and sees a trap at the call boundary. Recording
 /// the message here lets the app distinguish "renderer panicked, rebuild the
 /// state" from a generic runtime error, and gives it the message to log. The
 /// drain is a free function rather than a `TypstState` method because a trap

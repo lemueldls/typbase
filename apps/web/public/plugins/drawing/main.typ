@@ -1,4 +1,4 @@
-// Drawing plugin. Strokes are records in the plugin doc; `embed` renders
+// Drawing plugin. Strokes are records in the plugin doc. `embed` renders
 // them as vector curves inside a note, wrapped in a `typbase://plugin/<id>`
 // link so clicking the drawing opens this window.
 //

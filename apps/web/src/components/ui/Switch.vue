@@ -3,7 +3,7 @@ const model = defineModel<boolean>({ default: false });
 
 withDefaults(
   defineProps<{
-    /** Visible label text; the default slot takes precedence. */
+    /** Visible label text, though the default slot takes precedence. */
     label?: string;
     /** Accessible name when there is no visible label. */
     ariaLabel?: string;
@@ -51,7 +51,7 @@ withDefaults(
 }
 
 .ui-switch__track {
-  /* Track, thumb, and padding all follow the control scale; the switch is a
+  /* Track, thumb, and padding all follow the control scale. The switch is a
      compound widget, so its proportions stay here instead of in tokens. */
   --switch-h: var(--control-xs);
   --switch-thumb: calc(var(--switch-h) * 0.78);

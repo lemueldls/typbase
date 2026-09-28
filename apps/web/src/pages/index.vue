@@ -47,7 +47,7 @@ const {
 } = useSearchPalette();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
-/** Desktop gets a resizable splitter; mobile keeps the drawer. The query
+/** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
  *  mirrors `--breakpoint-md` in tokens.css (mobile <= 48rem, desktop above). */
 const isDesktop = useMediaQuery("(min-width: 48.0625rem)");
 
@@ -78,7 +78,7 @@ watch(isDesktop, (desktop) => {
     return;
   }
 
-  // Narrow windows have no dock; keep the thread open as the full pane.
+  // Narrow windows have no dock. Keep the thread open as the full pane.
   if (dockChatId.value) {
     currentChatId.value = dockChatId.value;
     dockChatId.value = null;
@@ -123,7 +123,7 @@ watch(
   { immediate: true },
 );
 
-/** Home page when set, else the first page; empty when the workspace has none. */
+/** Home page when set, else the first page. Empty when the workspace has none. */
 function fallbackPageId(): string {
   const store = workspace.value;
   if (!store) return "";
@@ -131,7 +131,7 @@ function fallbackPageId(): string {
   return store.getSettings().homePageId ?? store.listPages()[0]?.id ?? "";
 }
 
-// Switching workspaces swaps the store under the shell; the generation key
+// Switching workspaces swaps the store under the shell. The generation key
 // remounts Sidebar/PageView, so the page id must be re-selected first. The
 // watcher runs pre-render in the same tick as the bump.
 watch(workspaceGeneration, () => {
@@ -192,7 +192,7 @@ const asideQuery = useRouteQuery<string>("aside", "");
 const router = useRouter();
 const route = useRoute();
 
-/** Query values can be string arrays or null; a page/mode id is a plain string. */
+/** Query values can be string arrays or null. A page/mode id is a plain string. */
 function queryString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
@@ -213,7 +213,7 @@ onMounted(async () => {
   if (!import.meta.dev) void appUpdates.check({ silent: true });
 
   const store = workspace.value;
-  if (!store) return; // no workspaces; the chooser handles it
+  if (!store) return; // no workspaces, so the chooser handles it
 
   const linkedId = queryString(pageQuery.value);
   const linked = linkedId ? store.getPage(linkedId) : undefined;
@@ -243,14 +243,14 @@ onMounted(async () => {
     }
   }
 
-  // Normalize the URL so the first entry carries the resolved state; back
+  // Normalize the URL so the first entry carries the resolved state, and back
   // from a later page then restores this one instead of an empty query.
   syncRoute("replace");
 
   setPluginNavigation({ openPage, openPlugin });
   setChatNavigation({ openChat, openPage });
 
-  // Dev-only handles for the e2e suite; production builds drop them.
+  // Dev-only handles for the e2e suite. Production builds drop them.
   testApi.openPlugin = openPlugin;
   testApi.installPlugin = async (pluginId) => {
     await plugins.install(pluginId);
@@ -314,7 +314,7 @@ function paneViewValue(): string {
   return "";
 }
 
-/** The query the refs describe; foreign params (OAuth, pasted extras) stay. */
+/** The query the refs describe. Foreign params (OAuth, pasted extras) stay. */
 function routeQuery(): LocationQueryRaw {
   const query: LocationQueryRaw = { ...route.query };
   delete query.page;
@@ -342,7 +342,7 @@ function sameQuery(next: LocationQueryRaw): boolean {
 }
 
 /**
- * Writes the refs to the URL. Opening something pushes a history step;
+ * Writes the refs to the URL. Opening something pushes a history step.
  * normalization and closes replace the current one. The read watchers apply
  * the result back, so this is the only writer.
  */
@@ -419,7 +419,7 @@ watch(asideQuery, (raw) => {
       currentChatId.value = null;
       dockChatId.value = id;
     } else {
-      // Narrow windows have no dock; the same link opens the full pane.
+      // Narrow windows have no dock, so the same link opens the full pane.
       currentChatId.value = id;
       dockChatId.value = null;
     }
@@ -455,7 +455,7 @@ function openPage(id: string) {
   currentPluginId.value = null; // opening a page leaves the other panes
   currentChatId.value = null;
   graphOpen.value = false;
-  // An empty id means the open page was deleted; fall back to home/first.
+  // An empty id means the open page was deleted. Fall back to home/first.
   currentPageId.value = id || fallbackPageId();
   syncModeToPage(currentPageId.value);
   syncRoute(historyMode);
@@ -469,7 +469,7 @@ function openSearch() {
 
 /**
  * A palette row was picked: open its page, then ask the page to scroll to the
- * hit. The request outlives the page switch; the new PageView consumes it once
+ * hit. The request outlives the page switch. The new PageView consumes it once
  * it is bound.
  */
 function openSearchResult(payload: { pageId: string; from?: number; to?: number }) {
@@ -534,8 +534,8 @@ function openPlugin(instanceId: string) {
   navOpen.value = false;
   if (!instanceId) return;
 
-  // Window-only plugins (drawing) float; pane plugins take the main pane. A
-  // local plugin's manifest may not be in the catalog yet; hold the id and
+  // Window-only plugins (drawing) float. Pane plugins take the main pane. A
+  // local plugin's manifest may not be in the catalog yet, so hold the id and
   // retry when it arrives instead of opening a blank pane.
   const kinds = plugins.surfacesOf(instanceId).map((surface) => surface.kind);
   if (!kinds.length) {
@@ -568,7 +568,7 @@ watch(
   },
 );
 
-/** The sidebar opens the workspace graph; the links panel roots it at the page. */
+/** The sidebar opens the workspace graph. The links panel roots it at the page. */
 function openGraph(rootAtPage = false) {
   const historyMode = takeLayerHistory();
   navOpen.value = false;
@@ -576,7 +576,7 @@ function openGraph(rootAtPage = false) {
   currentChatId.value = null;
   graphOpen.value = true;
 
-  // A graph opened from a page is about that page; turn local mode on so the
+  // A graph opened from a page is about that page. Turn local mode on so the
   // root is real, not just implied by the header chip.
   if (rootAtPage && currentPageId.value) {
     const store = workspace.value;
@@ -599,7 +599,7 @@ function closePlugin() {
 
 /**
  * Opens a thread by id, the most recent one, or a fresh one. Desktop docks it
- * beside the main pane so the page stays visible; narrow windows keep the full
+ * beside the main pane so the page stays visible. Narrow windows keep the full
  * pane.
  */
 function openChat(threadId?: string | null) {
@@ -988,7 +988,7 @@ definePageMeta({ ssr: false });
    in the toolbar flow (MainPane slot), so it pushes content rather than
    floating over it.
 
-   The desktop variant renders whenever the desktop shell does; its icon and
+   The desktop variant renders whenever the desktop shell does. Its icon and
    label flip with the sidebar state so it can collapse and expand. */
 .app__main .app__nav-toggle,
 .app__backdrop {

@@ -18,7 +18,7 @@ function useLinksState() {
   const health = useEngineHealth();
 
   watch(health, (value) => {
-    // A sweep that failed while the engine was down left empty records; once
+    // A sweep that failed while the engine was down left empty records. Once
     // a compile confirms the rebuild, run it again.
     if (value.status === "ok" && index.value?.status.error) index.value.retry();
   });
@@ -35,7 +35,7 @@ function useLinksState() {
     if (index.value && index.value.workspaceId !== store.workspaceId) reset();
     if (index.value) return index.value;
 
-    // Keep only the active workspace's index; the others hold every page's
+    // Keep only the active workspace's index. The others hold every page's
     // records for as long as the app lives.
     dropLinkIndexes(store.workspaceId);
     const instance = getLinkIndex(store);

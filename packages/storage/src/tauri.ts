@@ -6,7 +6,7 @@ import type { StorageBackend, StorageEntryStat } from "./backend";
  * folder) and all paths cross the IPC boundary relative to it, so nothing in
  * the webview ever handles an absolute path except to display it.
  *
- * Writes send the bytes as the raw IPC body with the path in a header; the
+ * Writes send the bytes as the raw IPC body with the path in a header. The
  * Rust command accepts both the raw body (desktop) and Android's JSON byte
  * array fallback. Reads return a raw `ArrayBuffer`, or null when missing.
  */
@@ -19,7 +19,7 @@ export interface TauriStorageState {
   appRoot: string;
   deviceRoot: string | null;
   configured: boolean;
-  /** Desktop can open a native folder picker; mobile cannot. */
+  /** Only desktop can open a native folder picker. */
   canPickFolder: boolean;
 }
 
@@ -46,7 +46,7 @@ export function tauriStorageState(): Promise<TauriStorageState> {
   return invoke<TauriStorageState>("storage_state");
 }
 
-/** Switches the root; `path` is required for `custom`. */
+/** Switches the root. `path` is required for `custom`. */
 export function configureTauriStorage(
   mode: TauriStorageMode,
   path?: string,
@@ -135,7 +135,7 @@ export class TauriBackend implements StorageBackend {
     return () => {
       unlisten();
       void invoke("storage_unwatch", { path }).catch(() => {
-        // A stale unwatch is harmless; the next watch replaces the watcher.
+        // A stale unwatch is harmless. The next watch replaces the watcher.
       });
     };
   }

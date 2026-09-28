@@ -8,7 +8,7 @@ export interface ToastAction {
 
 export interface Toast {
   id: string;
-  /** i18n key for the title; `title` wins when both are set. */
+  /** i18n key for the title. `title` wins when both are set. */
   titleKey?: string;
   /** Raw text used instead of `titleKey` when set (plugin messages). */
   title?: string;
@@ -16,7 +16,7 @@ export interface Toast {
   /** Interpolation values for the i18n keys. */
   params?: Record<string, unknown>;
   variant?: "default" | "danger";
-  /** Milliseconds before auto-dismiss; 0 keeps it until dismissed. */
+  /** Milliseconds before auto-dismiss. 0 keeps it until dismissed. */
   duration: number;
   actions?: ToastAction[];
 }

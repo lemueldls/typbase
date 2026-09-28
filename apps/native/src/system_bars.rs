@@ -5,7 +5,7 @@
 //! over the white app surface. The web layer reports its resolved theme
 //! through this app command (registered on the main builder, so it needs no
 //! capability entry, same as `storage.rs`), and the Kotlin `SystemBarsPlugin`
-//! flips the icon appearance. The bars themselves stay transparent; the app
+//! flips the icon appearance. The bars themselves stay transparent. The app
 //! paints under them.
 
 #[cfg(target_os = "android")]
@@ -25,8 +25,8 @@ struct SetLightArgs {
     light: bool,
 }
 
-/// Registers the Kotlin `SystemBarsPlugin`. Android only; there is no Kotlin
-/// half on other targets.
+/// Registers the Kotlin `SystemBarsPlugin`. Android only, with no Kotlin half
+/// on other targets.
 #[cfg(target_os = "android")]
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     PluginBuilder::new("system-bars")

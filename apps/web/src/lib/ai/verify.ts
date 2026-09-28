@@ -9,7 +9,7 @@ import { repairMessages } from "./context";
  * The acceptance gate. A reply counts as grounded only when the engine's
  * pristine compile (no delimiter repair, no error recovery) reports no
  * errors. Diagnostics come from the wasm engine already mapped to raw source
- * offsets; this module validates them and turns them into a repair prompt.
+ * offsets. This module validates them and turns them into a repair prompt.
  */
 
 export function toChatDiagnostics(raw: unknown[], source: string): ChatDiagnostic[] {

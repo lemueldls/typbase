@@ -7,7 +7,7 @@ import { createTypstState, replaceTypstState } from "~/composables/typst";
  * panic aborts the instance (no unwinding), so every call into a dead
  * `TypstState` throws a trap. The only safe move is to build a fresh state
  * and remount everything that talked to the old one. `PageView` owns that
- * remount; this module owns the fresh instance + the singleton swap.
+ * remount. This module owns the fresh instance + the singleton swap.
  */
 
 export interface EngineFailureInfo {

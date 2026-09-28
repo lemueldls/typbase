@@ -21,7 +21,7 @@ export interface PublishResult {
 
 /**
  * Renders a page and publishes it. The rendered artifacts become blobs on the
- * signed-in PDS; the `at.typbase.post` record is first written as a draft in
+ * signed-in PDS. The `at.typbase.post` record is first written as a draft in
  * the workspace space and then copied to the public repo by airspace's
  * `publish()`, so a failed publish leaves the draft behind instead of a
  * half-written public record.
@@ -108,7 +108,7 @@ export async function publishPage(
     updatedAt: now,
   });
 
-  // The first publish has no public record to guard; later ones swap the CID
+  // The first publish has no public record to guard. Later ones swap the CID
   // the reader just saw.
   const live = await airspace.post.get(pageId);
   const published = await airspace.workspace.post.publish(pageId, {

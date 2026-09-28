@@ -35,7 +35,7 @@ export function addDictionaryWord(words: readonly string[], word: string): strin
 /**
  * harper.js's ignored-lints format is `{"context_hashes":[<u64>, ...]}`.
  * Hashes live in settings as decimal strings because they overflow JS
- * numbers, so they are interpolated raw; anything not all digits is dropped.
+ * numbers, so they are interpolated raw. Anything not all digits is dropped.
  */
 export function ignoredLintsJson(entries: readonly IgnoredSpellcheckLint[]): string {
   const seen = new Set<string>();

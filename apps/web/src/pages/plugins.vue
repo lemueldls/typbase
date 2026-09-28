@@ -15,7 +15,7 @@ definePageMeta({ ssr: false });
  * Plugin studio. Pick a plugin, edit its sources with validation, preview
  * each declared surface, dispatch actions, and inspect state, view, and logs.
  * Local plugins under `plugins/<slug>/` are read and written through the
- * storage backend; bundled plugins are read-only until forked.
+ * storage backend. Bundled plugins are read-only until forked.
  */
 const plugins = usePlugins();
 const { backend, workspace, ensure, dataRevision } = useWorkspace();
@@ -45,7 +45,7 @@ interface StudioFile {
   text: string;
 }
 
-// Refs live above the immediate watchers; the load and inspect functions
+// Refs live above the immediate watchers. The load and inspect functions
 // below fill them.
 const files = ref<StudioFile[]>([]);
 const selectedFile = ref("");
@@ -148,7 +148,7 @@ async function loadFiles(): Promise<void> {
     next.push({ name: style.name, kind: "css", text: style.text });
   }
 
-  // Local files can change on disk; prefer stored bytes over the catalog copy.
+  // Local files can change on disk. Prefer stored bytes over the catalog copy.
   if (entry.storageDir) {
     for (const file of next) {
       const stored = await readStoredFile(entry.storageDir, file.name);
@@ -161,7 +161,7 @@ async function loadFiles(): Promise<void> {
     selectedFile.value = next[0]?.name ?? "";
     dirty.value = false;
   } else if (!dirty.value) {
-    // A reload (save, external edit) refreshes the open file in place; an
+    // A reload (save, external edit) refreshes the open file in place. An
     // in-progress edit keeps its draft.
     draft.value = next.find((file) => file.name === selectedFile.value)?.text ?? "";
   }

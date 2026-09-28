@@ -4,7 +4,7 @@
 //! The repair closes a construct at the first blank line inside it (or at its
 //! end), so the paragraph behind it keeps its own block. Every fixture here
 //! has the shape `Before.`, the unfinished construct, then
-//! `After the incomplete block.`; losing that trailing paragraph is the
+//! `After the incomplete block.`, and losing that trailing paragraph is the
 //! failure these tests exist for.
 
 use crate::{
