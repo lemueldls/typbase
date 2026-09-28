@@ -42,7 +42,7 @@ useBackLayer(open);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
-  z-index: 65;
+  z-index: 90;
   display: flex;
   flex-direction: column;
 }

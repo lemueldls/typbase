@@ -42,7 +42,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
       @keydown.enter.prevent
     >
       <template #leading>
-        <MsIcon name="search" :size="16" class="icon-picker__search-icon" />
+        <MsIcon name="search" :size="20" class="icon-picker__search-icon" />
       </template>
     </UiTextField>
 

@@ -53,7 +53,7 @@ const icon = computed(
       <template #trigger>
         <UiIconButton
           icon="more_vert"
-          :size="18"
+          :size="20"
           :label="t('switcher.actions', { name: info.name })"
           variant="ghost"
           class="button--small ws-row__more"

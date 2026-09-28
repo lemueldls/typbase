@@ -22,7 +22,7 @@ withDefaults(
     <DropdownMenuSubTrigger class="menu__item menu__sub-trigger" :disabled="disabled">
       <MsIcon v-if="icon" :name="icon" :size="20" />
       <span class="menu__sub-label">{{ label }}</span>
-      <MsIcon name="chevron_right" :size="16" class="menu__sub-chevron" />
+      <MsIcon name="chevron_right" :size="20" class="menu__sub-chevron" />
     </DropdownMenuSubTrigger>
     <DropdownMenuPortal>
       <DropdownMenuSubContent class="menu" :side-offset="sideOffset">

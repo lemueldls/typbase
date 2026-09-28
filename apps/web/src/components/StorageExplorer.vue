@@ -381,7 +381,7 @@ onBeforeUnmount(() => {
             <button type="button" class="explorer__expand" @click="toggleWorkspace(info)">
               <MsIcon
                 :name="expandedWorkspaceId === info.id ? 'keyboard_arrow_down' : 'chevron_right'"
-                :size="18"
+                :size="20"
               />
             </button>
           </UiTooltip>
@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
             <UiIconButton
               v-if="isNative"
               icon="folder_open"
-              :size="16"
+              :size="20"
               :label="$t('explorer.reveal')"
               variant="ghost"
               class="button--tiny"
@@ -409,7 +409,7 @@ onBeforeUnmount(() => {
             />
             <UiIconButton
               icon="delete"
-              :size="16"
+              :size="20"
               :label="$t('common.delete')"
               variant="ghost"
               danger
@@ -429,7 +429,7 @@ onBeforeUnmount(() => {
             </span>
             <UiIconButton
               icon="delete"
-              :size="16"
+              :size="20"
               :label="$t('common.delete')"
               variant="ghost"
               danger
@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
           :text="node.expanded ? $t('explorer.collapse') : $t('explorer.expand')"
         >
           <button type="button" class="explorer__expand" @click="toggleFolder(node)">
-            <MsIcon :name="node.expanded ? 'keyboard_arrow_down' : 'chevron_right'" :size="16" />
+            <MsIcon :name="node.expanded ? 'keyboard_arrow_down' : 'chevron_right'" :size="20" />
           </button>
         </UiTooltip>
         <span v-else class="explorer__expand explorer__expand--file">
@@ -479,7 +479,7 @@ onBeforeUnmount(() => {
           <UiIconButton
             v-if="node.kind === 'file'"
             icon="download"
-            :size="16"
+            :size="20"
             :label="$t('explorer.download')"
             variant="ghost"
             class="button--tiny"
@@ -488,7 +488,7 @@ onBeforeUnmount(() => {
           <UiIconButton
             v-if="isNative"
             icon="folder_open"
-            :size="16"
+            :size="20"
             :label="$t('explorer.reveal')"
             variant="ghost"
             class="button--tiny"
@@ -496,7 +496,7 @@ onBeforeUnmount(() => {
           />
           <UiIconButton
             icon="delete"
-            :size="16"
+            :size="20"
             :label="$t('common.delete')"
             variant="ghost"
             danger

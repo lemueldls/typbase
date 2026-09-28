@@ -293,7 +293,7 @@ function formatSize(bytes: number): string {
               <UiMenuItem icon="download" @select="download(asset)">
                 {{ $t("assets.download") }}
               </UiMenuItem>
-              <UiMenuItem icon="delete" @select="askDelete(asset)">
+              <UiMenuItem icon="delete" @select="askDelete(asset)" danger>
                 {{ $t("assets.delete") }}
               </UiMenuItem>
             </UiMenu>

@@ -40,7 +40,7 @@ useBackLayer(open);
     >
       <SelectValue :placeholder="placeholder" />
       <SelectIcon class="ui-select__icon">
-        <MsIcon name="keyboard_arrow_down" :size="16" />
+        <MsIcon name="keyboard_arrow_down" :size="20" />
       </SelectIcon>
     </SelectTrigger>
 

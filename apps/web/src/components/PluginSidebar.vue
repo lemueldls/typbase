@@ -65,7 +65,7 @@ function openInstanceById(instanceId: string): void {
     <ul v-if="rows.length" class="plugin-sidebar__list">
       <li v-for="instance in rows" :key="instance.id">
         <button type="button" class="plugin-sidebar__row" @click="openRow(instance)">
-          <MsIcon :name="iconOf(instance)" :size="16" />
+          <MsIcon :name="iconOf(instance)" :size="20" />
           <UiTruncatedText class="plugin-sidebar__label" :text="instance.title" />
           <span
             v-if="hasProblems(instance)"

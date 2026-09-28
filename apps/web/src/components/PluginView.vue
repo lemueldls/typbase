@@ -30,7 +30,7 @@ const hasWindow = computed(() =>
   <div class="plugin-view">
     <div class="plugin-view__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
-      <MsIcon :name="icon" :size="18" />
+      <MsIcon :name="icon" :size="20" />
       <UiTruncatedText class="plugin-view__title" :text="title" />
       <div class="plugin-view__actions">
         <UiIconButton
@@ -44,7 +44,7 @@ const hasWindow = computed(() =>
     </div>
 
     <div class="plugin-view__body">
-      <PluginSurface :instance-id="instanceId" surface="pane" :title="title" />
+      <PluginSurface :instance-id="instanceId" surface="pane" />
     </div>
   </div>
 </template>

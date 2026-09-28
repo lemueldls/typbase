@@ -134,6 +134,7 @@ async function submit() {
 .ws-dialog__preview-name {
   min-width: 0;
   overflow: hidden;
+  font-size: var(--text-xl);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;

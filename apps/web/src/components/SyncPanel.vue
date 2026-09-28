@@ -113,7 +113,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
         </form>
 
         <div v-if="error" class="sync__error" role="alert">
-          <MsIcon name="error" :size="16" />
+          <MsIcon name="error" :size="18" />
           <span class="sync__error-body">
             <span>{{ error }}</span>
             <a
@@ -142,7 +142,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
         <!-- <p class="sync__hint">{{ $t("settings.syncNewHereHint") }}</p> -->
 
         <p class="sync__note">
-          <MsIcon name="info" :size="16" />
+          <MsIcon name="info" :size="18" />
           <span>
             {{ $t("settings.syncAlpha") }}
             <a
@@ -159,7 +159,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
 
       <template v-else>
         <p class="sync__ok">
-          <MsIcon name="check_circle" :size="16" />
+          <MsIcon name="check_circle" :size="18" />
           {{ $t("settings.signedInAs", { did: shortDid(atprotoStatus.did) }) }}
         </p>
 
@@ -193,7 +193,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
              setup failed). Say what works instead of showing an "in sync"
              status that would be false. -->
         <p v-else class="sync__warning">
-          <MsIcon name="warning" :size="16" />
+          <MsIcon name="warning" :size="18" />
           <span>
             {{ atprotoStatus.error ?? $t("settings.syncOff") }}
             <template v-if="spacesUnsupported">

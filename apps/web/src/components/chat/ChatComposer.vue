@@ -87,14 +87,12 @@ function commitModel(): void {
           :model-value="providerId ?? providerOptions[0]!.value"
           :options="providerOptions"
           :label="t('chat.provider')"
-          size="small"
           @update:model-value="emit('update:providerId', $event)"
         />
       </Label>
       <Label class="chat-composer__field chat-composer__field--model">
         <UiTextField
           v-model="modelDraft"
-          size="small"
           :placeholder="t('chat.model')"
           :aria-label="t('chat.model')"
           @change="commitModel"
@@ -102,7 +100,7 @@ function commitModel(): void {
       </Label>
       <span class="chat-composer__spacer" />
       <UiButton v-if="busy" variant="plain" size="small" @click="emit('stop')">
-        <MsIcon name="stop" :size="16" />
+        <MsIcon name="stop_circle" :size="20" />
         {{ $t("chat.stop") }}
       </UiButton>
       <UiButton
@@ -112,7 +110,7 @@ function commitModel(): void {
         :disabled="!modelValue.trim()"
         @click="emit('send')"
       >
-        <MsIcon name="send" :size="16" />
+        <MsIcon name="send" :size="20" />
         {{ $t("chat.send") }}
       </UiButton>
     </div>

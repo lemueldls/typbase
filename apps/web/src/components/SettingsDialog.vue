@@ -542,7 +542,7 @@ async function renameWorkspace(event: Event) {
           :aria-current="activeTab === tab.id ? 'true' : undefined"
           @click="activeTab = tab.id"
         >
-          <MsIcon :name="tab.icon" :size="18" />
+          <MsIcon :name="tab.icon" :size="20" />
           <span class="settings__tab-label">{{ $t(tab.label) }}</span>
         </button>
       </nav>

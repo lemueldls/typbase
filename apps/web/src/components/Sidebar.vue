@@ -151,7 +151,9 @@ function onCreated(page: PageMeta) {
       <WorkspaceSwitcher mode="menu">
         <UiTooltip :text="$t('sidebar.switchWorkspace')">
           <button type="button" class="sidebar__workspace">
-            <MsIcon :name="workspaceIcon" :size="20" class="sidebar__icon" />
+            <span class="sidebar__icon">
+              <MsIcon :name="workspaceIcon" :size="20" />
+            </span>
             <span class="sidebar__name">{{ settings.name }}</span>
             <MsIcon name="keyboard_arrow_down" :size="20" class="sidebar__chevron" />
           </button>
@@ -504,7 +506,7 @@ function onCreated(page: PageMeta) {
   flex: 1;
   min-width: 0;
   height: var(--control-md);
-  padding: var(--space-1) var(--space-1-5);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
   font-family: inherit;
   font-size: var(--text-lg);
   color: var(--color-text);
@@ -520,7 +522,14 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__icon {
+  display: grid;
+  place-content: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
   flex: none;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
 }
 
 .sidebar__chevron {
@@ -725,7 +734,6 @@ function onCreated(page: PageMeta) {
 
 .sidebar__row-home {
   color: var(--color-text-secondary);
-  font-size: var(--text-md);
 }
 
 .sidebar__group {

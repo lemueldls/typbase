@@ -453,7 +453,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
     <div v-if="dragActive" class="editable-pane__drop" aria-hidden="true">
       <span class="editable-pane__drop-line" :style="{ top: `${dropTop}px` }">
         <span class="editable-pane__drop-label">
-          <MsIcon name="add_photo_alternate" :size="15" />
+          <MsIcon name="add_photo_alternate" :size="16" />
           {{ $t("pageView.dropMedia") }}
         </span>
       </span>

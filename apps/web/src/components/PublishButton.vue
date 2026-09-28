@@ -125,7 +125,7 @@ watch(
 
       <template v-if="meta?.publishedAt">
         <div class="publish__status">
-          <MsIcon name="public" :size="16" />
+          <MsIcon name="public" :size="20" />
           <span>
             {{ t("pageView.publishedStatus", { date: formatPublished(meta.publishedAt) }) }}
           </span>
@@ -157,7 +157,7 @@ watch(
       </template>
 
       <p v-if="error" class="publish__error" role="alert">
-        <MsIcon name="error" :size="16" />
+        <MsIcon name="error" :size="20" />
         <span>{{ error }}</span>
       </p>
       <!-- <p class="publish__hint">{{ t("pageView.publishHint") }}</p> -->

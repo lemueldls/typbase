@@ -1089,7 +1089,7 @@ function setCategory(categoryId: string | null): void {
           @select="insertAsset"
         >
           <UiIconButton
-            icon="add_photo_alternate"
+            icon="photo_library"
             :label="$t('assets.title')"
             :disabled="!ready"
             class="page-view__asset-toggle"
@@ -1171,7 +1171,7 @@ function setCategory(categoryId: string | null): void {
               :disabled="!ready"
               @click="emit('update:modelValue', mode.id)"
             >
-              <MsIcon :name="mode.icon" :size="18" />
+              <MsIcon :name="mode.icon" :size="20" />
               <span v-if="modelValue === mode.id" class="page-view__mode-label">
                 {{ $t(mode.key) }}
               </span>
@@ -1199,12 +1199,12 @@ function setCategory(categoryId: string | null): void {
                 :value="mode.id"
                 class="menu__item page-view__mode-option"
               >
-                <MsIcon :name="mode.icon" :size="18" />
+                <MsIcon :name="mode.icon" :size="20" />
                 {{ $t(mode.key) }}
                 <MsIcon
                   v-if="modelValue === mode.id"
                   name="check"
-                  :size="16"
+                  :size="20"
                   class="page-view__mode-check"
                 />
               </DropdownMenuRadioItem>
@@ -1225,12 +1225,12 @@ function setCategory(categoryId: string | null): void {
             @select="formatOpen = !formatOpen"
           >
             {{ $t("formatting.title") }}
-            <MsIcon v-if="formatOpen" name="check" :size="16" class="page-view__menu-check" />
+            <MsIcon v-if="formatOpen" name="check" :size="20" class="page-view__menu-check" />
           </UiMenuItem>
 
           <UiMenuItem
             v-if="compact && modelValue !== 'read'"
-            icon="add_photo_alternate"
+            icon="photo_library"
             @select="assetsOpen = true"
           >
             {{ $t("assets.title") }}
@@ -1540,10 +1540,8 @@ function setCategory(categoryId: string | null): void {
 }
 
 .page-view__mode-label {
-  /* Fixed slot: the strip keeps one width across modes, so switching view
-     modes never shifts the action buttons to its left. */
   flex: none;
-  min-width: calc(4.75rem * var(--ui-size));
+  min-width: calc(3.5rem * var(--ui-size));
   white-space: nowrap;
 }
 

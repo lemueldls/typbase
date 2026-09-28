@@ -81,7 +81,7 @@ function mentionCount(group: BacklinkGroup): string {
 <template>
   <section class="links" :aria-label="t('links.title')">
     <header class="links__header">
-      <MsIcon name="link" :size="18" />
+      <MsIcon name="link" :size="20" />
       <span class="links__title">{{ t("links.title") }}</span>
       <span class="links__counts">
         {{ t("links.countOutgoing", { count: records.length }) }} ·
@@ -95,14 +95,14 @@ function mentionCount(group: BacklinkGroup): string {
           icon="hub"
           :label="t('links.openGraph')"
           variant="ghost"
-          :size="18"
+          :size="20"
           @click="emit('openGraph')"
         />
         <UiIconButton
           icon="keyboard_arrow_down"
           :label="t('links.collapse')"
           variant="ghost"
-          :size="18"
+          :size="20"
           @click="emit('close')"
         />
       </div>

@@ -25,7 +25,7 @@ withDefaults(
       @update:model-value="(value) => (model = value === true)"
     >
       <CheckboxIndicator class="ui-checkbox__indicator">
-        <MsIcon name="check" :size="14" />
+        <MsIcon name="check" :size="16" />
       </CheckboxIndicator>
     </CheckboxRoot>
     <span v-if="label || $slots.default" class="ui-checkbox__label">

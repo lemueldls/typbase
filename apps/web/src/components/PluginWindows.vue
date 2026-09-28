@@ -131,7 +131,7 @@ function endDrag(): void {
       @pointerdown="plugins.focusWindow(instance.id)"
     >
       <header class="plugin-window__header" @pointerdown="startMove($event, instance.id)">
-        <MsIcon :name="iconOf(instance.id)" :size="16" />
+        <MsIcon :name="iconOf(instance.id)" :size="20" />
         <UiTruncatedText class="plugin-window__title" :text="titleOf(instance.id)" />
         <UiIconButton
           icon="close"

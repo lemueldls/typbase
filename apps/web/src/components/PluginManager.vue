@@ -152,7 +152,7 @@ function openInstance(instance: PluginInstance) {
             :key="instance.id"
             class="plugin-manager__instance"
           >
-            <MsIcon :name="'extension'" :size="16" />
+            <MsIcon name="extension" :size="18" class="plugin-manager__instance-icon" />
             <span>{{ instance.title }}</span>
             <span class="plugin-manager__version">
               {{
@@ -175,7 +175,7 @@ function openInstance(instance: PluginInstance) {
             </UiButton>
             <UiIconButton
               icon="edit"
-              :size="16"
+              :size="18"
               :label="$t('plugins.renameInstance')"
               variant="ghost"
               class="button--tiny"
@@ -183,7 +183,7 @@ function openInstance(instance: PluginInstance) {
             />
             <UiIconButton
               icon="delete"
-              :size="16"
+              :size="18"
               :label="$t('plugins.removeInstance')"
               variant="ghost"
               class="button--tiny"
@@ -329,6 +329,10 @@ function openInstance(instance: PluginInstance) {
   align-items: center;
   gap: var(--space-1-5);
   font-size: var(--text-md);
+}
+
+.plugin-manager__instance-icon {
+  color: var(--color-text-secondary);
 }
 
 .plugin-manager__add {
