@@ -152,6 +152,7 @@ function kindKey(kind: string): string | null {
 }
 
 const input = useTemplateRef("input");
+const root = useTemplateRef("root");
 const resultsEl = useTemplateRef("resultsEl");
 
 const runSearch = useDebounceFn(async (value: string) => {
@@ -204,6 +205,10 @@ onMounted(() => {
   // The settings panel has no focused input, so listen at the window instead
   // of relying on keydown bubbling through the panel root.
   window.addEventListener("keydown", onKeydown);
+  // The toolbar menu that opened the palette restores focus to its trigger
+  // once it finishes closing, and a palette without focus sends keystrokes to
+  // the editor behind it. Pull focus back while the palette is open.
+  window.addEventListener("focusin", onFocusIn);
 
   recent.value = props.store
     .listPages()
@@ -214,7 +219,15 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("focusin", onFocusIn);
 });
+
+function onFocusIn(event: FocusEvent) {
+  const target = event.target as Node | null;
+  if (target && root.value?.contains(target)) return;
+
+  input.value?.focus();
+}
 
 function onKeydown(event: KeyboardEvent) {
   if (panel.value === "settings") {
@@ -236,9 +249,14 @@ function onKeydown(event: KeyboardEvent) {
     event.preventDefault();
     active.value = Math.max(0, active.value - 1);
   } else if (event.key === "Enter") {
+    // Cancel the default: opening a result focuses the editor while this key
+    // is still being processed, and an uncancelled Enter would land there as
+    // a newline and replace the selection.
+    event.preventDefault();
     const item = list[active.value];
     if (item) openEntry(item);
   } else if (event.key === "Escape") {
+    event.preventDefault();
     emit("close");
   }
 }
@@ -301,7 +319,7 @@ async function rebuildIndex() {
 </script>
 
 <template>
-  <div class="search-palette-panel">
+  <div ref="root" class="search-palette-panel">
     <template v-if="panel === 'results'">
       <UiTextField
         ref="input"

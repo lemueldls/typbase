@@ -860,10 +860,7 @@ async function renameWorkspace(event: Event) {
           </Label>
 
           <div class="settings__system-fonts">
-            <p class="settings__hint">
-              Finds installed fonts for the pickers; the families this workspace uses load into the
-              Typst engine.
-            </p>
+            <p class="settings__hint">{{ $t("settings.systemFontsHint") }}</p>
 
             <template v-if="supportsLocalFonts()">
               <UiButton

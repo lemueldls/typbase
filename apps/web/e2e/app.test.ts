@@ -784,6 +784,59 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("focuses the search palette and keeps Enter out of the editor", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // Select text, so an Enter that reaches the editor would replace it.
+    await page.evaluate(() => {
+      const view = window.__typbase.view;
+      if (!view) throw new Error("no editor view");
+      view.dispatch({ selection: { anchor: 0, head: Math.min(6, view.state.doc.length) } });
+      view.focus();
+    });
+    await page.waitForTimeout(200);
+
+    // The toolbar menu restores focus to its trigger after the palette mounts;
+    // the input has to win anyway so typing lands in the search box.
+    await page.locator('[aria-label="More actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Search" }).click();
+    await page.waitForSelector(".search-palette", { timeout: 30_000 });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() =>
+            Boolean((document.activeElement as HTMLElement | null)?.closest(".search-palette")),
+          ),
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+
+    await page.keyboard.type("welcome");
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              (document.querySelector(".search-palette input") as HTMLInputElement | null)?.value ??
+              "",
+          ),
+        { timeout: 30_000 },
+      )
+      .toContain("welcome");
+
+    // Wait for a real hit, then open it. The reveal focuses the editor while
+    // the key event is still in flight; the editor must not gain a newline.
+    await page.waitForSelector(".search-palette [data-hit]", { timeout: 90_000 });
+    const before = await page.evaluate(() => window.__typbase.view?.state.doc.length ?? 0);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(600);
+    const after = await page.evaluate(() => window.__typbase.view?.state.doc.length ?? 0);
+    expect(after).toBe(before);
+
+    await page.close();
+  });
+
   it("lists a page's backlinks and reveals the linking call", async () => {
     const page = await createPage();
     await openApp(page);
