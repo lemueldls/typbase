@@ -9,7 +9,7 @@
   width: 100%;
   min-height: var(--space-12);
   padding: var(--space-1);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-sm);
   overflow: hidden;
   color: var(--color-text);

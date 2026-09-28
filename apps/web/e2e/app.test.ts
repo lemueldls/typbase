@@ -1162,7 +1162,8 @@ describe("typbase app", async () => {
 
     await page.evaluate(() => {
       const store = window.__typbase.store;
-      store.updateSettings({ graph: { ...store.getSettings().graph, showOrphans: true } });
+      const graph = store.getSettings().graph as Record<string, unknown>;
+      store.updateSettings({ graph: { ...graph, showOrphans: true } });
     });
     await page.close();
   });

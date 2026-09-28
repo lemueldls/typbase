@@ -29,6 +29,6 @@ const percent = computed(() => Math.min(100, Math.max(0, (props.value / props.ma
 .ui-progress__indicator {
   height: 100%;
   background: var(--color-accent);
-  transition: width 200ms ease-out;
+  transition: width var(--motion-base);
 }
 </style>

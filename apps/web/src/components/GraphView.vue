@@ -252,8 +252,8 @@ onBeforeUnmount(() => {
 
       <UiPopover class="graph__filters" align="start">
         <template #trigger>
-          <UiButton variant="plain" size="small">
-            <MsIcon name="filter_list" :size="18" />
+          <UiButton variant="plain">
+            <MsIcon name="filter_list" :size="20" />
             {{ t("graph.filters") }}
             <span v-if="activeFilters" class="graph__filters-count">{{ activeFilters }}</span>
           </UiButton>
@@ -301,7 +301,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="graph__filter">
-          <UiSwitch v-model="orphansChoice" :label="t('graph.orphans')" />
+          <span class="graph__filter-label">{{ t("graph.orphans") }}</span>
+          <UiSwitch v-model="orphansChoice" :aria-label="t('graph.orphans')" />
         </div>
       </UiPopover>
     </div>
@@ -378,7 +379,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   max-width: 18rem;
   padding: var(--space-0-5) var(--space-1-5);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
@@ -409,7 +410,7 @@ onBeforeUnmount(() => {
 
 /* Phones get one secondary line: the progress text replaces the counts
    instead of wrapping both into a three-line header. */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .graph__header--resolving .graph__stats {
     display: none;
   }
@@ -418,7 +419,7 @@ onBeforeUnmount(() => {
 .graph__toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: var(--space-2);
   min-height: var(--pane-header-height);
   padding: var(--space-1-5) var(--space-2);
@@ -443,11 +444,11 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
   z-index: 65;
-  animation: ui-overlay-fade-in 100ms ease-out;
+  animation: ui-overlay-fade-in var(--motion-fast);
 }
 
 .graph__filters[data-state="closed"] {
-  animation: ui-overlay-fade-out 80ms ease-in;
+  animation: ui-overlay-fade-out var(--motion-exit);
 }
 
 .graph__filter {
@@ -458,8 +459,8 @@ onBeforeUnmount(() => {
 }
 
 .graph__filter-label {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+  color: var(--color-text);
 }
 
 .graph__filter-control {

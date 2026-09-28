@@ -688,7 +688,7 @@ async function renameWorkspace(event: Event) {
                   icon="close"
                   :label="$t('settings.spellcheckIgnoredRemove')"
                   variant="ghost"
-                  :size="16"
+                  :size="20"
                   @click="removeIgnoredLint(entry.hash)"
                 />
               </li>
@@ -1162,8 +1162,6 @@ async function renameWorkspace(event: Event) {
   right: var(--space-3);
 }
 
-/* Narrow windows and phones: the rail becomes an even two-column grid, and
-   the odd last section spans the row. */
 @media (max-width: 48rem) {
   .settings {
     grid-template-columns: minmax(0, 1fr);
@@ -1269,7 +1267,7 @@ async function renameWorkspace(event: Event) {
 
 .settings__field > span {
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+  /* color: var(--color-text-secondary); */
 }
 
 .settings__input {
@@ -1315,6 +1313,13 @@ async function renameWorkspace(event: Event) {
   max-width: 14rem;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+@media (max-width: 48rem) {
+  .settings__storage {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .settings__ok {

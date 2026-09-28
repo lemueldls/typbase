@@ -52,7 +52,7 @@ body {
 
 @media (hover: none) {
   :is(button, [role="button"], a, summary):not(:disabled) {
-    transition: filter 120ms ease;
+    transition: filter var(--motion-fast);
   }
 
   :is(button, [role="button"], a, summary):not(:disabled):active {

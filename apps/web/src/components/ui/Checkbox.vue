@@ -24,8 +24,9 @@ withDefaults(
       :disabled="disabled"
       @update:model-value="(value) => (model = value === true)"
     >
-      <CheckboxIndicator class="ui-checkbox__indicator">
-        <MsIcon name="check" :size="16" />
+      <CheckboxIndicator class="ui-checkbox__indicator" force-mount>
+        <MsIcon class="ui-checkbox__mark ui-checkbox__mark--check" name="check" :size="20" />
+        <MsIcon class="ui-checkbox__mark ui-checkbox__mark--dash" name="remove" :size="20" />
       </CheckboxIndicator>
     </CheckboxRoot>
     <span v-if="label || $slots.default" class="ui-checkbox__label">
@@ -51,8 +52,8 @@ withDefaults(
 .ui-checkbox__box {
   display: grid;
   place-content: center;
-  width: calc(1.1rem * var(--ui-size));
-  height: calc(1.1rem * var(--ui-size));
+  width: calc(1.15rem * var(--ui-size));
+  height: calc(1.15rem * var(--ui-size));
   flex: none;
   padding: 0;
   color: var(--color-surface);
@@ -60,6 +61,19 @@ withDefaults(
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-xs);
   cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-spring);
+}
+
+.ui-checkbox__box:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+/* Pressed: the box gives under the finger, then springs back. */
+.ui-checkbox__box:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 .ui-checkbox__box[data-state="checked"],
@@ -75,5 +89,22 @@ withDefaults(
 .ui-checkbox__indicator {
   display: grid;
   place-content: center;
+}
+
+/* The mark pops in with a small overshoot; indeterminate swaps the check for
+   a dash. Both stay mounted so unchecking animates out too. */
+.ui-checkbox__mark {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-spring);
+}
+
+.ui-checkbox__box[data-state="checked"] .ui-checkbox__mark--check,
+.ui-checkbox__box[data-state="indeterminate"] .ui-checkbox__mark--dash {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>

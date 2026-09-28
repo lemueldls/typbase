@@ -52,11 +52,11 @@ useBackLayer(open);
 }
 
 .menu {
-  animation: ui-overlay-fade-in 100ms ease-out;
+  animation: ui-overlay-fade-in var(--motion-fast);
 }
 
 .menu[data-state="closed"] {
-  animation: ui-overlay-fade-out 80ms ease-in;
+  animation: ui-overlay-fade-out var(--motion-exit);
 }
 
 .menu [data-reka-menu-item],

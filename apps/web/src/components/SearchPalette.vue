@@ -53,7 +53,7 @@ function onDrawerOpen(open: boolean) {
   justify-content: center;
   padding-top: 10dvh;
   background: var(--color-overlay);
-  animation: search-palette-fade 120ms ease-out;
+  animation: search-palette-fade var(--motion-fast);
 }
 
 .search-palette__box {
@@ -69,7 +69,7 @@ function onDrawerOpen(open: boolean) {
   border-radius: var(--radius-lg);
   box-shadow: 0 24px 70px rgb(0 0 0 / 0.3);
   padding: var(--space-2);
-  animation: search-palette-rise 140ms ease-out;
+  animation: search-palette-rise var(--motion-fast);
 }
 
 @keyframes search-palette-fade {
@@ -90,7 +90,7 @@ function onDrawerOpen(open: boolean) {
   inset: 0;
   z-index: 90;
   background: var(--color-overlay);
-  animation: search-palette-fade 150ms ease-out;
+  animation: search-palette-fade var(--motion-fast);
 }
 
 .search-palette__sheet {
@@ -115,8 +115,8 @@ function onDrawerOpen(open: boolean) {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: 0 -18px 50px rgb(0 0 0 / 0.3);
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
-  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
-  animation: search-palette-sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  transition: transform var(--motion-slow);
+  animation: search-palette-sheet-in var(--motion-slow) both;
 }
 
 .search-palette__sheet[data-swiping] {

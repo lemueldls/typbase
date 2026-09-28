@@ -771,7 +771,7 @@ async function rebuildIndex() {
   border-radius: var(--radius-xs);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .search-palette-panel__result {
     padding: var(--space-3);
   }

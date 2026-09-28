@@ -189,7 +189,7 @@ function commitModel(): void {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-0-5) var(--space-1-5);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
@@ -221,7 +221,7 @@ function commitModel(): void {
   min-height: 3.5rem;
   max-height: 14rem;
   padding: var(--space-2);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);

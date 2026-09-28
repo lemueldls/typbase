@@ -56,7 +56,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
           :aria-label="entry.title"
           @click="pick(entry)"
         >
-          <MsIcon :name="entry.id" :size="20" />
+          <MsIcon :name="entry.id" :size="22" />
         </button>
       </UiTooltip>
     </div>

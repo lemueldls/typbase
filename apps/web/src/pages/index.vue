@@ -47,8 +47,9 @@ const {
 } = useSearchPalette();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
-/** Desktop gets a resizable splitter; mobile keeps the drawer. */
-const isDesktop = useMediaQuery("(min-width: 769px)");
+/** Desktop gets a resizable splitter; mobile keeps the drawer. The query
+ *  mirrors `--breakpoint-md` in tokens.css (mobile <= 48rem, desktop above). */
+const isDesktop = useMediaQuery("(min-width: 48.0625rem)");
 
 // Back closes the drawer and the palette before it navigates or leaves.
 useBackLayer(navOpen);
@@ -886,7 +887,7 @@ definePageMeta({ ssr: false });
   border-radius: var(--radius-full);
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
   pointer-events: none;
-  animation: app-switching-in 0.15s ease-out;
+  animation: app-switching-in var(--motion-fast);
   transform: translateX(-50%);
 }
 
@@ -927,7 +928,7 @@ definePageMeta({ ssr: false });
 .app__content--switching > * {
   pointer-events: none;
   opacity: 0.7;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--motion-fast);
 }
 
 .app__chooser {
@@ -1004,7 +1005,7 @@ definePageMeta({ ssr: false });
   background: var(--color-surface-2);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .app__main .app__nav-toggle {
     display: inline-flex;
   }
@@ -1015,7 +1016,7 @@ definePageMeta({ ssr: false });
     z-index: 60;
     width: min(84vw, 320px);
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
+    transition: transform var(--motion-base);
     box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
   }
 
@@ -1110,7 +1111,7 @@ definePageMeta({ ssr: false });
 }
 
 .splash-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity var(--motion-slow);
 }
 
 .splash-leave-to {

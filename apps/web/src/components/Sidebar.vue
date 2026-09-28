@@ -577,7 +577,7 @@ function onCreated(page: PageMeta) {
    one column scroll for the whole sidebar, with the headers stacking as they
    stick. The sections themselves must stay non-scrolling so a sticky header
    anchors to the sidebar's scroll area, not to a section that never scrolls. */
-@media (min-width: 769px) {
+@media (min-width: 48.0625rem) {
   .sidebar__sections {
     overflow: hidden;
   }
@@ -606,7 +606,7 @@ function onCreated(page: PageMeta) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) 0 0 var(--space-2);
+  padding: var(--space-2) 0 var(--space-1-5) var(--space-2);
   background: var(--color-surface);
   font-size: var(--text-md);
   font-weight: 600;
@@ -647,7 +647,7 @@ function onCreated(page: PageMeta) {
   gap: var(--space-0-5);
   padding-right: var(--space-1);
   border-radius: var(--radius-sm);
-  transition: background 0.12s ease;
+  transition: background var(--motion-fast);
 }
 
 /* The highlight covers the whole item, menu button included, so the row and
@@ -697,7 +697,7 @@ function onCreated(page: PageMeta) {
 .sidebar__item .sidebar__row-more {
   flex: none;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--motion-fast);
 }
 
 .sidebar__item .sidebar__row-more:hover,

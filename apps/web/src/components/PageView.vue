@@ -1611,7 +1611,7 @@ function setCategory(categoryId: string | null): void {
 
 /* Split view stacks on phones: side-by-side panes would give each ~190px.
    The horizontal drag handle is hidden; editors/previews scroll on their own. */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .page-view__body--split {
     grid-template-columns: 100%;
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -1642,7 +1642,7 @@ function setCategory(categoryId: string | null): void {
   inset: 0 2px;
   background: var(--color-border);
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-fast);
 }
 
 .page-view__handle:hover::after,

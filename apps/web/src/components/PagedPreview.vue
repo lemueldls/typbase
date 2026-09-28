@@ -417,7 +417,7 @@ defineExpose({ scroller, getFrameLayout });
   min-height: 100%;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .paged-preview__inner {
     padding: var(--space-3) var(--space-3) var(--space-8);
   }

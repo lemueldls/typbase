@@ -383,7 +383,7 @@ function applySuggestion(text: string): void {
   max-width: 16rem;
   margin-left: var(--space-2);
   padding: var(--space-0-5) var(--space-1-5);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
@@ -468,7 +468,7 @@ function applySuggestion(text: string): void {
 
 .chat-pane__suggestion {
   padding: var(--space-1-5) var(--space-2-5);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-sm);
   color: var(--color-text);
   background: var(--color-surface-2);

@@ -77,7 +77,7 @@ const icon = computed(
   gap: var(--space-0-5);
   padding-right: var(--space-1);
   border-radius: var(--radius-sm);
-  transition: background 0.12s ease;
+  transition: background var(--motion-fast);
 }
 
 /* The highlight covers the whole row, trailing actions included, so the row
@@ -155,7 +155,7 @@ const icon = computed(
 .ws-row .ws-row__more {
   flex: none;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--motion-fast);
 }
 
 /* Tint the row's own surface instead of painting the ghost button background

@@ -152,7 +152,7 @@ const busy = computed(() => status.value === "downloading" || status.value === "
   inset: 0 auto 0 0;
   background: var(--color-accent);
   border-radius: inherit;
-  transition: width 120ms linear;
+  transition: width var(--duration-fast) linear;
 }
 
 .update__bar-fill--unknown {

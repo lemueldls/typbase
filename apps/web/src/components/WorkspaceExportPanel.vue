@@ -133,8 +133,12 @@ async function run(): Promise<void> {
         type="search"
         :placeholder="$t('exportWorkspace.search')"
         :aria-label="$t('exportWorkspace.search')"
-      />
-      <UiButton size="small" @click="setAll(!allSelected)">
+      >
+        <template #leading>
+          <MsIcon class="workspace-export__search-icon" name="search" :size="20" />
+        </template>
+      </UiTextField>
+      <UiButton @click="setAll(!allSelected)">
         {{ allSelected ? $t("exportWorkspace.none") : $t("exportWorkspace.all") }}
       </UiButton>
     </div>
@@ -235,6 +239,10 @@ async function run(): Promise<void> {
   min-width: 0;
 }
 
+.workspace-export__search-icon {
+  color: var(--color-text-secondary);
+}
+
 .workspace-export__filters {
   display: flex;
   align-items: center;
@@ -298,7 +306,7 @@ async function run(): Promise<void> {
   align-items: center;
   gap: var(--space-1-5);
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+  /* color: var(--color-text-secondary); */
 }
 
 .workspace-export__hint {

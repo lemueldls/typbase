@@ -70,8 +70,8 @@ const filtered = computed(() => {
 
 // The index has a few thousand rows; render only what the dialog shows. Rows
 // stack their actions under the text on narrow screens, so they need more
-// height there.
-const compact = useMediaQuery("(max-width: 640px)");
+// height there. Mirrors `--breakpoint-sm` in tokens.css.
+const compact = useMediaQuery("(max-width: 40rem)");
 const { list, containerProps, wrapperProps } = useVirtualList(filtered, {
   itemHeight: () => (compact.value ? 163 : 120),
   overscan: 6,
@@ -614,7 +614,7 @@ function openRepository(entry: PackageEntry) {
 /* Narrow screens: the row stacks its actions under the text and the search
    takes its own line. Keep the heights in sync with the virtual list's
    compact itemHeight. */
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .package-browser__row {
     height: 163px;
     flex-direction: column;

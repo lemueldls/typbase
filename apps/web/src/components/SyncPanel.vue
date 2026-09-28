@@ -86,7 +86,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
 
 <template>
   <div class="sync">
-    <h4 class="sync__heading">{{ $t("settings.tabSync") }}</h4>
+    <!-- <h4 class="sync__heading">{{ $t("settings.tabSync") }}</h4> -->
 
     <template v-if="atprotoReady && atproto">
       <template v-if="!atprotoStatus.signedIn">

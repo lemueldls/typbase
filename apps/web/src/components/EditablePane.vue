@@ -482,7 +482,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
   z-index: 5;
   pointer-events: none;
   background: color-mix(in srgb, var(--color-accent) 4%, transparent);
-  animation: editable-pane-drop-in 0.12s ease-out;
+  animation: editable-pane-drop-in var(--motion-fast);
 }
 
 /* Insertion line: rides the pointer's line and carries the hint chip, so the
@@ -712,7 +712,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
 
 .cm-content[contenteditable="true"] .typst-render {
   border-radius: var(--radius-xs);
-  transition: background-color 0.15s;
+  transition: background-color var(--motion-fast);
 }
 
 .cm-content[contenteditable="true"] .typst-render:hover {
@@ -824,7 +824,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
   align-items: center;
   gap: 0;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--motion-fast);
 }
 
 .tb-cell-header:hover .tb-cell-actions,

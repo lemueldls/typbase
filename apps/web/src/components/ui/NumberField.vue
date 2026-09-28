@@ -56,7 +56,7 @@ const model = defineModel<number | null>({ required: true });
 .ui-number__input {
   min-width: 0;
   padding: var(--space-1-5) var(--space-2);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
   background: transparent;

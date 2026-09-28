@@ -72,10 +72,41 @@
   --control-xs: calc(1.5rem * var(--ui-size));
   --control-sm: calc(1.75rem * var(--ui-size));
   --control-md: calc(2.25rem * var(--ui-size));
+  --control-lg: calc(2.75rem * var(--ui-size));
 
   /* One header height for every pane (sidebar, page, chat, plugin, window) so
      the app chrome lines up across columns. */
   --pane-header-height: calc(var(--control-md) + 2 * var(--space-2));
+
+  /* Motion. Hover and press feedback is fast; entrances and state changes are
+     base; large surfaces like the search palette get slow. Exits run shorter
+     than entrances so a dismissed surface clears out. Springs overshoot for
+     physical controls. a11y.css flattens all of it under reduced motion. */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+  --duration-exit: 80ms;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Duration and easing in one value; `transition` and `animation` both take
+     the pair. */
+  --motion-fast: var(--duration-fast) var(--ease-out);
+  --motion-base: var(--duration-base) var(--ease-out);
+  --motion-slow: var(--duration-slow) var(--ease-out);
+  --motion-exit: var(--duration-exit) var(--ease-in);
+  --motion-spring: var(--duration-base) var(--ease-spring);
+
+  /* Breakpoints. Media queries cannot read custom properties, so every @media
+     keeps its literal value and the matchMedia queries in JS keep theirs;
+     these are the canonical numbers both mirror. 40rem is a narrow phone.
+     48rem is the mobile ceiling, so mobile overrides use `max-width: 48rem`
+     and the desktop floor is `min-width: 48.0625rem` (48rem plus a pixel) so
+     the two never overlap. */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
 
   --color-surface: #ffffff;
   --color-surface-2: #f3f4f6;

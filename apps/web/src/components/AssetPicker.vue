@@ -357,7 +357,7 @@ function formatSize(bytes: number): string {
   gap: var(--space-1-5);
   width: 100%;
   padding: var(--space-1-5);
-  font: inherit;
+  font-family: inherit;
   color: var(--color-text);
   text-align: left;
   background: var(--color-surface-2);

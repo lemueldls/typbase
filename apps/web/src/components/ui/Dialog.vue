@@ -83,12 +83,12 @@ const contentAttrs = computed(() => ({
 
 .dialog-overlay,
 .dialog {
-  animation: ui-overlay-fade-in 100ms ease-out;
+  animation: ui-overlay-fade-in var(--motion-fast);
 }
 
 .dialog-overlay[data-state="closed"],
 .dialog[data-state="closed"] {
-  animation: ui-overlay-fade-out 80ms ease-in;
+  animation: ui-overlay-fade-out var(--motion-exit);
 }
 
 .dialog__title {

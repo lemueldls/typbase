@@ -121,17 +121,17 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
   border-radius: var(--radius-md);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
   z-index: 65;
-  animation: ui-overlay-fade-in 100ms ease-out;
+  animation: ui-overlay-fade-in var(--motion-fast);
 }
 
 .combobox[data-state="closed"] {
-  animation: ui-overlay-fade-out 80ms ease-in;
+  animation: ui-overlay-fade-out var(--motion-exit);
 }
 
 .combobox__input {
   width: 100%;
   padding: var(--space-1) var(--space-2);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);

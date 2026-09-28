@@ -729,7 +729,7 @@ function formatTime(at: number): string {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1-5) var(--space-2);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
   text-align: left;
@@ -808,7 +808,7 @@ function formatTime(at: number): string {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2-5);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-md);
   text-transform: capitalize;
   color: var(--color-text-secondary);
@@ -868,7 +868,7 @@ function formatTime(at: number): string {
 .studio__textarea {
   width: 100%;
   padding: var(--space-1-5) var(--space-2);
-  font: inherit;
+  font-family: inherit;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--color-text);
@@ -911,7 +911,7 @@ function formatTime(at: number): string {
   justify-content: space-between;
   gap: var(--space-2);
   width: 100%;
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-sm);
   text-align: left;
   border: none;

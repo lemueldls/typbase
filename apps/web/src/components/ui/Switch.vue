@@ -25,7 +25,9 @@ withDefaults(
       :aria-label="!label && !$slots.default ? ariaLabel : undefined"
       @update:model-value="(value) => (model = value === true)"
     >
-      <SwitchThumb class="ui-switch__thumb" />
+      <SwitchThumb class="ui-switch__thumb">
+        <MsIcon class="ui-switch__check" name="check" :size="14" :weight="600" />
+      </SwitchThumb>
     </SwitchRoot>
   </Label>
 </template>
@@ -49,14 +51,19 @@ withDefaults(
 }
 
 .ui-switch__track {
-  --switch-pad: calc(0.11rem * var(--ui-size));
-  --switch-thumb: calc(0.95rem * var(--ui-size));
-  --switch-w: calc(2.2rem * var(--ui-size));
+  /* Track, thumb, and padding all follow the control scale; the switch is a
+     compound widget, so its proportions stay here instead of in tokens. */
+  --switch-h: var(--control-xs);
+  --switch-thumb: calc(var(--switch-h) * 0.78);
+  --switch-w: calc(var(--switch-h) * 1.75);
+  --switch-pad: calc((var(--switch-h) - var(--switch-thumb) - 2px) / 2);
+  /* How far the thumb travels between the two ends. */
+  --switch-travel: calc(var(--switch-w) - var(--switch-thumb) - var(--switch-pad) * 2 - 2px);
 
   display: flex;
   align-items: center;
   width: var(--switch-w);
-  height: calc(1.25rem * var(--ui-size));
+  height: var(--switch-h);
   flex: none;
   padding: var(--switch-pad);
   background: var(--color-surface-3);
@@ -64,8 +71,12 @@ withDefaults(
   border-radius: var(--radius-full);
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+    background var(--motion-base),
+    border-color var(--motion-base);
+}
+
+.ui-switch__track:hover:not(:disabled) {
+  border-color: var(--color-accent);
 }
 
 .ui-switch__track[data-state="checked"] {
@@ -78,16 +89,44 @@ withDefaults(
 }
 
 .ui-switch__thumb {
-  display: block;
+  display: grid;
+  place-items: center;
   width: var(--switch-thumb);
   height: var(--switch-thumb);
   background: var(--color-surface);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
-  transition: transform 0.15s ease;
+  transform-origin: left center;
+  /* The spring easing overshoots a hair and settles. */
+  transition: transform var(--motion-spring);
 }
 
 .ui-switch__track[data-state="checked"] .ui-switch__thumb {
-  transform: translateX(calc(var(--switch-w) - var(--switch-thumb) - var(--switch-pad) * 2 - 2px));
+  transform: translateX(var(--switch-travel));
+  transform-origin: right center;
+}
+
+/* Pressed: the thumb stretches toward the end it is heading for, the way a
+   physical toggle gives under a finger. */
+.ui-switch__track:active .ui-switch__thumb {
+  transform: translateX(0) scaleX(1.18);
+}
+
+.ui-switch__track[data-state="checked"]:active .ui-switch__thumb {
+  transform: translateX(var(--switch-travel)) scaleX(1.18);
+}
+
+.ui-switch__check {
+  color: var(--color-accent);
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-spring);
+}
+
+.ui-switch__track[data-state="checked"] .ui-switch__check {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>

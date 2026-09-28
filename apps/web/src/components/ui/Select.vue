@@ -56,7 +56,7 @@ useBackLayer(open);
           >
             <SelectItemText>{{ option.label }}</SelectItemText>
             <SelectItemIndicator class="ui-select__indicator">
-              <MsIcon name="check" :size="14" />
+              <MsIcon name="check" :size="20" />
             </SelectItemIndicator>
           </SelectItem>
         </SelectViewport>
@@ -78,11 +78,11 @@ useBackLayer(open);
 }
 
 .ui-select__content {
-  animation: ui-overlay-fade-in 100ms ease-out;
+  animation: ui-overlay-fade-in var(--motion-fast);
 }
 
 .ui-select__content[data-state="closed"] {
-  animation: ui-overlay-fade-out 80ms ease-in;
+  animation: ui-overlay-fade-out var(--motion-exit);
 }
 
 .ui-select__viewport {
@@ -123,8 +123,9 @@ useBackLayer(open);
   justify-content: space-between;
   gap: var(--space-1-5);
   min-width: 0;
+  height: var(--control-md);
   padding: var(--space-2);
-  font: inherit;
+  font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
@@ -143,6 +144,7 @@ useBackLayer(open);
 }
 
 .ui-select__trigger--small {
+  height: var(--control-sm);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1-5);
   font-size: var(--text-sm);
 }
