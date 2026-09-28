@@ -330,6 +330,7 @@ function mentionCount(group: BacklinkGroup): string {
   width: 100%;
   padding: var(--space-1);
   text-align: left;
+  font-family: inherit;
   color: var(--color-text);
   background: transparent;
   border: none;

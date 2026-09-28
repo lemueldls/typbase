@@ -15,7 +15,7 @@ import {
   type SimulationNodeDatum,
 } from "d3-force";
 
-import type { GraphData, GraphNode } from "~/lib/graph";
+import type { GraphData, GraphEdge, GraphNode } from "~/lib/graph";
 
 interface SimNode extends GraphNode, SimulationNodeDatum {}
 interface SimLink extends SimulationLinkDatum<SimNode> {
@@ -56,6 +56,14 @@ const AUTO_LABEL_ZOOM = 0.7;
 const CLICK_SLOP = 6;
 /** Fit-to-view camera tween; long enough to read, short enough to feel direct. */
 const CAMERA_ANIM_MS = 320;
+/** Extra tween time per doubling of the zoom ratio, so a wide refit glides. */
+const CAMERA_ANIM_PER_OCTAVE_MS = 240;
+/** Cap for the scaled tween; past a second the camera feels sleepy. */
+const CAMERA_ANIM_MAX_MS = 1000;
+/** The layout has cooled enough to frame once alpha drops below this. */
+const FIT_ALPHA = 0.15;
+/** Node-set changes within this window coalesce into one refit. */
+const FIT_QUIET_MS = 250;
 
 const simulation: Simulation<SimNode, SimLink> = forceSimulation<SimNode>([])
   .force(
@@ -79,8 +87,14 @@ simulation.on("tick", () => {
   scheduleDraw();
 
   // Fit once the layout has spread out; fitting on the phyllotaxis seed would
-  // frame the seed, not the graph, and read as a huge zoom-in.
-  if (pendingFit && !cameraTouched && simulation.alpha() < 0.2) {
+  // frame the seed, not the graph, and read as a huge zoom-in. The quiet
+  // window lets a burst of resolved nodes land before the camera commits.
+  if (
+    pendingFit &&
+    !cameraTouched &&
+    simulation.alpha() < FIT_ALPHA &&
+    performance.now() - lastNodeChangeAt > FIT_QUIET_MS
+  ) {
     pendingFit = false;
     fitView();
   }
@@ -97,12 +111,15 @@ let hoverId: string | null = null;
 let frame = 0;
 /** Deferred first fit; a camera interaction cancels it. */
 let pendingFit = false;
+/** When the node set last changed, so a burst of additions refits once. */
+let lastNodeChangeAt = 0;
 let cameraTouched = false;
 /** In-flight fit-to-view tween; a pointer or wheel interaction drops it. */
 let cameraTween: {
   from: { x: number; y: number; k: number };
   to: { x: number; y: number; k: number };
   start: number;
+  duration: number;
 } | null = null;
 
 /** Live pointer positions, keyed by pointer id; two mean pinch. */
@@ -152,10 +169,27 @@ function neighborsOf(id: string): Set<string> {
   return neighbors;
 }
 
+/** Neighbor ids per node from the incoming edges, for seeding new nodes. */
+function adjacencyOf(edges: GraphEdge[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  const add = (id: string, neighbor: string) => {
+    const list = map.get(id);
+    if (list) list.push(neighbor);
+    else map.set(id, [neighbor]);
+  };
+  for (const edge of edges) {
+    add(edge.source, edge.target);
+    add(edge.target, edge.source);
+  }
+
+  return map;
+}
+
 watch(
   () => props.data,
   (data) => {
     const previousIds = new Set(nodeById.keys());
+    const incoming = adjacencyOf(data.edges);
     const next = new Map<string, SimNode>();
     data.nodes.forEach((node, index) => {
       const existing = nodeById.get(node.id);
@@ -165,14 +199,35 @@ watch(
         return;
       }
 
-      // A phyllotaxis start spreads new nodes instead of stacking them.
-      const angle = index * 2.399963;
-      const distance = 12 * Math.sqrt(index);
-      next.set(node.id, {
-        ...node,
-        x: Math.cos(angle) * distance,
-        y: Math.sin(angle) * distance,
-      });
+      // A new node starts near an already-placed neighbor. Resolution adds
+      // nodes while the graph is on screen, and a seed far from the cluster
+      // makes the layout lurch out and back before it settles.
+      let x = 0;
+      let y = 0;
+      let placed = 0;
+      for (const id of incoming.get(node.id) ?? []) {
+        const neighbor = next.get(id);
+        if (!neighbor || neighbor.x === undefined || neighbor.y === undefined) continue;
+
+        x += neighbor.x;
+        y += neighbor.y;
+        placed += 1;
+      }
+
+      if (placed > 0) {
+        // A little jitter keeps co-neighbors from stacking on one point.
+        const angle = index * 2.399963;
+        x = x / placed + Math.cos(angle) * 6;
+        y = y / placed + Math.sin(angle) * 6;
+      } else {
+        // A phyllotaxis start spreads unlinked nodes instead of stacking them.
+        const angle = index * 2.399963;
+        const distance = 12 * Math.sqrt(index);
+        x = Math.cos(angle) * distance;
+        y = Math.sin(angle) * distance;
+      }
+
+      next.set(node.id, { ...node, x, y });
     });
     nodeById.clear();
     for (const [id, node] of next) nodeById.set(id, node);
@@ -190,10 +245,14 @@ watch(
     // instead of pulling the camera around while the user reads the graph.
     const nodeSetChanged =
       next.size !== previousIds.size || [...next.keys()].some((id) => !previousIds.has(id));
+    if (nodeSetChanged) lastNodeChangeAt = performance.now();
     if (!pendingFit && !cameraTouched && nodeSetChanged && nodeById.size > 0) {
       pendingFit = true;
     }
-    simulation.alpha(0.8).restart();
+
+    // A populated layout only needs a nudge: existing nodes keep their places
+    // and new ones start near their neighbors. 0.8 is for the first fill.
+    simulation.alpha(previousIds.size === 0 ? 0.8 : 0.5).restart();
     scheduleDraw();
   },
 );
@@ -284,7 +343,14 @@ function animateCamera(to: { x: number; y: number; k: number }): void {
     return;
   }
 
-  cameraTween = { from: { ...camera }, to, start: performance.now() };
+  // A wide reframe gets proportionally more time; unchecking local can span
+  // two or three doublings of the zoom, which 320ms reads as a snap.
+  const octaves = Math.abs(Math.log2(to.k / camera.k));
+  const duration = Math.min(
+    CAMERA_ANIM_MAX_MS,
+    CAMERA_ANIM_MS + octaves * CAMERA_ANIM_PER_OCTAVE_MS,
+  );
+  cameraTween = { from: { ...camera }, to, start: performance.now(), duration };
   scheduleDraw();
 }
 
@@ -294,7 +360,7 @@ function stepCamera(now: number): void {
 
   // An rAF timestamp can predate the click that started the tween; clamp at
   // zero so the first frame cannot overshoot.
-  const progress = Math.min(1, Math.max(0, (now - cameraTween.start) / CAMERA_ANIM_MS));
+  const progress = Math.min(1, Math.max(0, (now - cameraTween.start) / cameraTween.duration));
   const eased = 1 - (1 - progress) ** 3;
   const { from, to } = cameraTween;
   camera.k = from.k * (to.k / from.k) ** eased;
