@@ -37,6 +37,8 @@ export interface TypbaseTestApi {
   openGraph: (() => void) | null;
   /** Node and edge counts of the open graph, or null when it is closed. */
   graphStats: (() => { nodes: number; edges: number } | null) | null;
+  /** Screen point of a graph node in page coordinates, or null. */
+  graphNodePoint: ((id: string) => { x: number; y: number } | null) | null;
   /** Source page ids that link the given page, for link/backlink checks. */
   backlinksFor: ((pageId: string) => string[]) | null;
   /** Create a chat thread and return its id. */
@@ -91,6 +93,7 @@ export const testApi: TypbaseTestApi = {
   openChat: null,
   openGraph: null,
   graphStats: null,
+  graphNodePoint: null,
   backlinksFor: null,
   newChat: null,
   sendChat: null,

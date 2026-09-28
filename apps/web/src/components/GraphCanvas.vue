@@ -17,6 +17,8 @@ import {
 
 import type { GraphData, GraphEdge, GraphNode } from "~/lib/graph";
 
+import { testApi } from "~/lib/testApi";
+
 interface SimNode extends GraphNode, SimulationNodeDatum {}
 interface SimLink extends SimulationLinkDatum<SimNode> {
   source: string | SimNode;
@@ -287,6 +289,20 @@ function nodeAt(screenX: number, screenY: number): SimNode | null {
   }
 
   return best;
+}
+
+/** Screen point of a node in page coordinates, for the demo script and e2e. */
+function nodePoint(id: string): { x: number; y: number } | null {
+  const node = nodeById.get(id);
+  const element = canvas.value;
+  if (!node || node.x === undefined || node.y === undefined || !element) return null;
+
+  const rect = element.getBoundingClientRect();
+
+  return {
+    x: rect.left + viewport.width / 2 + (node.x - camera.x) * camera.k,
+    y: rect.top + viewport.height / 2 + (node.y - camera.y) * camera.k,
+  };
 }
 
 function fitView(): void {
@@ -632,6 +648,7 @@ function measure(): void {
 }
 
 onMounted(() => {
+  testApi.graphNodePoint = nodePoint;
   measure();
   observer = new ResizeObserver(measure);
   if (host.value) observer.observe(host.value);
@@ -643,6 +660,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  testApi.graphNodePoint = null;
   observer?.disconnect();
   observer = undefined;
   simulation.stop();

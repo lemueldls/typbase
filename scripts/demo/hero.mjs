@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { chromium } from "playwright";
 
 import {
+  GIF_FILTER,
   IMAGES,
   SHOT_SETTINGS,
   VIDEOS,
@@ -30,7 +31,8 @@ import {
  *   pnpm dev
  *   node scripts/demo/hero.mjs
  *
- * Output: docs/video/hero.mp4 and docs/images/hero-poster.png.
+ * Output: docs/video/hero.mp4, docs/images/hero.gif, and
+ * docs/images/hero-poster.png.
  */
 
 const exec = promisify(execFile);
@@ -48,6 +50,30 @@ async function clickSidebar(page, text) {
   // Read mode hides the editor, so wait for the page shell instead.
   await page.waitForSelector(".page-view", { timeout: 60_000 });
   await pause(page, 900);
+}
+
+/**
+ * Screen point of a graph node once its position holds still, so a click
+ * lands after the refit tween instead of chasing it. Null when the node is
+ * not on the canvas.
+ */
+async function settledNodePoint(page, id, { timeout = 8000 } = {}) {
+  const deadline = Date.now() + timeout;
+  let last = null;
+
+  while (Date.now() < deadline) {
+    const point = await page.evaluate(
+      (nodeId) => window.__typbase.graphNodePoint?.(nodeId) ?? null,
+      id,
+    );
+    if (!point) return null;
+    if (last && Math.hypot(point.x - last.x, point.y - last.y) < 1.5) return point;
+
+    last = point;
+    await pause(page, 180);
+  }
+
+  return last;
 }
 
 async function main() {
@@ -250,14 +276,29 @@ async function main() {
     await page.waitForSelector(".links", { timeout: 15_000 }).catch(() => {});
     await pause(page, 1900);
 
-    // The panel's hub button opens the graph.
+    // The panel's hub button opens the graph rooted at the open page, which
+    // flips local mode on. Uncheck it so the clip ends on the whole workspace.
     await clickWithCursor(page, page.locator('[aria-label="Open graph"]').first());
     await page.waitForSelector(".graph", { timeout: 15_000 }).catch(() => {});
     await moveCursor(page, VIEWPORT.width / 2, VIEWPORT.height / 2, { duration: 700 });
     await pause(page, 2200);
 
-    // Back home to close the loop.
-    await clickSidebar(page, "Home");
+    await clickWithCursor(page, page.locator(".graph__toolbar .ui-switch__track"));
+    // The node set grows, so the canvas refits once the layout settles.
+    await pause(page, 2000);
+
+    // Back home to close the loop: the Home node on the canvas, which opens
+    // the page and dismisses the graph the way the sidebar row would.
+    const homePoint = await settledNodePoint(page, ids.home);
+    if (homePoint) {
+      await moveCursor(page, homePoint.x, homePoint.y, { duration: 520 });
+      await pause(page, 320);
+      await page.mouse.click(homePoint.x, homePoint.y);
+      await page.waitForSelector(".page-view", { timeout: 30_000 });
+    } else {
+      console.log("[warn] Home node not on the canvas; falling back to the sidebar");
+      await clickSidebar(page, "Home");
+    }
     await pause(page, 1500);
 
     await page.screenshot({ path: `${IMAGES}/hero-poster.png` });
@@ -291,9 +332,25 @@ async function main() {
       `${VIDEOS}/hero.mp4`,
     ]);
 
+    await exec("ffmpeg", [
+      "-y",
+      "-ss",
+      ss.toFixed(2),
+      "-t",
+      t.toFixed(2),
+      "-i",
+      `${RAW}/hero.webm`,
+      "-vf",
+      GIF_FILTER,
+      "-loop",
+      "0",
+      `${IMAGES}/hero.gif`,
+    ]);
+
     const size = (await stat(`${VIDEOS}/hero.mp4`)).size / 1024 / 1024;
+    const gifSize = (await stat(`${IMAGES}/hero.gif`)).size / 1024 / 1024;
     console.log(
-      `captured hero.mp4 (${size.toFixed(1)} MB, ${t.toFixed(0)}s, trimmed ${ss.toFixed(1)}s of seed/boot)`,
+      `captured hero.mp4 (${size.toFixed(1)} MB, ${t.toFixed(0)}s, trimmed ${ss.toFixed(1)}s of seed/boot) and hero.gif (${gifSize.toFixed(1)} MB)`,
     );
   }
 }

@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { chromium } from "playwright";
 
 import {
+  GIF_FILTER,
   IMAGES,
   SHOT_SETTINGS,
   VIDEOS,
@@ -53,7 +54,7 @@ async function convert(name, { ss, t }) {
     "-i",
     webm,
     "-vf",
-    "fps=13,scale=1200:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=160[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3",
+    GIF_FILTER,
     "-loop",
     "0",
     gif,

@@ -41,6 +41,14 @@ export const SHOT_SETTINGS = {
   },
 };
 
+/**
+ * GIF settings shared by the clip and hero captures: 13 fps at 1200px with a
+ * 160-color bayer-dithered palette. Long captures stay watchable without
+ * ballooning; the full hero lands around 10 MB.
+ */
+export const GIF_FILTER =
+  "fps=13,scale=1200:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=160[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3";
+
 export async function ensureDirs() {
   await mkdir(IMAGES, { recursive: true });
   await mkdir(VIDEOS, { recursive: true });
