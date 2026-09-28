@@ -356,25 +356,26 @@ const clips = {
       // Write the lens equation itself.
       await page.keyboard.press("Enter");
       await page.keyboard.press("Enter");
-      await page.keyboard.type("$ 1/f = 1/d_o + 1/d_i $", { delay: 80 });
+      await page.keyboard.type("$ 1/f = 1/d_o + 1/d_i", { delay: 80 });
+      await page.keyboard.press("ArrowDown");
       await page.waitForTimeout(900);
 
       // A ray, as block math: arrow.r completes from the property list.
       await page.keyboard.press("Enter");
       await page.keyboard.press("Enter");
-      await page.keyboard.type("A ray parallel to the axis: $ arrow.r", { delay: 100 });
+      await page.keyboard.type("A ray parallel to the axis: $arrow.r", { delay: 100 });
       await page.waitForTimeout(500);
       await acceptCompletion(page, ["r", "arrow.r"]);
-      await page.keyboard.type(" $", { delay: 90 });
+      await page.keyboard.type("$", { delay: 90 });
       await page.waitForTimeout(900);
 
       // Phase, as inline math: phi.al completes to phi.alt.
       await page.keyboard.press("Enter");
       await page.keyboard.press("Enter");
-      await page.keyboard.type("Phase: $ phi.al", { delay: 100 });
+      await page.keyboard.type("Phase: $phi.al", { delay: 100 });
       await page.waitForTimeout(500);
       await acceptCompletion(page, ["alt", "phi.alt"]);
-      await page.keyboard.type(" $", { delay: 90 });
+      await page.keyboard.type("$", { delay: 90 });
 
       // Leave the block so the finished document renders.
       await page.evaluate(() => {

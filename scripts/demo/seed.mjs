@@ -174,7 +174,13 @@ export async function seedWorkspace(page, { workspaceId }) {
         "workspaces.json",
         new TextEncoder().encode(
           JSON.stringify([
-            { id, name: "Demo", icon: "kid_star", createdAt: Date.now(), lastOpenedAt: Date.now() },
+            {
+              id,
+              name: "Demo",
+              icon: "alternate_email",
+              createdAt: Date.now(),
+              lastOpenedAt: Date.now(),
+            },
           ]),
         ),
       );
