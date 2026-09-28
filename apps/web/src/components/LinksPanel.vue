@@ -195,14 +195,14 @@ function mentionCount(group: BacklinkGroup): string {
 .links__header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-secondary);
 }
 
 .links__title {
-  font-size: var(--text-sm);
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -210,7 +210,6 @@ function mentionCount(group: BacklinkGroup): string {
 .links__counts {
   min-width: 0;
   overflow: hidden;
-  margin-left: var(--space-2);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   text-overflow: ellipsis;
@@ -218,8 +217,18 @@ function mentionCount(group: BacklinkGroup): string {
 }
 
 .links__resolving {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 48rem) {
+  .links__resolving {
+    display: none;
+  }
 }
 
 .links__actions {
