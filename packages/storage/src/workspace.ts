@@ -20,7 +20,7 @@ import { DEFAULT_SETTINGS } from "@typbase/typing";
 import type { StorageBackend, StorageEntryStat } from "./backend";
 
 import { pathSegments } from "./backend";
-import { blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
+import { blobId, blobPath, hashBytes, isBlobHash, type BlobEntry } from "./blobs";
 import { createId } from "./ids";
 import { type LoroModule, loadLoro } from "./loro";
 
@@ -1698,20 +1698,50 @@ export class WorkspaceStore {
   }
 
   /**
-   * Stores bytes under their content hash. Writing the same bytes twice is a
-   * no-op, so callers can upload freely.
+   * Stores bytes under a truncated content address. Writing the same bytes
+   * twice is a no-op. The first 16 hex chars of the SHA-256 give 64 bits of
+   * address; if two different files ever land on the same address, the second
+   * is stored under the full digest instead of aliasing the first.
    */
   async putBlob(bytes: Uint8Array): Promise<BlobEntry> {
-    const hash = await hashBytes(bytes);
-    const path = blobPath(this.workspaceId, hash);
+    const full = await hashBytes(bytes);
+    const id = blobId(full);
+    const path = blobPath(this.workspaceId, id);
     const existing = await this.backend.stat(path).catch(() => null);
-    if (!existing) await this.backend.write(path, bytes);
 
-    return {
-      hash,
-      size: bytes.byteLength,
-      modifiedAt: existing?.modifiedAt ?? Date.now(),
-    };
+    if (existing) {
+      const same = existing.size === bytes.byteLength && (await this.blobBytesMatch(path, bytes));
+      if (same) {
+        return { hash: id, size: bytes.byteLength, modifiedAt: existing.modifiedAt };
+      }
+
+      // A birthday hit: keep the two files apart under the full digest.
+      const fullPath = blobPath(this.workspaceId, full);
+      const fullExisting = await this.backend.stat(fullPath).catch(() => null);
+      if (!fullExisting) await this.backend.write(fullPath, bytes);
+
+      return {
+        hash: full,
+        size: bytes.byteLength,
+        modifiedAt: fullExisting?.modifiedAt ?? Date.now(),
+      };
+    }
+
+    await this.backend.write(path, bytes);
+
+    return { hash: id, size: bytes.byteLength, modifiedAt: Date.now() };
+  }
+
+  /** Byte comparison for an existing blob; the caller compares sizes first. */
+  private async blobBytesMatch(path: string, bytes: Uint8Array): Promise<boolean> {
+    const stored = await this.backend.read(path);
+    if (!stored || stored.byteLength !== bytes.byteLength) return false;
+
+    for (let index = 0; index < bytes.length; index += 1) {
+      if (stored[index] !== bytes[index]) return false;
+    }
+
+    return true;
   }
 
   async getBlob(hash: string): Promise<Uint8Array | null> {
@@ -1762,7 +1792,8 @@ export class WorkspaceStore {
 
     for (const page of this.listPages()) {
       const text = await this.loadPageText(page.id);
-      for (const match of text.matchAll(/typbase\/blob\/([0-9a-f]{64})/g)) add(match[1]!, page.id);
+      for (const match of text.matchAll(/typbase\/blob\/([0-9a-f]{16,64})/g))
+        add(match[1]!, page.id);
 
       for (const asset of Object.values(this.getAssets(page.id))) {
         if (asset.hash) add(asset.hash, page.id);

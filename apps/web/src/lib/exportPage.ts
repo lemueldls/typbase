@@ -229,7 +229,7 @@ async function saveOne(name: string, bytes: Uint8Array): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-const BLOB_REFERENCE = /\/?typbase\/blob\/([0-9a-f]{64})(?:\.[a-z0-9]+)?/gi;
+const BLOB_REFERENCE = /\/?typbase\/blob\/([0-9a-f]{16,64})(?:\.[a-z0-9]+)?/gi;
 
 /** Replaces blob references in rendered HTML with data URIs, so the document
  *  is self-contained wherever it is opened. */
