@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1] - 2026-09-28
+
+### New
+
+- Asset picker actions
+- Graph and chat context interactions
+
+### Fixed
+
+- Resolve native oauth
+- Graph layout fitting logic
+
 ## [0.3.0] - 2026-09-27
 
 ### New

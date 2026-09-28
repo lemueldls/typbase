@@ -44,16 +44,16 @@ in
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typbase";
-  version = "0.3.0";
+  version = "0.3.1";
 
   src = fetchFromGitHub {
     owner = "lemueldls";
     repo = "typbase";
     tag = "typbase-v${finalAttrs.version}";
-    hash = "sha256-eD2Qse4Aoisci2cdeyfoeDI+DK+MPHuwVDdvsUd3ORY=";
+    hash = "sha256-n9Kj+F89o9IEZ8g+14idT+v9CeIFkJHR8QxJccUi9ac=";
   };
 
-  cargoHash = "sha256-iVMkQDqDVgNA8tP1k7P+gp0JRlMSX9dDoWPXkb1maVM=";
+  cargoHash = "sha256-7AILyDLGFpoZ3SjaXTPuGXz0q2Ah/zJNADIUt8ZWi1Q=";
 
   buildAndTestSubdir = "apps/native";
 
