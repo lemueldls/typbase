@@ -552,7 +552,10 @@
     "noMatches": "Keine passenden Seiten",
     "fit": "Ansicht einpassen",
     "hint": "Ziehen zum Verschieben, scrollen zum Zoomen, klicken zum Öffnen.",
-    "resolving": "Query-Links werden aufgelöst… noch {count}"
+    "resolving": "Query-Links werden aufgelöst… noch {count}",
+    "aroundPage": "Rund um {title}",
+    "openContextPage": "Die Seite öffnen, um die dieser Graph zentriert ist",
+    "filters": "Filter"
   },
   "notebook": {
     "runCell": "Zelle ausführen",

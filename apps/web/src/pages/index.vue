@@ -34,6 +34,8 @@ const activeBootStep = computed(
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
+/** Desktop side dock: the chat sits beside the main pane instead of replacing it. */
+const dockChatId = ref<string | null>(null);
 const graphOpen = ref(false);
 const mode = ref<ViewModeId>("write");
 const plugins = usePlugins();
@@ -69,7 +71,18 @@ function syncSidebarCollapsed() {
 
 onMounted(() => nextTick(syncSidebarCollapsed));
 watch(isDesktop, (desktop) => {
-  if (desktop) nextTick(syncSidebarCollapsed);
+  if (desktop) {
+    nextTick(syncSidebarCollapsed);
+
+    return;
+  }
+
+  // Narrow windows have no dock; keep the thread open as the full pane.
+  if (dockChatId.value) {
+    currentChatId.value = dockChatId.value;
+    dockChatId.value = null;
+    syncRoute("replace");
+  }
 });
 
 function toggleSidebar() {
@@ -174,6 +187,7 @@ useAppLocale(locale, setLocale, () => workspace.value);
 const pageQuery = useRouteQuery<string>("page", "");
 const modeQuery = useRouteQuery<string>("mode", "write");
 const viewQuery = useRouteQuery<string>("view", "");
+const asideQuery = useRouteQuery<string>("aside", "");
 const router = useRouter();
 const route = useRoute();
 
@@ -215,6 +229,18 @@ onMounted(async () => {
   if (instanceId && store.getPluginInstance(instanceId)) openPlugin(instanceId);
   const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
   if (threadId && store.getChat(threadId)) currentChatId.value = threadId;
+
+  // A ?aside=chat:<thread> link reopens the dock, or the pane on narrow windows.
+  const linkedAside = queryString(asideQuery.value);
+  const dockId = linkedAside.startsWith("chat:") ? linkedAside.slice("chat:".length) : "";
+  if (dockId && store.getChat(dockId)) {
+    if (isDesktop.value) {
+      currentChatId.value = null;
+      dockChatId.value = dockId;
+    } else {
+      currentChatId.value = dockId;
+    }
+  }
 
   // Normalize the URL so the first entry carries the resolved state; back
   // from a later page then restores this one instead of an empty query.
@@ -293,11 +319,13 @@ function routeQuery(): LocationQueryRaw {
   delete query.page;
   delete query.mode;
   delete query.view;
+  delete query.aside;
 
   if (currentPageId.value) query.page = currentPageId.value;
   if (mode.value !== "write") query.mode = mode.value;
   const view = paneViewValue();
   if (view) query.view = view;
+  if (dockChatId.value) query.aside = `chat:${dockChatId.value}`;
 
   return query;
 }
@@ -379,6 +407,28 @@ watch(viewQuery, (raw) => {
   graphOpen.value = false;
 });
 
+// Back/forward or a pasted link changes the dock under us.
+watch(asideQuery, (raw) => {
+  if (!loaded.value) return;
+
+  const value = queryString(raw);
+  const id = value.startsWith("chat:") ? value.slice("chat:".length) : "";
+  if (id && workspace.value?.getChat(id)) {
+    if (isDesktop.value) {
+      currentChatId.value = null;
+      dockChatId.value = id;
+    } else {
+      // Narrow windows have no dock; the same link opens the full pane.
+      currentChatId.value = id;
+      dockChatId.value = null;
+    }
+
+    return;
+  }
+
+  dockChatId.value = null;
+});
+
 // A deleted instance or thread must not leave the shell on an empty pane.
 watch(dataRevision, () => {
   let changed = false;
@@ -388,6 +438,10 @@ watch(dataRevision, () => {
   }
   if (currentChatId.value && !workspace.value?.getChat(currentChatId.value)) {
     currentChatId.value = null;
+    changed = true;
+  }
+  if (dockChatId.value && !workspace.value?.getChat(dockChatId.value)) {
+    dockChatId.value = null;
     changed = true;
   }
 
@@ -513,13 +567,22 @@ watch(
   },
 );
 
-/** The sidebar and page toolbar open the workspace graph. */
-function openGraph() {
+/** The sidebar opens the workspace graph; the links panel roots it at the page. */
+function openGraph(rootAtPage = false) {
   const historyMode = takeLayerHistory();
   navOpen.value = false;
   currentPluginId.value = null;
   currentChatId.value = null;
   graphOpen.value = true;
+
+  // A graph opened from a page is about that page; turn local mode on so the
+  // root is real, not just implied by the header chip.
+  if (rootAtPage && currentPageId.value) {
+    const store = workspace.value;
+    const graph = store?.getSettings().graph;
+    if (store && graph && !graph.local) store.updateSettings({ graph: { ...graph, local: true } });
+  }
+
   syncRoute(historyMode);
 }
 
@@ -533,37 +596,42 @@ function closePlugin() {
   syncRoute("replace");
 }
 
-/** Opens a thread by id, the most recent one, or a fresh one. */
+/**
+ * Opens a thread by id, the most recent one, or a fresh one. Desktop docks it
+ * beside the main pane so the page stays visible; narrow windows keep the full
+ * pane.
+ */
 function openChat(threadId?: string | null) {
   const historyMode = takeLayerHistory();
   navOpen.value = false;
-  if (threadId) {
-    currentPluginId.value = null;
-    graphOpen.value = false;
-    currentChatId.value = threadId;
-    syncRoute(historyMode);
 
+  const open = (id: string) => {
+    if (isDesktop.value) {
+      currentChatId.value = null;
+      dockChatId.value = id;
+    } else {
+      currentPluginId.value = null;
+      graphOpen.value = false;
+      currentChatId.value = id;
+      dockChatId.value = null;
+    }
+    syncRoute(historyMode);
+  };
+
+  if (threadId) {
+    open(threadId);
     return;
   }
 
   const latest = workspace.value?.listChats()[0];
   if (latest) {
-    currentPluginId.value = null;
-    graphOpen.value = false;
-    currentChatId.value = latest.id;
-    syncRoute(historyMode);
-
+    open(latest.id);
     return;
   }
 
   void chat
     .startThread({ pageId: currentPageId.value || null })
-    .then((created) => {
-      currentPluginId.value = null;
-      graphOpen.value = false;
-      currentChatId.value = created.id;
-      syncRoute(historyMode);
-    })
+    .then((created) => open(created.id))
     .catch((cause) => {
       console.error("[chat] could not create a thread:", cause);
     });
@@ -571,6 +639,23 @@ function openChat(threadId?: string | null) {
 
 function closeChat() {
   currentChatId.value = null;
+  syncRoute("replace");
+}
+
+function closeDock() {
+  dockChatId.value = null;
+  syncRoute("replace");
+}
+
+/** Moves the docked thread into the main pane. */
+function expandDock() {
+  const id = dockChatId.value;
+  if (!id) return;
+
+  dockChatId.value = null;
+  currentPluginId.value = null;
+  graphOpen.value = false;
+  currentChatId.value = id;
   syncRoute("replace");
 }
 
@@ -664,6 +749,7 @@ definePageMeta({ ssr: false });
                 :plugin-instance-id="currentPluginId"
                 :chat-thread-id="currentChatId"
                 :graph-open="graphOpen"
+                :dock-chat-id="isDesktop ? dockChatId : null"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
@@ -671,7 +757,9 @@ definePageMeta({ ssr: false });
                 @close-plugin="closePlugin"
                 @open-thread="openChat"
                 @close-chat="closeChat"
-                @open-graph="openGraph"
+                @close-dock="closeDock"
+                @expand-dock="expandDock"
+                @open-graph="openGraph(true)"
                 @close-graph="graphOpen = false"
               >
                 <template #nav-toggle>
@@ -730,7 +818,7 @@ definePageMeta({ ssr: false });
               @close-plugin="closePlugin"
               @open-thread="openChat"
               @close-chat="closeChat"
-              @open-graph="openGraph"
+              @open-graph="openGraph(true)"
               @close-graph="closeGraph"
             >
               <template #nav-toggle>

@@ -552,7 +552,10 @@
     "noMatches": "Sin páginas coincidentes",
     "fit": "Ajustar a la vista",
     "hint": "Arrastra para desplazar, rueda para ampliar, clic para abrir.",
-    "resolving": "Resolviendo enlaces de consulta… quedan {count}"
+    "resolving": "Resolviendo enlaces de consulta… quedan {count}",
+    "aroundPage": "Alrededor de {title}",
+    "openContextPage": "Abrir la página en la que se centra este grafo",
+    "filters": "Filtros"
   },
   "notebook": {
     "runCell": "Ejecutar celda",

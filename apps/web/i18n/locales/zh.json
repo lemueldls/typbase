@@ -552,7 +552,10 @@
     "noMatches": "没有匹配的页面",
     "fit": "适应视图",
     "hint": "拖动平移，滚轮缩放，点击节点打开页面。",
-    "resolving": "正在解析查询链接…还剩 {count}"
+    "resolving": "正在解析查询链接…还剩 {count}",
+    "aroundPage": "围绕 {title}",
+    "openContextPage": "打开此关系图所聚焦的页面",
+    "filters": "筛选"
   },
   "notebook": {
     "runCell": "运行单元格",

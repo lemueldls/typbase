@@ -62,6 +62,15 @@ describe("typbase app", async () => {
     await page.waitForSelector(".cm-editor", { timeout: 120_000 });
   }
 
+  /** Graph settings persist across the shared context; local mode from an
+   *  earlier test would scope the graph to a single page. */
+  async function resetGraphLocal(page: NuxtPage): Promise<void> {
+    await page.evaluate(() => {
+      window.__typbase.store.updateSettings({ graph: { local: false } });
+    });
+    await page.waitForTimeout(300);
+  }
+
   it("boots into a workspace with an editor", async () => {
     const page = await createPage();
     await openApp(page);
@@ -561,6 +570,75 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("renders a code block under a named dark theme", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await installAiStub(page, ["= Chat answer\n\n```typst\n#let x = 1\n```\n"]);
+
+    // Nord has no default-theme code file in the worker's world, so the compile
+    // has to install the palette's own tmTheme before a raw block can render.
+    const previous = await page.evaluate(() => {
+      const settings = window.__typbase.store.getSettings();
+      window.__typbase.store.updateSettings({ theme: "dark", themeName: "nord" });
+
+      return { theme: settings.theme, themeName: settings.themeName };
+    });
+
+    const threadId = await page.evaluate(() => window.__typbase.newChat());
+    await openChatThread(page, threadId);
+    await page.evaluate((id) => window.__typbase.sendChat(id, "Show code"), threadId);
+
+    await page.waitForFunction(
+      () =>
+        ["verified", "unverified"].includes(
+          document.querySelector(".chat-message--assistant")?.getAttribute("data-status") ?? "",
+        ),
+      null,
+      { timeout: 90_000 },
+    );
+
+    const messages = await page.evaluate((id) => window.__typbase.chatMessages(id), threadId);
+    const assistant = messages.find((message) => message.role === "assistant");
+    expect(assistant?.error ?? "").toBe("");
+    expect(assistant?.status).toBe("verified");
+    const rendered = await page.locator(".chat-message__render").first().innerText();
+    expect(rendered).toContain("let x = 1");
+
+    await page.evaluate((restore) => window.__typbase.store.updateSettings(restore), previous);
+    await page.close();
+  });
+
+  it("updates the chat's page context from the composer", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const firstId = await createTestPage(page, { title: "Context first", content: "= First\n" });
+    const secondId = await createTestPage(page, { title: "Context second", content: "= Second\n" });
+
+    const threadId = await page.evaluate((id) => window.__typbase.newChat(id), firstId);
+    await openChatThread(page, threadId);
+    const chip = page.locator(".chat-composer__chip--action");
+    const chipText = () => chip.innerText();
+    await expect.poll(chipText, { timeout: 30_000 }).toContain("Context first");
+
+    // Pick the other page from the chip's picker.
+    await chip.click();
+    await page.locator(".combobox__input").fill("Context second");
+    await page.locator(".combobox__item").first().click();
+    await expect.poll(chipText, { timeout: 30_000 }).toContain("Context second");
+    let thread = await page.evaluate((id) => window.__typbase.store.getChat(id), threadId);
+    expect(thread?.pageId).toBe(secondId);
+
+    // "No page" detaches the context.
+    await chip.click();
+    await page.locator(".combobox__item").first().click();
+    await expect.poll(chipText, { timeout: 30_000 }).toContain("No page");
+    thread = await page.evaluate((id) => window.__typbase.store.getChat(id), threadId);
+    expect(thread?.pageId).toBeNull();
+
+    await page.close();
+  });
+
   it("repairs a reply that does not compile", async () => {
     const page = await createPage();
     await openApp(page);
@@ -977,6 +1055,59 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("docks the chat beside the page and roots the graph at it", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, { title: "Dock host", content: "= Dock host\n" });
+    await showPage(page, id, "write");
+
+    // The chat docks beside the page instead of replacing it.
+    await page.evaluate(() => window.__typbase.openChat());
+    await page.waitForSelector(".chat-pane", { timeout: 60_000 });
+    await page.waitForFunction(
+      () => (new URL(location.href).searchParams.get("aside") ?? "").startsWith("chat:"),
+      null,
+      { timeout: 30_000 },
+    );
+    await expect(page.locator(".cm-editor").isVisible()).resolves.toBe(true);
+    // The composer names the page the thread is about.
+    await expect(page.locator(".chat-composer__chip--action").innerText()).resolves.toContain(
+      "Dock host",
+    );
+
+    // Expand moves the chat into the pane; close leaves the page behind it.
+    await page.locator('.chat-pane [aria-label="Expand chat"]').click();
+    await page.waitForFunction(() => !new URL(location.href).searchParams.get("aside"), null, {
+      timeout: 30_000,
+    });
+    expect(new URL(page.url()).searchParams.get("view")).toMatch(/^chat:/);
+    await page.locator('.chat-pane [aria-label="Close"]').click();
+    await page.waitForSelector(".cm-editor", { timeout: 30_000 });
+    expect(new URL(page.url()).searchParams.get("view")).toBeNull();
+
+    // The graph opened from the links panel turns local mode on and roots it
+    // at the page, so the page relation is real, not implied.
+    await page.locator('[aria-label="More actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Links" }).click();
+    await page.waitForSelector(".links", { timeout: 30_000 });
+    await page.locator('[aria-label="Open graph"]').first().click();
+    await page.waitForSelector(".graph canvas", { timeout: 60_000 });
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.store.getSettings().graph), {
+        timeout: 30_000,
+      })
+      .toMatchObject({ local: true });
+    // "Dock host" has no links, so the local graph holds only its root.
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.graphStats()?.nodes ?? 0), {
+        timeout: 30_000,
+      })
+      .toBe(1);
+
+    await page.close();
+  });
+
   it("builds a graph with the linked pages as nodes and edges", async () => {
     const page = await createPage();
     await openApp(page);
@@ -990,6 +1121,7 @@ describe("typbase app", async () => {
       content: `= Source\n\n#typbase.embed("${targetId}")\n`,
     });
 
+    await resetGraphLocal(page);
     await page.evaluate(() => window.__typbase.openGraph());
     await page.waitForSelector(".graph canvas", { timeout: 60_000 });
 
@@ -1001,6 +1133,37 @@ describe("typbase app", async () => {
     expect(stats?.nodes ?? 0).toBeGreaterThanOrEqual(2);
     expect(stats?.edges ?? 0).toBeGreaterThanOrEqual(1);
 
+    await page.close();
+  });
+
+  it("filters the graph from the toolbar popover", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await resetGraphLocal(page);
+    await page.evaluate(() => window.__typbase.openGraph());
+    await page.waitForSelector(".graph canvas", { timeout: 60_000 });
+
+    // Every filter select gets a visible label; the toolbar itself stays to
+    // the search, the scope switch, and the popover trigger.
+    await page.locator(".graph__toolbar button", { hasText: "Filters" }).click();
+    await page.waitForSelector(".graph__filters", { timeout: 30_000 });
+    const labels = await page.locator(".graph__filter-label").allInnerTexts();
+    expect(labels).toEqual(expect.arrayContaining(["Depth", "Category", "Labels"]));
+    await expect(page.locator(".graph__toolbar .ui-select__trigger").count()).resolves.toBe(0);
+
+    // Toggling "Show orphans" writes the setting and shows the badge.
+    await page.locator(".graph__filters .ui-switch__track").click();
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.store.getSettings().graph), {
+        timeout: 30_000,
+      })
+      .toMatchObject({ showOrphans: false });
+    await expect(page.locator(".graph__filters-count").innerText()).resolves.toBe("1");
+
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({ graph: { ...store.getSettings().graph, showOrphans: true } });
+    });
     await page.close();
   });
 

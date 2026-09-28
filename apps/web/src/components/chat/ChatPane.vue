@@ -7,10 +7,11 @@ import { useWorkspace } from "~/composables/workspace";
 import { engineAvailable } from "~/lib/engineHealth";
 import { refreshSections, toSections } from "~/lib/sections";
 
-const props = defineProps<{ threadId: string }>();
+const props = defineProps<{ threadId: string; docked?: boolean }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
+  (e: "expand"): void;
   (e: "openPage", id: string): void;
   (e: "openThread", id: string): void;
 }>();
@@ -18,7 +19,6 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const {
   threads,
-  thread: findThread,
   chatRevision,
   startThread,
   readMessages: readChatMessages,
@@ -47,24 +47,26 @@ if (seed && seed.threadId === props.threadId) {
   contextPageId.value = seed.pageId;
 }
 
-const thread = computed(() => {
-  void chatRevision.value;
-
-  return findThread(props.threadId);
-});
+/** Thread metadata lives in the workspace doc's `chats` map, so title,
+ *  provider, model, and page edits show up without an engine event. */
+const thread = useWorkspaceValue(workspace, ["chats"], (store) => store.getChat(props.threadId));
 
 const threadTitle = computed(() => thread.value?.title ?? t("chat.title"));
 const busy = computed(() => isStreaming(props.threadId));
-const pageTitle = useWorkspaceValue(
+/** The page this thread is about; the open seed can override the stored id. */
+const contextPage = useWorkspaceValue(
   workspace,
   ["pages"],
   (store) => {
     const id = contextPageId.value ?? thread.value?.pageId ?? null;
 
-    return id ? (store.getPage(id)?.title ?? null) : null;
+    return id ? (store.getPage(id) ?? null) : null;
   },
   null,
 );
+const pageTitle = computed(() => contextPage.value?.title ?? null);
+/** All pages, for the composer's page picker. */
+const pages = useWorkspaceValue(workspace, ["pages"], (store) => store.listPages(), []);
 
 const providerId = computed(() => thread.value?.providerId ?? null);
 const model = computed(() => thread.value?.model ?? null);
@@ -158,6 +160,15 @@ function updateModel(value: string): void {
   store.updateChat(props.threadId, { model: value || null });
 }
 
+/** Re-grounds the thread on another page; a selection came from the old page
+ *  and would be read against the wrong text. */
+function updateContextPage(id: string | null): void {
+  const current = contextPageId.value ?? thread.value?.pageId ?? null;
+  contextPageId.value = id;
+  if (id !== current) selection.value = null;
+  workspace.value?.updateChat(props.threadId, { pageId: id });
+}
+
 async function insertMessage(message: ChatMessage): Promise<void> {
   const store = workspace.value;
   const pageId = contextPageId.value ?? thread.value?.pageId ?? null;
@@ -233,11 +244,20 @@ function applySuggestion(text: string): void {
 </script>
 
 <template>
-  <div class="chat-pane">
+  <div class="chat-pane" :class="{ 'chat-pane--docked': docked }">
     <div class="chat-pane__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
-      <MsIcon name="forum" :size="18" />
+      <!-- <MsIcon name="forum" :size="20" /> -->
       <UiTruncatedText class="chat-pane__title" :text="threadTitle" />
+
+      <!-- <UiTooltip v-if="contextPage" :text="$t('chat.openContextPage')">
+        <button type="button" class="chat-pane__context" @click="emit('openPage', contextPage.id)">
+          <MsIcon name="description" :size="14" />
+          <span class="chat-pane__context-title">
+            {{ $t("chat.aboutPage", { title: contextPage.title }) }}
+          </span>
+        </button>
+      </UiTooltip> -->
 
       <div class="chat-pane__actions">
         <UiMenu v-model:open="threadMenuOpen">
@@ -245,12 +265,12 @@ function applySuggestion(text: string): void {
             <UiIconButton icon="history" :label="$t('chat.threads')" />
           </template>
           <UiMenuItem v-for="entry in threads" :key="entry.id" @select="openThread(entry.id)">
-            <MsIcon :name="entry.id === threadId ? 'forum' : 'chat_bubble'" :size="16" />
+            <MsIcon :name="entry.id === threadId ? 'forum' : 'chat_bubble'" :size="20" />
             <span class="chat-pane__thread-name">{{ entry.title }}</span>
           </UiMenuItem>
           <UiMenuSeparator />
           <UiMenuItem @select="newThread">
-            <MsIcon name="add" :size="16" />
+            <MsIcon name="add" :size="20" />
             {{ $t("chat.newThread") }}
           </UiMenuItem>
         </UiMenu>
@@ -260,6 +280,12 @@ function applySuggestion(text: string): void {
           icon="delete"
           :label="$t('chat.deleteThread')"
           @click="confirmDeleteOpen = true"
+        />
+        <UiIconButton
+          v-if="docked"
+          icon="open_in_full"
+          :label="$t('chat.expand')"
+          @click="emit('expand')"
         />
         <UiIconButton icon="close" :label="$t('common.close')" @click="emit('close')" />
       </div>
@@ -303,11 +329,13 @@ function applySuggestion(text: string): void {
       :provider-id="providerId"
       :model="model"
       :page-title="pageTitle"
+      :pages="pages"
       :selection="selection"
       @send="onSend"
       @stop="onStop"
       @update:provider-id="updateProvider"
       @update:model="updateModel"
+      @update:page="updateContextPage"
       @clear-selection="selection = null"
     />
 
@@ -331,7 +359,6 @@ function applySuggestion(text: string): void {
 .chat-pane__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
   min-height: var(--pane-header-height);
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
@@ -339,15 +366,58 @@ function applySuggestion(text: string): void {
 }
 
 .chat-pane__title {
+  flex: 1 1 auto;
   min-width: 0;
+  font-size: var(--text-2xl);
   font-weight: 600;
+  margin-left: var(--space-2);
+  white-space: nowrap;
+}
+
+.chat-pane__context {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 16rem;
+  margin-left: var(--space-2);
+  padding: var(--space-0-5) var(--space-1-5);
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.chat-pane__context:hover,
+.chat-pane__context:focus-visible {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
+.chat-pane__context-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The dock is narrow: a smaller title leaves room for the page chip. */
+.chat-pane--docked .chat-pane__title {
+  font-size: var(--text-lg);
+}
+
+.chat-pane--docked .chat-pane__context {
+  max-width: 10rem;
 }
 
 .chat-pane__actions {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .chat-pane__thread-name {

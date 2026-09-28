@@ -552,7 +552,10 @@
     "noMatches": "Aucune page correspondante",
     "fit": "Ajuster à la vue",
     "hint": "Glissez pour déplacer, molette pour zoomer, cliquez pour ouvrir.",
-    "resolving": "Résolution des liens de requête… {count} restants"
+    "resolving": "Résolution des liens de requête… {count} restants",
+    "aroundPage": "Autour de {title}",
+    "openContextPage": "Ouvrir la page sur laquelle ce graphe est centré",
+    "filters": "Filtres"
   },
   "notebook": {
     "runCell": "Exécuter la cellule",

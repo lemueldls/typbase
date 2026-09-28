@@ -82,7 +82,7 @@ export interface ChatThread {
   providerId: string | null;
   /** Model id used by default in this thread; null follows provider config. */
   model: string | null;
-  /** Page captured as context when the thread was created. */
+  /** Page the thread is grounded in; null for no page context. */
   pageId: string | null;
   createdAt: number;
   updatedAt: number;

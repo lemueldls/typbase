@@ -581,7 +581,10 @@
     "noMatches": "No matching pages",
     "fit": "Fit to view",
     "hint": "Drag to pan, scroll to zoom, click a node to open it.",
-    "resolving": "Resolving query links… {count} left"
+    "resolving": "Resolving query links… {count} left",
+    "aroundPage": "Around {title}",
+    "openContextPage": "Open the page this graph is rooted at",
+    "filters": "Filters"
   },
   "chat": {
     "title": "Chat",
@@ -625,7 +628,13 @@
     "inserted": "Inserted into the page",
     "newPageTitle": "AI answer",
     "engineDown": "The Typst engine is unavailable; chat replies cannot be rendered",
-    "insertUnverified": "This reply has not been verified by the Typst engine. Insert it anyway?"
+    "insertUnverified": "This reply has not been verified by the Typst engine. Insert it anyway?",
+    "aboutPage": "About {title}",
+    "openContextPage": "Open the page this chat is about",
+    "expand": "Expand chat",
+    "resizeDock": "Resize chat dock",
+    "changePage": "Change the page this chat is about",
+    "noPage": "No page"
   },
   "updates": {
     "title": "Software update",

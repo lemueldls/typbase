@@ -119,7 +119,10 @@ function useChatState() {
 
         return { html: result.html ?? "", diagnostics: result.diagnostics };
       },
-      check: async ({ source, prelude, spaceId }) => {
+      check: async ({ source, prelude, palette, spaceId }) => {
+        // The check can run before the first progressive render; the worker's
+        // world needs the palette's code-block theme either way.
+        applyWorkerStyle(currentStore(), palette);
         const result = await checkChatMessage({ source, prelude, spaceId });
 
         return { diagnostics: result.diagnostics };
