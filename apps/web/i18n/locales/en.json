@@ -401,13 +401,20 @@
     "collapse": "Collapse formatting toolbar"
   },
   "assets": {
-    "title": "Insert asset",
+    "title": "Assets",
     "search": "Search assets",
     "upload": "Upload",
     "loading": "Loading assets…",
     "empty": "No assets yet. Upload one to reuse it in notes.",
     "noMatches": "No assets match that search.",
-    "hint": "Click an asset to insert it at the cursor."
+    "hint": "Click an asset to insert it at the cursor.",
+    "actions": "Asset actions",
+    "copy": "Copy reference",
+    "copied": "Reference copied.",
+    "download": "Download",
+    "delete": "Delete asset",
+    "deleteUsed": "Delete this asset? {count} page(s) reference it and will lose the media.",
+    "deleteUnused": "Delete this asset? No page references it."
   },
   "exportPage": {
     "title": "Export page",
@@ -487,6 +494,7 @@
     "assetPruned": "Deleted {count} unused asset(s).",
     "assetEmpty": "No media in this workspace yet.",
     "assetCopied": "Reference copied.",
+    "assetCopy": "Copy reference",
     "assetDelete": "Delete asset",
     "assetDeleteConfirm": "Delete asset {hash}…? Pages that reference it will lose the image.",
     "assetDownload": "Download asset",

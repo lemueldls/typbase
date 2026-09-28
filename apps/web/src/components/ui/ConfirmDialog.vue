@@ -27,8 +27,8 @@ const describedBy = computed(() => (props.description ? {} : { "aria-describedby
 <template>
   <AlertDialogRoot v-model:open="open">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="dialog-overlay" />
-      <AlertDialogContent v-bind="describedBy" class="dialog">
+      <AlertDialogOverlay class="dialog-overlay dialog-overlay--confirm" />
+      <AlertDialogContent v-bind="describedBy" class="dialog dialog--confirm">
         <AlertDialogTitle class="dialog__title">{{ title }}</AlertDialogTitle>
         <AlertDialogDescription v-if="description" class="dialog__description">
           {{ description }}
@@ -50,3 +50,13 @@ const describedBy = computed(() => (props.description ? {} : { "aria-describedby
     </AlertDialogPortal>
   </AlertDialogRoot>
 </template>
+
+<style>
+.dialog-overlay--confirm {
+  z-index: 86;
+}
+
+.dialog--confirm {
+  z-index: 89;
+}
+</style>

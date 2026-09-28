@@ -372,13 +372,20 @@
     "collapse": "Réduire la barre de mise en forme"
   },
   "assets": {
-    "title": "Insérer un média",
+    "title": "Médias",
     "search": "Rechercher des médias",
     "upload": "Importer",
     "loading": "Chargement des médias…",
     "empty": "Pas encore de médias. Importez-en pour les réutiliser dans vos notes.",
     "noMatches": "Aucun média ne correspond à cette recherche.",
-    "hint": "Cliquez sur un média pour l'insérer au curseur."
+    "hint": "Cliquez sur un média pour l'insérer au curseur.",
+    "actions": "Actions du média",
+    "copy": "Copier la référence",
+    "copied": "Référence copiée.",
+    "download": "Télécharger",
+    "delete": "Supprimer le média",
+    "deleteUsed": "Supprimer ce média ? {count} page(s) l'utilisent et perdront le contenu.",
+    "deleteUnused": "Supprimer ce média ? Aucune page ne l'utilise."
   },
   "exportPage": {
     "title": "Exporter la page",
@@ -458,6 +465,7 @@
     "assetPruned": "{count} média(s) inutilisé(s) supprimé(s).",
     "assetEmpty": "Aucun média dans cet espace pour le moment.",
     "assetCopied": "Référence copiée.",
+    "assetCopy": "Copier la référence",
     "assetDelete": "Supprimer le média",
     "assetDeleteConfirm": "Supprimer le média {hash}… ? Les pages qui l’utilisent perdront l’image.",
     "assetDownload": "Télécharger le média",

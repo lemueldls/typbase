@@ -2,7 +2,9 @@
 import type { BlobEntry, WorkspaceStore } from "@typbase/storage";
 import type { MaterialSymbol } from "material-symbols";
 
-import { blobReference, sniffMime } from "@typbase/storage";
+import { blobReference, isTauri, mimeExtension, saveExportFile, sniffMime } from "@typbase/storage";
+
+import { pushToast } from "~/composables/toasts";
 
 const props = defineProps<{ store: WorkspaceStore }>();
 
@@ -15,6 +17,8 @@ interface Asset extends BlobEntry {
   url?: string;
 }
 
+const { t } = useI18n();
+
 /** Dialog state; the app bar opens it from the overflow menu or a trigger. */
 const open = defineModel<boolean>("open", { default: false });
 const assets = ref<Asset[]>([]);
@@ -22,6 +26,12 @@ const loading = ref(false);
 const error = ref("");
 const query = ref("");
 const search = useTemplateRef("search");
+
+/** Delete confirmation. The target lives here so the dialog's close event
+ *  cannot clear it before the confirm handler runs. */
+const deleteTarget = ref<Asset | null>(null);
+const deleteOpen = ref(false);
+const deleteDescription = ref("");
 
 const filtered = computed(() => {
   const needle = query.value.trim().toLowerCase();
@@ -101,6 +111,75 @@ function choose(asset: Asset): void {
     reference: blobReference(asset.hash, asset.mime),
   });
   open.value = false;
+}
+
+/** The Typst reference, wrapped in `#image` for media Typst renders. */
+function copyReference(asset: Asset): void {
+  const reference = blobReference(asset.hash, asset.mime);
+  const text = asset.mime.startsWith("image/") ? `#image("${reference}")` : reference;
+
+  navigator.clipboard
+    .writeText(text)
+    .then(() => pushToast({ titleKey: "assets.copied", duration: 2500 }))
+    // Clipboard access can be blocked; show the text so it can be copied by hand.
+    .catch(() => pushToast({ title: text, duration: 8000 }));
+}
+
+/** Saves the bytes through the native dialog, or an anchor download on the web. */
+async function download(asset: Asset): Promise<void> {
+  const store = props.store;
+  if (!store) return;
+
+  const bytes = await store.getBlob(asset.hash);
+  if (!bytes) return;
+
+  const name = `${asset.hash}.${mimeExtension(asset.mime)}`;
+  if (isTauri()) {
+    await saveExportFile(name, bytes);
+
+    return;
+  }
+
+  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: asset.mime }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  // The download has started; release the URL once it has had time to read.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** Deletes ask first, and say how many pages lose the media. */
+async function askDelete(asset: Asset): Promise<void> {
+  const store = props.store;
+  if (!store) return;
+
+  let used = 0;
+  try {
+    used = (await store.findBlobReferences()).get(asset.hash)?.length ?? 0;
+  } catch {
+    // A failed reference scan should not block deleting the asset.
+  }
+
+  deleteTarget.value = asset;
+  deleteDescription.value = used
+    ? t("assets.deleteUsed", { count: used })
+    : t("assets.deleteUnused");
+  deleteOpen.value = true;
+}
+
+async function confirmDelete(): Promise<void> {
+  const asset = deleteTarget.value;
+  const store = props.store;
+  deleteTarget.value = null;
+  if (!asset || !store) return;
+
+  try {
+    await store.deleteBlob(asset.hash);
+    await refresh();
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : String(cause);
+  }
 }
 
 async function upload(event: Event): Promise<void> {
@@ -183,7 +262,7 @@ function formatSize(bytes: number): string {
       </p>
 
       <ul v-else class="picker__grid">
-        <li v-for="asset in filtered" :key="asset.hash">
+        <li v-for="asset in filtered" :key="asset.hash" class="picker__item">
           <UiTooltip :text="asset.hash">
             <button type="button" class="picker__card" @click="choose(asset)">
               <span class="picker__thumb">
@@ -196,11 +275,41 @@ function formatSize(bytes: number): string {
               </span>
             </button>
           </UiTooltip>
+
+          <span class="picker__menu">
+            <UiMenu>
+              <template #trigger>
+                <UiIconButton
+                  icon="more_vert"
+                  :label="$t('assets.actions')"
+                  variant="ghost"
+                  :size="16"
+                  class="button--tiny"
+                />
+              </template>
+              <UiMenuItem icon="content_copy" @select="copyReference(asset)">
+                {{ $t("assets.copy") }}
+              </UiMenuItem>
+              <UiMenuItem icon="download" @select="download(asset)">
+                {{ $t("assets.download") }}
+              </UiMenuItem>
+              <UiMenuItem icon="delete" @select="askDelete(asset)">
+                {{ $t("assets.delete") }}
+              </UiMenuItem>
+            </UiMenu>
+          </span>
         </li>
       </ul>
 
       <p v-if="filtered.length" class="picker__hint">{{ $t("assets.hint") }}</p>
     </div>
+
+    <UiConfirmDialog
+      v-model:open="deleteOpen"
+      :title="$t('assets.delete')"
+      :description="deleteDescription"
+      @confirm="confirmDelete"
+    />
   </UiDialog>
 </template>
 
@@ -261,6 +370,23 @@ function formatSize(bytes: number): string {
 .picker__card:focus-visible {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
+}
+
+.picker__item {
+  position: relative;
+}
+
+.picker__menu {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+/* The trigger sits over the thumbnail; a surface fill keeps it legible. */
+.picker__menu .button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
 .picker__thumb {

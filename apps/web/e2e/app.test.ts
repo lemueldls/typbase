@@ -899,6 +899,84 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("copies, downloads, and deletes assets from the picker", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, { title: "Asset host", content: "= Assets\n" });
+    await showPage(page, id, "write");
+
+    const openPicker = async (): Promise<void> => {
+      // Wide panes carry a toolbar trigger; narrow ones hide it in the
+      // overflow menu.
+      const trigger = page.locator('[aria-label="Assets"]').first();
+      if ((await trigger.count()) > 0) {
+        await trigger.click();
+      } else {
+        await page.locator('[aria-label="More actions"]').first().click();
+        await page.getByRole("menuitem", { name: "Assets" }).click();
+      }
+      await page.waitForSelector(".asset-dialog", { timeout: 30_000 });
+    };
+
+    // A real 1x1 PNG; the picker selects a fresh upload right away.
+    await openPicker();
+    await page.setInputFiles('.asset-dialog input[type="file"]', {
+      name: "dot.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    await page.waitForFunction(
+      () =>
+        /#image\("\/typbase\/blob\/[0-9a-f]{16}\.png"\)/.test(
+          window.__typbase.view?.state.doc.toString() ?? "",
+        ),
+      null,
+      { timeout: 30_000 },
+    );
+
+    // Copy shows a toast; clipboard access can be blocked, in which case the
+    // fallback toast carries the reference text.
+    await openPicker();
+    await page.locator('.asset-dialog [aria-label="Asset actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Copy reference" }).click();
+    await page.waitForSelector(".ui-toast", { timeout: 30_000 });
+
+    // Download runs through the browser's download flow.
+    const download = page.waitForEvent("download", { timeout: 30_000 });
+    await page.locator('.asset-dialog [aria-label="Asset actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Download" }).click();
+    await download;
+
+    // Delete asks first, then removes the card. The confirm's shim sits above
+    // the picker dialog, not under it.
+    await page.locator('.asset-dialog [aria-label="Asset actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Delete asset" }).click();
+    await page.waitForSelector(".dialog--confirm", { timeout: 30_000 });
+    const stacking = await page.evaluate(() => {
+      const overlays = [...document.querySelectorAll(".dialog-overlay")];
+      const confirm = overlays.at(-1);
+      const picker = document.querySelector(".asset-dialog");
+
+      return {
+        confirm: confirm ? Number(getComputedStyle(confirm).zIndex) : 0,
+        picker: picker ? Number(getComputedStyle(picker).zIndex) : 0,
+      };
+    });
+    expect(stacking.confirm).toBeGreaterThan(stacking.picker);
+    await page.getByRole("button", { name: "Delete" }).click();
+    await page.waitForFunction(
+      () => document.querySelectorAll(".asset-dialog .picker__card").length === 0,
+      null,
+      { timeout: 30_000 },
+    );
+
+    await page.close();
+  });
+
   it("builds a graph with the linked pages as nodes and edges", async () => {
     const page = await createPage();
     await openApp(page);

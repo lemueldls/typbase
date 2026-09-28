@@ -372,13 +372,20 @@
     "collapse": "收起格式工具栏"
   },
   "assets": {
-    "title": "插入资源",
+    "title": "资源",
     "search": "搜索资源",
     "upload": "上传",
     "loading": "正在加载资源…",
     "empty": "还没有资源。上传后即可在笔记中复用。",
     "noMatches": "没有匹配的资源。",
-    "hint": "点击资源即可插入到光标位置。"
+    "hint": "点击资源即可插入到光标位置。",
+    "actions": "资源操作",
+    "copy": "复制引用",
+    "copied": "引用已复制。",
+    "download": "下载",
+    "delete": "删除资源",
+    "deleteUsed": "删除此资源？有 {count} 个页面引用它，将失去该媒体。",
+    "deleteUnused": "删除此资源？没有页面引用它。"
   },
   "exportPage": {
     "title": "导出页面",
@@ -458,6 +465,7 @@
     "assetPruned": "已删除 {count} 个未使用素材。",
     "assetEmpty": "此工作区暂无素材。",
     "assetCopied": "引用已复制。",
+    "assetCopy": "复制引用",
     "assetDelete": "删除素材",
     "assetDeleteConfirm": "删除素材 {hash}…？引用它的页面将失去图片。",
     "assetDownload": "下载素材",

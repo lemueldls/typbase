@@ -372,13 +372,20 @@
     "collapse": "Contraer barra de formato"
   },
   "assets": {
-    "title": "Insertar recurso",
+    "title": "Recursos",
     "search": "Buscar recursos",
     "upload": "Subir",
     "loading": "Cargando recursos…",
     "empty": "Aún no hay recursos. Sube uno para reutilizarlo en las notas.",
     "noMatches": "Ningún recurso coincide con la búsqueda.",
-    "hint": "Haz clic en un recurso para insertarlo en el cursor."
+    "hint": "Haz clic en un recurso para insertarlo en el cursor.",
+    "actions": "Acciones del recurso",
+    "copy": "Copiar referencia",
+    "copied": "Referencia copiada.",
+    "download": "Descargar",
+    "delete": "Eliminar recurso",
+    "deleteUsed": "¿Eliminar este recurso? {count} página(s) lo usan y perderán el contenido.",
+    "deleteUnused": "¿Eliminar este recurso? Ninguna página lo usa."
   },
   "exportPage": {
     "title": "Exportar página",
@@ -458,6 +465,7 @@
     "assetPruned": "Se eliminaron {count} recursos no usados.",
     "assetEmpty": "Aún no hay recursos en este espacio.",
     "assetCopied": "Referencia copiada.",
+    "assetCopy": "Copiar referencia",
     "assetDelete": "Eliminar recurso",
     "assetDeleteConfirm": "¿Eliminar el recurso {hash}…? Las páginas que lo usan perderán la imagen.",
     "assetDownload": "Descargar recurso",
