@@ -107,6 +107,20 @@ useResizeObserver(pageView, (entries) => {
 });
 const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
 
+function onKeydown(event: KeyboardEvent): void {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+  if (event.code !== "KeyP" && event.key.toLowerCase() !== "p") return;
+
+  event.preventDefault();
+  if (event.repeat) return;
+
+  exportOpen.value = true;
+}
+
+onMounted(() => {
+  useEventListener(window, "keydown", onKeydown, { capture: true });
+});
+
 const notebookSession = createNotebookSession();
 const notebookController = shallowRef<NotebookController>();
 /** Cell selected in command mode (editor blurred). Null while editing. */

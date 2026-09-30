@@ -429,7 +429,11 @@ export function resolveLightTheme(settings: {
   const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
 
   return {
-    palette: { ...expandSeeds(seeds, "light"), ...normalizeCustom(custom) },
+    palette: {
+      ...expandSeeds(seeds, "light"),
+      ...normalizeCustom(custom),
+      surface: "#ffffff",
+    },
     mode: "light",
     definition: def,
   };

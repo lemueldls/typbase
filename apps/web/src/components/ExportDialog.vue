@@ -109,11 +109,11 @@ async function run(): Promise<void> {
         :disabled="!options.svg"
       />
       <UiCheckbox v-model="options.project" :label="$t('exportPage.project')" />
-      <UiCheckbox
+      <!-- <UiCheckbox
         v-model="options.stripMarkers"
         :label="$t('exportPage.stripMarkers')"
         :disabled="!options.project"
-      />
+      /> -->
       <UiCheckbox
         v-model="options.fonts"
         :label="$t('exportPage.fonts')"

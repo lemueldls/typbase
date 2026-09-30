@@ -36,8 +36,9 @@ export function publishThemePalette(
   settings: WorkspaceSettings,
   options: Pick<PublishPreludeOptions, "theme"> = {},
 ): ThemePaletteTokens {
-  return (options.theme === "workspace" ? resolveTheme(settings) : resolveLightTheme(settings))
-    .palette;
+  const theme =
+    options.theme === "workspace" ? resolveTheme(settings) : resolveLightTheme(settings);
+  return theme.palette;
 }
 
 /**
