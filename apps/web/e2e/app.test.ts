@@ -383,6 +383,44 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("shows editor tooltips above the panes", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.locator(".page-view .cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type("\n#");
+    await page.waitForSelector(".cm-tooltip-autocomplete", { timeout: 60_000 });
+
+    // The pane clips its overflow, so the tooltip has to live outside it and
+    // outrank the chrome to stay visible over the sidebar and neighbors.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const tip = document.querySelector<HTMLElement>(".cm-tooltip-autocomplete");
+            if (!tip) return null;
+
+            const rect = tip.getBoundingClientRect();
+            const hit = document.elementFromPoint(
+              rect.left + rect.width / 2,
+              rect.top + rect.height / 2,
+            );
+
+            return {
+              parent: tip.parentElement?.parentElement?.tagName ?? null,
+              zIndex: getComputedStyle(tip).zIndex,
+              onTop: Boolean(hit && (hit === tip || tip.contains(hit))),
+              inside: rect.left >= 0 && rect.right <= window.innerWidth,
+            };
+          }),
+        { timeout: 30_000 },
+      )
+      .toMatchObject({ parent: "BODY", zIndex: "100", onTop: true, inside: true });
+
+    await page.close();
+  });
+
   it("reports diagnostics for broken Typst", async () => {
     const page = await createPage();
     await openApp(page);

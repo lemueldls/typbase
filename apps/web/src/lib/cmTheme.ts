@@ -260,6 +260,9 @@ export const typstEditorTheme = EditorView.theme({
     border: "1px solid var(--color-border)",
     borderRadius: "var(--radius-md)",
     boxShadow: "0 8px 30px rgb(0 0 0 / 0.12)",
+    // The tooltips are parented to the body, so they need the app's tooltip
+    // tier to stay above the pane chrome, menus, and the sidebar.
+    zIndex: "100",
     // Long identifiers and URLs would otherwise run past the edge.
     overflowWrap: "anywhere",
   },

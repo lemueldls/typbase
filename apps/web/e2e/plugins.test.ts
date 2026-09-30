@@ -79,11 +79,19 @@ describe("plugin system", async () => {
     );
 
     // A view-only action (selecting a day) must re-render on its own. Before,
-    // the outline only moved after some other action forced a render.
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    // the outline only moved after some other action forced a render. Pick
+    // another day in the current month: the grid only marks cells in the
+    // month it shows, so a next-month date would leave it unmarked.
+    const now = new Date();
+    const day = now.getUTCDate();
+    const otherDay = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day === 1 ? 2 : day - 1),
+    )
+      .toISOString()
+      .slice(0, 10);
     await page.evaluate(
       ({ id, date }) => window.__typbase.pluginAction(id, "pane", "calendar.select", { date }),
-      { id: instanceId, date: tomorrow },
+      { id: instanceId, date: otherDay },
     );
     await page.waitForFunction(
       ({ id, date }) => {
@@ -92,7 +100,7 @@ describe("plugin system", async () => {
 
         return selected.includes(date);
       },
-      { id: instanceId, date: tomorrow },
+      { id: instanceId, date: otherDay },
       { timeout: 30_000 },
     );
 

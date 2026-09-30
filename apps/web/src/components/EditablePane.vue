@@ -23,6 +23,7 @@ import {
   highlightSpecialChars,
   placeholder,
   rectangularSelection,
+  tooltips,
 } from "@codemirror/view";
 import {
   type TextRef,
@@ -401,6 +402,7 @@ function createStateConfig(): EditorStateConfig {
     crosshairCursor(),
     highlightSelectionMatches(),
     placeholder("Start typing..."),
+    tooltips({ parent: document.body }),
   );
 
   if (props.extensions) extensions.push(...props.extensions);
