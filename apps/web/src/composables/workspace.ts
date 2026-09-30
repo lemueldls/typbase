@@ -741,6 +741,13 @@ function useWorkspaceState() {
     workspaces.value = await reg.list();
   }
 
+  /** Rewrites the registry in the given order. The switcher lists it as-is. */
+  async function reorderWorkspaces(ids: readonly string[]): Promise<void> {
+    const reg = await ensureRegistry();
+    await reg.reorder(ids);
+    workspaces.value = await reg.list();
+  }
+
   async function deleteWorkspace(id: string): Promise<void> {
     const reg = await ensureRegistry();
     await removeWorkspace(backendRef.value!, id);
@@ -825,6 +832,7 @@ function useWorkspaceState() {
     createWorkspace,
     renameWorkspace,
     setWorkspaceIcon,
+    reorderWorkspaces,
     deleteWorkspace,
     refreshWorkspaceList,
     backend: backendRef,

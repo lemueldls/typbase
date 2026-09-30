@@ -7,6 +7,8 @@
     "delete": "Eliminar",
     "rename": "Renombrar",
     "setCategory": "Establecer categoría",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
     "convertToNotebook": "Convertir en cuaderno",
     "convertToDocument": "Convertir en documento",
     "close": "Cerrar",

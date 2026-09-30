@@ -71,7 +71,7 @@ async function submit() {
   >
     <div class="ws-dialog__preview" aria-hidden="true">
       <span class="ws-dialog__preview-icon">
-        <MsIcon :name="icon" :size="24" />
+        <MsIcon :name="icon" :size="22" />
       </span>
       <span class="ws-dialog__preview-name">
         {{ name.trim() || props.workspace?.name || t("switcher.createTitle") }}
@@ -123,12 +123,12 @@ async function submit() {
 .ws-dialog__preview-icon {
   display: grid;
   place-content: center;
-  width: var(--control-md);
-  height: var(--control-md);
+  width: var(--control-sm);
+  height: var(--control-sm);
   flex: none;
   color: var(--color-accent);
   background: var(--color-accent-soft);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .ws-dialog__preview-name {

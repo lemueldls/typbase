@@ -7,6 +7,8 @@
     "delete": "Delete",
     "rename": "Rename",
     "setCategory": "Set category",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
     "convertToNotebook": "Convert to notebook",
     "convertToDocument": "Convert to document",
     "close": "Close",

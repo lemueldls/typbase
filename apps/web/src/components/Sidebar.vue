@@ -4,7 +4,6 @@ import type { PageMeta } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
-import { PAGE_KIND_ICONS } from "~/lib/view";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -51,10 +50,27 @@ const settings = useWorkspaceValue(
 );
 
 const regularPages = computed(() => pages.value.filter((page) => !page.path.startsWith("daily/")));
-const uncategorized = computed(() => regularPages.value.filter((page) => !page.categoryId));
 
-function pagesForCategory(categoryId: string) {
-  return regularPages.value.filter((page) => page.categoryId === categoryId);
+/** Pages grouped by category, `null` for the General group, in list order. */
+const pageGroups = computed(() => {
+  const groups = new Map<string | null, PageMeta[]>();
+  for (const page of regularPages.value) {
+    const key = page.categoryId ?? null;
+    const group = groups.get(key);
+    if (group) group.push(page);
+    else groups.set(key, [page]);
+  }
+
+  return groups;
+});
+
+function pagesForCategory(categoryId: string | null): PageMeta[] {
+  return pageGroups.value.get(categoryId) ?? [];
+}
+
+/** Drag list key for a page group: a category, or the General group. */
+function groupKey(categoryId: string | null): string {
+  return categoryId ? `category:${categoryId}` : "general";
 }
 
 const today = new Date();
@@ -121,6 +137,82 @@ function convertPage(page: PageMeta, kind: PageMeta["kind"]): void {
   void props.store.updatePageKind(page.id, kind);
 }
 
+/**
+ * Applies one group's new order to the store's single page order: the group's
+ * slots are refilled in the new sequence and every other page keeps its spot.
+ */
+function applyPageOrder(key: string, ids: string[]): void {
+  const categoryId = key === "general" ? null : key.slice("category:".length);
+  const inGroup = new Set(pagesForCategory(categoryId).map((page) => page.id));
+  const queue = [...ids];
+  const next = pages.value.map((page) => (inGroup.has(page.id) ? queue.shift()! : page.id));
+
+  void props.store.reorderPages(next);
+}
+
+const pageDragKey = ref("");
+const pageDragIds = ref<string[]>([]);
+const {
+  dragging: draggingPage,
+  gapIndex: pageGapIndex,
+  rowHeight: pageRowHeight,
+  dragged: pageDragged,
+  start: startPageDragBase,
+} = useListDrag({
+  itemSelector: "[data-drag-page]",
+  container: () => document.querySelector<HTMLElement>(`[data-drag-list="${pageDragKey.value}"]`),
+  ids: () => pageDragIds.value,
+  onReorder: (ids) => applyPageOrder(pageDragKey.value, ids),
+});
+
+/** True when the page drag's open slot sits at this index of this group. */
+function pageGapAt(key: string, index: number): boolean {
+  return pageDragKey.value === key && pageGapIndex.value === index;
+}
+
+const pageGapStyle = computed(() => ({ height: `${pageRowHeight.value ?? 0}px` }));
+
+function startPageDrag(event: PointerEvent, page: PageMeta): void {
+  pageDragKey.value = groupKey(page.categoryId);
+  pageDragIds.value = pagesForCategory(page.categoryId).map((entry) => entry.id);
+  startPageDragBase(event, page.id);
+}
+
+function selectPage(page: PageMeta): void {
+  // A drop still fires a click on whatever sits under the pointer.
+  if (pageDragged.value) return;
+  emit("select", page.id);
+}
+
+function movePage(page: PageMeta, delta: -1 | 1): void {
+  const ids = pagesForCategory(page.categoryId).map((entry) => entry.id);
+  const from = ids.indexOf(page.id);
+  const to = from + delta;
+  if (from === -1 || to < 0 || to >= ids.length) return;
+
+  ids.splice(from, 1);
+  ids.splice(to, 0, page.id);
+  applyPageOrder(groupKey(page.categoryId), ids);
+}
+
+const {
+  dragging: draggingCategory,
+  gapIndex: categoryGapIndex,
+  rowHeight: categoryRowHeight,
+  start: startCategoryDrag,
+} = useListDrag({
+  itemSelector: "[data-drag-group]",
+  container: () => document.querySelector<HTMLElement>("[data-drag-groups]"),
+  ids: () => categories.value.map((category) => category.id),
+  onReorder: (ids) => void props.store.reorderCategories(ids),
+});
+
+/** A category is a whole group of rows, so its gap is capped to a short band
+ *  instead of the group's full height. */
+const categoryGapStyle = computed(() => ({
+  height: `${Math.min(categoryRowHeight.value ?? 0, 56)}px`,
+}));
+
 function askRemove(page: PageMeta) {
   pendingDelete.value = page;
   confirmOpen.value = true;
@@ -152,7 +244,7 @@ function onCreated(page: PageMeta) {
         <UiTooltip :text="$t('sidebar.switchWorkspace')">
           <button type="button" class="sidebar__workspace">
             <span class="sidebar__icon">
-              <MsIcon :name="workspaceIcon" :size="20" />
+              <MsIcon :name="workspaceIcon" :size="22" />
             </span>
             <span class="sidebar__name">{{ settings.name }}</span>
             <MsIcon name="keyboard_arrow_down" :size="20" class="sidebar__chevron" />
@@ -176,7 +268,7 @@ function onCreated(page: PageMeta) {
     </header>
 
     <div class="sidebar__sections">
-      <div class="sidebar__section sidebar__section--pages">
+      <div class="sidebar__section sidebar__section--pages" data-drag-groups>
         <div class="sidebar__section-title">
           <span>{{ $t("sidebar.pages") }}</span>
           <div class="sidebar__section-actions">
@@ -194,7 +286,7 @@ function onCreated(page: PageMeta) {
           </div>
         </div>
 
-        <button
+        <!-- <button
           v-if="settings.homePageId"
           type="button"
           class="sidebar__row sidebar__row--home"
@@ -202,165 +294,123 @@ function onCreated(page: PageMeta) {
         >
           <MsIcon name="home" :size="20" />
           {{ $t("sidebar.home") }}
-        </button>
+        </button> -->
 
-        <div v-for="category in categories" :key="category.id" class="sidebar__group">
-          <span class="sidebar__group-title">{{ category.name }}</span>
-          <ul class="sidebar__list">
+        <div v-if="pagesForCategory(null).length" class="sidebar__group">
+          <!-- <span class="sidebar__group-title">{{ $t("sidebar.general") }}</span> -->
+          <ul class="sidebar__list" data-drag-list="general">
+            <template v-for="(page, pageIndex) in pagesForCategory(null)" :key="page.id">
+              <li
+                v-if="pageGapAt('general', pageIndex)"
+                class="sidebar__placeholder"
+                data-drag-gap
+                :style="pageGapStyle"
+                aria-hidden="true"
+              />
+              <SidebarPageRow
+                :page="page"
+                :categories="categories"
+                :current="page.id === currentPageId"
+                :home="settings.homePageId === page.id"
+                :first="pageIndex === 0"
+                :last="pageIndex === pagesForCategory(null).length - 1"
+                :dragging="draggingPage === page.id"
+                @select="selectPage(page)"
+                @rename="
+                  renameTarget = page;
+                  renameTitle = page.title;
+                "
+                @set-home="setHome(page)"
+                @set-category="(id) => setCategory(page, id)"
+                @convert="(kind) => convertPage(page, kind)"
+                @remove="askRemove(page)"
+                @move="(delta) => movePage(page, delta)"
+                @drag-start="(event) => startPageDrag(event, page)"
+              />
+            </template>
             <li
-              v-for="page in pagesForCategory(category.id)"
-              :key="page.id"
-              class="sidebar__item"
-              :class="{ 'sidebar__item--active': page.id === currentPageId }"
-            >
-              <button
-                type="button"
-                class="sidebar__row"
-                :aria-current="page.id === currentPageId ? 'page' : undefined"
-                @click="emit('select', page.id)"
-              >
-                <MsIcon :name="PAGE_KIND_ICONS[page.kind]" :size="20" class="sidebar__row-kind" />
-                <UiTruncatedText class="sidebar__row-label" :text="page.title" />
-                <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
-                  <span class="sidebar__row-home">
-                    <MsIcon name="home" :size="20" />
-                  </span>
-                </UiTooltip>
-              </button>
-
-              <UiMenu>
-                <template #trigger>
-                  <UiIconButton
-                    icon="more_vert"
-                    :size="20"
-                    :label="t('sidebar.actions', { title: page.title })"
-                    variant="ghost"
-                    class="button--tiny sidebar__row-more"
-                  />
-                </template>
-
-                <UiMenuItem
-                  icon="edit"
-                  @select="
-                    renameTarget = page;
-                    renameTitle = page.title;
-                  "
-                >
-                  {{ $t("common.rename") }}
-                </UiMenuItem>
-                <UiMenuItem icon="home" @select="setHome(page)">{{
-                  $t("sidebar.setHome")
-                }}</UiMenuItem>
-                <UiMenuSub icon="category" :label="$t('common.setCategory')">
-                  <UiMenuItem :checked="!page.categoryId" @select="setCategory(page, null)">
-                    {{ $t("newPage.noCategory") }}
-                  </UiMenuItem>
-                  <UiMenuItem
-                    v-for="category in categories"
-                    :key="category.id"
-                    :checked="page.categoryId === category.id"
-                    @select="setCategory(page, category.id)"
-                  >
-                    {{ category.name }}
-                  </UiMenuItem>
-                </UiMenuSub>
-                <UiMenuItem
-                  v-if="page.kind === 'notebook'"
-                  icon="description"
-                  @select="convertPage(page, 'document')"
-                >
-                  {{ $t("common.convertToDocument") }}
-                </UiMenuItem>
-                <UiMenuItem v-else icon="view_agenda" @select="convertPage(page, 'notebook')">
-                  {{ $t("common.convertToNotebook") }}
-                </UiMenuItem>
-                <UiMenuSeparator />
-                <UiMenuItem danger icon="delete" @select="askRemove(page)">
-                  {{ $t("sidebar.delete") }}
-                </UiMenuItem>
-              </UiMenu>
-            </li>
+              v-if="pageGapAt('general', pagesForCategory(null).length)"
+              class="sidebar__placeholder"
+              data-drag-gap
+              :style="pageGapStyle"
+              aria-hidden="true"
+            />
           </ul>
         </div>
 
-        <div v-if="uncategorized.length" class="sidebar__group">
-          <span class="sidebar__group-title">{{ $t("sidebar.general") }}</span>
-          <ul class="sidebar__list">
-            <li
-              v-for="page in uncategorized"
-              :key="page.id"
-              class="sidebar__item"
-              :class="{ 'sidebar__item--active': page.id === currentPageId }"
+        <template v-for="(category, index) in categories" :key="category.id">
+          <div
+            v-if="categoryGapIndex === index"
+            class="sidebar__placeholder"
+            data-drag-gap
+            :style="categoryGapStyle"
+            aria-hidden="true"
+          />
+
+          <div
+            class="sidebar__group"
+            data-drag-group
+            :class="{ 'sidebar__group--drag': draggingCategory === category.id }"
+          >
+            <span
+              class="sidebar__group-title"
+              @pointerdown="startCategoryDrag($event, category.id)"
             >
-              <button
-                type="button"
-                class="sidebar__row"
-                :aria-current="page.id === currentPageId ? 'page' : undefined"
-                @click="emit('select', page.id)"
-              >
-                <MsIcon :name="PAGE_KIND_ICONS[page.kind]" :size="20" class="sidebar__row-kind" />
-                <UiTruncatedText class="sidebar__row-label" :text="page.title" />
-                <UiTooltip v-if="settings.homePageId === page.id" :text="$t('sidebar.homePage')">
-                  <span class="sidebar__row-home">
-                    <MsIcon name="home" :size="20" />
-                  </span>
-                </UiTooltip>
-              </button>
-
-              <UiMenu>
-                <template #trigger>
-                  <UiIconButton
-                    icon="more_vert"
-                    :size="20"
-                    :label="t('sidebar.actions', { title: page.title })"
-                    variant="ghost"
-                    class="button--tiny sidebar__row-more"
-                  />
-                </template>
-
-                <UiMenuItem
-                  icon="edit"
-                  @select="
+              <!-- <MsIcon name="drag_indicator" :size="16" class="sidebar__group-grip" /> -->
+              {{ category.name }}
+            </span>
+            <ul class="sidebar__list" :data-drag-list="`category:${category.id}`">
+              <template v-for="(page, pageIndex) in pagesForCategory(category.id)" :key="page.id">
+                <li
+                  v-if="pageGapAt(`category:${category.id}`, pageIndex)"
+                  class="sidebar__placeholder"
+                  data-drag-gap
+                  :style="pageGapStyle"
+                  aria-hidden="true"
+                />
+                <SidebarPageRow
+                  :page="page"
+                  :categories="categories"
+                  :current="page.id === currentPageId"
+                  :home="settings.homePageId === page.id"
+                  :first="pageIndex === 0"
+                  :last="pageIndex === pagesForCategory(category.id).length - 1"
+                  :dragging="draggingPage === page.id"
+                  @select="selectPage(page)"
+                  @rename="
                     renameTarget = page;
                     renameTitle = page.title;
                   "
-                >
-                  {{ $t("common.rename") }}
-                </UiMenuItem>
-                <UiMenuItem icon="home" @select="setHome(page)">{{
-                  $t("sidebar.setHome")
-                }}</UiMenuItem>
-                <UiMenuSub icon="category" :label="$t('common.setCategory')">
-                  <UiMenuItem :checked="!page.categoryId" @select="setCategory(page, null)">
-                    {{ $t("newPage.noCategory") }}
-                  </UiMenuItem>
-                  <UiMenuItem
-                    v-for="category in categories"
-                    :key="category.id"
-                    :checked="page.categoryId === category.id"
-                    @select="setCategory(page, category.id)"
-                  >
-                    {{ category.name }}
-                  </UiMenuItem>
-                </UiMenuSub>
-                <UiMenuItem
-                  v-if="page.kind === 'notebook'"
-                  icon="description"
-                  @select="convertPage(page, 'document')"
-                >
-                  {{ $t("common.convertToDocument") }}
-                </UiMenuItem>
-                <UiMenuItem v-else icon="view_agenda" @select="convertPage(page, 'notebook')">
-                  {{ $t("common.convertToNotebook") }}
-                </UiMenuItem>
-                <UiMenuSeparator />
-                <UiMenuItem danger icon="delete" @select="askRemove(page)">
-                  {{ $t("sidebar.delete") }}
-                </UiMenuItem>
-              </UiMenu>
-            </li>
-          </ul>
-        </div>
+                  @set-home="setHome(page)"
+                  @set-category="(id) => setCategory(page, id)"
+                  @convert="(kind) => convertPage(page, kind)"
+                  @remove="askRemove(page)"
+                  @move="(delta) => movePage(page, delta)"
+                  @drag-start="(event) => startPageDrag(event, page)"
+                />
+              </template>
+              <li
+                v-if="pageGapAt(`category:${category.id}`, pagesForCategory(category.id).length)"
+                class="sidebar__placeholder"
+                data-drag-gap
+                :style="pageGapStyle"
+                aria-hidden="true"
+              />
+            </ul>
+          </div>
+          <div
+            v-if="draggingCategory === category.id && categoryGapIndex !== index"
+            class="sidebar__group-seat"
+            aria-hidden="true"
+          />
+        </template>
+        <div
+          v-if="categoryGapIndex === categories.length"
+          class="sidebar__placeholder"
+          data-drag-gap
+          :style="categoryGapStyle"
+          aria-hidden="true"
+        />
 
         <p v-if="pages.length === 0" class="sidebar__empty">{{ $t("sidebar.noPages") }}</p>
       </div>
@@ -419,7 +469,7 @@ function onCreated(page: PageMeta) {
               :aria-current="day.id === currentPageId ? 'page' : undefined"
               @click="emit('select', day.id)"
             >
-              <MsIcon name="calendar_month" :size="20" />
+              <MsIcon name="event_note" :size="20" />
               <UiTruncatedText class="sidebar__day-label" :text="dayLabel(day)" />
             </button>
             <UiMenu>
@@ -502,7 +552,7 @@ function onCreated(page: PageMeta) {
 .sidebar__workspace {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1-5);
+  gap: var(--space-3);
   flex: 1;
   min-width: 0;
   height: var(--control-md);
@@ -563,6 +613,9 @@ function onCreated(page: PageMeta) {
 }
 
 .sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
   padding: 0 var(--space-2) var(--space-2);
 }
 
@@ -607,6 +660,7 @@ function onCreated(page: PageMeta) {
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-2) 0 var(--space-1-5) var(--space-2);
+  margin-bottom: calc(-1 * var(--space-1-5));
   background: var(--color-surface);
   font-size: var(--text-md);
   font-weight: 600;
@@ -622,12 +676,13 @@ function onCreated(page: PageMeta) {
 }
 
 /* The plugin section's header lives in PluginSidebar. Stick it like the other
-   section titles and give it the section's top spacing. */
+   section titles, with the same padding-owned clearance below it. */
 .sidebar__section .plugin-sidebar__header {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding-top: var(--space-2);
+  padding: var(--space-2) 0 var(--space-1-5);
+  margin-bottom: calc(-1 * var(--space-1-5));
   background: var(--color-surface);
 }
 
@@ -692,8 +747,6 @@ function onCreated(page: PageMeta) {
   background: var(--color-surface-2);
 }
 
-/* The row's menu button: revealed on hover/focus and tinted like the row
-   surface instead of carrying its own button chrome. */
 .sidebar__item .sidebar__row-more {
   flex: none;
   opacity: 0;
@@ -736,16 +789,55 @@ function onCreated(page: PageMeta) {
   color: var(--color-text-secondary);
 }
 
-.sidebar__group {
-  margin-bottom: var(--space-2);
-}
-
 .sidebar__group-title {
-  display: block;
-  padding: var(--space-1-5) var(--space-2) var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1-5);
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-text-secondary);
+  cursor: grab;
+}
+
+/* The category grip only shows when the header is hovered or the group is
+   being dragged, so the title stays quiet until it can be used. */
+.sidebar__group-grip {
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--motion-fast);
+}
+
+.sidebar__group-title:hover .sidebar__group-grip,
+.sidebar__group--drag .sidebar__group-grip {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .sidebar__group-grip {
+    opacity: 0.5;
+  }
+}
+
+/* A dragged category is a whole group of rows, so it lifts like one. */
+.sidebar__group--drag {
+  z-index: 2;
+  transform: scale(0.99);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.18);
+}
+
+.sidebar__placeholder {
+  flex: none;
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+}
+
+.sidebar__group-seat {
+  flex: none;
+  height: 0;
 }
 
 .sidebar__empty {

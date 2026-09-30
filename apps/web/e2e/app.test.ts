@@ -1463,16 +1463,140 @@ describe("typbase app", async () => {
     }, id);
     expect(assigned).toBe(categoryId);
 
-    // "No category" puts it back under General.
+    // "No category" puts it back in the uncategorized list, which has no title.
     await row.hover();
     await row.locator(".sidebar__row-more").click();
     await page.locator(".menu__item", { hasText: "Set category" }).click();
     await page.locator(".menu__item", { hasText: "No category" }).click();
 
-    const general = page.locator(".sidebar__group").filter({ hasText: "General" });
-    await general
-      .locator(".sidebar__row", { hasText: "Categorize me" })
+    await page
+      .locator('.sidebar__list[data-drag-list="general"] .sidebar__row', {
+        hasText: "Categorize me",
+      })
       .waitFor({ timeout: 30_000 });
+
+    await page.close();
+  });
+
+  /**
+   * Presses a row, drags to `ratio` of the way down the target row, and waits
+   * for the gap the drop will land in. A ratio under a half puts the row above
+   * the target's midpoint, so the row lands in front of it. `onHeld` runs while
+   * the pointer is still down.
+   */
+  async function dragTo(
+    page: NuxtPage,
+    source: ReturnType<NuxtPage["locator"]>,
+    target: ReturnType<NuxtPage["locator"]>,
+    ratio: number,
+    gap: string,
+    onHeld?: () => Promise<void>,
+  ): Promise<void> {
+    const from = await source.boundingBox();
+    const to = await target.boundingBox();
+    if (!from || !to) throw new Error("drag target has no box");
+
+    await page.mouse.move(from.x + 24, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(to.x + 24, to.y + to.height * ratio, { steps: 10 });
+    await page.locator(gap).waitFor({ timeout: 10_000 });
+    await onHeld?.();
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  }
+
+  it("reorders sidebar pages by dragging them into the open gap", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await createTestPage(page, { title: "Alpha", content: "= Alpha\n" });
+    await createTestPage(page, { title: "Bravo", content: "= Bravo\n" });
+    await createTestPage(page, { title: "Charlie", content: "= Charlie\n" });
+    await page.waitForTimeout(400);
+
+    const rows = page.locator('.sidebar__list[data-drag-list="general"] .sidebar__item');
+    const labels = page.locator('.sidebar__list[data-drag-list="general"] .sidebar__row-label');
+    const before = await labels.allInnerTexts();
+    expect(before.length).toBeGreaterThan(2);
+
+    // The last row lands in the gap the drag opens above the first one. The held
+    // row leaves the flow, so the list keeps the height it had at rest.
+    const listHeight = () =>
+      page.evaluate(() => {
+        const list = document.querySelector('.sidebar__list[data-drag-list="general"]');
+
+        return list ? Math.round(list.getBoundingClientRect().height) : 0;
+      });
+    const resting = await listHeight();
+    await dragTo(page, rows.last(), rows.first(), 0.1, ".sidebar__placeholder", async () => {
+      expect(await listHeight()).toBe(resting);
+    });
+
+    const expected = [before.at(-1)!, ...before.slice(0, -1)];
+    expect(await labels.allInnerTexts()).toEqual(expected);
+    expect(
+      await page.evaluate(() => window.__typbase.store.listPages().map((meta) => meta.title)),
+    ).toEqual(expected);
+    // The gap is gone once the order is committed.
+    await expect(page.locator(".sidebar__placeholder").count()).resolves.toBe(0);
+
+    // And a drag to the bottom of the group moves it back down.
+    await dragTo(page, rows.first(), rows.last(), 0.9, ".sidebar__placeholder");
+    expect(await labels.allInnerTexts()).toEqual(before);
+
+    await page.close();
+  });
+
+  it("reorders sidebar categories by their group title", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.evaluate(async () => {
+      const store = window.__typbase.store;
+      await store.addCategory("One");
+      await store.addCategory("Two");
+      await store.addCategory("Three");
+    });
+    await page.waitForTimeout(400);
+
+    const titles = page.locator(".sidebar__group[data-drag-group] .sidebar__group-title");
+    expect(await titles.count()).toBe(3);
+
+    await dragTo(page, titles.nth(2), titles.nth(0), 0.1, ".sidebar__placeholder");
+
+    expect(
+      await page.evaluate(() => window.__typbase.store.listCategories().map((entry) => entry.name)),
+    ).toEqual(["Three", "One", "Two"]);
+
+    await page.close();
+  });
+
+  it("reorders workspaces in the switcher", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.locator(".sidebar__workspace").click();
+    await page.locator(".ws-menu__add").click();
+    await page.locator(".dialog input").first().fill("Second");
+    await page.locator('.dialog button[type="submit"]').click();
+    await page.waitForTimeout(2500);
+
+    await page.locator(".sidebar__workspace").click();
+    await page.locator(".ws-menu").waitFor({ timeout: 30_000 });
+    const names = page.locator(".ws-menu .ws-row__name");
+    const before = await names.allInnerTexts();
+    expect(before).toHaveLength(2);
+
+    await dragTo(
+      page,
+      page.locator(".ws-menu [data-drag-workspace]").first(),
+      page.locator(".ws-menu [data-drag-workspace]").last(),
+      0.9,
+      ".ws-menu .ws-gap",
+    );
+
+    // The drop is swallowed with its click, so the menu is still open.
+    expect(await names.allInnerTexts()).toEqual([before[1], before[0]]);
 
     await page.close();
   });

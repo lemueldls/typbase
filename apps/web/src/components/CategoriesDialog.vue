@@ -45,6 +45,17 @@ async function add() {
 async function remove(id: string) {
   await props.store.removeCategory(id);
 }
+
+/** Moves one category a slot, which rewrites the group order in the sidebar. */
+function move(index: number, delta: -1 | 1): void {
+  const ids = categories.value.map((category) => category.id);
+  const to = index + delta;
+  if (to < 0 || to >= ids.length) return;
+
+  const [id] = ids.splice(index, 1);
+  ids.splice(to, 0, id!);
+  void props.store.reorderCategories(ids);
+}
 </script>
 
 <template>
@@ -58,9 +69,23 @@ async function remove(id: string) {
     </template>
 
     <ul class="category-list">
-      <li v-for="category in categories" :key="category.id" class="category-list__row">
+      <li v-for="(category, index) in categories" :key="category.id" class="category-list__row">
         <span>{{ category.name }}</span>
         <span class="category-list__count">{{ categoryCounts.get(category.id) ?? 0 }}</span>
+        <UiIconButton
+          icon="keyboard_double_arrow_up"
+          :size="20"
+          :disabled="index === 0"
+          :label="$t('common.moveUp')"
+          @click="move(index, -1)"
+        />
+        <UiIconButton
+          icon="keyboard_double_arrow_down"
+          :size="20"
+          :disabled="index === categories.length - 1"
+          :label="$t('common.moveDown')"
+          @click="move(index, 1)"
+        />
         <UiIconButton
           icon="delete"
           :size="20"

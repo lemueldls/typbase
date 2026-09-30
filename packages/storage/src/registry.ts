@@ -4,8 +4,9 @@ import type { StorageBackend } from "./backend";
 
 /**
  * The workspace registry: one JSON manifest at the backend root listing every
- * workspace. `lastOpenedAt` is the only ordering signal. The name is a cache
- * of the workspace doc's `settings.name`, kept fresh on open/rename.
+ * workspace. The array order is the user's order, rewritten by `reorder`;
+ * `lastOpenedAt` is only the "opened <date>" status in the switcher. The name
+ * is a cache of the workspace doc's `settings.name`, kept fresh on open/rename.
  */
 
 const REGISTRY_FILE = "workspaces.json";
@@ -51,6 +52,26 @@ export class WorkspaceRegistry {
   async remove(id: string): Promise<void> {
     const entries = (await this.list()).filter((entry) => entry.id !== id);
     await this.backend.write(REGISTRY_FILE, encoder.encode(JSON.stringify(entries)));
+  }
+
+  /** Rewrites the manifest in the given order; ids it does not know about
+   *  keep their relative positions at the end. */
+  async reorder(ids: readonly string[]): Promise<void> {
+    const entries = await this.list();
+    const remaining = new Map(entries.map((entry) => [entry.id, entry]));
+    const ordered: WorkspaceInfo[] = [];
+
+    for (const id of ids) {
+      const entry = remaining.get(id);
+      if (!entry) continue;
+      ordered.push(entry);
+      remaining.delete(id);
+    }
+    for (const entry of entries) {
+      if (remaining.has(entry.id)) ordered.push(entry);
+    }
+
+    await this.backend.write(REGISTRY_FILE, encoder.encode(JSON.stringify(ordered)));
   }
 }
 

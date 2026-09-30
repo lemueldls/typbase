@@ -1555,7 +1555,7 @@ function setCategory(categoryId: string | null): void {
 
 .page-view__mode-label {
   flex: none;
-  min-width: calc(3.5rem * var(--ui-size));
+  min-width: calc(4.25rem * var(--ui-size));
   white-space: nowrap;
 }
 

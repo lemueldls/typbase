@@ -7,6 +7,8 @@
     "delete": "删除",
     "rename": "重命名",
     "setCategory": "设置分类",
+    "moveUp": "上移",
+    "moveDown": "下移",
     "convertToNotebook": "转换为笔记本",
     "convertToDocument": "转换为文档",
     "close": "关闭",

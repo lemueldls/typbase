@@ -7,6 +7,8 @@
     "delete": "Löschen",
     "rename": "Umbenennen",
     "setCategory": "Kategorie festlegen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
     "convertToNotebook": "In Notizbuch umwandeln",
     "convertToDocument": "In Dokument umwandeln",
     "close": "Schließen",

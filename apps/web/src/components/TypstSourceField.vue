@@ -2,7 +2,12 @@
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
-import { drawSelection, EditorView, keymap, placeholder } from "@codemirror/view";
+import {
+  drawSelection,
+  EditorView,
+  keymap,
+  placeholder as placeholderExtension,
+} from "@codemirror/view";
 import { insertTabLike, typstLanguageData, typstStaticHighlighting } from "@typbase/codemirror";
 
 const props = defineProps<{
@@ -98,7 +103,7 @@ onMounted(() => {
           spellcheck: "false",
           ...(props.ariaLabel ? { "aria-label": props.ariaLabel } : {}),
         }),
-        ...(props.placeholder ? [placeholder(props.placeholder)] : []),
+        ...(props.placeholder ? [placeholderExtension(props.placeholder)] : []),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) dirty = true;
           if (update.focusChanged && !update.view.hasFocus) commit();

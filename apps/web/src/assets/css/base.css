@@ -26,6 +26,13 @@ body {
   background: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
+/* Set by the list drag while a reorder is live: no text selection, and the
+   cursor reads as "holding something". */
+body.is-reordering {
+  user-select: none;
+  cursor: grabbing;
+}
+
 ::placeholder {
   color: var(--color-text-secondary);
   opacity: 1;

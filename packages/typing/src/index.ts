@@ -23,6 +23,12 @@ export interface PageMeta {
   tags: string[];
   createdAt: number;
   updatedAt: number;
+  /**
+   * Manual position in the workspace. Pages without one sort after ordered
+   * pages by `updatedAt`, which is how older docs read until a reorder
+   * normalizes the list.
+   */
+  order?: number;
   pinned: boolean;
   publishedAt: number | null;
   publishUri: string | null;
@@ -35,6 +41,8 @@ export type PageKind = "document" | "notebook";
 export interface Category {
   id: string;
   name: string;
+  /** Manual group position; unset categories keep their list order. */
+  order?: number;
 }
 
 /** One workspace in the local registry (`workspaces.json`). */

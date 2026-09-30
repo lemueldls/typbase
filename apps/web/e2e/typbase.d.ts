@@ -23,6 +23,11 @@ interface StoreHandle {
   updateSettings(patch: Record<string, unknown>): void;
   getSettings(): Record<string, unknown>;
   getAiSettings(): Record<string, unknown>;
+  listPages(): Array<{ id: string; title: string; path: string; order?: number }>;
+  listCategories(): Array<{ id: string; name: string }>;
+  addCategory(name: string): Promise<{ id: string; name: string }>;
+  reorderPages(ids: string[]): void;
+  reorderCategories(ids: string[]): void;
   readChatMessages(id: string): Promise<Array<{ id: string; status: string }>>;
   deleteChat(id: string): Promise<void>;
 }

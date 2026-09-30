@@ -14,12 +14,19 @@ const props = defineProps<{
   disabled?: boolean;
   /** Ready-made status label: "current" or the opened date. */
   status: string;
+  /** The row is first or last in the list, so that move has nowhere to go. */
+  first?: boolean;
+  last?: boolean;
+  /** This row is the one being dragged. */
+  dragging?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "select"): void;
   (e: "rename"): void;
   (e: "remove"): void;
+  (e: "move", delta: -1 | 1): void;
+  (e: "dragStart", event: PointerEvent): void;
 }>();
 
 const { t } = useI18n();
@@ -30,7 +37,12 @@ const icon = computed(
 </script>
 
 <template>
-  <div class="ws-row" :class="{ 'ws-row--active': active }">
+  <div
+    class="ws-row"
+    :class="{ 'ws-row--active': active, 'ws-row--drag': dragging }"
+    data-drag-workspace
+    @pointerdown="emit('dragStart', $event)"
+  >
     <button
       type="button"
       class="ws-row__open"
@@ -39,7 +51,7 @@ const icon = computed(
       @click="emit('select')"
     >
       <span class="ws-row__icon" aria-hidden="true">
-        <MsIcon :name="icon" :size="20" />
+        <MsIcon :name="icon" :size="22" />
       </span>
       <span class="ws-row__text">
         <UiTruncatedText class="ws-row__name" :text="info.name" />
@@ -62,6 +74,12 @@ const icon = computed(
       </template>
 
       <UiMenuItem icon="edit" @select="emit('rename')">{{ $t("common.rename") }}</UiMenuItem>
+      <UiMenuItem icon="keyboard_double_arrow_up" :disabled="first" @select="emit('move', -1)">
+        {{ $t("common.moveUp") }}
+      </UiMenuItem>
+      <UiMenuItem icon="keyboard_double_arrow_down" :disabled="last" @select="emit('move', 1)">
+        {{ $t("common.moveDown") }}
+      </UiMenuItem>
       <UiMenuSeparator />
       <UiMenuItem icon="delete" danger @select="emit('remove')">
         {{ $t("common.delete") }}
@@ -89,6 +107,15 @@ const icon = computed(
 .ws-row--active,
 .ws-row--active:hover {
   background: var(--color-accent-soft);
+}
+
+/* The held row is a card in the hand: the drag takes it out of the flow and
+   follows the pointer, and this makes it read as lifted. */
+.ws-row--drag {
+  z-index: 2;
+  transform: scale(0.97);
+  background: var(--color-surface);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.18);
 }
 
 .ws-row__open {

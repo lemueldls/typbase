@@ -743,7 +743,28 @@ export class WorkspaceStore {
       if (meta) list.push(meta);
     }
 
-    return list.sort((a, b) => a.updatedAt - b.updatedAt);
+    // Manual order first, then the legacy `updatedAt` order for pages that
+    // never got one (older docs, freshly imported sources).
+    return list.sort(
+      (a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+        a.updatedAt - b.updatedAt,
+    );
+  }
+
+  /**
+   * Writes a manual order. Callers pass every page id in its new order, so a
+   * reorder inside one sidebar group stays consistent with the global order.
+   */
+  reorderPages(ids: readonly string[]): void {
+    const pages = this.doc.getMap("pages");
+
+    ids.forEach((id, index) => {
+      const map = pages.get(id) as LoroMap | undefined;
+      if (map && !map.isDeleted()) map.set("order", index);
+    });
+
+    this.doc.commit();
   }
 
   getPage(id: string): PageMeta | undefined {
@@ -777,6 +798,8 @@ export class WorkspaceStore {
     map.set("categoryId", meta.categoryId);
     map.set("createdAt", meta.createdAt);
     map.set("updatedAt", meta.updatedAt);
+    if (meta.order === undefined) map.delete("order");
+    else map.set("order", meta.order);
     map.set("pinned", meta.pinned);
     map.set("publishedAt", meta.publishedAt);
     map.set("publishUri", meta.publishUri);
@@ -787,6 +810,12 @@ export class WorkspaceStore {
   async createPage(input: CreatePageInput): Promise<PageMeta> {
     const now = Date.now();
     const kind = input.kind ?? "document";
+    // New pages land at the end of the manual order. A workspace that has
+    // never been reordered keeps the legacy `updatedAt` order instead, so the
+    // first reorder is what normalizes every page.
+    const orders = this.listPages()
+      .map((page) => page.order)
+      .filter((order): order is number => order !== undefined);
     const meta: PageMeta = {
       id: createId((id) => id === this.workspaceId || this.getPage(id) !== undefined),
       path: this.uniquePath(input.path ?? `pages/${slugify(input.title)}.typ`),
@@ -796,6 +825,7 @@ export class WorkspaceStore {
       tags: [],
       createdAt: now,
       updatedAt: now,
+      order: orders.length ? Math.max(...orders) + 1 : undefined,
       pinned: false,
       publishedAt: null,
       publishUri: null,
@@ -918,7 +948,27 @@ export class WorkspaceStore {
   }
 
   listCategories(): Category[] {
-    return this.doc.getList("categories").toJSON() as Category[];
+    // Manual order first; categories without one keep their list position.
+    return (this.doc.getList("categories").toJSON() as Category[])
+      .map((category, index) => ({ category, index }))
+      .sort((a, b) => (a.category.order ?? a.index) - (b.category.order ?? b.index))
+      .map((entry) => entry.category);
+  }
+
+  /** Writes a manual order. Callers pass every category id in its new order. */
+  reorderCategories(ids: readonly string[]): void {
+    const list = this.doc.getList("categories");
+    const positions = new Map<string, number>();
+    (list.toJSON() as Category[]).forEach((category, index) => positions.set(category.id, index));
+
+    ids.forEach((id, order) => {
+      const index = positions.get(id);
+      if (index === undefined) return;
+      const map = list.get(index) as LoroMap | undefined;
+      map?.set("order", order);
+    });
+
+    this.doc.commit();
   }
 
   async addCategory(name: string): Promise<Category> {
