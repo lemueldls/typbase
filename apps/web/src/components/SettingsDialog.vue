@@ -636,7 +636,7 @@ async function renameWorkspace(event: Event) {
               :options="spellcheckOptions"
               :label="$t('settings.spellcheck')"
             />
-            <span class="settings__hint">{{ $t("settings.spellcheckHint") }}</span>
+            <!-- <span class="settings__hint">{{ $t("settings.spellcheckHint") }}</span> -->
           </Label>
 
           <Label v-if="spellcheck === 'harper'" class="settings__field">
@@ -651,9 +651,9 @@ async function renameWorkspace(event: Event) {
             />
             <span class="settings__hint">{{ $t("settings.spellcheckDictionaryHint") }}</span>
           </Label>
-          <span v-else-if="spellcheck === 'native'" class="settings__hint">
+          <!-- <span v-else-if="spellcheck === 'native'" class="settings__hint">
             {{ $t("settings.spellcheckDictionaryNative") }}
-          </span>
+          </span> -->
 
           <div
             v-if="spellcheck === 'harper' && settings.spellcheckIgnoredLints.length"
