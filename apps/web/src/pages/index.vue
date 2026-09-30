@@ -104,12 +104,13 @@ const chat = useChat();
 const appUpdates = useAppUpdates();
 
 // Cmd-K / Ctrl-K opens the search palette.
-onKeyStroke((event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+onKeyStroke(
+  (event) => (event.metaKey || event.ctrlKey) && event.key === "K",
+  (event) => {
     event.preventDefault();
     togglePalette();
-  }
-});
+  },
+);
 
 // Search snapshots links: the palette needs the index started.
 watch(
