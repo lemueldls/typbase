@@ -220,10 +220,15 @@ impl RawFixups {
 /// alone.
 #[must_use]
 pub fn find_fixes(text: &str) -> Vec<DelimiterFix> {
-    let root = typst_syntax::parse(text);
+    find_fixes_in(&typst_syntax::parse(text), text)
+}
+
+/// [`find_fixes`] over an already-parsed tree, for the caller that has one.
+#[must_use]
+pub fn find_fixes_in(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<DelimiterFix> {
     let mut fixes = Vec::new();
 
-    walk(&LinkedNode::new(&root), text, false, &mut fixes);
+    walk(&LinkedNode::new(root), text, false, &mut fixes);
 
     RawFixups::new(fixes, text.len()).fixes().to_vec()
 }

@@ -5,7 +5,7 @@ expression: summarize(&render.tooltips)
 [
   {
     "range": [
-      15,
+      14,
       21
     ],
     "items": 4

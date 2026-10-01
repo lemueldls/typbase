@@ -5,8 +5,8 @@ expression: summarize(&render.tooltips)
 [
   {
     "range": [
-      12,
-      19
+      11,
+      18
     ],
     "items": 4
   }

@@ -5,15 +5,15 @@ expression: summarize(&render.tooltips)
 [
   {
     "range": [
-      1,
-      17
+      0,
+      18
     ],
     "items": 4
   },
   {
     "range": [
-      21,
-      43
+      20,
+      44
     ],
     "items": 4
   }

@@ -123,6 +123,97 @@ fn chunk_ranges_are_in_source() {
     }
 }
 
+/// A block whose only error sits in a nested equation survives: the mark is put
+/// on the expression and the block keeps rendering. Without an equation range
+/// for it, recovery has nothing to scope the mark to and deletes the block
+/// whole, so the list item, heading, or term item vanishes from the editor.
+#[test]
+fn a_block_with_nested_math_error_keeps_its_chunk() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let fixture = fixtures::get("broken", "math_in_term_and_block");
+    let mut state = harness::state();
+    let id = harness::page(&mut state, &fixture.name);
+
+    let render = crate::renderer::paged::items::chunk_by_items(
+        &id,
+        &fixture.source,
+        "",
+        None,
+        crate::source::RenderTarget::Svg,
+        &mut state,
+    );
+
+    let text_of = |range: std::ops::Range<usize>| {
+        fixture.source
+            .get(range)
+            .unwrap_or_default()
+            .trim()
+            .to_string()
+    };
+    let chunks: Vec<String> = render.chunks.iter().map(|c| text_of(c.range.clone())).collect();
+
+    assert!(
+        chunks.iter().any(|chunk| chunk.starts_with("/ Term:")),
+        "the term item was deleted instead of marked: {chunks:#?}",
+    );
+    assert!(
+        chunks.iter().any(|chunk| chunk.starts_with("#box[")),
+        "the content block was deleted instead of marked: {chunks:#?}",
+    );
+
+    // The diagnostic is reported on the equation, not on the whole block, so
+    // the editor underlines the identifier rather than the item.
+    let marked: Vec<_> = render
+        .diagnostics
+        .iter()
+        .filter(|d| d.message.contains("unknown variable"))
+        .collect();
+
+    assert_eq!(marked.len(), 1, "diagnostics: {:#?}", render.diagnostics);
+    assert_eq!(
+        fixture.source.get(marked[0].range.start..marked[0].range.end),
+        Some("notdefined"),
+        "diagnostic is not scoped to the identifier: {:#?}",
+        marked[0],
+    );
+}
+
+/// The same rule for a content block, which is the other shape where the
+/// equation is not a child of the root.
+#[test]
+fn a_content_block_with_nested_math_error_keeps_its_chunk() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let source = String::from("Before.\n\n#box[$ notdefined $]\n\nAfter.\n");
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "content_block_math_error");
+
+    let render = crate::renderer::paged::items::chunk_by_items(
+        &id,
+        &source,
+        "",
+        None,
+        crate::source::RenderTarget::Svg,
+        &mut state,
+    );
+
+    assert!(
+        render
+            .chunks
+            .iter()
+            .any(|chunk| source[chunk.range.clone()].contains("#box[")),
+        "the content block was deleted instead of marked: {:#?}",
+        render.chunks,
+    );
+}
+
 #[test]
 fn clean_partition_snapshots() {
     if !harness::fonts_available() {
@@ -190,7 +281,7 @@ fn link_underline_stays_with_its_item() {
     let id = harness::page(&mut state, "link_underline");
     state.resize(&id, Some(600.0), None);
 
-    let render = render_svgs_by_items(&id, source, "", &mut state);
+    let render = render_svgs_by_items(&id, source, "", None, &mut state);
     assert!(render.frames.len() >= 2, "expected two item chunks");
 
     let underlined = |svg: &str| svg.contains("stroke-width=\"0.8\"");
@@ -232,7 +323,7 @@ fn list_markers_stay_with_their_items() {
     let id = harness::page(&mut state, "list_markers");
     state.resize(&id, Some(600.0), None);
 
-    let render = chunk_by_items(&id, source, "", RenderTarget::Svg, &mut state);
+    let render = chunk_by_items(&id, source, "", None, RenderTarget::Svg, &mut state);
 
     let texts = |chunk: &FrameItemsChunk| {
         chunk
@@ -284,7 +375,7 @@ fn list_items_own_the_compiled_gap() {
     let id = harness::page(&mut state, "list_gap");
     state.resize(&id, Some(600.0), None);
 
-    let tight = chunk_by_items(&id, source, "", RenderTarget::Svg, &mut state);
+    let tight = chunk_by_items(&id, source, "", None, RenderTarget::Svg, &mut state);
     assert_eq!(tight.chunks.len(), 3, "expected one chunk per item");
 
     for (chunk, next) in tight.chunks.iter().zip(tight.chunks.iter().skip(1)) {
@@ -304,6 +395,7 @@ fn list_items_own_the_compiled_gap() {
         &id,
         source,
         "#set list(spacing: 1.5em)\n",
+        None,
         RenderTarget::Svg,
         &mut state,
     );
@@ -323,6 +415,7 @@ fn list_items_own_the_compiled_gap() {
         &id,
         "- one\n- two\n- three\ntext\n",
         "",
+        None,
         RenderTarget::Svg,
         &mut state,
     );
@@ -357,6 +450,7 @@ fn list_item_chunks_start_at_the_editor_line_top() {
         &id,
         "- one\n- two\n- three\n",
         "",
+        None,
         RenderTarget::Svg,
         &mut state,
     );
@@ -393,7 +487,7 @@ fn paragraph_chunks_start_at_the_editor_line_top() {
     let id = harness::page(&mut state, "paragraph_line_box");
     state.resize(&id, Some(600.0), None);
 
-    let render = chunk_by_items(&id, "hello\n", "", RenderTarget::Svg, &mut state);
+    let render = chunk_by_items(&id, "hello\n", "", None, RenderTarget::Svg, &mut state);
 
     assert_eq!(render.chunks.len(), 1, "expected one paragraph chunk");
 
@@ -424,7 +518,7 @@ fn heading_chunks_fill_the_editor_line_box() {
     let id = harness::page(&mut state, "heading_line_box");
     state.resize(&id, Some(600.0), None);
 
-    let render = chunk_by_items(&id, "= Heading\n", "", RenderTarget::Svg, &mut state);
+    let render = chunk_by_items(&id, "= Heading\n", "", None, RenderTarget::Svg, &mut state);
 
     assert_eq!(render.chunks.len(), 1, "expected one heading chunk");
 
@@ -471,7 +565,7 @@ fn equation_chunks_keep_their_own_box() {
     let id = harness::page(&mut state, "equation_box");
     state.resize(&id, Some(600.0), None);
 
-    let render = chunk_by_items(&id, "$ a + b = c $\n", "", RenderTarget::Svg, &mut state);
+    let render = chunk_by_items(&id, "$ a + b = c $\n", "", None, RenderTarget::Svg, &mut state);
 
     assert_eq!(render.chunks.len(), 1, "expected one equation chunk");
     assert!(
@@ -499,7 +593,7 @@ fn highlight_between_compiles_keeps_frame_ranges_current() {
     let first = "One.\n";
     let second = "One.\n\nTwo.\n";
 
-    let first_render = render_svgs_by_items(&id, first, "", &mut state);
+    let first_render = render_svgs_by_items(&id, first, "", None, &mut state);
     assert_eq!(
         first_render.frames.len(),
         1,
@@ -509,7 +603,7 @@ fn highlight_between_compiles_keeps_frame_ranges_current() {
     // Exactly what `TypstState::highlight` does on every keystroke.
     let _ = state.highlight(&id, second);
 
-    let second_render = render_svgs_by_items(&id, second, "", &mut state);
+    let second_render = render_svgs_by_items(&id, second, "", None, &mut state);
 
     assert_eq!(
         second_render.frames.len(),

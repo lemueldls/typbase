@@ -45,6 +45,71 @@ fn equations_are_recorded_with_dollar_bounds() {
     }
 }
 
+/// A keystroke used to parse the same bytes up to four times: the editor's
+/// highlight field, the delimiter repair, the repaired synth, and the pristine
+/// synth. They share one tree now, so a cached tree is keyed on its text and has
+/// to describe the text it was asked for, never the one before it.
+#[test]
+fn the_shared_parse_always_matches_its_text() {
+    let fixture = fixtures::get("clean", "math_nested");
+    let mut state = harness::state();
+    let id = harness::page(&mut state, &fixture.name);
+
+    let context = state.source_context_map.get_mut(&id).unwrap();
+
+    // The tree the highlight pass leaves behind must not leak into the passes
+    // that follow it on a different text. `len` counts the bytes the tree
+    // covers, and the two texts here differ in length.
+    let first_len = context.parse_cached(&fixture.source).len();
+    let other = context.parse_cached("Before.\n");
+    assert_ne!(other.len(), first_len, "the cached tree was reused for other text");
+    assert_eq!(
+        context.parse_cached(&fixture.source).len(),
+        first_len,
+        "asking again for the first text returned the tree of the second",
+    );
+}
+
+/// Math reaches the error-recovery pass through these ranges, and recovery
+/// falls back to deleting the whole block when it cannot find one. An equation
+/// nested in a list item, heading, term item, or content block is not a
+/// top-level child, so a walk that stopped at the root missed it and the block
+/// around it disappeared instead of showing the error in red.
+#[test]
+fn nested_equations_are_recorded_with_dollar_bounds() {
+    let fixture = fixtures::get("clean", "math_nested");
+    let mut state = harness::state();
+    let id = harness::page(&mut state, &fixture.name);
+
+    let result = sync_source_state(&id, &fixture.source, "", RenderTarget::Svg, &mut state);
+
+    let found: Vec<&str> = result
+        .equation_ranges
+        .iter()
+        .map(|range| &fixture.source[range.clone()])
+        .collect();
+
+    // The heading, two list items, a term item, a content block, and the
+    // equation holding a nested introspectable element.
+    assert_eq!(result.equation_ranges.len(), 6, "found {found:#?}");
+    assert!(
+        found.iter().all(|text| text.starts_with('$') && text.ends_with('$')),
+        "a nested range does not cover its delimiters: {found:#?}",
+    );
+    assert!(
+        found.iter().any(|text| text.contains("E = m c^2")),
+        "heading equation missing: {found:#?}",
+    );
+    assert!(
+        found.iter().any(|text| text.contains("mat(1, 2; 3, 4)")),
+        "list item equation missing: {found:#?}",
+    );
+    assert!(
+        found.iter().any(|text| text.contains("#strong[beta]")),
+        "equation with a nested introspectable element missing: {found:#?}",
+    );
+}
+
 #[test]
 fn structural_nodes_pass_through_unwrapped() {
     let fixture = fixtures::get("clean", "structure");

@@ -88,6 +88,7 @@ fn recovery_keeps_pristine_synth_and_mapper() {
         let _ = chunk_by_items_with_blocks(
             &mut blocks,
             &synth.equation_ranges,
+            None,
             &mut divergence,
             DEFAULT_LINE_HEIGHT_RATIO,
             context,
@@ -150,7 +151,7 @@ fn recovery_svg_snapshots() {
         let mut state = harness::state();
         let id = harness::page(&mut state, &fixture.name);
 
-        let render = render_svgs_by_items(&id, &fixture.source, "", &mut state);
+        let render = render_svgs_by_items(&id, &fixture.source, "", None, &mut state);
 
         assert!(!render.frames.is_empty(), "{name}: no SVG frames");
 

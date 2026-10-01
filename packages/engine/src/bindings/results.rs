@@ -10,7 +10,13 @@ use crate::{
 #[derive(Tsify, Serialize, Deserialize)]
 pub struct CompilePagedResult {
     pub frames: Vec<SvgRangedFrame>,
+    /// Equation overlays, narrowed to the equation the caret is inside when the
+    /// caller passed one.
     pub tooltips: Vec<SvgRangedFrame>,
+    /// UTF-16 ranges of every equation in the note, whether or not its overlay
+    /// was rendered. The editor compares the cursor against these to know when
+    /// it has entered math whose overlay the last render did not build.
+    pub equation_ranges: Vec<[usize; 2]>,
     pub diagnostics: Vec<TypstDiagnostic>,
     pub requests: Vec<TypstRequest>,
 }

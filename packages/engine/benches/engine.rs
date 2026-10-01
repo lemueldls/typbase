@@ -206,7 +206,7 @@ fn bench_compile(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(name), text, |b, text| {
             b.iter(|| {
                 let render =
-                    chunk_by_items(&id, black_box(text), "", RenderTarget::Svg, &mut state);
+                    chunk_by_items(&id, black_box(text), "", None, RenderTarget::Svg, &mut state);
                 black_box(render.chunks.len());
             });
         });
@@ -254,7 +254,7 @@ fn bench_recovery(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(name), &text, |b, text| {
             b.iter(|| {
                 let render =
-                    chunk_by_items(&id, black_box(text), "", RenderTarget::Svg, &mut state);
+                    chunk_by_items(&id, black_box(text), "", None, RenderTarget::Svg, &mut state);
                 black_box(render.diagnostics.len());
             });
         });

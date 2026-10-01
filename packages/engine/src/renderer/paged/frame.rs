@@ -22,7 +22,7 @@ use crate::{renderer::paged::BoundFrameItem, source::SourceContext, world::Typst
 pub(super) fn bound_frame(
     frame_item: &(Point, FrameItem),
     parent_point: Option<Point>,
-    sink: &mut BoundFrameSink,
+    tags: &mut TagStack,
     context: &SourceContext,
     world: &TypstWorld,
 ) -> Box<[BoundFrameItem]> {
@@ -50,7 +50,7 @@ pub(super) fn bound_frame(
                     .frame
                     .items()
                     .flat_map(|frame_item| {
-                        bound_frame(frame_item, Some(point), sink, context, world)
+                        bound_frame(frame_item, Some(point), tags, context, world)
                     })
                     .collect::<Box<[_]>>();
             }
@@ -58,7 +58,7 @@ pub(super) fn bound_frame(
             let (range, bounds) = group
                 .frame
                 .items()
-                .flat_map(|frame_item| bound_frame(frame_item, None, sink, context, world))
+                .flat_map(|frame_item| bound_frame(frame_item, None, tags, context, world))
                 .fold(
                     (
                         None::<Range<usize>>,
@@ -82,8 +82,6 @@ pub(super) fn bound_frame(
                         bounds.max.x = cmp::max(bounds.max.x, frame_block.bounds.max.x);
                         bounds.max.y = cmp::max(bounds.max.y, frame_block.bounds.max.y);
 
-                        // sink.process_tooltips(frame_block);
-
                         (range, bounds)
                     },
                 );
@@ -93,6 +91,7 @@ pub(super) fn bound_frame(
                 bounds,
                 item: item.clone(),
                 point: *point,
+                equation: tags.current(),
             };
 
             if let Some(point) = parent_point {
@@ -103,8 +102,6 @@ pub(super) fn bound_frame(
                 item.bounds.max.x += point.x;
                 item.bounds.max.y += point.y;
             }
-
-            sink.process_tooltips(&item);
 
             return iter::once(item).collect::<Box<[_]>>();
         }
@@ -121,13 +118,14 @@ pub(super) fn bound_frame(
         FrameItem::Tag(..) => Rect::new(*point, *point),
     };
 
-    let range = frame_item_range(item, sink, context, world);
+    let range = frame_item_range(item, tags, context, world);
 
     let mut item = BoundFrameItem {
         range,
         bounds,
         item: item.clone(),
         point: *point,
+        equation: tags.current(),
     };
 
     if let Some(point) = parent_point {
@@ -139,35 +137,65 @@ pub(super) fn bound_frame(
         item.bounds.max.y += point.y;
     }
 
-    sink.process_tooltips(&item);
-
     iter::once(item).collect::<Box<[_]>>()
 }
 
-/// Collects tooltip items while walking a frame's tag stack.
+/// The introspectable elements currently open, innermost last.
+///
+/// The tag stack answers one question about math: which equation overlay is an
+/// item being laid out inside. It deliberately does not answer *where* that
+/// overlay belongs in the editor, because for a `let`-bound equation the tag's
+/// span is the definition while the items sit at each use, and folding item
+/// ranges against it yields one range spanning the definition and every use.
+/// [`crate::renderer::paged::items::equation_tooltips`] takes the ranges from
+/// the synth's AST instead, which are always the equation's own text.
+///
+/// Overlays nest, so an equation laid out inside another can hand its items to
+/// the outer overlay as well: the popup for `$ sum_(k=0)^n xn $` has to draw the
+/// `xn` too. No equation is laid out inside another today, since an interpolated
+/// one reuses frames built with no tag of their own, but keeping the link makes
+/// the ownership rule total instead of resting on that.
 #[derive(Default)]
-pub(super) struct BoundFrameSink {
-    pub(super) tooltips: Vec<Vec<BoundFrameItem>>,
-    tag_stack: Vec<(&'static str, Span)>,
+pub(super) struct TagStack {
+    open: Vec<(&'static str, Span, Option<usize>)>,
+    /// `(the overlay this one is inside, the tag span it was opened from)`
+    overlays: Vec<(Option<usize>, Span)>,
+    current: Option<usize>,
 }
 
-// #[comemo::track]
-impl BoundFrameSink {
-    pub fn process_tooltips(&mut self, item: &BoundFrameItem) {
-        if let Some((name, _span)) = self.tag_stack.last()
-            && *name == "equation"
-        {
-            self.tooltips.last_mut().unwrap().push(item.clone());
+impl TagStack {
+    pub(super) fn push(&mut self, name: &'static str, span: Span) {
+        let overlay = (name == "equation").then(|| {
+            let index = self.overlays.len();
+            self.overlays.push((self.current, span));
+            self.current = Some(index);
+
+            index
+        });
+
+        self.open.push((name, span, overlay));
+    }
+
+    pub(super) fn pop(&mut self) -> Option<(&'static str, Span)> {
+        let (name, span, overlay) = self.open.pop()?;
+
+        if let Some(index) = overlay {
+            self.current = self.overlays[index].0;
         }
+
+        Some((name, span))
     }
 
-    pub fn push_tag(&mut self, name: &'static str, span: Span) {
-        self.tooltips.push(Vec::new());
-        self.tag_stack.push((name, span));
+    /// The overlay an item emitted right now belongs to.
+    pub(super) fn current(&self) -> Option<usize> {
+        self.current
     }
 
-    pub fn pop_tag(&mut self) -> Option<(&'static str, Span)> {
-        self.tag_stack.pop()
+    /// The overlays opened so far, in layout order, each with the tag span it
+    /// was opened from. The caller resolves those spans, because it is the only
+    /// one holding the world they belong to.
+    pub(super) fn overlays(&self) -> &[(Option<usize>, Span)] {
+        &self.overlays
     }
 }
 
@@ -176,7 +204,7 @@ impl BoundFrameSink {
 #[typst_macros::time]
 fn frame_item_range(
     item: &FrameItem,
-    sink: &mut BoundFrameSink,
+    tags: &mut TagStack,
     context: &SourceContext,
     world: &TypstWorld,
 ) -> Option<Range<usize>> {
@@ -201,7 +229,7 @@ fn frame_item_range(
                     let span = c.span();
 
                     if flags.introspectable {
-                        sink.push_tag(name, span);
+                        tags.push(name, span);
                     }
 
                     // crate::log!("[START FLAGS]: {flags:?} {name}");
@@ -210,7 +238,7 @@ fn frame_item_range(
                 }
                 Tag::End(_location, _key, flags) => {
                     if flags.introspectable
-                        && let Some((name, span)) = sink.pop_tag()
+                        && let Some((name, span)) = tags.pop()
                     {
                         match name {
                             "equation" => span,

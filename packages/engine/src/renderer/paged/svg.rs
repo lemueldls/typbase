@@ -15,7 +15,7 @@ use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
     renderer::paged::{
         PagedRender,
-        items::chunk_by_items_ctx,
+        items::{TooltipFocus, chunk_by_items_ctx},
     },
     source::RenderTarget,
     state::{RenderContext, TypstState},
@@ -26,13 +26,14 @@ pub fn render_svgs_by_items(
     id: &TypstFileId,
     text: &str,
     prelude: &str,
+    focus: TooltipFocus,
     state: &mut TypstState,
 ) -> SvgRender {
     let line_height_ratio = state.get_space_context(id).line_height_ratio;
     let prelude = state.prelude(id, RenderTarget::Svg) + prelude + "\n";
     let mut ctx = state.render_context(id).unwrap();
 
-    render_svgs_by_items_ctx(&mut ctx, text, &prelude, line_height_ratio)
+    render_svgs_by_items_ctx(&mut ctx, text, &prelude, focus, line_height_ratio)
 }
 
 /// [`render_svgs_by_items`] over an explicit render context.
@@ -41,14 +42,18 @@ pub fn render_svgs_by_items_ctx(
     ctx: &mut RenderContext<'_>,
     text: &str,
     prelude: &str,
+    focus: TooltipFocus,
     line_height_ratio: f64,
 ) -> SvgRender {
     let PagedRender {
         chunks,
         tooltips,
+        overlays: _,
         diagnostics,
         document,
-    } = chunk_by_items_ctx(ctx, text, prelude, line_height_ratio);
+    } = chunk_by_items_ctx(ctx, text, prelude, focus, line_height_ratio);
+
+    let equation_ranges = equation_ranges_utf16(ctx);
 
     let (frames, tooltips) = if let Some(document) = &document {
         let link_resolver = LateLinkResolver::new(None, document.introspector().as_ref());
@@ -117,8 +122,36 @@ pub fn render_svgs_by_items_ctx(
     SvgRender {
         frames,
         tooltips,
+        equation_ranges,
         diagnostics,
     }
+}
+
+/// Every equation's range in the editor's raw UTF-16 coordinates.
+///
+/// The overlays are only built for the equation under the cursor, so the editor
+/// cannot learn where the rest of the note's math is from them. It needs the
+/// ranges to notice that the cursor has moved into an equation whose overlay the
+/// last render skipped.
+fn equation_ranges_utf16(ctx: &RenderContext<'_>) -> Vec<[usize; 2]> {
+    let RenderContext { world, note } = ctx;
+
+    let Some(raw_source) = note.raw_source(world) else {
+        return Vec::new();
+    };
+
+    let ranges = note.last_equation_ranges();
+    let lines = raw_source.lines();
+    let len = raw_source.text().len();
+
+    ranges
+        .iter()
+        .filter_map(|range| {
+            let start = note.map_repaired_to_raw(range.start).min(len);
+            let end = note.map_repaired_to_raw(range.end).min(len);
+            Some([lines.byte_to_utf16(start)?, lines.byte_to_utf16(end)?])
+        })
+        .collect()
 }
 
 /// Renders a single SVG frame from a set of frame items and metadata.
@@ -171,6 +204,8 @@ pub struct SvgRender {
     pub frames: Vec<SvgRangedFrame>,
     /// Rendered SVG frames for tooltips.
     pub tooltips: Vec<SvgRangedFrame>,
+    /// UTF-16 ranges of every equation, rendered or not.
+    pub equation_ranges: Vec<[usize; 2]>,
     /// Diagnostics and warnings produced during rendering.
     pub diagnostics: Vec<TypstDiagnostic>,
 }

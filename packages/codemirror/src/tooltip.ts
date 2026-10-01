@@ -5,7 +5,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { ViewPlugin } from "@codemirror/view";
 import { showTooltip } from "@codemirror/view";
 
-import { tooltipsStateField } from "./widgets";
+import { tooltipsStateField, typstRecompileEffect } from "./widgets";
 
 const tooltipStateEffect = StateEffect.define<Tooltip | null>();
 
@@ -36,7 +36,21 @@ export const tooltipViewPlugin = () =>
 
         const state = view.state;
         const pos = state.selection.main.from;
-        const tooltips = state.field(tooltipsStateField);
+        const { tooltips, ranges } = state.field(tooltipsStateField);
+
+        // The render only builds the overlay for the equation the cursor was in
+        // when it ran, so moving the cursor into another equation finds no
+        // overlay. Ask for a render before showing nothing. The equation ranges
+        // come back with every render, so this does not need its own scan.
+        if (!tooltips.some(({ range }) => pos >= range.start && pos <= range.end)) {
+          const inMath = ranges.some(([start, end]) => pos >= start && pos <= end);
+
+          if (inMath) {
+            view.dispatch({ effects: typstRecompileEffect.of(null) });
+
+            return;
+          }
+        }
 
         let tooltip: Tooltip | null = null;
 
@@ -57,8 +71,8 @@ export const tooltipViewPlugin = () =>
             container.append(svg);
 
             tooltip = {
-              pos: start + 1,
-              end: end - 1,
+              pos: start,
+              end,
               create(tooltipView) {
                 return {
                   dom: container,
@@ -68,8 +82,8 @@ export const tooltipViewPlugin = () =>
 
                     return {
                       left: startCoords.left,
-                      right: startCoords.right,
-                      top: endCoords.top,
+                      right: endCoords.right,
+                      top: startCoords.top,
                       bottom: endCoords.bottom,
                     };
                   },

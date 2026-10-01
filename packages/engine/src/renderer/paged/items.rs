@@ -1,16 +1,16 @@
-use std::{cmp, collections::VecDeque, ops::Range};
+use std::{collections::VecDeque, ops::Range};
 
 use typst::{
-    compile,
+    WorldExt, compile,
     layout::{Abs, FrameItem},
 };
 use typst_layout::PagedDocument;
 
-use super::frame::{BoundFrameSink, bound_frame};
+use super::frame::{TagStack, bound_frame};
 use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
     renderer::{
-        paged::{BoundFrameItem, FrameItemsChunk, PagedRender},
+        paged::{BoundFrameItem, EquationOverlay, FrameItemsChunk, PagedRender},
         recovery::{
             PROBE_BUDGET, blamed_raw_range, remove_errornous_block, remove_unmappable_block,
             split_unmappable, try_mark_errornous,
@@ -31,10 +31,17 @@ use crate::{
 /// rewrite it without touching the pristine synth. IDE queries parse the
 /// render source too (see `TypstState::hover`), which is why recovery must
 /// keep it compilable: blocks get blanked, math spans get placeholders.
+/// The editor's popup shows the equation the cursor is inside, so a caret
+/// narrows the overlays to that one equation. `None` builds an overlay for every
+/// equation, which is what a caller with no cursor position wants. The value is a
+/// raw UTF-16 offset, the position the editor reports.
+pub type TooltipFocus = Option<usize>;
+
 pub fn chunk_by_items(
     id: &TypstFileId,
     text: &str,
     prelude: &str,
+    focus: TooltipFocus,
     render_target: RenderTarget,
     state: &mut TypstState,
 ) -> PagedRender {
@@ -42,16 +49,18 @@ pub fn chunk_by_items(
     let prelude = state.prelude(id, render_target) + prelude + "\n";
     let mut ctx = state.render_context(id).unwrap();
 
-    chunk_by_items_ctx(&mut ctx, text, &prelude, line_height_ratio)
+    chunk_by_items_ctx(&mut ctx, text, &prelude, focus, line_height_ratio)
 }
 
 /// [`chunk_by_items`] over an explicit render context, so the pipeline only
 /// sees the world and this note's source context.
 #[typst_macros::time]
+#[allow(clippy::too_many_arguments)]
 pub fn chunk_by_items_ctx(
     ctx: &mut RenderContext<'_>,
     text: &str,
     prelude: &str,
+    focus: TooltipFocus,
     line_height_ratio: f64,
 ) -> PagedRender {
     let SynthResult {
@@ -69,6 +78,7 @@ pub fn chunk_by_items_ctx(
     let mut render = chunk_by_items_with_blocks(
         &mut blocks,
         &equation_ranges,
+        focus,
         &mut divergence,
         line_height_ratio,
         ctx.note,
@@ -95,9 +105,11 @@ pub fn chunk_by_items_ctx(
 
 #[allow(clippy::iter_with_drain)]
 #[typst_macros::time]
+#[allow(clippy::too_many_arguments)]
 pub fn chunk_by_items_with_blocks(
     blocks: &mut Vec<SynthBlock>,
     eq_ranges: &[Range<usize>],
+    focus: TooltipFocus,
     divergence: &mut u8,
     line_height_ratio: f64,
     context: &mut SourceContext,
@@ -109,7 +121,7 @@ pub fn chunk_by_items_with_blocks(
     let mut compiled_warnings = None;
 
     let mut chunks = Vec::new();
-    let mut tooltips = Vec::new();
+    let mut overlays: Vec<EquationOverlay> = Vec::new();
 
     // Probe compiles the unmappable-error bisection may spend on this render.
     let mut probe_budget = PROBE_BUDGET;
@@ -120,17 +132,30 @@ pub fn chunk_by_items_with_blocks(
 
         // crate::log!("[DOING A THING]");
 
-        (chunks, tooltips, document) = match compiled.output {
+        (chunks, document) = match compiled.output {
             Ok(document) => {
-                let mut sink = BoundFrameSink::default();
+                let mut tags = TagStack::default();
                 let mut bound_frame_items = Vec::new();
 
                 for page in document.pages() {
                     for frame_item in page.frame.items() {
-                        let frame_block = bound_frame(frame_item, None, &mut sink, context, world);
+                        let frame_block = bound_frame(frame_item, None, &mut tags, context, world);
                         bound_frame_items.extend(frame_block);
                     }
                 }
+
+                // Resolve the tag spans now, while the world is still the one
+                // this compile produced. Error recovery edits the render source
+                // below, and a span into an edited region stops resolving, which
+                // would drop every overlay in a page that needed recovering.
+                overlays = tags
+                    .overlays()
+                    .iter()
+                    .map(|(parent, span)| EquationOverlay {
+                        parent: *parent,
+                        range: world.range(*span),
+                    })
+                    .collect();
 
                 let mut bound_frame_items = bound_frame_items.into_iter().peekable();
 
@@ -340,7 +365,7 @@ pub fn chunk_by_items_with_blocks(
                     }
                 }
 
-                (chunks, sink.tooltips, Some(document))
+                (chunks, Some(document))
             }
             Err(source_diagnostics) => {
                 *divergence += 1;
@@ -374,6 +399,7 @@ pub fn chunk_by_items_with_blocks(
                     let marked_render = chunk_by_items_with_blocks(
                         blocks,
                         eq_ranges,
+                        focus,
                         divergence,
                         line_height_ratio,
                         context,
@@ -399,6 +425,7 @@ pub fn chunk_by_items_with_blocks(
                     let stable_render = chunk_by_items_with_blocks(
                         blocks,
                         eq_ranges,
+                        focus,
                         divergence,
                         line_height_ratio,
                         context,
@@ -409,9 +436,25 @@ pub fn chunk_by_items_with_blocks(
                     // next sync rebuilds it from the raw source, so there is
                     // nothing to restore here. The pristine synth was never
                     // touched.
+                    //
+                    // The marked chunks carry the red markers, so their overlays
+                    // come from the walk that produced them rather than from this
+                    // frame's own, which is empty: this iteration took the `Err`
+                    // arm and never walked a document.
+                    let marked_chunks = marked_render.chunks;
+                    let marked_overlays = marked_render.overlays;
+
                     return PagedRender {
-                        chunks: marked_render.chunks,
-                        tooltips: marked_render.tooltips,
+                        tooltips: equation_tooltips(
+                            &marked_chunks,
+                            &marked_overlays,
+                            eq_ranges,
+                            focus,
+                            context,
+                            world,
+                        ),
+                        chunks: marked_chunks,
+                        overlays: marked_overlays,
                         diagnostics,
                         document: stable_render.document,
                     };
@@ -467,7 +510,7 @@ pub fn chunk_by_items_with_blocks(
                     blocks.remove(*idx);
                 }
 
-                (Vec::new(), Vec::new(), None)
+                (Vec::new(), None)
             }
         };
     }
@@ -476,124 +519,254 @@ pub fn chunk_by_items_with_blocks(
         diagnostics.extend(TypstDiagnostic::from_diagnostics(warnings, context, world));
     }
 
-    // context.synth_source_mut(world).unwrap().replace(&ir);
-
-    let tooltips = tooltips
-        .into_iter()
-        .filter_map(|items| {
-            let mut block_start_width = None;
-            let mut block_start_height = None;
-            let mut block_end_width = None;
-            let mut block_end_height = None;
-
-            for block in &items {
-                match block_start_height {
-                    Some(height) if height < block.bounds.min.y => {}
-                    _ => block_start_height = Some(block.bounds.min.y),
-                }
-
-                match block_end_height {
-                    Some(height) if height > block.bounds.max.y => {}
-                    _ => block_end_height = Some(block.bounds.max.y),
-                }
-
-                if !matches!(block.item, FrameItem::Tag(..)) {
-                    match block_start_width {
-                        Some(width) if width < block.bounds.min.x => {}
-                        _ => block_start_width = Some(block.bounds.min.x),
-                    }
-
-                    match block_end_width {
-                        Some(width) if width > block.bounds.max.x => {}
-                        _ => block_end_width = Some(block.bounds.max.x),
-                    }
-                }
-            }
-
-            let block_start_width = block_start_width?.to_pt();
-            let block_start_height = block_start_height?.to_pt();
-            let block_end_width = block_end_width?.to_pt();
-            let block_end_height = block_end_height?.to_pt();
-
-            // Empty content reports an infinite bounding box (Typst uses
-            // `Rect` at +/-inf for "nothing here"). Chunks get filtered by the
-            // positivity check in the partition loop, but tooltips need the same
-            // guard or the SVG renderer asserts on a non-finite size.
-            let width = block_end_width - block_start_width;
-            let height = block_end_height - block_start_height;
-
-            if !width.is_finite()
-                || !height.is_finite()
-                || !block_start_width.is_finite()
-                || !block_start_height.is_finite()
-                || width <= 0.0
-                || height <= 0.0
-            {
-                return None;
-            }
-
-            let synth_range = items
-                .iter()
-                .filter_map(|item| item.range.clone())
-                .fold(None::<Range<usize>>, |range, item_range| {
-                    Some(match range {
-                        Some(range) => {
-                            let start = cmp::min(range.start, item_range.start);
-                            let end = cmp::max(range.end, item_range.end);
-
-                            start..end
-                        }
-                        None => item_range,
-                    })
-                })
-                .unwrap_or(0..0);
-
-            let raw_start = context.map_render_to_raw(synth_range.start);
-            let raw_end = context.map_render_to_raw(synth_range.end);
-
-            // crate::log!("raw_range: {:?}", raw_start..raw_end);
-
-            let raw_source = context.raw_source(world)?;
-            let source_len = raw_source.text().len();
-
-            let raw_lines = raw_source.lines();
-            // Pad by one byte so the editor range covers the whole first/last
-            // token. A block at offset 0 (the date heading of a daily note,
-            // say) must not underflow. Neither may the end pad run past the
-            // source. When the padded boundary lands mid-character (multibyte
-            // text), fall back to the exact boundary rather than dropping the
-            // block from the editor map.
-            let raw_start_utf16 = raw_lines
-                .byte_to_utf16(raw_start.saturating_sub(1))
-                .or_else(|| raw_lines.byte_to_utf16(raw_start))?;
-            let raw_end_utf16 = raw_lines
-                .byte_to_utf16(raw_end.saturating_add(1).min(source_len))
-                .or_else(|| raw_lines.byte_to_utf16(raw_end))?;
-            let raw_range_utf16 = raw_start_utf16..raw_end_utf16;
-
-            // crate::log!("raw_range_utf16: {:?}", raw_start_utf16..raw_end_utf16);
-
-            Some(FrameItemsChunk {
-                items: VecDeque::from(items),
-                range: raw_range_utf16,
-                width,
-                height,
-                x_offset: block_start_width,
-                y_offset: block_start_height,
-                // Tooltip chunks are overlays, not stacked content.
-                list_item: false,
-            })
-        })
-        .collect();
-
-    // crate::log!("tooltips: {tooltips:#?}");
+    let tooltips = equation_tooltips(&chunks, &overlays, eq_ranges, focus, context, world);
 
     PagedRender {
         chunks,
         tooltips,
+        overlays,
         diagnostics,
         document,
     }
+}
+
+/// Builds one overlay chunk per equation, holding the frame items the editor
+/// pops up while the cursor is inside that equation.
+///
+/// The two halves of the answer come from different places, because no single
+/// one has both:
+///
+/// - **Which items belong to an equation** is a layout fact, so it comes from
+///   the tag stack's overlays. A `let`-bound equation's items carry the spans of
+///   its definition while being laid out at each use, so matching items by source
+///   range files them under the definition and leaves every equation that uses
+///   the binding with an overlay missing that content. An overlay also claims
+///   the items of the overlays nested inside it, so the popup for
+///   `$ sum_(k=0)^n xn $` draws the `xn` too.
+/// - **Which editor range an overlay covers** is a source fact, so it comes from
+///   the synth's AST ranges. The tag span of a `let`-bound equation points at
+///   its definition, which is exactly where the popup belongs, but folding item
+///   ranges against it would report one range spanning the definition and every
+///   use.
+///
+/// An equation that was never laid out (a binding nothing uses) has no overlay,
+/// and one that failed to compile is not in a successful document at all.
+///
+/// A `focus` caret keeps only the equation holding it. Every equation's overlay
+/// is a rendered SVG, and an editor shows at most one, so building all of them
+/// spends the whole note's math budget on keystrokes that display none of it.
+fn equation_tooltips(
+    chunks: &[FrameItemsChunk],
+    overlays: &[EquationOverlay],
+    eq_ranges: &[Range<usize>],
+    focus: TooltipFocus,
+    context: &SourceContext,
+    world: &TypstWorld,
+) -> Vec<FrameItemsChunk> {
+    if eq_ranges.is_empty() || overlays.is_empty() {
+        return Vec::new();
+    }
+
+    let Some(raw_source) = context.raw_source(world) else {
+        return Vec::new();
+    };
+
+    let raw_lines = raw_source.lines();
+    let source_len = raw_source.text().len();
+
+    // Equation ranges sorted by start, so an overlay's tag span finds its
+    // equation by binary search. Ranges are disjoint, so at most one contains
+    // it.
+    let mut bounds: Vec<(usize, usize)> = eq_ranges
+        .iter()
+        .map(|range| {
+            (
+                context.map_repaired_to_render(range.start, Side::After),
+                context.map_repaired_to_render(range.end, Side::Before),
+            )
+        })
+        .collect();
+    bounds.sort_unstable_by_key(|(start, _)| *start);
+
+    let equation_of = |range: &Range<usize>| {
+        let candidate = bounds.partition_point(|(start, _)| *start <= range.start);
+        let index = candidate.checked_sub(1)?;
+
+        (range.end <= bounds[index].1).then_some(index)
+    };
+
+    // The equation the caller asked for, if the caret is inside one. The caret is
+    // a raw offset and the bounds are render offsets, so it goes through the same
+    // two maps the editor ranges take.
+    let focused = focus.and_then(|caret| {
+        let byte = raw_lines.utf16_to_byte(caret)?;
+        let repaired = context.map_raw_to_repaired(byte, Side::Before);
+        let render = context.map_repaired_to_render(repaired, Side::Before);
+
+        equation_of(&(render..render))
+    });
+
+    if focus.is_some() && focused.is_none() {
+        return Vec::new();
+    }
+
+    // Every item goes to the overlay it was laid out inside and to each of that
+    // overlay's ancestors, so an overlay owns everything its own rendering drew.
+    // One pass, and the nesting falls out of the walk. No equation is laid out
+    // inside another today (an interpolated one reuses frames that were built
+    // with no tag of their own), so the ancestor list is normally just the one
+    // entry.
+    let mut owned: Vec<Vec<BoundFrameItem>> = vec![Vec::new(); overlays.len()];
+
+    for chunk in chunks {
+        for item in &chunk.items {
+            let mut current = item.equation;
+
+            while let Some(index) = current {
+                owned[index].push(item.clone());
+                current = overlays[index].parent;
+            }
+        }
+    }
+
+    let mut tooltips = Vec::new();
+    let mut taken: Vec<bool> = vec![false; bounds.len()];
+
+    for (index, overlay) in overlays.iter().enumerate() {
+        // An overlay whose equation is not in the synth's list has no source text
+        // to anchor to. That happens for an equation written in the prelude.
+        let Some(equation) = overlay.range.as_ref().and_then(equation_of) else {
+            continue;
+        };
+
+        if focused.is_some_and(|focused| focused != equation) {
+            continue;
+        }
+
+        // A binding used from several equations lays out one overlay per use and
+        // they all report the definition's range. The editor wants one popup per
+        // range, so the first use wins and the rest are dropped rather than
+        // rendered as SVGs nothing will read.
+        if std::mem::replace(&mut taken[equation], true) {
+            continue;
+        }
+
+        let (start, end) = bounds[equation];
+
+        if let Some(chunk) = tooltip_chunk(
+            std::mem::take(&mut owned[index]),
+            start,
+            end,
+            context,
+            raw_lines,
+            source_len,
+        ) {
+            tooltips.push(chunk);
+        }
+    }
+
+    tooltips.sort_by_key(|chunk| chunk.range.start);
+
+    tooltips
+}
+
+/// Sizes one equation's items into an overlay chunk, or `None` when it has
+/// nothing to draw.
+fn tooltip_chunk(
+    items: Vec<BoundFrameItem>,
+    start: usize,
+    end: usize,
+    context: &SourceContext,
+    raw_lines: &typst_syntax::Lines<String>,
+    source_len: usize,
+) -> Option<FrameItemsChunk> {
+    if items.is_empty() {
+        return None;
+    }
+
+    let mut block_start_width = None;
+    let mut block_start_height = None;
+    let mut block_end_width = None;
+    let mut block_end_height = None;
+
+    for block in &items {
+        match block_start_height {
+            Some(height) if height < block.bounds.min.y => {}
+            _ => block_start_height = Some(block.bounds.min.y),
+        }
+
+        match block_end_height {
+            Some(height) if height > block.bounds.max.y => {}
+            _ => block_end_height = Some(block.bounds.max.y),
+        }
+
+        if !matches!(block.item, FrameItem::Tag(..)) {
+            match block_start_width {
+                Some(width) if width < block.bounds.min.x => {}
+                _ => block_start_width = Some(block.bounds.min.x),
+            }
+
+            match block_end_width {
+                Some(width) if width > block.bounds.max.x => {}
+                _ => block_end_width = Some(block.bounds.max.x),
+            }
+        }
+    }
+
+    let block_start_width = block_start_width?.to_pt();
+    let block_start_height = block_start_height?.to_pt();
+    let block_end_width = block_end_width?.to_pt();
+    let block_end_height = block_end_height?.to_pt();
+
+    // Empty content reports an infinite bounding box (Typst uses `Rect` at
+    // +/-inf for "nothing here"). Chunks get filtered by the positivity check
+    // in the partition loop, but tooltips need the same guard or the SVG
+    // renderer asserts on a non-finite size.
+    let width = block_end_width - block_start_width;
+    let height = block_end_height - block_start_height;
+
+    if !width.is_finite()
+        || !height.is_finite()
+        || !block_start_width.is_finite()
+        || !block_start_height.is_finite()
+        || width <= 0.0
+        || height <= 0.0
+    {
+        return None;
+    }
+
+    // The equation's own AST range, not a fold over its items. A `let`-bound
+    // equation lays its items out at each use, so folding item ranges reports
+    // one range spanning the definition and every use.
+    //
+    // The range is not padded. It used to be padded by a byte on each side
+    // because the fold stopped at the first and last *item*, which sit inside
+    // the `$` delimiters, so the editor missed a cursor resting on a delimiter.
+    // An equation range already covers both delimiters, and padding it now makes
+    // the popup reach one character into the prose on either side.
+    let raw_start = context.map_render_to_raw(start);
+    let raw_end = context.map_render_to_raw(end).min(source_len);
+
+    // Both boundaries land on a `$`, so neither splits a character. The
+    // fallback narrows the boundary rather than dropping the popup when one
+    // does land mid-character.
+    let raw_start_utf16 = raw_lines
+        .byte_to_utf16(raw_start)
+        .or_else(|| raw_lines.byte_to_utf16(raw_start.saturating_sub(1)))?;
+    let raw_end_utf16 = raw_lines
+        .byte_to_utf16(raw_end)
+        .or_else(|| raw_lines.byte_to_utf16(raw_end.saturating_sub(1)))?;
+
+    Some(FrameItemsChunk {
+        items: VecDeque::from(items),
+        range: raw_start_utf16..raw_end_utf16,
+        width,
+        height,
+        x_offset: block_start_width,
+        y_offset: block_start_height,
+        // Tooltip chunks are overlays, not stacked content.
+        list_item: false,
+    })
 }
 
 /// Whether a frame item paints anything, and so has to stay inside its

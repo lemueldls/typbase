@@ -171,6 +171,17 @@ pub struct SourceContext {
     /// Inputs and pristine outputs of the last successful sync, used to skip
     /// the synth build when nothing changed.
     pub(crate) last_sync: Option<SyncedInput>,
+
+    /// The syntax tree of the text parsed most recently, paired with that
+    /// text.
+    ///
+    /// A keystroke used to parse the same bytes up to four times: the editor's
+    /// highlight field runs first, then the delimiter repair, then the synth,
+    /// then the pristine synth when a repair happened. They all want the tree
+    /// for the same string, so the first one parses and the rest read it here.
+    /// The text is kept alongside it because a tree says nothing about which
+    /// bytes it came from.
+    parsed: Option<(String, typst_syntax::SyntaxNode)>,
 }
 
 impl SourceContext {
@@ -204,6 +215,7 @@ impl SourceContext {
             width: String::from("auto"),
             height: None,
             last_sync: None,
+            parsed: None,
         }
     }
 
@@ -359,6 +371,31 @@ impl SourceContext {
     #[must_use]
     pub fn map_repaired_to_raw(&self, repaired: usize) -> usize {
         self.render_fixups.map().backward(repaired)
+    }
+
+    /// The tree for `text`, parsing it only when the cached one is for other
+    /// bytes.
+    pub fn parse_cached(&mut self, text: &str) -> typst_syntax::SyntaxNode {
+        if let Some((cached, root)) = &self.parsed
+            && cached == text
+        {
+            return root.clone();
+        }
+
+        let root = typst_syntax::parse(text);
+        self.parsed = Some((text.to_string(), root.clone()));
+        root
+    }
+
+    /// Repaired-source ranges of every equation found by the last sync. The
+    /// paged render needs them after the fact, to tell the editor where the
+    /// note's math is when only the equation under the cursor got an overlay.
+    #[must_use]
+    pub fn last_equation_ranges(&self) -> Vec<Range<usize>> {
+        self.last_sync
+            .as_ref()
+            .map(|last| last.equation_ranges.clone())
+            .unwrap_or_default()
     }
 
     /// Repaired offset to render offset. Recovery internals work in these two

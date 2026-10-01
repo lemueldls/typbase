@@ -618,11 +618,23 @@ impl TypstState {
         id: &TypstFileId,
         text: &str,
     ) -> Result<Vec<Ts<TypstHighlight>>, JsError> {
+        if !self.source_context_map.contains_key(id) {
+            return Ok(Vec::new());
+        }
+
+        // The world's raw source is rewritten below, before the compile
+        // microtask runs, which is why the sync keeps its own copy of the text to
+        // key on. Sharing the tree is the other half of that: this pass runs
+        // first on every keystroke, and the delimiter repair and the synth behind
+        // it all want a tree of the same bytes.
+        let root = self
+            .source_context_map
+            .get_mut(id)
+            .unwrap()
+            .parse_cached(text);
         let Some(context) = self.source_context_map.get(id) else {
             return Ok(Vec::new());
         };
-
-        let root = typst_syntax::parse(text);
         let Some(raw_source) = context.raw_source_mut(&mut self.world) else {
             return Ok(Vec::new());
         };

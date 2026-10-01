@@ -5,44 +5,44 @@ expression: summarize(&render.tooltips)
 [
   {
     "range": [
-      0,
-      30
+      15,
+      26
     ],
-    "items": 11
+    "items": 6
   },
   {
     "range": [
-      32,
-      65
-    ],
-    "items": 17
-  },
-  {
-    "range": [
-      67,
-      86
+      45,
+      62
     ],
     "items": 7
   },
   {
     "range": [
-      88,
-      131
+      75,
+      97
     ],
-    "items": 13
+    "items": 7
   },
   {
     "range": [
-      133,
+      107,
+      112
+    ],
+    "items": 3
+  },
+  {
+    "range": [
+      131,
       164
     ],
-    "items": 11
+    "items": 17
   },
   {
     "range": [
-      166,
-      203
+      167,
+      196
     ],
-    "items": 16
+    "items": 7
   }
 ]

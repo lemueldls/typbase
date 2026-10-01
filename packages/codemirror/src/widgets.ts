@@ -21,6 +21,8 @@ export const compileCache = new LRUCache<
   {
     frames: SvgRangedFrame[];
     tooltips: SvgRangedFrame[];
+    /** Every equation in the note, not only the one the caret was in. */
+    equationRanges: [number, number][];
     diagnostics: TypstDiagnostic[];
   }
 >({ max: 8 });
@@ -59,16 +61,27 @@ function editorRenderWidth(scrollDOM: HTMLElement, contentDOM: HTMLElement): num
   );
 }
 
-export const tooltipsStateEffect = StateEffect.define<SvgRangedFrame[]>();
+export interface EquationOverlays {
+  /** Rendered overlays, at most one when the render was given a caret. */
+  tooltips: SvgRangedFrame[];
+  /**
+   * Every equation range in the note, not only the one the caret was in. The
+   * popup compares the cursor against these to know when it has entered math
+   * whose overlay the last render skipped.
+   */
+  ranges: [number, number][];
+}
 
-export const tooltipsStateField = StateField.define<SvgRangedFrame[]>({
+export const tooltipsStateEffect = StateEffect.define<EquationOverlays>();
+
+export const tooltipsStateField = StateField.define<EquationOverlays>({
   create() {
-    return [];
+    return { tooltips: [], ranges: [] };
   },
-  update(frames, transaction) {
+  update(overlays, transaction) {
     const effect = transaction.effects.find((e) => e.is(tooltipsStateEffect));
 
-    return effect ? effect.value : frames;
+    return effect ? effect.value : overlays;
   },
 });
 
@@ -155,6 +168,7 @@ function measureLineHeights(view: EditorView, frames: SvgRangedFrame[]): Map<num
 interface DecorateResult {
   decorations: DecorationSet;
   tooltips: SvgRangedFrame[];
+  equationRanges: [number, number][];
   frames: SvgRangedFrame[];
   active: SvgRangedFrame[];
 }
@@ -203,6 +217,7 @@ function decorate({
 
   let frames: SvgRangedFrame[];
   let tooltips: SvgRangedFrame[];
+  let equationRanges: [number, number][];
   let diagnostics: TypstDiagnostic[];
 
   const mustCompile = forced || update.docChanged || widthChanged || !compileCache.has(cacheKey);
@@ -213,7 +228,12 @@ function decorate({
 
     let compileResult: ReturnType<TypstState["compilePaged"]>;
     try {
-      compileResult = typstState.compilePaged(fileId, text, prelude);
+      compileResult = typstState.compilePaged(
+        fileId,
+        text,
+        prelude,
+        update.state.selection.main.from,
+      );
     } catch (error) {
       // A wasm panic aborts the instance: the host recreates it and remounts
       // the editor through onPanic. Until then, render nothing rather than
@@ -221,7 +241,13 @@ function decorate({
       console.error("[typst] compile panicked:", error);
       onPanic?.(fileId);
 
-      return { decorations: Decoration.none, tooltips: [], frames: [], active: [] };
+      return {
+        decorations: Decoration.none,
+        tooltips: [],
+        equationRanges: [],
+        frames: [],
+        active: [],
+      };
     }
     dispatchDiagnostics(compileResult.diagnostics, update.state, update.view);
     rememberDiagnostics(path, text, compileResult.diagnostics);
@@ -239,14 +265,14 @@ function decorate({
       });
     }
 
-    ({ frames, tooltips } = compileResult);
+    ({ frames, tooltips, equation_ranges: equationRanges } = compileResult);
     diagnostics = compileResult.diagnostics;
-    compileCache.set(cacheKey, { frames, tooltips, diagnostics });
+    compileCache.set(cacheKey, { frames, tooltips, equationRanges, diagnostics });
 
     notebook?.onCompile?.({ text, frames, diagnostics });
   } else {
     const cached = compileCache.get(cacheKey)!;
-    ({ frames, tooltips, diagnostics } = cached);
+    ({ frames, tooltips, equationRanges, diagnostics } = cached);
   }
 
   const { view, state } = update;
@@ -259,7 +285,13 @@ function decorate({
       console.error("[typst] cell extraction panicked:", error);
       onPanic?.(fileId);
 
-      return { decorations: Decoration.none, tooltips: [], frames: [], active: [] };
+      return {
+        decorations: Decoration.none,
+        tooltips: [],
+        equationRanges: [],
+        frames: [],
+        active: [],
+      };
     }
 
     notebook.onCells?.(cells);
@@ -282,6 +314,7 @@ function decorate({
         true,
       ),
       tooltips,
+      equationRanges,
       frames,
       // Notebook cells do their own source-height handling, so there is no
       // around-the-widget remeasure to schedule.
@@ -299,7 +332,13 @@ function decorate({
     openExternal: onExternalLink,
   });
 
-  return { decorations: built.decorations, tooltips, frames, active: built.active };
+  return {
+    decorations: built.decorations,
+    tooltips,
+    equationRanges,
+    frames,
+    active: built.active,
+  };
 }
 
 const typstStateEffect = StateEffect.define<{ decorations: DecorationSet }>({});
@@ -488,7 +527,10 @@ export const typstViewPlugin = (
             if (result) {
               const stateEffects = [
                 typstStateEffect.of({ decorations: result.decorations }),
-                tooltipsStateEffect.of(result.tooltips),
+                tooltipsStateEffect.of({
+                  tooltips: result.tooltips,
+                  ranges: result.equationRanges,
+                }),
               ];
               update.view.dispatch({ effects: stateEffects });
 

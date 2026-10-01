@@ -29,10 +29,26 @@ pub struct PagedRender {
     pub chunks: Vec<FrameItemsChunk>,
     /// Tooltips for the rendered content.
     pub tooltips: Vec<FrameItemsChunk>,
+    /// The equation overlays this render walked, with the items each owns. The
+    /// error-recovery path re-renders through [`items::chunk_by_items_with_blocks`],
+    /// so the tooltips have to be built from the render that produced the chunks
+    /// they sit next to, not from the one that asked for them.
+    pub(crate) overlays: Vec<EquationOverlay>,
     /// Diagnostics and warnings produced during rendering.
     pub diagnostics: Vec<TypstDiagnostic>,
     /// The paged Typst document, if available.
     pub document: Option<PagedDocument>,
+}
+
+/// One equation overlay opened by an introspectable `equation` tag, with the
+/// items it owns.
+#[derive(Debug, Clone)]
+pub struct EquationOverlay {
+    /// The overlay this one was laid out inside, if any.
+    pub(crate) parent: Option<usize>,
+    /// The equation's range in the render source, resolved while the walk that
+    /// produced it was still the state of the world.
+    pub(crate) range: Option<Range<usize>>,
 }
 
 /// A chunk of frame items, representing a logical segment of the document.
@@ -67,6 +83,14 @@ pub struct BoundFrameItem {
     pub item: FrameItem,
     /// The position of the block on the page.
     pub point: Point,
+    /// The innermost equation overlay this item was laid out inside, if any.
+    ///
+    /// This is a layout fact, not a source one. A `let`-bound equation's items
+    /// carry the *definition's* spans while being laid out at each use, so
+    /// [`range`](Self::range) cannot say which equation they belong to. The
+    /// tag stack can, and an equation's overlay also claims the items of every
+    /// overlay nested in it.
+    pub equation: Option<usize>,
 }
 
 impl Hash for BoundFrameItem {
@@ -83,18 +107,25 @@ impl Hash for BoundFrameItem {
 impl TypstState {
     /// The editor's paged render: one SVG frame per source chunk, plus the
     /// tooltip frames and diagnostics the editor needs.
+    ///
+    /// `caret` is the cursor's raw UTF-16 offset. Passing it renders the overlay
+    /// for the equation holding the cursor only, because the editor shows at
+    /// most one. Omitting it renders every equation, which is what a caller with
+    /// no cursor wants (the debug lab, a diagnostics-only pass).
     #[wasm_bindgen(js_name = "compilePaged")]
     pub fn compile_paged(
         &mut self,
         id: &TypstFileId,
         text: &str,
         prelude: &str,
+        caret: Option<usize>,
     ) -> Result<Ts<CompilePagedResult>, JsError> {
-        let result = svg::render_svgs_by_items(id, text, prelude, self);
+        let result = svg::render_svgs_by_items(id, text, prelude, caret, self);
 
         Ok(CompilePagedResult {
             frames: result.frames,
             tooltips: result.tooltips,
+            equation_ranges: result.equation_ranges,
             diagnostics: result.diagnostics,
             requests: self.world.take_requests(),
         }

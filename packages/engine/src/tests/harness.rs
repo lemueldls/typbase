@@ -56,7 +56,7 @@ pub fn page(state: &mut TypstState, name: &str) -> TypstFileId {
 pub fn compile(state: &mut TypstState, id: &TypstFileId, text: &str) -> PagedRender {
     state.insert_source(id, text.to_string());
 
-    chunk_by_items(id, text, "", RenderTarget::Svg, state)
+    chunk_by_items(id, text, "", None, RenderTarget::Svg, state)
 }
 
 /// The render source text (the synth the renderer compiles). Tests read it

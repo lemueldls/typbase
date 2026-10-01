@@ -19,8 +19,9 @@ pub struct SynthResult {
     /// order. Each block's `range` is in repaired-source bytes.
     pub blocks: Vec<SynthBlock>,
 
-    /// Repaired-source ranges of all top-level `equation` nodes, used by the
-    /// math error recovery pass to scope finer-grained fixes.
+    /// Repaired-source ranges of every `equation` node, at any depth, used by
+    /// the math error recovery pass to scope finer-grained fixes and by the
+    /// paged partition to group an equation's frame items into a tooltip.
     pub equation_ranges: Vec<Range<usize>>,
 
     /// Closing delimiters the raw source was missing, as found by
@@ -127,15 +128,24 @@ pub fn sync_source_context(
         };
     }
 
-    let fixups = RawFixups::new(delimiters::find_fixes(text), text.len());
+    // The repair pass parses the raw text, so both synths below can read that
+    // tree: the pristine one because it is the raw text, the render one because
+    // `repaired` equals the raw text whenever nothing needed closing. Only a
+    // note that actually needed a repair parses a second time, for the text the
+    // repair produced.
+    let fixups = RawFixups::new(
+        delimiters::find_fixes_in(&context.parse_cached(text), text),
+        text.len(),
+    );
     let repaired = fixups.repaired(text);
 
-    let render = build_synth(&repaired, &prelude);
     let pristine = if fixups.is_empty() {
         None
     } else {
-        Some(build_synth(text, &prelude))
+        Some(build_synth_in(&context.parse_cached(text), text, &prelude))
     };
+
+    let render = build_synth_in(&context.parse_cached(&repaired), &repaired, &prelude);
 
     context.raw_source_mut(world).unwrap().replace(text);
 
@@ -234,14 +244,14 @@ struct SynthBuild {
 /// `SynthBlock::inline` flag is set on any block containing a node from the
 /// inline category.
 #[typst_macros::time]
-fn build_synth(text: &str, prelude: &str) -> SynthBuild {
+/// Builds the synth from an already-parsed tree of `text`.
+fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) -> SynthBuild {
     let mut builder = SourceBuilder::new(text);
     builder.prefix(prelude);
 
-    let root = typst_syntax::parse(text);
-    let linked = LinkedNode::new(&root);
+    let linked = LinkedNode::new(root);
 
-    let mut equation_ranges = Vec::new();
+    let equation_ranges = deep_equation_ranges(text, &linked);
 
     let mut blocks = Vec::<SynthBlock>::new();
     let mut in_block = false;
@@ -260,10 +270,6 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
         }
 
         accepted_end = accepted_end.max(range.end);
-
-        if node.kind() == SyntaxKind::Equation {
-            equation_ranges.push(range.clone());
-        }
 
         let leaf = node.get().leaf_text();
 
@@ -325,6 +331,41 @@ fn build_synth(text: &str, prelude: &str) -> SynthBuild {
         equation_ranges,
         map,
     }
+}
+
+/// Byte ranges of every equation in the tree, `$` delimiters included.
+///
+/// The walk descends through markup, code, and content blocks, so an equation
+/// inside a list item, heading, term item, table cell, or `#box[...]` is found.
+/// Only top-level children are walked in [`build_synth_in`], which is what the
+/// block loop needs, and that misses all of those.
+///
+/// An equation nested inside another one (only reachable through a code
+/// expression) is not recorded separately: the outer range already covers it,
+/// and the error-recovery filter treats a diagnostic inside either as a math
+/// error.
+///
+/// A document with no `$` cannot hold an equation, and the byte scan is three
+/// orders of magnitude cheaper than the walk it skips.
+fn deep_equation_ranges(text: &str, root: &LinkedNode) -> Vec<Range<usize>> {
+    if !text.as_bytes().contains(&b'$') {
+        return Vec::new();
+    }
+
+    let mut ranges = Vec::new();
+    let mut stack = vec![root.clone()];
+
+    while let Some(node) = stack.pop() {
+        if node.kind() == SyntaxKind::Equation {
+            ranges.push(node.range());
+            continue;
+        }
+
+        stack.extend(node.children());
+    }
+
+    ranges.sort_by_key(|range| range.start);
+    ranges
 }
 
 /// Wraps a block of Typst source for rendering, recording the copy and the
