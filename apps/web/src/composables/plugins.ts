@@ -21,6 +21,7 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { completeForPlugin } from "~/lib/ai/engine";
 import { engineAvailable } from "~/lib/engineHealth";
+import { todayISO } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
 import { specString } from "~/lib/packages";
 import {
@@ -106,10 +107,6 @@ export function setPluginCurrentPage(id: string | null): void {
   // Surfaces read `ctx.page`. A page switch has to rebuild them or a window
   // keeps offering actions against the page that was open when it rendered.
   bumpPluginsRevision();
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function parseConfig(instance: PluginInstance): Record<string, unknown> {

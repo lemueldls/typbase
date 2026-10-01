@@ -71,6 +71,18 @@ describe("typbase app", async () => {
     await page.waitForTimeout(300);
   }
 
+  /** The app bar ships off, so tests that need it go through Settings. */
+  async function enableAppBar(page: NuxtPage): Promise<void> {
+    if (await page.locator(".app-bar").count()) return;
+
+    await page.locator(".sidebar__header-actions button").first().click();
+    await page.waitForSelector(".settings", { timeout: 30_000 });
+    await page.locator(".settings__tab", { hasText: "Appearance" }).click();
+    await page.locator(".ui-switch", { hasText: "App bar" }).locator("button").click();
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".app-bar", { timeout: 30_000 });
+  }
+
   it("boots into a workspace with an editor", async () => {
     const page = await createPage();
     await openApp(page);
@@ -1597,6 +1609,137 @@ describe("typbase app", async () => {
 
     // The drop is swallowed with its click, so the menu is still open.
     expect(await names.allInnerTexts()).toEqual([before[1], before[0]]);
+
+    await page.close();
+  });
+
+  it("keeps the app bar off until the setting turns it on", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    expect(await page.locator(".app-bar").count()).toBe(0);
+
+    await enableAppBar(page);
+
+    // The choice is device-local, so it outlives the document.
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(".cm-editor", { timeout: 120_000 });
+    await page.waitForSelector(".app-bar", { timeout: 30_000 });
+
+    await page.close();
+  });
+
+  it("runs the app bar's file menu and switches menus from a trigger", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await enableAppBar(page);
+
+    // Back has nowhere to go on the entry the app booted with.
+    const [back, forward] = [0, 1].map((slot) => page.locator(".app-bar .app-bar__nav").nth(slot));
+    expect(await back.isDisabled()).toBe(true);
+    expect(await forward.isDisabled()).toBe(true);
+
+    await page.locator(".menubar__trigger", { hasText: "File" }).click();
+    await page.waitForSelector(".menubar__content", { timeout: 30_000 });
+    expect(await page.locator(".menubar__content .menu__item").count()).toBe(4);
+
+    // A trigger click switches menus instead of closing the bar, and the menu it
+    // left is gone.
+    await page.locator(".menubar__trigger", { hasText: "View" }).click();
+    await page.waitForFunction(
+      () => document.querySelectorAll(".menubar__content").length === 1,
+      null,
+      { timeout: 30_000 },
+    );
+    expect(
+      await page.locator(".menubar__content .menu__item", { hasText: "Hide sidebar" }).count(),
+    ).toBe(1);
+
+    const panelWidth = () =>
+      page.evaluate(() => {
+        return document.querySelector(".app__nav-panel")?.clientWidth ?? -1;
+      });
+    const expanded = await panelWidth();
+    expect(expanded).toBeGreaterThan(0);
+
+    await page.locator(".menubar__content .menu__item").first().click();
+    await page.waitForFunction(
+      () => {
+        const panel = document.querySelector(".app__nav-panel");
+
+        return panel !== null && panel.clientWidth === 0;
+      },
+      null,
+      { timeout: 30_000 },
+    );
+
+    // The view menu now names the other direction, which brings it back.
+    await page.locator(".menubar__trigger", { hasText: "View" }).click();
+    await page.waitForSelector(".menubar__content", { timeout: 30_000 });
+    expect(
+      await page.locator(".menubar__content .menu__item", { hasText: "Show sidebar" }).count(),
+    ).toBe(1);
+    await page.locator(".menubar__content .menu__item").first().click();
+    await page.waitForFunction(
+      () => (document.querySelector(".app__nav-panel")?.clientWidth ?? 0) > 0,
+      null,
+      { timeout: 30_000 },
+    );
+    // Reka restores the size the panel had before it collapsed.
+    expect(Math.abs((await panelWidth()) - expanded)).toBeLessThanOrEqual(2);
+    // Let the splitter animation finish before the next click lands.
+    await page.waitForTimeout(500);
+
+    // The File menu's dialogs open from items, which close the menu to do it.
+    await page.locator(".menubar__trigger", { hasText: "File" }).click();
+    await page.waitForSelector(".menubar__content .menu__item", { timeout: 30_000 });
+    await page.locator(".menubar__content .menu__item", { hasText: "New page" }).click();
+    await page.waitForSelector(".dialog", { timeout: 30_000 });
+    // The dropdown animates out, so wait for it to go rather than sampling.
+    await page.waitForSelector(".menubar__content", { state: "detached", timeout: 30_000 });
+
+    // Back closes the dialog it opened.
+    await page.evaluate(() => window.history.back());
+    await page.waitForSelector(".dialog", { state: "detached", timeout: 30_000 });
+
+    // And the menu, without navigating away.
+    await page.locator(".menubar__trigger", { hasText: "File" }).click();
+    await page.waitForSelector(".menubar__content", { timeout: 30_000 });
+    await page.evaluate(() => window.history.back());
+    await page.waitForSelector(".menubar__content", { state: "detached", timeout: 30_000 });
+    expect(new URL(page.url()).pathname).toBe("/");
+
+    await page.close();
+  });
+
+  it("navigates pages with the app bar's back and forward buttons", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await enableAppBar(page);
+
+    const firstId = await createTestPage(page, { title: "Nav first", content: "= First\n" });
+    const secondId = await createTestPage(page, { title: "Nav second", content: "= Second\n" });
+    await showPage(page, firstId, "write");
+
+    const [back, forward] = [0, 1].map((slot) => page.locator(".app-bar .app-bar__nav").nth(slot));
+    expect(await back.isDisabled()).toBe(false);
+
+    await page.evaluate((id) => window.__typbase.openPage(id), secondId);
+    await page.waitForFunction((id) => window.__typbase.pageId === id, secondId, {
+      timeout: 30_000,
+    });
+
+    await back.click();
+    await page.waitForFunction((id) => window.__typbase.pageId === id, firstId, {
+      timeout: 30_000,
+    });
+    expect(await forward.isDisabled()).toBe(false);
+
+    await forward.click();
+    await page.waitForFunction((id) => window.__typbase.pageId === id, secondId, {
+      timeout: 30_000,
+    });
+    expect(await back.isDisabled()).toBe(false);
 
     await page.close();
   });

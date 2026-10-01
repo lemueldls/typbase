@@ -23,10 +23,13 @@ interface LayerEntry {
 
 const stack: LayerEntry[] = [];
 let ignoredBacks = 0;
+/** Reactive depth, so a control can show that back has somewhere to go. */
+const layerDepth = ref(0);
 
 function removeEntry(entry: LayerEntry): void {
   const index = stack.indexOf(entry);
   if (index !== -1) stack.splice(index, 1);
+  layerDepth.value = stack.length;
 }
 
 export interface BackLayerHandle {
@@ -54,6 +57,7 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
     pushed = true;
     consumed = false;
     stack.push(entry);
+    layerDepth.value = stack.length;
     history.pushState({ ...history.state, typbaseLayer: true }, "");
   }
 
@@ -109,6 +113,11 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
 /** True while an overlay owns a history entry. */
 export function hasBackLayer(): boolean {
   return stack.length > 0;
+}
+
+/** How many overlays own an entry right now. Reactive, unlike `hasBackLayer`. */
+export function backLayerDepth(): Ref<number> {
+  return layerDepth;
 }
 
 /**

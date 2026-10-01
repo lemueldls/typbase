@@ -31,9 +31,7 @@ function onKeydown(event: KeyboardEvent): void {
     });
 }
 
-onMounted(() => {
-  useEventListener(window, "keydown", onKeydown, { capture: true });
-});
+useEventListener("keydown", onKeydown, { capture: true });
 </script>
 
 <template>

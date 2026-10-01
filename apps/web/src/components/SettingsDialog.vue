@@ -60,6 +60,8 @@ const {
   check: checkForUpdates,
 } = useAppUpdates();
 
+const { visible: appBarVisible } = useAppBar();
+
 const updateHint = computed(() => {
   if (updateChannel.value === "android-play") return t("updates.playHint");
   if (updateChannel.value === "desktop-package-managed") return t("updates.packageManaged");
@@ -193,7 +195,8 @@ const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string }> = [
 ];
 
 const activeTab = ref<SettingsTab>("general");
-const open = ref(false);
+/** Bindable so another surface (the app bar's File menu) can open it too. */
+const open = defineModel<boolean>("open", { default: false });
 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
@@ -791,6 +794,16 @@ async function renameWorkspace(event: Event) {
             <UiSelect v-model="uiSize" :options="uiSizeOptions" :label="$t('settings.uiSize')" />
             <span class="settings__hint">{{ $t("settings.uiSizeHint") }}</span>
           </Label>
+
+          <!-- Device-local: the bar belongs to this window, not the workspace. -->
+          <div class="settings__field">
+            <UiSwitch
+              v-model="appBarVisible"
+              :label="$t('settings.appBar')"
+              :aria-label="$t('settings.appBar')"
+            />
+            <span class="settings__hint">{{ $t("settings.appBarHint") }}</span>
+          </div>
 
           <Label class="settings__field">
             <span>{{ $t("settings.uiDensity") }}</span>

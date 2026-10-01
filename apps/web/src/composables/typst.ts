@@ -78,6 +78,21 @@ export function evictTypstCaches(): void {
   void statePromise?.then((state) => state.evictCaches()).catch(() => undefined);
 }
 
+/**
+ * The live instance's wasm heap: 0 before an engine exists, and -1 once the
+ * instance is wedged, since the call traps then. Reading it never boots an
+ * engine, so a status readout can poll it.
+ */
+export async function typstHeapBytes(): Promise<number> {
+  if (!statePromise) return 0;
+
+  try {
+    return (await statePromise).memoryBytes();
+  } catch {
+    return -1;
+  }
+}
+
 interface LocalFontData {
   family: string;
   fullName: string;

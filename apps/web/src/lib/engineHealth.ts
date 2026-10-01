@@ -6,6 +6,20 @@ import { recreateTypstState } from "~/lib/typstRecovery";
 export type EngineStatus = "ok" | "recovering" | "failed";
 export type EngineFailure = "oom" | "trap" | "rebuild-failed";
 
+/**
+ * Where the editor's heap watchdog clears the caches once. Past this the wasm
+ * linear memory cannot shrink, so the clear is latched and never repeated, and
+ * an aged eviction takes over from here on.
+ */
+export const HEAP_WATERMARK = 1_000_000_000;
+
+/** The heap readout: whole megabytes, gigabytes once it gets that big. */
+export function formatHeap(bytes: number): string {
+  if (bytes >= HEAP_WATERMARK) return `${(bytes / HEAP_WATERMARK).toFixed(1)} GB`;
+
+  return `${Math.round(bytes / 1_000_000)} MB`;
+}
+
 export interface EngineHealth {
   status: EngineStatus;
   reason: EngineFailure | null;

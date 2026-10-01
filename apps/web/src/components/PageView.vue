@@ -22,6 +22,7 @@ import {
   beginRecovery,
   canAutoRebuild,
   failEngine,
+  HEAP_WATERMARK,
   noteCompileSuccess,
   noteTrap,
   requestEngineRetry,
@@ -70,8 +71,6 @@ const fileId = shallowRef<FileId>();
 const engineHealth = useEngineHealth();
 const degraded = computed(() => engineHealth.value.status === "failed");
 
-/** Evict comemo caches once the wasm heap passes this. */
-const HEAP_WATERMARK = 1_000_000_000;
 /** Age out per-keystroke cache entries this often. */
 const EVICT_AGED_EVERY = 50;
 /** Idle sweep interval for the heap watchdog. */
@@ -117,9 +116,7 @@ function onKeydown(event: KeyboardEvent): void {
   exportOpen.value = true;
 }
 
-onMounted(() => {
-  useEventListener(window, "keydown", onKeydown, { capture: true });
-});
+useEventListener("keydown", onKeydown, { capture: true });
 
 const notebookSession = createNotebookSession();
 const notebookController = shallowRef<NotebookController>();
@@ -303,7 +300,7 @@ function onNotebookCommandKey(event: KeyboardEvent): void {
   }
 }
 
-useEventListener(window, "keydown", onNotebookCommandKey);
+useEventListener("keydown", onNotebookCommandKey);
 
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
 // this remount, so the editor plugin and preview bind to the fresh instance.

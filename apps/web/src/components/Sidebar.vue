@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
+import { todayISO } from "~/lib/format";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 const props = defineProps<{
@@ -73,11 +74,10 @@ function groupKey(categoryId: string | null): string {
   return categoryId ? `category:${categoryId}` : "general";
 }
 
-const today = new Date();
-const todayISO = today.toISOString().slice(0, 10);
-
 /** Today's daily note when it exists. The Today row's menu deletes it. */
-const todayPage = computed(() => pages.value.find((page) => page.path === `daily/${todayISO}.typ`));
+const todayPage = computed(() =>
+  pages.value.find((page) => page.path === `daily/${todayISO()}.typ`),
+);
 
 /** Day notes except today's, newest first. The "Today" row covers today. */
 const recentDays = computed(() =>
@@ -85,7 +85,7 @@ const recentDays = computed(() =>
     .filter(
       (page) =>
         page.path.startsWith("daily/") &&
-        page.path.slice("daily/".length, "daily/".length + 10) !== todayISO,
+        page.path.slice("daily/".length, "daily/".length + 10) !== todayISO(),
     )
     .sort((a, b) => b.path.localeCompare(a.path))
     .slice(0, 7),
@@ -102,7 +102,7 @@ function dayLabel(page: PageMeta): string {
 }
 
 async function openToday() {
-  const page = await props.store.createDailyNote(todayISO);
+  const page = await props.store.createDailyNote(todayISO());
   emit("select", page.id);
 }
 

@@ -3,12 +3,16 @@ import type { PluginSurfaceKind } from "@typbase/typing";
 import type { SplitterPanel } from "reka-ui";
 import type { LocationQueryRaw } from "vue-router";
 
+import { isTauri } from "@typbase/storage";
 import iconUrl from "~~/public/icon.svg?url";
+
+import type { NavQuery } from "~/lib/navStack";
 
 import { setChatNavigation, useChat } from "~/composables/chat";
 import { setProviderOverride } from "~/lib/ai/engine";
 import { formatDocumentTitle } from "~/lib/documentTitle";
 import { engineAvailable } from "~/lib/engineHealth";
+import { isMac } from "~/lib/platform";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
 import { testApi } from "~/lib/testApi";
@@ -50,6 +54,11 @@ const navOpen = ref(false);
 /** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
  *  mirrors `--breakpoint-md` in tokens.css (mobile <= 48rem, desktop above). */
 const isDesktop = useMediaQuery("(min-width: 48.0625rem)");
+
+const nav = useNavHistory();
+const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
+
+const { t } = useI18n();
 
 // Back closes the drawer and the palette before it navigates or leaves.
 useBackLayer(navOpen);
@@ -104,13 +113,94 @@ const chat = useChat();
 const appUpdates = useAppUpdates();
 
 // Cmd-K / Ctrl-K opens the search palette.
-onKeyStroke(
+onCapturedKey(
   (event) => (event.metaKey || event.ctrlKey) && event.key === "K",
   (event) => {
     event.preventDefault();
     togglePalette();
   },
 );
+
+/**
+ * Back and forward, on the chords browsers and editors use. The desktop shell
+ * has no browser to do it, and in a browser tab Alt-ArrowLeft is the browser's
+ * own back, which would navigate twice.
+ */
+function isNavChord(event: KeyboardEvent, direction: "back" | "forward"): boolean {
+  if (event.ctrlKey || event.shiftKey) return false;
+
+  if (event.altKey && !event.metaKey) {
+    return event.key === (direction === "back" ? "ArrowLeft" : "ArrowRight");
+  }
+
+  if (!isMac() || !event.metaKey || event.altKey) return false;
+
+  // `code` keeps the bracket chords working on layouts where the key is
+  // something else.
+  return event.code === (direction === "back" ? "BracketLeft" : "BracketRight");
+}
+
+for (const direction of ["back", "forward"] as const) {
+  onCapturedKey(
+    (event) => isTauri() && isNavChord(event, direction),
+    (event) => {
+      // The settings fields and the plugin studio install CodeMirror's default
+      // keymap, where these arrows walk the syntax tree and the brackets
+      // reindent. The capture phase gets here first, so the carve-out has to.
+      if ((event.target as HTMLElement | null)?.closest(".cm-editor")) return;
+
+      event.preventDefault();
+      if (direction === "back") nav.goBack();
+      else nav.goForward();
+    },
+  );
+}
+
+// Cmd-J / Ctrl-J hides the app bar for the editor's full height.
+onCapturedKey(
+  (event) =>
+    (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key === "j",
+  (event) => {
+    event.preventDefault();
+    toggleAppBar();
+  },
+);
+
+/** Titles the navigation labels read from, so a rename updates them. */
+const pageTitles = useWorkspaceValue(
+  workspace,
+  ["pages"],
+  (store) => new Map(store.listPages().map((entry) => [entry.id, entry.title])),
+  new Map<string, string>(),
+);
+
+/** What the back or forward control is about to open. */
+function destinationTitle(query: NavQuery | undefined): string | undefined {
+  if (!query) return undefined;
+
+  const pageId = typeof query.page === "string" ? query.page : "";
+  const title = pageId ? pageTitles.value.get(pageId) : undefined;
+  if (title) return title;
+
+  const view = typeof query.view === "string" ? query.view : "";
+  if (view === "graph") return t("graph.title");
+  if (view.startsWith("chat:")) return t("chat.title");
+  if (view.startsWith("plugin:")) return t("plugins.title");
+
+  return undefined;
+}
+
+const backLabel = computed(() => {
+  const title = destinationTitle(nav.previousQuery.value);
+
+  return title ? t("nav.backTo", { title }) : t("nav.back");
+});
+
+const forwardLabel = computed(() => {
+  const title = destinationTitle(nav.nextQuery.value);
+
+  return title ? t("nav.forwardTo", { title }) : t("nav.forward");
+});
 
 // Search snapshots links: the palette needs the index started.
 watch(
@@ -139,6 +229,9 @@ watch(workspaceGeneration, () => {
   currentPageId.value = fallbackPageId();
   currentPluginId.value = null;
   currentChatId.value = null;
+  // Another workspace is another set of pages, so the app's own history starts
+  // over rather than pointing at ids the new workspace does not have.
+  nav.reset(routeQuery());
   syncRoute("replace");
 });
 
@@ -343,9 +436,18 @@ function sameQuery(next: LocationQueryRaw): boolean {
 }
 
 /**
+ * True when the last navigation replaced an overlay's entry. That entry sits one
+ * position past the app's own, so the mirror appends where a plain replace would
+ * overwrite, and the step back to where the overlay was opened is not lost.
+ */
+let overlayEntryReplaced = false;
+
+/**
  * Writes the refs to the URL. Opening something pushes a history step.
  * normalization and closes replace the current one. The read watchers apply
- * the result back, so this is the only writer.
+ * the result back, so this is the only writer. Every write tags the entry with
+ * its place in the app's own history, which is what lets back and forward know
+ * where they are.
  */
 function syncRoute(historyMode: "push" | "replace"): void {
   if (!loaded.value) return;
@@ -353,7 +455,12 @@ function syncRoute(historyMode: "push" | "replace"): void {
   const query = routeQuery();
   if (sameQuery(query)) return;
 
-  void router[historyMode]({ query });
+  const index = nav.record(query, {
+    append: historyMode === "push" || overlayEntryReplaced,
+  });
+  overlayEntryReplaced = false;
+
+  void router[historyMode]({ query, state: { typbaseIndex: index } });
 }
 
 /**
@@ -362,7 +469,15 @@ function syncRoute(historyMode: "push" | "replace"): void {
  * action that called this.
  */
 function takeLayerHistory(): "push" | "replace" {
-  return consumeTopBackLayer() ? "replace" : "push";
+  if (!consumeTopBackLayer()) {
+    overlayEntryReplaced = false;
+
+    return "push";
+  }
+
+  overlayEntryReplaced = true;
+
+  return "replace";
 }
 
 // Back/forward or a pasted link changes the open pane under us.
@@ -707,51 +822,125 @@ definePageMeta({ ssr: false });
         :aria-busy="switching ? true : undefined"
         :inert="switching ? true : undefined"
       >
-        <SplitterGroup
-          v-if="isDesktop"
-          direction="horizontal"
-          auto-save-id="typbase:sidebar"
-          class="app__splitter"
-        >
-          <SplitterPanel
-            ref="navPanel"
-            class="app__nav-panel"
-            size-unit="px"
-            :default-size="264"
-            :min-size="200"
-            :max-size="480"
-            collapsible
-            :collapsed-size="0"
-            @collapse="sidebarCollapsed = true"
-            @expand="sidebarCollapsed = false"
-            @resize="syncSidebarCollapsed"
+        <!-- Window-level chrome. Narrow windows keep the mobile layout whole,
+             so the bar goes with them rather than eating the editor's height. -->
+        <AppBar
+          v-if="isDesktop && appBarVisible"
+          :store="workspace"
+          :back-label="backLabel"
+          :forward-label="forwardLabel"
+          :sidebar-visible="!sidebarCollapsed"
+          @open-page="openPage"
+          @toggle-sidebar="toggleSidebar"
+        />
+
+        <div class="app__body">
+          <SplitterGroup
+            v-if="isDesktop"
+            direction="horizontal"
+            auto-save-id="typbase:sidebar"
+            class="app__splitter"
           >
-            <Sidebar
-              :store="workspace"
-              :current-page-id="currentPageId"
-              @select="openPage"
-              @open-plugin="openPlugin"
-              @search="openSearch"
-              @chat="openChat"
-              @graph="openGraph"
-              @collapse-request="toggleSidebar"
+            <SplitterPanel
+              ref="navPanel"
+              class="app__nav-panel"
+              size-unit="px"
+              :default-size="264"
+              :min-size="200"
+              :max-size="480"
+              collapsible
+              :collapsed-size="0"
+              @collapse="sidebarCollapsed = true"
+              @expand="sidebarCollapsed = false"
+              @resize="syncSidebarCollapsed"
+            >
+              <Sidebar
+                :store="workspace"
+                :current-page-id="currentPageId"
+                @select="openPage"
+                @open-plugin="openPlugin"
+                @search="openSearch"
+                @chat="openChat"
+                @graph="openGraph"
+                @collapse-request="toggleSidebar"
+              />
+            </SplitterPanel>
+
+            <SplitterResizeHandle
+              v-show="!sidebarCollapsed"
+              class="app__resize-handle"
+              :aria-label="$t('sidebar.resizeSidebar')"
             />
-          </SplitterPanel>
 
-          <SplitterResizeHandle
-            v-show="!sidebarCollapsed"
-            class="app__resize-handle"
-            :aria-label="$t('sidebar.resizeSidebar')"
-          />
+            <SplitterPanel class="app__main-panel" :default-size="76">
+              <div class="app__main">
+                <MainPane
+                  :page-id="currentPageId"
+                  :plugin-instance-id="currentPluginId"
+                  :chat-thread-id="currentChatId"
+                  :graph-open="graphOpen"
+                  :dock-chat-id="isDesktop ? dockChatId : null"
+                  :model-value="mode"
+                  @update:model-value="setMode"
+                  @open-page="openPage"
+                  @open-plugin="openPlugin"
+                  @close-plugin="closePlugin"
+                  @open-thread="openChat"
+                  @close-chat="closeChat"
+                  @close-dock="closeDock"
+                  @expand-dock="expandDock"
+                  @open-graph="openGraph(true)"
+                  @close-graph="graphOpen = false"
+                >
+                  <template #nav-toggle>
+                    <UiIconButton
+                      v-if="sidebarCollapsed"
+                      :icon="sidebarCollapsed ? 'chevron_right' : 'chevron_left'"
+                      :label="
+                        sidebarCollapsed ? $t('sidebar.showSidebar') : $t('sidebar.hideSidebar')
+                      "
+                      class="app__nav-toggle app__nav-toggle--desktop"
+                      @click="toggleSidebar"
+                    />
+                  </template>
+                </MainPane>
+              </div>
+            </SplitterPanel>
+          </SplitterGroup>
 
-          <SplitterPanel class="app__main-panel" :default-size="76">
+          <!-- Mobile drawer + main pane. -->
+          <template v-else>
+            <div
+              class="app__nav"
+              :class="{ 'app__nav--open': navOpen }"
+              :aria-hidden="navOpen ? 'false' : undefined"
+            >
+              <Sidebar
+                :store="workspace"
+                :current-page-id="currentPageId"
+                @select="openPage"
+                @open-plugin="openPlugin"
+                @search="openSearch"
+                @chat="openChat"
+                @graph="openGraph"
+                @collapse-request="navOpen = false"
+              />
+            </div>
+
+            <button
+              v-if="navOpen"
+              type="button"
+              class="app__backdrop"
+              :aria-label="$t('boot.closeNav')"
+              @click="navOpen = false"
+            />
+
             <div class="app__main">
               <MainPane
                 :page-id="currentPageId"
                 :plugin-instance-id="currentPluginId"
                 :chat-thread-id="currentChatId"
                 :graph-open="graphOpen"
-                :dock-chat-id="isDesktop ? dockChatId : null"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
@@ -759,85 +948,25 @@ definePageMeta({ ssr: false });
                 @close-plugin="closePlugin"
                 @open-thread="openChat"
                 @close-chat="closeChat"
-                @close-dock="closeDock"
-                @expand-dock="expandDock"
                 @open-graph="openGraph(true)"
-                @close-graph="graphOpen = false"
+                @close-graph="closeGraph"
               >
                 <template #nav-toggle>
                   <UiIconButton
-                    v-if="sidebarCollapsed"
-                    :icon="sidebarCollapsed ? 'chevron_right' : 'chevron_left'"
-                    :label="
-                      sidebarCollapsed ? $t('sidebar.showSidebar') : $t('sidebar.hideSidebar')
-                    "
-                    class="app__nav-toggle app__nav-toggle--desktop"
-                    @click="toggleSidebar"
+                    icon="menu"
+                    :size="24"
+                    :label="$t('boot.openNav')"
+                    variant="ghost"
+                    class="app__nav-toggle"
+                    @click="navOpen = true"
                   />
                 </template>
               </MainPane>
             </div>
-          </SplitterPanel>
-        </SplitterGroup>
+          </template>
 
-        <!-- Mobile drawer + main pane. -->
-        <template v-else>
-          <div
-            class="app__nav"
-            :class="{ 'app__nav--open': navOpen }"
-            :aria-hidden="navOpen ? 'false' : undefined"
-          >
-            <Sidebar
-              :store="workspace"
-              :current-page-id="currentPageId"
-              @select="openPage"
-              @open-plugin="openPlugin"
-              @search="openSearch"
-              @chat="openChat"
-              @graph="openGraph"
-              @collapse-request="navOpen = false"
-            />
-          </div>
-
-          <button
-            v-if="navOpen"
-            type="button"
-            class="app__backdrop"
-            :aria-label="$t('boot.closeNav')"
-            @click="navOpen = false"
-          />
-
-          <div class="app__main">
-            <MainPane
-              :page-id="currentPageId"
-              :plugin-instance-id="currentPluginId"
-              :chat-thread-id="currentChatId"
-              :graph-open="graphOpen"
-              :model-value="mode"
-              @update:model-value="setMode"
-              @open-page="openPage"
-              @open-plugin="openPlugin"
-              @close-plugin="closePlugin"
-              @open-thread="openChat"
-              @close-chat="closeChat"
-              @open-graph="openGraph(true)"
-              @close-graph="closeGraph"
-            >
-              <template #nav-toggle>
-                <UiIconButton
-                  icon="menu"
-                  :size="24"
-                  :label="$t('boot.openNav')"
-                  variant="ghost"
-                  class="app__nav-toggle"
-                  @click="navOpen = true"
-                />
-              </template>
-            </MainPane>
-          </div>
-        </template>
-
-        <PluginWindows />
+          <PluginWindows />
+        </div>
 
         <SearchPalette
           v-if="paletteOpen && workspace"
@@ -859,18 +988,28 @@ definePageMeta({ ssr: false });
 <style>
 .app {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
 }
 
+/* The shell is a column: the app bar, then the panes. The content div owns the
+   dim and the inert state while a workspace switches, which its children used to
+   cover when it was `display: contents`. */
 .app__content {
-  display: contents;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Workspace switch feedback: a pill + indeterminate bar over the shell, and
-   a dimmed, inert content area until the new store is live. The content div
-   is `display: contents`, so the dim has to target its children. */
+.app__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 /* Workspace switch feedback: a floating status pill over the dimmed, inert
    content area (see .app__content--switching). */
 .app__switching {

@@ -70,3 +70,13 @@ export function formatAgo(timestamp: number, locale?: string): string {
 export function formatDayLabel(iso: string, locale?: string): string {
   return formatDate(iso, { dateStyle: "medium" }, locale);
 }
+
+/**
+ * Today's date as the string daily notes are keyed by.
+ *
+ * UTC, to match `toDate`: a daily note is one file for the calendar day
+ * everywhere it is opened, not the reader's evening.
+ */
+export function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}

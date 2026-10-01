@@ -78,6 +78,11 @@
      the app chrome lines up across columns. */
   --pane-header-height: calc(var(--control-md) + 2 * var(--space-2));
 
+  /* The app bar is a strip above the panes, not a second header: slimmer than
+     --pane-header-height so it reads as navigation rather than content. */
+  --app-bar-height: calc(var(--control-sm) + 2 * var(--space-1));
+  --app-bar-search-width: calc(24rem * var(--ui-size));
+
   /* Motion. Hover and press feedback is fast, entrances and state changes are
      base, and large surfaces like the search palette get slow. Exits run shorter
      than entrances so a dismissed surface clears out. Springs overshoot for
