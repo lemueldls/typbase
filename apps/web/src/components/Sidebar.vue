@@ -675,17 +675,6 @@ function onCreated(page: PageMeta) {
   gap: var(--space-2);
 }
 
-/* The plugin section's header lives in PluginSidebar. Stick it like the other
-   section titles, with the same padding-owned clearance below it. */
-.sidebar__section .plugin-sidebar__header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: var(--space-2) 0 var(--space-1-5);
-  margin-bottom: calc(-1 * var(--space-1-5));
-  background: var(--color-surface);
-}
-
 .sidebar__list {
   margin: 0;
   padding: 0;

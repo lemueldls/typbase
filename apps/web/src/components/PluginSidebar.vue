@@ -94,10 +94,16 @@ function openInstanceById(instanceId: string): void {
 }
 
 .plugin-sidebar__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: var(--space-2);
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-1-5) var(--space-2);
+  margin-bottom: calc(-1 * var(--space-1-5));
+  background: var(--color-surface);
   font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;
