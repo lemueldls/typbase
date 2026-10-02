@@ -368,7 +368,6 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
 
 .sync__members ul {
   margin: var(--space-1) 0 0;
-  padding-left: var(--space-4);
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }

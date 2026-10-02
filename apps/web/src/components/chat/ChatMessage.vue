@@ -178,12 +178,13 @@ async function copySource(): Promise<void> {
   white-space: pre-wrap;
 }
 
-.chat-message__render > :first-child {
-  margin-top: 0;
+.chat-message__render > * + * {
+  margin-top: 0.6em;
 }
 
-.chat-message__render > :last-child {
-  margin-bottom: 0;
+.chat-message__render ul,
+.chat-message__render ol {
+  padding-inline-start: 1.4em;
 }
 
 .chat-message__render pre {

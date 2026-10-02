@@ -473,7 +473,6 @@ definePageMeta({ ssr: false });
 }
 
 .lab__facts dd {
-  margin: 0;
   font-weight: 600;
 }
 

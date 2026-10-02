@@ -158,8 +158,8 @@ definePageMeta({ ssr: false });
 }
 
 .profile__header h1 {
-  margin: 0;
   font-size: var(--text-3xl);
+  font-weight: 600;
 }
 
 .profile__sub {
@@ -203,8 +203,8 @@ definePageMeta({ ssr: false });
 }
 
 .profile__post-head h2 {
-  margin: 0;
   font-size: var(--text-xl);
+  font-weight: 600;
 }
 
 .profile__meta {

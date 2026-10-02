@@ -1,0 +1,73 @@
+/*
+ * Baseline reset.
+ *
+ * The app styles every element it renders, so the browser's defaults are only
+ * ever in the way. They leaked in two ways: raw margins (`p`, headings, `dd`)
+ * that every component had to undo, and form controls that would not inherit the
+ * app's font. This file takes both back once.
+ *
+ * Every selector is wrapped in `:where()`, which gives the rule zero
+ * specificity. Author styles beat the user-agent stylesheet on origin alone, so
+ * these still win over UA defaults, while any existing class rule keeps winning
+ * over these. Without `:where()`, an element selector at 0,0,1 starts beating
+ * component rules that happen to match at the same weight, which breaks on one
+ * page and nowhere else.
+ *
+ * Three things are deliberately not reset:
+ * - List markers stay. Bulleted lists are used on purpose (chat diagnostics, the
+ *   sync members list), so only the indentation moves onto the app's scale.
+ * - `svg` keeps `display: inline`. The icon font is laid out as text, and
+ *   forcing a block would break every glyph alignment.
+ * - Heading *size* and *weight* stay. The engine's HTML reaches the document as
+ *   bare `h1`-`h6` (`chat-message__render`), where the scale carries meaning.
+ *   Only the margins go, which is the part chrome was actually fighting.
+ */
+
+:where(p, h1, h2, h3, h4, h5, h6, blockquote, figure, dl, dd, pre, hr) {
+  margin: 0;
+}
+
+:where(ul, ol) {
+  margin: 0;
+  padding-inline-start: var(--space-4);
+}
+
+/* Form controls do not inherit typography, and Safari gives some of them a
+   margin of its own. */
+:where(button, input, select, textarea) {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+:where(button) {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+:where(textarea) {
+  resize: vertical;
+}
+
+:where(img, svg, video, canvas) {
+  max-width: 100%;
+}
+
+:where(img, video) {
+  height: auto;
+}
+
+:where(table) {
+  border-collapse: collapse;
+}
+
+:where(hr) {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+/* `details` is always a disclosure, so it is always clickable. */
+:where(summary) {
+  cursor: pointer;
+}
