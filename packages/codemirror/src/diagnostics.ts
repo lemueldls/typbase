@@ -68,11 +68,6 @@ export interface TypstLinterOptions {
 
 /**
  * Typst diagnostics as a CodeMirror linter source.
- *
- * This runs in every editor mode and combines with other sources (the
- * spellcheck linter), so neither one replaces the other. The WYSIWYG plugin's
- * compile feeds the cache. Split and source mode fall back to a compile here
- * so they get diagnostics too.
  */
 export const typstLinter = (
   fileId: FileId,
@@ -88,9 +83,9 @@ export const typstLinter = (
       const cached = cachedDiagnostics(path, text);
       if (cached) return toLintDiagnostics(cached);
 
-      let result: ReturnType<TypstState["compilePaged"]>;
+      let result: ReturnType<TypstState["diagnosePaged"]>;
       try {
-        result = typstState.compilePaged(fileId, text, prelude.value);
+        result = typstState.diagnosePaged(fileId, text, prelude.value);
       } catch (error) {
         console.error("[typst] diagnostics compile panicked:", error);
         options.onPanic?.(fileId);
@@ -100,7 +95,7 @@ export const typstLinter = (
 
       if (result.requests.length > 0 && options.onRequests) {
         const updated = await options.onRequests(result.requests, spaceId);
-        if (updated) result = typstState.compilePaged(fileId, text, prelude.value);
+        if (updated) result = typstState.diagnosePaged(fileId, text, prelude.value);
       }
 
       rememberDiagnostics(path, text, result.diagnostics);

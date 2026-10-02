@@ -36,6 +36,7 @@ import {
   typstRecompileEffect,
   typstStaticHighlighting,
   typstSyntaxHighlighting,
+  typstSourceSync,
 } from "@typbase/codemirror";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
@@ -358,6 +359,7 @@ function createStateConfig(): EditorStateConfig {
       }),
       typstSyntaxHighlighting(props.fileId, props.typstState),
       typstHoverTooltip(props.fileId, props.typstState),
+      typstSourceSync(props.fileId, props.prelude, props.typstState),
       typstKeymap,
       typstLanguageData,
       // The WYSIWYG plugin installs the same source. Split and Source mode

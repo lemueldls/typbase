@@ -395,6 +395,43 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  // A completion query reads the engine's synth source, which used to be
+  // rebuilt only as a side effect of a render. Write mode renders in a
+  // microtask so it was always in step, but split and source mode render on a
+  // debounce, so a query arriving first described the previous keystroke. The
+  // editor now syncs the sources on every doc change.
+  //
+  // The last keystroke is the dot, which is what turns `#d` into a field access.
+  // The key is already in the text, so it can only be offered by a query that read
+  // the current text: a query reading the text from before the dot has no field
+  // access to resolve, and answers with the variable list, where a dictionary key
+  // does not appear.
+  for (const mode of ["split", "source"] as const) {
+    it(`completes a field access in ${mode} mode`, async () => {
+      const page = await createPage();
+      await openApp(page);
+
+      const id = await createTestPage(page, {
+        title: "Autocomplete",
+        content: "#let d = (newname: 1)\n\n#d",
+      });
+      await showPage(page, id, mode);
+
+      await page.locator(".page-view .cm-content").click();
+      await page.keyboard.press("Control+End");
+      await page.keyboard.type(".");
+
+      // activateOnTypingDelay is 100ms, which lands inside the 160ms preview
+      // debounce, so this is the window the sources had to be closed in.
+      await page
+        .locator(".cm-tooltip-autocomplete", { hasText: "newname" })
+        .waitFor({ timeout: 30_000 });
+      // A resolved field access, not the variable list the stale text would give.
+      expect(await page.locator(".cm-tooltip-autocomplete", { hasText: "keys" }).count()).toBe(1);
+      await page.close();
+    });
+  }
+
   it("shows editor tooltips above the panes", async () => {
     const page = await createPage();
     await openApp(page);

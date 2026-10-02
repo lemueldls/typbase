@@ -15,6 +15,7 @@ import { typstHoverTooltip } from "./hover";
 import { typstKeymap } from "./keymap";
 import { autocomplete, typstLanguageData } from "./language";
 import { notebookKeymap, notebookOptionsFacet } from "./notebook";
+import { typstSourceSync } from "./sync";
 import { tooltipStateField, tooltipViewPlugin } from "./tooltip";
 import { typstStateField, typstViewPlugin, tooltipsStateField } from "./widgets";
 
@@ -72,6 +73,7 @@ export const typstPlugin = (
 
     typstKeymap,
     typstLanguageData,
+    typstSourceSync(fileId, prelude, typstState),
     typstSyntaxHighlighting(fileId, typstState),
     typstHoverTooltip(fileId, typstState),
 

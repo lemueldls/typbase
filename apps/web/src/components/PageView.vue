@@ -1361,9 +1361,8 @@ function setCategory(categoryId: string | null): void {
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
 
       <PagedPreview
-        v-if="boundFileId && !degraded"
+        v-if="boundFileId && !degraded && (modelValue === 'split' || modelValue === 'read')"
         :key="`${pageId}:preview:${stateGeneration}`"
-        v-show="modelValue === 'split' || modelValue === 'read'"
         v-bind="sharedState"
         ref="previewPane"
         :file-id="boundFileId"

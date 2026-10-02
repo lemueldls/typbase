@@ -8,6 +8,7 @@ export * from "./keymap";
 export * from "./language";
 export * from "./notebook";
 export * from "./static-highlight";
+export * from "./sync";
 export * from "./tooltip";
 export * from "./widgets";
 export type { TextRef, TypstRequestHandler } from "./types";

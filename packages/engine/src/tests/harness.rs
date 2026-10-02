@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     bindings::TypstFileId,
-    renderer::paged::{PagedRender, items::chunk_by_items},
+    renderer::paged::{PagedRender, items::chunk_by_items, svg::SvgRender, svg::render_svgs_by_items},
     source::RenderTarget,
     state::TypstState,
 };
@@ -53,10 +53,22 @@ pub fn page(state: &mut TypstState, name: &str) -> TypstFileId {
 /// Compiles a page the way the editor does: SVG target through the chunked
 /// recovery path. The editor inserts the page text under the synth id before
 /// the first compile. The renderer replaces it with the built synth on sync.
+///
+/// This is the partition on its own, so it leaves no paged document behind. An
+/// IDE test that needs one to trace against has to go through
+/// [`compile_svg`], which is the path the `compilePaged` binding takes.
 pub fn compile(state: &mut TypstState, id: &TypstFileId, text: &str) -> PagedRender {
     state.insert_source(id, text.to_string());
 
     chunk_by_items(id, text, "", None, RenderTarget::Svg, state)
+}
+
+/// Compiles a page through the same path as the `compilePaged` binding, which is
+/// the only one that stores the resulting document on the note.
+pub fn compile_svg(state: &mut TypstState, id: &TypstFileId, text: &str) -> SvgRender {
+    state.insert_source(id, text.to_string());
+
+    render_svgs_by_items(id, text, "", None, state)
 }
 
 /// The render source text (the synth the renderer compiles). Tests read it

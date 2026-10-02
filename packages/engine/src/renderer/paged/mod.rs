@@ -107,11 +107,6 @@ impl Hash for BoundFrameItem {
 impl TypstState {
     /// The editor's paged render: one SVG frame per source chunk, plus the
     /// tooltip frames and diagnostics the editor needs.
-    ///
-    /// `caret` is the cursor's raw UTF-16 offset. Passing it renders the overlay
-    /// for the equation holding the cursor only, because the editor shows at
-    /// most one. Omitting it renders every equation, which is what a caller with
-    /// no cursor wants (the debug lab, a diagnostics-only pass).
     #[wasm_bindgen(js_name = "compilePaged")]
     pub fn compile_paged(
         &mut self,
@@ -128,6 +123,28 @@ impl TypstState {
             equation_ranges: result.equation_ranges,
             diagnostics: result.diagnostics,
             requests: self.world.take_requests(),
+        }
+        .into_ts()?)
+    }
+
+    /// Diagnostics for the current text, through the same error recovery the
+    /// render uses, without rendering frames and without publishing a document.
+    #[wasm_bindgen(js_name = "diagnosePaged")]
+    pub fn diagnose_paged(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+        prelude: &str,
+    ) -> Result<Ts<CheckResult>, JsError> {
+        let line_height_ratio = self.get_space_context(id).line_height_ratio;
+        let prelude = self.prelude(id, RenderTarget::Svg) + prelude + "\n";
+        let mut ctx = self.render_context(id).unwrap();
+
+        let render = items::chunk_by_items_ctx(&mut ctx, text, &prelude, None, line_height_ratio);
+
+        Ok(CheckResult {
+            diagnostics: render.diagnostics,
+            requests: ctx.world.take_requests(),
         }
         .into_ts()?)
     }
@@ -252,9 +269,7 @@ fn check_paged_ctx(ctx: &mut RenderContext<'_>) -> Vec<TypstDiagnostic> {
         TypstDiagnostic::from_diagnostics(compiled.warnings, ctx.note, ctx.world).into_vec();
 
     match compiled.output {
-        Ok(document) => {
-            ctx.note.paged_document = Some(document);
-        }
+        Ok(_) => {}
         Err(source_diagnostics) => {
             diagnostics.extend(TypstDiagnostic::from_diagnostics(
                 source_diagnostics,

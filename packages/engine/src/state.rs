@@ -612,6 +612,19 @@ impl TypstState {
             .collect::<Result<Vec<_>, _>>()?)
     }
 
+    /// Brings the engine's sources and maps up to date with `text` without
+    /// rendering anything.
+    #[wasm_bindgen(js_name = "syncSource")]
+    pub fn sync_source(&mut self, id: &TypstFileId, text: &str, prelude: &str) -> bool {
+        if !self.source_context_map.contains_key(id) {
+            return false;
+        }
+
+        let SynthResult { .. } = sync_source_state(id, text, prelude, RenderTarget::Svg, self);
+
+        true
+    }
+
     #[wasm_bindgen]
     pub fn highlight(
         &mut self,
