@@ -172,9 +172,6 @@
     "spellcheckIgnoredHint": "Dépend du contexte. Modifier à proximité peut le faire réapparaître.",
     "spellcheckIgnoredRemove": "Ne plus ignorer",
     "spellcheckIgnoredClear": "Effacer les signalements ignorés",
-    "notebook": "Carnet",
-    "notebookCounters": "Compteurs d'exécution",
-    "notebookCountersHint": "Affiche le compteur [n] dans les en-têtes.",
     "editor": "Éditeur",
     "editorLineNumbers": "Numéros de ligne",
     "editorLineNumbersHint": "Affiche les numéros de ligne dans la marge.",
@@ -560,7 +557,8 @@
     "searchPages": "Rechercher des pages",
     "noPages": "Aucune page correspondante.",
     "degraded": "Les liens sont indisponibles tant que le moteur Typst est arrêté.",
-    "resolving": "Résolution des liens de requête… {count} restants"
+    "resolving": "Résolution des liens de requête… {count} restants",
+    "stale": "Vérification…"
   },
   "graph": {
     "title": "Graphe",
@@ -596,7 +594,7 @@
     "addCell": "Ajouter une cellule",
     "clearOutput": "Effacer la sortie",
     "running": "Exécution…",
-    "commandHint": "Entrée modifie · A/B ajoute · DD supprime · M/Y type",
+    "commandHint": "Entrée édite · A/B ajoute · DD supprime · M/Y/X type · T parcourt",
     "code": "Code",
     "markup": "Texte",
     "moveUp": "Monter la cellule",
@@ -605,7 +603,12 @@
     "remove": "Supprimer la cellule",
     "toggleSource": "Replier la cellule",
     "noOutput": "Aucune sortie",
-    "error": "Erreur de cellule"
+    "error": "Erreur de cellule",
+    "math": "Maths",
+    "stale": "Périmé. Exécutez la cellule pour actualiser.",
+    "cellType": "Type de cellule",
+    "autoRunCode": "Exécution auto",
+    "counters": "Compteurs"
   },
   "updates": {
     "title": "Mise à jour",

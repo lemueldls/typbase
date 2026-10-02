@@ -87,9 +87,9 @@ function mentionCount(group: BacklinkGroup): string {
         {{ t("links.countOutgoing", { count: records.length }) }} ·
         {{ t("links.countBacklinks", { count: backlinks.length }) }}
       </span>
-      <span v-if="resolving" class="links__resolving" aria-live="polite">
+      <!-- <span v-if="resolving" class="links__resolving" aria-live="polite">
         {{ t("links.resolving", { count: status?.pending ?? 0 }) }}
-      </span>
+      </span> -->
       <div class="links__actions">
         <UiIconButton
           icon="hub"
@@ -128,9 +128,12 @@ function mentionCount(group: BacklinkGroup): string {
                     class="links__row-title"
                     :text="record.targetId ? title(record.targetId) : record.target"
                   />
-                  <span v-if="!record.targetId" class="links__dangling">
+                  <!-- <span v-if="record.pending" class="links__stale">
+                    {{ t("links.stale") }}
+                  </span> -->
+                  <!-- <span v-else-if="!record.targetId" class="links__dangling">
                     {{ t("links.dangling") }}
-                  </span>
+                  </span> -->
                 </span>
                 <span class="links__snippet"
                   ><span>{{ record.snippet.text.slice(0, record.snippet.from) }}</span
@@ -319,6 +322,14 @@ function mentionCount(group: BacklinkGroup): string {
   flex: none;
   font-size: var(--text-xs);
   color: var(--color-warning);
+}
+
+/* A target from the last resolution: the row stays put and says so, instead of
+   vanishing until the query link resolves again. */
+.links__stale {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .links__snippet {

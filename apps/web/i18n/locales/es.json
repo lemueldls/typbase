@@ -172,9 +172,6 @@
     "spellcheckIgnoredHint": "Depende del contexto, así que editar cerca puede hacer que vuelva.",
     "spellcheckIgnoredRemove": "Dejar de ignorar",
     "spellcheckIgnoredClear": "Borrar avisos ignorados",
-    "notebook": "Cuaderno",
-    "notebookCounters": "Contadores de ejecución",
-    "notebookCountersHint": "Muestra el contador [n] en las cabeceras.",
     "editor": "Editor",
     "editorLineNumbers": "Números de línea",
     "editorLineNumbersHint": "Muestra los números de línea en el margen.",
@@ -560,7 +557,8 @@
     "searchPages": "Buscar páginas",
     "noPages": "Ninguna página coincide.",
     "degraded": "Los enlaces no están disponibles mientras el motor de Typst esté detenido.",
-    "resolving": "Resolviendo enlaces de consulta… quedan {count}"
+    "resolving": "Resolviendo enlaces de consulta… quedan {count}",
+    "stale": "Comprobando…"
   },
   "graph": {
     "title": "Grafo",
@@ -596,7 +594,7 @@
     "addCell": "Añadir celda",
     "clearOutput": "Borrar salida",
     "running": "Ejecutando…",
-    "commandHint": "Enter edita · A/B añade · DD borra · M/Y tipo",
+    "commandHint": "Intro edita · A/B añade · DD borra · M/Y/X tipo · T rota",
     "code": "Código",
     "markup": "Texto",
     "moveUp": "Subir celda",
@@ -605,7 +603,12 @@
     "remove": "Eliminar celda",
     "toggleSource": "Contraer celda",
     "noOutput": "Sin salida",
-    "error": "Error de celda"
+    "error": "Error de celda",
+    "math": "Matemáticas",
+    "stale": "Obsoleto. Ejecuta la celda para actualizar.",
+    "cellType": "Tipo de celda",
+    "autoRunCode": "Ejecución automática",
+    "counters": "Contadores"
   },
   "updates": {
     "title": "Actualización de software",

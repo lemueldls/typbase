@@ -1,4 +1,6 @@
 import type { LinkSpan } from "@typbase/engine";
+
+export type { LinkSpan };
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 
@@ -24,6 +26,13 @@ export interface LinkRecord extends LinkSpan {
   targetId: string | null;
   /** Context line around the call, for backlink lists. */
   snippet: LinkSnippet;
+  /**
+   * A dynamic call showing targets from an earlier compile, because the page was
+   * re-extracted or the page set moved and the re-resolve has not landed yet.
+   * The row is real but its target may be out of date, so surfaces that show it
+   * say so instead of blanking and refilling.
+   */
+  pending: boolean;
 }
 
 /** A line of source around a link, with the link's range inside it. */
@@ -93,6 +102,7 @@ export function toLinkRecords(
     sourceId,
     targetId: targets.get(span.target.trim()) ?? null,
     snippet: linkSnippet(source, span.from, span.to),
+    pending: false,
   }));
 }
 
@@ -407,7 +417,13 @@ export class LinkIndex {
   pendingDynamic(): string[] {
     const out: string[] = [];
     for (const [pageId, records] of this.records) {
-      if (records.some((record) => record.dynamic) && !this.resolved.has(pageId)) {
+      // A stale page counts as pending even though it has an answer: it is
+      // waiting for a fresh one, and dropping it here would leave it showing its
+      // old targets as pending forever.
+      if (
+        records.some((record) => record.dynamic) &&
+        (!this.resolved.has(pageId) || this.stale.has(pageId))
+      ) {
         out.push(pageId);
       }
     }
@@ -415,17 +431,34 @@ export class LinkIndex {
     return out;
   }
 
-  /** Outgoing links of one page, resolved dynamic targets included. */
+  /**
+   * Outgoing links of one page, resolved dynamic targets included.
+   *
+   * A dynamic call with no target at all is still hidden, since there is nothing
+   * to show for it. One that has a target keeps its row while a re-resolve is
+   * pending, marked `pending`, so the panel does not blank and refill on every
+   * edit. The target is the last resolution's, which is what the flag says.
+   */
   recordsFor(pageId: string): LinkRecord[] {
-    return this.mergedRecords(pageId).filter((record) => !record.dynamic || record.targetId);
+    return this.mergedRecords(pageId)
+      .filter((record) => !record.dynamic || record.targetId)
+      .map((record) => ({
+        ...record,
+        pending: record.dynamic && this.stale.has(pageId),
+      }));
   }
 
-  /** All records with resolved dynamic targets, for the graph and queries. */
+  /**
+   * All records with resolved dynamic targets, for the graph and queries.
+   *
+   * Stale targets are excluded here: backlinks and the graph answer "what links
+   * where", and a stale answer is worse than no answer for a query result.
+   */
   allRecords(): LinkRecord[] {
     const out: LinkRecord[] = [];
     for (const pageId of this.records.keys()) out.push(...this.mergedRecords(pageId));
 
-    return out;
+    return out.filter((record) => !record.dynamic || record.targetId);
   }
 
   /** Backlinks grouped by source page, sorted by title. */
@@ -523,9 +556,12 @@ export class LinkIndex {
         // eslint-disable-next-line no-await-in-loop
         const spans = await this.extract(text);
         this.records.set(id, toLinkRecords(id, spans, targets, text));
-        // The source moved. Its resolved targets describe the old text.
-        this.resolved.delete(id);
-        this.stale.delete(id);
+        // The source moved, so the resolved targets describe the old text. They
+        // keep answering until the re-resolve lands, which is what
+        // `invalidateResolved` does for a page-set change: dropping them made the
+        // panel's rows disappear and come back on every edit.
+        if (this.resolved.has(id)) this.stale.add(id);
+        else this.stale.delete(id);
         this.statusValue.error = null;
       } catch (error) {
         this.statusValue.error = error instanceof Error ? error.message : String(error);
@@ -595,14 +631,9 @@ export class LinkIndex {
   }
 
   private countLinks(): number {
-    let count = 0;
-    for (const pageId of this.records.keys()) {
-      for (const record of this.mergedRecords(pageId)) {
-        if (!record.dynamic || record.targetId) count += 1;
-      }
-    }
-
-    return count;
+    // `allRecords` is resolved-only, so a stale re-resolve does not move the
+    // count the panel header shows.
+    return this.allRecords().length;
   }
 
   /** Union of every surface's wanted pages. Null sets mean all pending. */

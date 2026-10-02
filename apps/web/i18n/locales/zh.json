@@ -172,9 +172,6 @@
     "spellcheckIgnoredHint": "与上下文相关，附近编辑可能让提示再次出现。",
     "spellcheckIgnoredRemove": "取消忽略",
     "spellcheckIgnoredClear": "清除已忽略的提示",
-    "notebook": "笔记本",
-    "notebookCounters": "执行计数器",
-    "notebookCountersHint": "在单元格标题显示 [n] 计数。",
     "editor": "编辑器",
     "editorLineNumbers": "行号",
     "editorLineNumbersHint": "在编辑器边栏显示行号。",
@@ -560,7 +557,8 @@
     "searchPages": "搜索页面",
     "noPages": "没有匹配的页面。",
     "degraded": "Typst 引擎停止时无法使用链接。",
-    "resolving": "正在解析查询链接…还剩 {count}"
+    "resolving": "正在解析查询链接…还剩 {count}",
+    "stale": "重新检查中…"
   },
   "graph": {
     "title": "关系图",
@@ -596,7 +594,7 @@
     "addCell": "添加单元格",
     "clearOutput": "清除输出",
     "running": "运行中…",
-    "commandHint": "Enter 编辑 · A/B 添加 · DD 删除 · M/Y 类型",
+    "commandHint": "Enter 编辑 · A/B 新增 · DD 删除 · M/Y/X 类型 · T 轮换",
     "code": "代码",
     "markup": "文本",
     "moveUp": "上移单元格",
@@ -605,7 +603,12 @@
     "remove": "删除单元格",
     "toggleSource": "折叠单元格",
     "noOutput": "无输出",
-    "error": "单元格错误"
+    "error": "单元格错误",
+    "math": "数学",
+    "stale": "已过期。运行单元格以更新。",
+    "cellType": "单元格类型",
+    "autoRunCode": "自动运行",
+    "counters": "计数器"
   },
   "updates": {
     "title": "软件更新",

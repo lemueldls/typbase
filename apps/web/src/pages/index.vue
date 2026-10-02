@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PluginSurfaceKind } from "@typbase/typing";
+import type { PageKind, PluginSurfaceKind } from "@typbase/typing";
 import type { SplitterPanel } from "reka-ui";
 import type { LocationQueryRaw } from "vue-router";
 
@@ -42,7 +42,21 @@ const currentChatId = ref<string | null>(null);
 /** Desktop side dock: the chat sits beside the main pane instead of replacing it. */
 const dockChatId = ref<string | null>(null);
 const graphOpen = ref(false);
-const mode = ref<ViewModeId>("write");
+/**
+ * The view mode the user picked, or null to follow the open page's kind. The
+ * effective `mode` below is derived from it, so a conversion resolves the mode
+ * instead of racing a watcher that has to patch it.
+ */
+const requestedMode = ref<ViewModeId | null>(null);
+/** The open page's kind, refreshed whenever page metadata changes. */
+const currentPageKind = useWorkspaceValue(
+  workspace,
+  ["pages"],
+  (store) => (currentPageId.value ? store.getPage(currentPageId.value)?.kind : undefined),
+  undefined,
+);
+/** What the shell shows. `null` follows the open page's kind. */
+const mode = computed<ViewModeId>(() => requestedMode.value ?? modeForKind(currentPageKind.value));
 const plugins = usePlugins();
 const {
   open: paletteOpen,
@@ -316,8 +330,9 @@ onMounted(async () => {
   if (linked) currentPageId.value = linked.id;
   else currentPageId.value = fallbackPageId();
 
-  if (isViewMode(modeQuery.value)) mode.value = modeQuery.value;
-  syncModeToPage(currentPageId.value);
+  // A link's `?mode=` is the user's choice for that link, so it is recorded as
+  // one. A link without one follows the page's kind.
+  if (isViewMode(modeQuery.value)) requestedMode.value = modeQuery.value;
 
   // A ?view=plugin:<instance>, ?view=chat:<thread>, or ?view=graph link reopens that pane.
   const linkedView = queryString(viewQuery.value);
@@ -397,8 +412,13 @@ watch(pageQuery, (raw) => {
   if (queryString(pageQuery.value) !== fallback) pageQuery.value = fallback;
 });
 
+// Back/forward or a pasted link changes the query under us. An entry without a
+// `?mode=` means "follow the page's kind", which is what a replace from a
+// conversion writes.
 watch(modeQuery, (value) => {
-  if (loaded.value && value !== mode.value && isViewMode(value)) mode.value = value;
+  if (!loaded.value) return;
+
+  requestedMode.value = isViewMode(value) ? value : null;
 });
 
 /** One `?view=` value, so only one of the graph/chat/plugin panes is open. */
@@ -419,7 +439,11 @@ function routeQuery(): LocationQueryRaw {
   delete query.aside;
 
   if (currentPageId.value) query.page = currentPageId.value;
-  if (mode.value !== "write") query.mode = mode.value;
+  // The mode is written whenever it is not the page's natural one, so an
+  // explicit choice round-trips through the URL. Writing it only when it differs
+  // from "write" would drop `?mode=write` for a notebook, and reading that back
+  // would reset the choice to follow the kind.
+  if (mode.value !== modeForKind(currentPageKind.value)) query.mode = mode.value;
   const view = paneViewValue();
   if (view) query.view = view;
   if (dockChatId.value) query.aside = `chat:${dockChatId.value}`;
@@ -443,6 +467,8 @@ function sameQuery(next: LocationQueryRaw): boolean {
  * overwrite, and the step back to where the overlay was opened is not lost.
  */
 let overlayEntryReplaced = false;
+/** Route write queued while another one was in flight, and the strongest mode. */
+let pendingRoute: { mode: "push" | "replace" } | null = null;
 
 /**
  * Writes the refs to the URL. Opening something pushes a history step.
@@ -450,10 +476,30 @@ let overlayEntryReplaced = false;
  * the result back, so this is the only writer. Every write tags the entry with
  * its place in the app's own history, which is what lets back and forward know
  * where they are.
+ *
+ * A `push` in the same tick as a `replace` wins, and only one navigation is
+ * queued: one action can reach this from several watchers (a page conversion
+ * bumps both the page kind and the store revision), and two queued navigations
+ * from one click resolve in an order nobody chose.
  */
 function syncRoute(historyMode: "push" | "replace"): void {
   if (!loaded.value) return;
 
+  if (pendingRoute) {
+    if (historyMode === "push") pendingRoute.mode = "push";
+
+    return;
+  }
+
+  pendingRoute = { mode: historyMode };
+  queueMicrotask(() => {
+    const queued = pendingRoute;
+    pendingRoute = null;
+    if (queued) void writeRoute(queued.mode);
+  });
+}
+
+function writeRoute(historyMode: "push" | "replace"): Promise<unknown> | void {
   const query = routeQuery();
   if (sameQuery(query)) return;
 
@@ -462,7 +508,7 @@ function syncRoute(historyMode: "push" | "replace"): void {
   });
   overlayEntryReplaced = false;
 
-  void router[historyMode]({ query, state: { typbaseIndex: index } });
+  return router[historyMode]({ query, state: { typbaseIndex: index } });
 }
 
 /**
@@ -556,7 +602,6 @@ watch(dataRevision, () => {
   // opened a page that no longer exists.
   if (currentPageId.value && !workspace.value?.getPage(currentPageId.value)) {
     currentPageId.value = fallbackPageId();
-    syncModeToPage(currentPageId.value);
     changed = true;
   }
   if (currentPluginId.value && !workspace.value?.getPluginInstance(currentPluginId.value)) {
@@ -583,7 +628,6 @@ function openPage(id: string) {
   graphOpen.value = false;
   // An empty id means the open page was deleted. Fall back to home/first.
   currentPageId.value = id || fallbackPageId();
-  syncModeToPage(currentPageId.value);
   syncRoute(historyMode);
 }
 
@@ -607,25 +651,16 @@ function openSearchResult(payload: { pageId: string; from?: number; to?: number 
 }
 
 /**
- * Notebook pages open in notebook mode instead of the default write mode, and
- * documents do not stay in notebook mode. A deliberately chosen
- * split/source/read mode carries across both kinds.
+ * Notebook pages open in notebook mode and documents in write mode. `requested`
+ * is what the user chose, and null means "follow the page's kind", so a kind
+ * flip resolves the mode instead of patching it. Patching it could not express
+ * this: a notebook converted from split mode has no mode that shows cells, and
+ * a page converted from a mode that is valid for both kinds had nothing to
+ * change at all.
  */
-function syncModeToPage(pageId: string) {
-  const page = workspace.value?.getPage(pageId);
-  if (!page) return;
-
-  if (page.kind === "notebook" && mode.value === "write") mode.value = "notebook";
-  else if (page.kind === "document" && mode.value === "notebook") mode.value = "write";
+function modeForKind(kind: PageKind | undefined): ViewModeId {
+  return kind === "notebook" ? "notebook" : "write";
 }
-
-/** The open page's kind, refreshed whenever page metadata changes. */
-const currentPageKind = useWorkspaceValue(
-  workspace,
-  ["pages"],
-  (store) => (currentPageId.value ? store.getPage(currentPageId.value)?.kind : undefined),
-  undefined,
-);
 
 /** Tab and window title for the open page: "Page · Workspace". */
 const pageTitle = useWorkspaceValue(
@@ -645,15 +680,16 @@ useSeoMeta({
   ogType: "website",
 });
 
-// Converting the open page carries the mode with it. A deliberate mode change
-// does not bump the kind, so switching a notebook page to write by hand stays
-// put until the next page open.
+// Converting the open page hands the mode back to the page's kind. Clearing the
+// request is the whole fix: the effective mode is derived, so there is nothing
+// to patch and nothing that can revert. A mode chosen by hand on a page that
+// was not converted stays put, which is what the check for an explicit request
+// buys.
 watch(currentPageKind, (kind, previous) => {
-  if (kind === previous) return;
+  if (kind === previous || requestedMode.value === null) return;
 
-  const before = mode.value;
-  syncModeToPage(currentPageId.value);
-  if (mode.value !== before) syncRoute("replace");
+  requestedMode.value = null;
+  syncRoute("replace");
 });
 
 function openPlugin(instanceId: string) {
@@ -792,7 +828,9 @@ useEventListener("pagehide", () => {
 });
 
 async function setMode(value: ViewModeId) {
-  mode.value = value;
+  // Picking the page's natural mode is not a choice, so it clears the request
+  // and the mode follows the kind again after a conversion.
+  requestedMode.value = value === modeForKind(currentPageKind.value) ? null : value;
   syncRoute("replace");
 }
 

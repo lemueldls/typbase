@@ -172,9 +172,6 @@
     "spellcheckIgnoredHint": "Tied to context, so editing nearby can bring a lint back.",
     "spellcheckIgnoredRemove": "Stop ignoring",
     "spellcheckIgnoredClear": "Clear ignored lints",
-    "notebook": "Notebook",
-    "notebookCounters": "Execution counters",
-    "notebookCountersHint": "Show the [n] counter in cell headers.",
     "editor": "Editor",
     "editorLineNumbers": "Line numbers",
     "editorLineNumbersHint": "Show line numbers in the gutter.",
@@ -403,7 +400,7 @@
     "addCell": "Add cell",
     "clearOutput": "Clear output",
     "running": "Running…",
-    "commandHint": "Enter edits · A/B add · DD deletes · M/Y type",
+    "commandHint": "Enter edits · A/B add · DD deletes · M/Y/X type · T cycles",
     "code": "Code",
     "markup": "Text",
     "moveUp": "Move cell up",
@@ -412,7 +409,12 @@
     "remove": "Delete cell",
     "toggleSource": "Collapse cell",
     "noOutput": "No output",
-    "error": "Cell error"
+    "error": "Cell error",
+    "math": "Math",
+    "stale": "Stale. Run the cell to refresh.",
+    "cellType": "Cell type",
+    "autoRunCode": "Auto-run",
+    "counters": "Counters"
   },
   "formatting": {
     "title": "Formatting",
@@ -589,7 +591,8 @@
     "searchPages": "Search pages",
     "noPages": "No pages match.",
     "degraded": "Links are unavailable while the Typst engine is stopped.",
-    "resolving": "Resolving query links… {count} left"
+    "resolving": "Resolving query links… {count} left",
+    "stale": "Rechecking…"
   },
   "graph": {
     "title": "Graph",

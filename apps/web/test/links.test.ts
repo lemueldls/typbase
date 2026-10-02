@@ -17,6 +17,7 @@ function dynamicSpan(from: number, to: number): LinkRecord {
     sourceId: "source",
     targetId: null,
     snippet: { text: "#typbase.page-link(page.id)", from: 0, to: 28 },
+    pending: false,
   };
 }
 

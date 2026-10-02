@@ -172,9 +172,6 @@
     "spellcheckIgnoredHint": "Hängt vom Kontext ab. Änderungen in der Nähe können den Hinweis zurückbringen.",
     "spellcheckIgnoredRemove": "Nicht mehr ignorieren",
     "spellcheckIgnoredClear": "Ignorierte Hinweise löschen",
-    "notebook": "Notizbuch",
-    "notebookCounters": "Ausführungszähler",
-    "notebookCountersHint": "Zeigt den [n]-Zähler in Zellenköpfen.",
     "editor": "Editor",
     "editorLineNumbers": "Zeilennummern",
     "editorLineNumbersHint": "Zeigt Zeilennummern am Editorrand.",
@@ -560,7 +557,8 @@
     "searchPages": "Seiten suchen",
     "noPages": "Keine passenden Seiten.",
     "degraded": "Links sind nicht verfügbar, solange die Typst-Engine gestoppt ist.",
-    "resolving": "Query-Links werden aufgelöst… noch {count}"
+    "resolving": "Query-Links werden aufgelöst… noch {count}",
+    "stale": "Wird geprüft…"
   },
   "graph": {
     "title": "Graph",
@@ -596,7 +594,7 @@
     "addCell": "Zelle hinzufügen",
     "clearOutput": "Ausgabe löschen",
     "running": "Läuft…",
-    "commandHint": "Enter bearbeitet · A/B einfügen · DD löschen · M/Y Typ",
+    "commandHint": "Enter bearbeitet · A/B fügt · DD löscht · M/Y/X Typ · T wechselt",
     "code": "Code",
     "markup": "Text",
     "moveUp": "Zelle nach oben",
@@ -605,7 +603,12 @@
     "remove": "Zelle löschen",
     "toggleSource": "Zelle einklappen",
     "noOutput": "Keine Ausgabe",
-    "error": "Zellenfehler"
+    "error": "Zellenfehler",
+    "math": "Mathematik",
+    "stale": "Veraltet. Zelle ausführen, um zu aktualisieren.",
+    "cellType": "Zellentyp",
+    "autoRunCode": "Auto-Ausführung",
+    "counters": "Zähler"
   },
   "updates": {
     "title": "Software-Aktualisierung",
