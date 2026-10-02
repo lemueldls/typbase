@@ -134,6 +134,11 @@ pub fn chunk_by_items_with_blocks(
 
         (chunks, document) = match compiled.output {
             Ok(document) => {
+                // The memo is for this walk only. The loop below rewrites the
+                // render source between iterations, and a span from the previous
+                // document means something else once the text under it changed.
+                context.begin_frame_walk();
+
                 let mut tags = TagStack::default();
                 let mut bound_frame_items = Vec::new();
 

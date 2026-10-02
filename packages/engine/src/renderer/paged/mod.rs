@@ -120,6 +120,7 @@ impl TypstState {
         Ok(CompilePagedResult {
             frames: result.frames,
             tooltips: result.tooltips,
+            defs: result.defs,
             equation_ranges: result.equation_ranges,
             diagnostics: result.diagnostics,
             requests: self.world.take_requests(),

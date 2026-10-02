@@ -10,6 +10,9 @@ use crate::{
 #[derive(Tsify, Serialize, Deserialize)]
 pub struct CompilePagedResult {
     pub frames: Vec<SvgRangedFrame>,
+    /// The definitions `frames` reference, for the host to place in the document.
+    /// The frames are not self-contained without it.
+    pub defs: Option<String>,
     /// Equation overlays, narrowed to the equation the caret is inside when the
     /// caller passed one.
     pub tooltips: Vec<SvgRangedFrame>,

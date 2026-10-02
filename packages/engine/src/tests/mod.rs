@@ -26,5 +26,6 @@ mod partition;
 mod plugins;
 mod prefix;
 mod recovery;
+mod svgdefs;
 mod synth;
 mod tooltip;

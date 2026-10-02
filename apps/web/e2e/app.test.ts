@@ -301,6 +301,59 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("resolves every glyph a frame references", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // Prose plus a heading, so the frame set holds a few dozen distinct glyphs
+    // and a lot of repetition across the frames.
+    const id = await createTestPage(page, {
+      title: "Glyph defs",
+      content:
+        "= A heading in the frame set\n\n" +
+        "Prose that repeats the same handful of characters over and over.\n\n" +
+        "More prose, drawing on the same alphabet again.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 3, null, {
+      timeout: 60_000,
+    });
+
+    // The engine writes each glyph outline once for the whole frame set and hands
+    // it over, and the frames reference it. A frame carrying a `use` whose id
+    // nothing in the document declares draws nothing at all, with no error
+    // anywhere, so the ids are checked in the DOM rather than trusted.
+    const report = await page.evaluate(() => {
+      const frames = [...document.querySelectorAll(".typst-render")];
+      const declared = new Set<string>();
+
+      for (const defs of document.querySelectorAll("defs > symbol")) {
+        declared.add(defs.id);
+      }
+
+      const unresolved: string[] = [];
+      let references = 0;
+
+      for (const frame of frames) {
+        for (const use of frame.querySelectorAll("use")) {
+          const href = use.getAttribute("href") ?? use.getAttribute("xlink:href") ?? "";
+          if (!href.startsWith("#")) continue;
+          references++;
+          if (!declared.has(href.slice(1))) unresolved.push(href);
+        }
+      }
+
+      return { frames: frames.length, references, unresolved: [...new Set(unresolved)] };
+    });
+
+    expect(report.frames).toBeGreaterThanOrEqual(3);
+    expect(report.references).toBeGreaterThan(10);
+    expect(report.unresolved).toEqual([]);
+
+    await page.close();
+  });
+
   it("keeps the cursor when a request resolves under the editor", async () => {
     const page = await createPage();
     await openApp(page);

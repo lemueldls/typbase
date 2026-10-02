@@ -12,10 +12,13 @@ import type { NotebookCell, NotebookOptions } from "./notebook";
 import type { TextRef, TypstRequestHandler } from "./types";
 
 import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
-import { frameActiveDecorations, frameIsInactive, TypstWidget } from "./frames";
+import { frameActiveDecorations, frameIsInactive, installSharedDefs, TypstWidget } from "./frames";
 import { cellIndexAt, notebookRunEffect, notebookRefreshEffect } from "./notebook";
 import { decorateNotebook } from "./notebook-widgets";
 
+/**
+ * Compiled frames per cache key, where the key is `path:revision:appRevision`.
+ */
 export const compileCache = new LRUCache<
   string,
   {
@@ -25,7 +28,7 @@ export const compileCache = new LRUCache<
     equationRanges: [number, number][];
     diagnostics: TypstDiagnostic[];
   }
->({ max: 8 });
+>({ max: 2 });
 
 const updateFlagStore = new Set<string>();
 
@@ -264,6 +267,8 @@ function decorate({
         update.view.dispatch({ effects: typstRecompileEffect.of(null) });
       });
     }
+
+    installSharedDefs(compileResult.defs);
 
     ({ frames, tooltips, equation_ranges: equationRanges } = compileResult);
     diagnostics = compileResult.diagnostics;

@@ -1,8 +1,13 @@
-use std::ops::Range;
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    ops::Range,
+};
 
+use typst::WorldExt;
 use typst_html::HtmlDocument;
 use typst_layout::PagedDocument;
-use typst_syntax::{FileId, RootedPath, Source};
+use typst_syntax::{FileId, LinkedNode, RootedPath, Source, Span};
 
 use crate::{
     source::{RawFixups, Side, SourceMap, SynthBlock},
@@ -182,6 +187,38 @@ pub struct SourceContext {
     /// The text is kept alongside it because a tree says nothing about which
     /// bytes it came from.
     parsed: Option<(String, typst_syntax::SyntaxNode)>,
+
+    /// Span to byte range, for the frame walk in progress. Empty between walks.
+    span_index: RefCell<SpanIndex>,
+}
+
+/// Every span in a source, resolved in one pass.
+#[derive(Debug, Default)]
+struct SpanIndex {
+    /// Ranges of every node, by span.
+    ranges: HashMap<Span, Range<usize>>,
+    /// Files already walked, so a second span from the same one is not a second
+    /// traversal. A file with no source is recorded too, so a missing file is
+    /// asked about once rather than every time.
+    walked: HashSet<FileId>,
+}
+
+impl SpanIndex {
+    /// Records every node in `source` under its own span.
+    fn walk(&mut self, source: Option<&Source>) {
+        let Some(root) = source.map(|source| LinkedNode::new(source.root())) else {
+            return;
+        };
+
+        // An explicit stack, because a deeply nested expression is a recursion
+        // this does not need to risk.
+        let mut stack = vec![root];
+
+        while let Some(node) = stack.pop() {
+            self.ranges.insert(node.span(), node.range());
+            stack.extend(node.children());
+        }
+    }
 }
 
 impl SourceContext {
@@ -216,6 +253,7 @@ impl SourceContext {
             height: None,
             last_sync: None,
             parsed: None,
+            span_index: RefCell::new(SpanIndex::default()),
         }
     }
 
@@ -371,6 +409,49 @@ impl SourceContext {
     #[must_use]
     pub fn map_repaired_to_raw(&self, repaired: usize) -> usize {
         self.render_fixups.map().backward(repaired)
+    }
+
+    /// The byte range of a span within its own source.
+    pub fn span_range(&self, world: &TypstWorld, span: Span) -> Option<Range<usize>> {
+        if let Some(range) = self.span_index.borrow().ranges.get(&span) {
+            return Some(range.clone());
+        }
+
+        {
+            let mut index = self.span_index.borrow_mut();
+            let id = span.id()?;
+
+            // `walk` records the file either way, so a missing one is asked
+            // about once rather than on every lookup.
+            if index.walked.insert(id) {
+                index.walk(world.files.get(&id).and_then(|file| file.source()));
+
+                if let Some(range) = index.ranges.get(&span) {
+                    return Some(range.clone());
+                }
+            }
+        }
+
+        // Not a node: a span over a byte range rather than a numbered node, or
+        // one into a file the walk never reached. Both resolve without a search,
+        // and neither is common enough to be worth indexing.
+        let range = world.range(span);
+        if let Some(range) = &range {
+            self.span_index
+                .borrow_mut()
+                .ranges
+                .insert(span, range.clone());
+        }
+
+        range
+    }
+
+    /// Starts a frame walk, dropping the span index. Everything the walk reads
+    /// about the compile sources is already in place by the time it is called.
+    pub fn begin_frame_walk(&self) {
+        let mut index = self.span_index.borrow_mut();
+        index.ranges.clear();
+        index.walked.clear();
     }
 
     /// The tree for `text`, parsing it only when the cached one is for other

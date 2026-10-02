@@ -7,7 +7,6 @@
 use std::{cmp, iter, ops::Range};
 
 use typst::{
-    WorldExt,
     introspection::Tag,
     layout::{FrameItem, Point, Rect},
     syntax::Span,
@@ -212,10 +211,10 @@ fn frame_item_range(
         FrameItem::Group(..) => unreachable!(),
         FrameItem::Text(text) => {
             let first_glyph_span = text.glyphs.first()?.span.0;
-            let first_glyph_range = world.range(first_glyph_span)?;
+            let first_glyph_range = context.span_range(world, first_glyph_span)?;
 
             let last_glyph_span = text.glyphs.last()?.span.0;
-            let last_glyph_range = world.range(last_glyph_span)?;
+            let last_glyph_range = context.span_range(world, last_glyph_span)?;
 
             return Some(first_glyph_range.start..last_glyph_range.end);
         }
@@ -258,7 +257,7 @@ fn frame_item_range(
     // Frame items can come from either compile source: the render source
     // during a recovered render, the pristine synth when nothing failed.
     if span.id().is_some_and(|id| context.owns_span(id)) {
-        world.range(span)
+        context.span_range(world, span)
     } else {
         None
     }

@@ -2,6 +2,8 @@
 import type { TextRef } from "@typbase/codemirror";
 import type { FileId, SvgRangedFrame, TypstState } from "@typbase/engine";
 
+import { installSharedDefs } from "@typbase/codemirror";
+
 import { openExternal } from "~/lib/openExternal";
 
 const props = defineProps<{
@@ -136,6 +138,8 @@ const renderNow = async () => {
         return;
       }
     }
+
+    installSharedDefs(result.defs);
 
     frames.value = result.frames;
     framesText.value = props.text.value;

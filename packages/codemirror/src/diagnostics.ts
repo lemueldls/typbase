@@ -2,6 +2,7 @@ import type { Diagnostic } from "@codemirror/lint";
 import type { FileId, TypstDiagnostic, TypstState } from "@typbase/engine";
 
 import { linter } from "@codemirror/lint";
+import { LRUCache } from "lru-cache";
 
 import type { TextRef, TypstRequestHandler } from "./types";
 
@@ -12,7 +13,9 @@ import { parseBackticks } from "./highlight";
  * diagnostics of every compile here, so the linter source can reuse them
  * instead of compiling the same text a second time.
  */
-const diagnosticsCache = new Map<string, { text: string; diagnostics: TypstDiagnostic[] }>();
+const diagnosticsCache = new LRUCache<string, { text: string; diagnostics: TypstDiagnostic[] }>({
+  max: 2,
+});
 
 export function rememberDiagnostics(
   path: string,

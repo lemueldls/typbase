@@ -11,6 +11,39 @@ import { LRUCache } from "lru-cache";
 
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+let sharedDefs: SVGDefsElement | undefined;
+
+/**
+ * Places the glyph and gradient definitions a frame set references.
+ */
+export function installSharedDefs(defs: string | null | undefined): void {
+  // A compile that needed no definitions leaves whatever is already there. Ids
+  // are content hashes, so a stale block still answers a reference correctly.
+  if (!defs) return;
+
+  if (!sharedDefs || !sharedDefs.isConnected) {
+    // An `<svg>` wrapper sized to nothing, holding a real `<defs>`, so the
+    // installed markup is the same shape the exporter writes into a frame.
+    const host = document.createElementNS(SVG_NS, "svg");
+    host.setAttribute("width", "0");
+    host.setAttribute("height", "0");
+    host.setAttribute("aria-hidden", "true");
+    host.style.position = "absolute";
+
+    sharedDefs = document.createElementNS(SVG_NS, "defs");
+    host.append(sharedDefs);
+    document.body.append(host);
+  }
+
+  // The engine hands over the *contents* of its defs blocks, so the elements go
+  // in directly. A `<symbol>` never paints, so an unstyled host is enough and
+  // nothing here can affect layout.
+  sharedDefs.innerHTML = "";
+  sharedDefs.innerHTML = defs;
+}
+
 /**
  * Opens an external link for the host. Browsers get a new tab. The app passes
  * its `openExternal`, which hands the URL to the system browser in Tauri
