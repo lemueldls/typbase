@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
+
+import { renamePagePathFor, type WorkspaceStore } from "@typbase/storage";
 
 import { todayISO } from "~/lib/format";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
@@ -108,6 +109,16 @@ async function openToday() {
 
 const renameTarget = ref<PageMeta>();
 const renameTitle = ref("");
+const renameFile = ref(true);
+
+/**
+ * Where the rename would put the page's file, or null when it keeps the name it
+ * has: a page whose file was renamed by hand or imported keeps it. The store
+ * asks the same question, so the hint cannot promise a move that does not come.
+ */
+const renamePath = computed(() =>
+  renameTarget.value ? renamePagePathFor(renameTarget.value, renameTitle.value) : null,
+);
 /** Page queued for deletion. The target survives the dialog's close event:
  *  reka's action closes the dialog before the confirm handler runs. */
 const pendingDelete = ref<PageMeta>();
@@ -119,7 +130,7 @@ async function rename() {
   const title = renameTitle.value.trim();
   if (!title) return;
 
-  await props.store.updatePageTitle(renameTarget.value.id, title);
+  await props.store.updatePageTitle(renameTarget.value.id, title, { renameFile: renameFile.value });
   renameTarget.value = undefined;
 }
 
@@ -232,6 +243,13 @@ function onRenameOpenChange(open: boolean) {
   if (!open) renameTarget.value = undefined;
 }
 
+/** Opens the rename dialog for a page, with the file switch back on. */
+function askRename(page: PageMeta): void {
+  renameTarget.value = page;
+  renameTitle.value = page.title;
+  renameFile.value = true;
+}
+
 function onCreated(page: PageMeta) {
   emit("select", page.id);
 }
@@ -316,10 +334,7 @@ function onCreated(page: PageMeta) {
                 :last="pageIndex === pagesForCategory(null).length - 1"
                 :dragging="draggingPage === page.id"
                 @select="selectPage(page)"
-                @rename="
-                  renameTarget = page;
-                  renameTitle = page.title;
-                "
+                @rename="askRename(page)"
                 @set-home="setHome(page)"
                 @set-category="(id) => setCategory(page, id)"
                 @convert="(kind) => convertPage(page, kind)"
@@ -377,10 +392,7 @@ function onCreated(page: PageMeta) {
                   :last="pageIndex === pagesForCategory(category.id).length - 1"
                   :dragging="draggingPage === page.id"
                   @select="selectPage(page)"
-                  @rename="
-                    renameTarget = page;
-                    renameTitle = page.title;
-                  "
+                  @rename="askRename(page)"
                   @set-home="setHome(page)"
                   @set-category="(id) => setCategory(page, id)"
                   @convert="(kind) => convertPage(page, kind)"
@@ -506,6 +518,25 @@ function onCreated(page: PageMeta) {
           <span>{{ $t("sidebar.title") }}</span>
           <UiTextField v-model="renameTitle" autofocus />
         </Label>
+
+        <!-- Only a page whose file still follows the title can move, so the
+             switch appears exactly when there is a file to rename. -->
+        <div v-if="renamePath" class="dialog__field">
+          <UiSwitch
+            v-model="renameFile"
+            :label="$t('sidebar.renameFile')"
+            :aria-label="$t('sidebar.renameFile')"
+          />
+          <span class="dialog__hint">
+            {{
+              $t("sidebar.renameFileHint", {
+                from: renameTarget?.path ?? "",
+                to: renamePath,
+              })
+            }}
+          </span>
+        </div>
+
         <div class="dialog__actions">
           <UiButton variant="ghost" @click="renameTarget = undefined">
             {{ $t("common.cancel") }}

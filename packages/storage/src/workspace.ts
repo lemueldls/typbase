@@ -74,15 +74,41 @@ function decodeJson<T>(value: unknown, fallback: T): T {
   }
 }
 
-/** `"hello world" -> "hello-world"`, lowercase, safe for virtual paths. */
+/**
+ * `"hello world" -> "hello-world"`, lowercase, safe for virtual paths.
+ *
+ * Unicode letters and marks survive, so a page in a non-English workspace gets
+ * a file named after its title instead of an ASCII approximation of it.
+ */
 export function slugify(text: string): string {
   const slug = text
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "");
 
   return slug || "untitled";
+}
+
+/** The path a page gets by default: the file name follows the title. */
+export function derivedPagePath(title: string): string {
+  return `pages/${slugify(title)}.typ`;
+}
+
+/**
+ * Where renaming this page's title would put its file, or null when the file
+ * keeps the name it has.
+ *
+ * Only a path that is still the old title's default follows the title. Once the
+ * file has been renamed by hand, or imported from the workspace tree, the name
+ * belongs to whoever set it, and a daily note's date is not a title at all.
+ */
+export function renamePagePathFor(page: PageMeta, title: string): string | null {
+  if (page.path !== derivedPagePath(page.title)) return null;
+
+  const next = derivedPagePath(title);
+
+  return next === page.path ? null : next;
 }
 
 /**
@@ -349,7 +375,12 @@ export class WorkspaceStore {
 
   /** Disk path of a page's mirrored source. */
   sourcePath(page: PageMeta): string {
-    return `${this.root}/${page.path}`;
+    return this.sourcePathFor(page.path);
+  }
+
+  /** Disk path of a page source at a given path, current or not. */
+  private sourcePathFor(path: string): string {
+    return `${this.root}/${path}`;
   }
 
   /**
@@ -818,7 +849,7 @@ export class WorkspaceStore {
       .filter((order): order is number => order !== undefined);
     const meta: PageMeta = {
       id: createId((id) => id === this.workspaceId || this.getPage(id) !== undefined),
-      path: this.uniquePath(input.path ?? `pages/${slugify(input.title)}.typ`),
+      path: this.uniquePath(input.path ?? derivedPagePath(input.title)),
       title: input.title.trim() || "Untitled",
       kind,
       categoryId: input.categoryId ?? null,
@@ -848,13 +879,45 @@ export class WorkspaceStore {
     return meta;
   }
 
-  async updatePageTitle(id: string, title: string): Promise<void> {
+  /**
+   * Renames a page. Its file follows the title while the path is still the one
+   * that title derived (see `renamePagePathFor`), unless the caller opts out.
+   *
+   * The old file goes first: `syncSources` creates a page for a file that has
+   * none, so leaving it behind would duplicate the note. A crash in between
+   * heals on the next sync, which exports any page whose path has no file.
+   */
+  async updatePageTitle(
+    id: string,
+    title: string,
+    options: { renameFile?: boolean } = {},
+  ): Promise<void> {
     const meta = this.getPage(id);
     if (!meta) return;
 
+    const desired = options.renameFile === false ? null : renamePagePathFor(meta, title);
+    const previousPath = meta.path;
+    // `renamePagePathFor` already ruled out "same name", so a clash here is
+    // another page's file.
+    const nextPath = desired ? this.uniquePath(desired) : null;
+    const moves = nextPath !== null && nextPath !== previousPath;
+
+    if (moves) {
+      await this.backend.delete(this.sourcePathFor(previousPath)).catch(() => {
+        // A missing mirror is fine. The page is what matters.
+      });
+    }
+
     meta.title = title;
     meta.updatedAt = Date.now();
+    if (nextPath) meta.path = nextPath;
     this.writePageMeta(meta);
+
+    if (!moves) return;
+
+    if (this.sourceHashes) delete this.sourceHashes[previousPath];
+    // Writes the new file from the page's text and records its hash.
+    await this.exportPageSource(id);
   }
 
   /**
@@ -909,6 +972,12 @@ export class WorkspaceStore {
     this.doc.getMap("pages").delete(id);
     this.doc.commit();
 
+    // The home page id outlives its page otherwise, and the shell would open a
+    // page that is gone.
+    if (this.getSettings().homePageId === id) {
+      this.updateSettings({ homePageId: null });
+    }
+
     const pageDoc = this.pageDocs.get(id);
     if (pageDoc) {
       this.dirtyDocs.delete(pageDoc);
@@ -918,7 +987,7 @@ export class WorkspaceStore {
     await this.backend.delete(pagePath(this.workspaceId, id));
 
     if (meta) {
-      await this.backend.delete(this.sourcePath(meta)).catch(() => {
+      await this.backend.delete(this.sourcePathFor(meta.path)).catch(() => {
         // A missing mirror is fine. The page is what matters.
       });
       if (this.sourceHashes) {

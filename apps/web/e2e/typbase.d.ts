@@ -20,6 +20,7 @@ interface StoreHandle {
   flush(): Promise<void>;
   createDailyNote(date: string): Promise<{ id: string; title: string }>;
   updatePageKind(id: string, kind: "document" | "notebook"): Promise<void>;
+  deletePage(id: string): Promise<void>;
   updateSettings(patch: Record<string, unknown>): void;
   getSettings(): Record<string, unknown>;
   getAiSettings(): Record<string, unknown>;

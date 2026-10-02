@@ -12,6 +12,7 @@ import { setChatNavigation, useChat } from "~/composables/chat";
 import { setProviderOverride } from "~/lib/ai/engine";
 import { formatDocumentTitle } from "~/lib/documentTitle";
 import { engineAvailable } from "~/lib/engineHealth";
+import { resolveOpenPageId } from "~/lib/openPage";
 import { isMac } from "~/lib/platform";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
@@ -214,12 +215,13 @@ watch(
   { immediate: true },
 );
 
-/** Home page when set, else the first page. Empty when the workspace has none. */
+/** Home page when it still exists, else the first page. Empty when the workspace
+ *  has none, which is the empty pane's case. */
 function fallbackPageId(): string {
   const store = workspace.value;
   if (!store) return "";
 
-  return store.getSettings().homePageId ?? store.listPages()[0]?.id ?? "";
+  return resolveOpenPageId(store.getSettings(), store.listPages()) ?? "";
 }
 
 // Switching workspaces swaps the store under the shell. The generation key
@@ -546,9 +548,17 @@ watch(asideQuery, (raw) => {
   dockChatId.value = null;
 });
 
-// A deleted instance or thread must not leave the shell on an empty pane.
+// A deleted page, instance, or thread must not leave the shell on an empty pane.
 watch(dataRevision, () => {
   let changed = false;
+  // The sidebar tells the shell when it deletes the open page, but a plugin, a
+  // peer over sync, or anything else reaching the store does not, and a stale id
+  // opened a page that no longer exists.
+  if (currentPageId.value && !workspace.value?.getPage(currentPageId.value)) {
+    currentPageId.value = fallbackPageId();
+    syncModeToPage(currentPageId.value);
+    changed = true;
+  }
   if (currentPluginId.value && !workspace.value?.getPluginInstance(currentPluginId.value)) {
     currentPluginId.value = null;
     changed = true;

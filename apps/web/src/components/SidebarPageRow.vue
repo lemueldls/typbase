@@ -51,7 +51,7 @@ const { t } = useI18n();
       <UiTruncatedText class="sidebar__row-label" :text="page.title" />
       <UiTooltip v-if="home" :text="$t('sidebar.homePage')">
         <span class="sidebar__row-home">
-          <MsIcon name="home" :size="20" />
+          <MsIcon name="home" :size="18" />
         </span>
       </UiTooltip>
     </button>

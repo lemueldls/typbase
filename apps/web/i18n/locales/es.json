@@ -68,7 +68,9 @@
     "hideSidebar": "Ocultar barra lateral",
     "showSidebar": "Mostrar barra lateral",
     "deleteTitle": "Eliminar página",
-    "deleteConfirm": "¿Eliminar «{title}»? Esta acción no se puede deshacer."
+    "deleteConfirm": "¿Eliminar «{title}»? Esta acción no se puede deshacer.",
+    "renameFile": "Renombrar también el archivo",
+    "renameFileHint": "{from} pasa a ser {to}."
   },
   "nav": {
     "back": "Atrás",
@@ -628,5 +630,10 @@
     "failed": "La actualización falló.",
     "permissionDenied": "Permite que Typbase instale aplicaciones desconocidas e inténtalo de nuevo.",
     "packageManaged": "Tu gestor de paquetes instala las actualizaciones."
+  },
+  "empty": {
+    "title": "Todavía no hay páginas",
+    "body": "Crea una para empezar a escribir.",
+    "today": "Nota de hoy"
   }
 }

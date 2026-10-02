@@ -271,8 +271,6 @@ export const typstEditorTheme = EditorView.theme({
   },
   ".cm-tooltip-hover": {
     padding: "var(--space-2)",
-    // Docs hovers, render popups, and lint lists can outgrow the viewport.
-    // None of these tooltips set `arrow`, so scrolling the host clips nothing.
     maxHeight: "min(70vh, 32rem)",
     overflow: "auto",
     overscrollBehavior: "contain",

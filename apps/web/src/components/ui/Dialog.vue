@@ -140,6 +140,13 @@ const contentAttrs = computed(() => ({
   color: var(--color-danger);
 }
 
+/* Secondary line under a field, e.g. what a toggle will do. */
+.dialog__hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
 .dialog__actions {
   display: flex;
   justify-content: flex-end;

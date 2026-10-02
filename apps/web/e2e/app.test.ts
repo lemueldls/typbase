@@ -1781,6 +1781,105 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("offers a way out of a workspace with no pages", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await createTestPage(page, { title: "Last one", content: "= Last one\n" });
+
+    // Every page goes, including the seeded home page: the shell used to open
+    // that dead id and show "no page" where the empty pane belongs.
+    const emptied = await page.evaluate(async () => {
+      const store = window.__typbase.store;
+      for (const meta of store.listPages()) await store.deletePage(meta.id);
+
+      return store.listPages().length;
+    });
+    expect(emptied).toBe(0);
+
+    await page.waitForSelector(".app__empty", { timeout: 30_000 });
+    expect(await page.locator(".app__empty-title").innerText()).toBe("No pages yet");
+    expect(await page.locator(".cm-editor").count()).toBe(0);
+    // The home page id is cleared with the page.
+    expect(
+      await page.evaluate(() => window.__typbase.store.getSettings().homePageId ?? null),
+    ).toBeNull();
+
+    // Today's note is the other way in: it creates the page on first tap.
+    await page.locator(".app__empty-actions .button", { hasText: "Today's note" }).click();
+    await page.waitForSelector(".cm-editor", { timeout: 60_000 });
+    const dailyPath = await page.evaluate(() => {
+      const id = window.__typbase.pageId;
+
+      return id ? window.__typbase.store.getPage(id)?.path : null;
+    });
+    expect(dailyPath).toMatch(/^daily\/\d{4}-\d{2}-\d{2}\.typ$/);
+    // That daily note is the page later tests find, so the workspace is not left
+    // empty for them.
+
+    await page.close();
+  });
+
+  it("renames a page and moves its file unless the rename opts out", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Rename source",
+      content: "= Rename source\n",
+    });
+    await showPage(page, id, "write");
+
+    const row = page.locator(".sidebar__item", { hasText: "Rename source" });
+    await row.hover();
+    await row.locator(".sidebar__row-more").click();
+    await page.locator(".menu__item", { hasText: "Rename" }).click();
+
+    // The file follows the title while its path is the one the title derived,
+    // and the dialog says which way before anything moves.
+    const title = page.locator(".dialog input").first();
+    await title.fill("Rename target");
+    const hint = page.locator(".dialog .dialog__hint");
+    await hint.waitFor({ timeout: 30_000 });
+    expect(await hint.innerText()).toContain("pages/rename-source.typ");
+    expect(await hint.innerText()).toContain("pages/rename-target.typ");
+
+    await page.locator('.dialog button[type="submit"]').click();
+    await page.waitForFunction(
+      (pageId) => window.__typbase.store.getPage(pageId)?.path === "pages/rename-target.typ",
+      id,
+      { timeout: 30_000 },
+    );
+
+    // The page is still the open document, and it still compiles.
+    expect(await page.evaluate(() => window.__typbase.pageId)).toBe(id);
+    await page.waitForSelector(".cm-editor", { timeout: 60_000 });
+    await page.locator(".cm-content").click();
+    await page.waitForTimeout(1500);
+    expect(await page.evaluate(() => window.__typbase.engineStatus())).toBe("ok");
+
+    // Opting out keeps the file name, which is what a git-tracked workspace wants.
+    const renamed = page.locator(".sidebar__item", { hasText: "Rename target" });
+    await renamed.hover();
+    await renamed.locator(".sidebar__row-more").click();
+    await page.locator(".menu__item", { hasText: "Rename" }).click();
+    await page.locator(".dialog input").first().fill("Rename kept");
+    await page.locator(".dialog .dialog__hint").waitFor({ timeout: 30_000 });
+    await page.locator(".ui-switch", { hasText: "Rename the file too" }).locator("button").click();
+    await page.locator('.dialog button[type="submit"]').click();
+
+    await page.waitForFunction(
+      (pageId) => window.__typbase.store.getPage(pageId)?.title === "Rename kept",
+      id,
+      { timeout: 30_000 },
+    );
+    expect(await page.evaluate((pageId) => window.__typbase.store.getPage(pageId)?.path, id)).toBe(
+      "pages/rename-target.typ",
+    );
+
+    await page.close();
+  });
+
   it("boots the shell offline once the worker has cached it", async () => {
     const page = await createPage();
     await openApp(page);

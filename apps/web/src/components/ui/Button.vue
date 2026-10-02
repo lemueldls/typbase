@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { MaterialSymbol } from "material-symbols";
+
 defineOptions({ inheritAttrs: false });
 
 withDefaults(
@@ -6,12 +8,16 @@ withDefaults(
     /** "plain" is the default bordered button and "ghost" is borderless. */
     variant?: "plain" | "primary" | "danger" | "ghost";
     size?: "default" | "small" | "tiny";
+    /** Optional leading glyph. */
+    icon?: MaterialSymbol;
+    /** Glyph size in px. */
+    iconSize?: number;
     /** Submit buttons inside forms. Everything else stays a plain button. */
     type?: "button" | "submit" | "reset";
     /** Render as a different element, e.g. a label wrapping a file input. */
     as?: string | Component;
   }>(),
-  { variant: "plain", size: "default", type: "button", as: "button" },
+  { variant: "plain", size: "default", iconSize: 20, type: "button", as: "button" },
 );
 </script>
 
@@ -29,6 +35,7 @@ withDefaults(
       'button--tiny': size === 'tiny',
     }"
   >
+    <MsIcon v-if="icon" :name="icon" :size="iconSize" />
     <slot />
   </Primitive>
 </template>
@@ -52,6 +59,10 @@ withDefaults(
 .button:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+.button .ms-icon {
+  flex: none;
 }
 
 .button--primary {

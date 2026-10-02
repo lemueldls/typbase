@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import type { PageMeta } from "@typbase/typing";
+
 import type { ViewModeId } from "~/lib/view";
+
+import { todayISO } from "~/lib/format";
 
 defineProps<{
   pageId: string | null;
@@ -23,6 +27,21 @@ const emit = defineEmits<{
   (e: "openGraph"): void;
   (e: "closeGraph"): void;
 }>();
+
+/** The empty pane's actions need the workspace the chooser left behind. */
+const { workspace: store } = useWorkspace();
+
+function onCreated(page: PageMeta): void {
+  emit("openPage", page.id);
+}
+
+/** Creates today's daily note when it is missing, then opens it. */
+async function openToday(): Promise<void> {
+  if (!store.value) return;
+
+  const page = await store.value.createDailyNote(todayISO());
+  emit("openPage", page.id);
+}
 
 /** Dock width in px, persisted like the sidebar's layout. */
 const dockWidth = useLocalStorage("typbase:dockWidth", 380);
@@ -116,8 +135,25 @@ function onDockKeydown(event: KeyboardEvent): void {
 
       <div v-else class="app__empty">
         <slot name="nav-toggle" />
-        <p>{{ $t("sidebar.noPages") }}</p>
-        <p class="app__empty-hint">{{ $t("boot.createOne") }}</p>
+
+        <!-- Only reachable with no pages at all, since a workspace that has any
+             always resolves to one. The actions live here rather than pointing
+             at the sidebar, which is collapsed on desktop and a drawer on
+             mobile. -->
+        <div v-if="store" class="app__empty-panel">
+          <MsIcon name="note_stack" :size="44" class="app__empty-mark" />
+          <p class="app__empty-title">{{ $t("empty.title") }}</p>
+          <p class="app__empty-hint">{{ $t("empty.body") }}</p>
+
+          <div class="app__empty-actions">
+            <NewPageDialog :store="store" @created="onCreated">
+              <UiButton variant="primary" icon="note_add">{{ $t("sidebar.newPage") }}</UiButton>
+            </NewPageDialog>
+            <UiButton variant="plain" icon="calendar_today" @click="openToday">
+              {{ $t("empty.today") }}
+            </UiButton>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -183,12 +219,49 @@ function onDockKeydown(event: KeyboardEvent): void {
   flex: 1;
   display: grid;
   place-content: center;
-  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-6);
   color: var(--color-text-secondary);
   text-align: center;
 }
 
+/* The sidebar toggle is a window control, not part of the centered block: taking
+   it out of flow keeps the panel on the pane's middle. */
+.app__empty .app__nav-toggle {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+}
+
+.app__empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 28rem;
+}
+
+.app__empty-mark {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.app__empty-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .app__empty-hint {
   margin: 0;
+}
+
+.app__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 </style>

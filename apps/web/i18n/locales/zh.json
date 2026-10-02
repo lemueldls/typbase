@@ -68,7 +68,9 @@
     "hideSidebar": "隐藏侧边栏",
     "showSidebar": "显示侧边栏",
     "deleteTitle": "删除页面",
-    "deleteConfirm": "删除“{title}”？此操作无法撤销。"
+    "deleteConfirm": "删除“{title}”？此操作无法撤销。",
+    "renameFile": "同时重命名文件",
+    "renameFileHint": "{from} 将变为 {to}。"
   },
   "nav": {
     "back": "后退",
@@ -628,5 +630,10 @@
     "failed": "更新失败。",
     "permissionDenied": "请允许 Typbase 安装未知应用，然后重试。",
     "packageManaged": "更新由你的软件包管理器提供。"
+  },
+  "empty": {
+    "title": "还没有页面",
+    "body": "新建一个开始写。",
+    "today": "今日笔记"
   }
 }

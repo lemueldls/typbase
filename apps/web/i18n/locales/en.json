@@ -68,7 +68,9 @@
     "hideSidebar": "Hide sidebar",
     "showSidebar": "Show sidebar",
     "deleteTitle": "Delete page",
-    "deleteConfirm": "Delete “{title}”? This cannot be undone."
+    "deleteConfirm": "Delete “{title}”? This cannot be undone.",
+    "renameFile": "Rename the file too",
+    "renameFileHint": "{from} becomes {to}."
   },
   "nav": {
     "back": "Back",
@@ -688,5 +690,10 @@
     "failed": "The update failed.",
     "permissionDenied": "Allow Typbase to install unknown apps, then try again.",
     "packageManaged": "Updates come from your package manager."
+  },
+  "empty": {
+    "title": "No pages yet",
+    "body": "Create one to start writing.",
+    "today": "Today's note"
   }
 }

@@ -68,7 +68,9 @@
     "hideSidebar": "Seitenleiste ausblenden",
     "showSidebar": "Seitenleiste einblenden",
     "deleteTitle": "Seite löschen",
-    "deleteConfirm": "„{title}“ löschen? Das kann nicht rückgängig gemacht werden."
+    "deleteConfirm": "„{title}“ löschen? Das kann nicht rückgängig gemacht werden.",
+    "renameFile": "Datei auch umbenennen",
+    "renameFileHint": "{from} wird zu {to}."
   },
   "nav": {
     "back": "Zurück",
@@ -628,5 +630,10 @@
     "failed": "Das Update ist fehlgeschlagen.",
     "permissionDenied": "Erlaube Typbase, unbekannte Apps zu installieren, und versuche es erneut.",
     "packageManaged": "Updates kommen von deiner Paketverwaltung."
+  },
+  "empty": {
+    "title": "Noch keine Seiten",
+    "body": "Erstelle eine, um zu schreiben.",
+    "today": "Heutige Notiz"
   }
 }

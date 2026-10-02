@@ -68,7 +68,9 @@
     "hideSidebar": "Masquer la barre latérale",
     "showSidebar": "Afficher la barre latérale",
     "deleteTitle": "Supprimer la page",
-    "deleteConfirm": "Supprimer « {title} » ? Cette action est irréversible."
+    "deleteConfirm": "Supprimer « {title} » ? Cette action est irréversible.",
+    "renameFile": "Renommer aussi le fichier",
+    "renameFileHint": "{from} devient {to}."
   },
   "nav": {
     "back": "Précédent",
@@ -628,5 +630,10 @@
     "failed": "La mise à jour a échoué.",
     "permissionDenied": "Autorisez Typbase à installer des applications inconnues, puis réessayez.",
     "packageManaged": "Les mises à jour viennent de votre gestionnaire de paquets."
+  },
+  "empty": {
+    "title": "Aucune page pour l'instant",
+    "body": "Créez-en une pour commencer à écrire.",
+    "today": "Note du jour"
   }
 }
