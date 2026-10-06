@@ -239,7 +239,14 @@ describe("plugin system", async () => {
     await page.evaluate(
       (id) =>
         window.__typbase.pluginAction(id, "window", "stroke.add", {
-          stroke: { color: "#b42828", width: 3, points: [[4, 4], [12, 18]] },
+          stroke: {
+            color: "#b42828",
+            width: 3,
+            points: [
+              [4, 4],
+              [12, 18],
+            ],
+          },
         }),
       instanceId,
     );

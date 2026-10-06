@@ -126,6 +126,7 @@ function onDockKeydown(event: KeyboardEvent): void {
         :model-value="modelValue"
         @update:model-value="emit('update:modelValue', $event)"
         @open-page="emit('openPage', $event)"
+        @open-plugin="emit('openPlugin', $event)"
         @open-graph="emit('openGraph')"
       >
         <template #nav-toggle>
