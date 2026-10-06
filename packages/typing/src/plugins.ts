@@ -135,7 +135,12 @@ export interface PluginActionResult {
 
 /** The JSON document injected at `/typbase/plugin/ctx.json`. */
 export interface PluginContext {
-  plugin: { id: string; name: string; version: string };
+  plugin: {
+    id: string;
+    slug: string;
+    name: string;
+    version: string;
+  };
   instance: { id: string; title: string };
   /** Which surface this render is for. */
   surface: { kind: PluginSurfaceKind; title: string };

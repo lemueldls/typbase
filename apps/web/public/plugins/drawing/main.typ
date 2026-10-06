@@ -120,12 +120,14 @@
   } else if name == "draw.width" {
     ops-view((width: action.args.width))
   } else {
-    (:) 
+    (:)
   }
 }
 
 #let insert-snippet(ctx) = {
-  "#import \"/typbase/plugin/local-drawing/main.typ\": embed\n#embed(\"" + ctx.instance.id + "\")"
+  let alias = "drawing"
+  let path = "/typbase/plugin/" + ctx.plugin.slug + "/main.typ"
+  "#import \"" + path + "\" as " + alias + "\n#" + alias + ".embed(\"" + ctx.instance.id + "\")"
 }
 
 #let window(ctx) = {

@@ -671,6 +671,7 @@ export function usePluginHost() {
     const ctx: PluginContext = {
       plugin: {
         id: manifest.id,
+        slug: entry.slug,
         name: manifest.name,
         version: manifest.version,
       },

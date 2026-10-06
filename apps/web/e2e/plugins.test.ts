@@ -211,11 +211,15 @@ describe("plugin system", async () => {
     });
 
     const text = await page.evaluate((id) => window.__typbase.store.loadPageText(id), targetId);
-    expect(text).toContain("/typbase/plugin/local-drawing/main.typ");
+    // The snippet names the module rather than importing `embed` bare, so the
+    // note gets one namespaced call instead of a loose binding.
+    expect(text).toContain('#import "/typbase/plugin/drawing/main.typ" as drawing');
+    expect(text).toContain("#drawing.embed(");
 
-    // The open editor adopts the appended text without a reload.
+    // The open editor adopts the appended text without a reload, and the
+    // imported module resolves.
     await page.waitForFunction(
-      () => (window.__typbase.view?.state.doc.toString() ?? "").includes("local-drawing"),
+      () => (window.__typbase.view?.state.doc.toString() ?? "").includes("as drawing"),
       null,
       { timeout: 30_000 },
     );

@@ -38,9 +38,13 @@ const FIELD_TYPES: Record<PluginFieldType, true> = {
   json: true,
 };
 
-/** `local:calendar` -> `local-calendar`, safe for Typst virtual paths. */
+/** Id scheme for a plugin that ships in the bundle or in `plugins/<slug>/`. */
+export const LOCAL_ID_PREFIX = "local:";
+
+/** The Typst virtual path segment */
 export function pluginSlug(id: string): string {
-  const slug = id
+  const name = id.startsWith(LOCAL_ID_PREFIX) ? id.slice(LOCAL_ID_PREFIX.length) : id;
+  const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");

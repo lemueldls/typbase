@@ -13,7 +13,7 @@ const DRAWING: &str = include_str!("../../../../apps/web/public/plugins/drawing/
 
 /// Placeholder JSON replaced per test. Both fields are spliced raw.
 const BASE_CTX: &str = r##"{
-  "plugin": { "id": "local:demo", "name": "Demo", "version": "0.1.0" },
+  "plugin": { "id": "local:demo", "slug": "demo", "name": "Demo", "version": "0.1.0" },
   "instance": { "id": "inst-1", "title": "Demo" },
   "surface": { "kind": "pane", "title": "Demo" },
   "locale": "en",
@@ -191,4 +191,24 @@ fn drawing_surface_compiles_with_theme_colors_and_a_chain() {
     assert!(html.contains("--tb-swatch:#b42828"), "theme swatch missing from: {html}");
     assert!(html.contains("data-tb-chain"), "insert chain missing from: {html}");
     assert!(html.contains("data-tb-component"), "canvas component missing from: {html}");
+
+    // The snippet a note carries: the module aliased, addressed through the slug
+    // from the context rather than a hardcoded path. The code block is
+    // syntax-highlighted, so strip the spans and assert on the text.
+    let mut text = html.clone();
+    while let Some(open) = text.find('<') {
+        let Some(close) = text[open..].find('>') else {
+            break;
+        };
+        text.replace_range(open..open + close + 1, "");
+    }
+
+    assert!(
+        text.contains(r#"#import "/typbase/plugin/demo/main.typ" as drawing"#),
+        "insert snippet import missing from: {text}"
+    );
+    assert!(
+        text.contains(r#"#drawing.embed("inst-1")"#),
+        "insert snippet call missing from: {text}"
+    );
 }

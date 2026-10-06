@@ -5,7 +5,7 @@ import type { MaterialSymbol } from "material-symbols";
 import type { PluginError } from "~/composables/plugins";
 
 import PluginCodeEditor from "~/components/studio/PluginCodeEditor.vue";
-import { parseManifest, pluginSlug } from "~/lib/plugins/manifest";
+import { LOCAL_ID_PREFIX, parseManifest, pluginSlug } from "~/lib/plugins/manifest";
 
 // The studio is a client tool: it needs storage and the catalog, and SSR only
 // adds a hydration race for the plugin list.
@@ -286,8 +286,8 @@ async function createPlugin(): Promise<void> {
   const active = backend.value;
   if (!name || !active) return;
 
-  const slug = pluginSlug(`local:${name}`);
-  const id = `local:${slug}`;
+  const slug = pluginSlug(`${LOCAL_ID_PREFIX}${name}`);
+  const id = `${LOCAL_ID_PREFIX}${slug}`;
   const encoder = new TextEncoder();
   await active.write(`plugins/${slug}/plugin.json`, encoder.encode(TEMPLATE_MANIFEST(name, id)));
   await active.write(`plugins/${slug}/main.typ`, encoder.encode(TEMPLATE_MAIN));

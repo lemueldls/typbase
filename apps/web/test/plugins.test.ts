@@ -124,8 +124,18 @@ describe("validatePatch", () => {
 });
 
 describe("pluginSlug", () => {
-  it("turns an id into a path-safe slug", () => {
-    expect(pluginSlug("local:My Calendar")).toBe("local-my-calendar");
+  it("drops the local scheme so the path names the plugin", () => {
+    expect(pluginSlug("local:My Calendar")).toBe("my-calendar");
+    expect(pluginSlug("local:drawing")).toBe("drawing");
+  });
+
+  // Two authors can both publish a `notes` plugin, so a remote id keeps its
+  // whole form and the path stays unique.
+  it("keeps an atproto id whole", () => {
     expect(pluginSlug("at://did:plc:abc/plugin/Notes")).toBe("at-did-plc-abc-plugin-notes");
+  });
+
+  it("survives an id that slugifies to nothing", () => {
+    expect(pluginSlug("local:")).toBe("plugin");
   });
 });

@@ -114,7 +114,7 @@ is the content and the other two are patch fields:
 
 | Key                      | Contents                                                  |
 | ------------------------ | --------------------------------------------------------- |
-| `plugin`                 | `id`, `name`, `version`                                   |
+| `plugin`                 | `id`, `slug`, `name`, `version`                           |
 | `instance`               | `id`, `title`                                             |
 | `surface`                | `kind`, `title` of the surface being rendered             |
 | `state`                  | collection name to records, from the instance doc         |
@@ -196,15 +196,18 @@ elements.
 
 ## Embedding in notes
 
-Notes import a plugin module through the normal Typst channel:
+Notes import a plugin module through the normal Typst channel. Import the module
+and alias it, rather than pulling one function into the note's namespace:
 
 ```typst
-#import "/typbase/plugin/my-plugin/main.typ": embed
-#embed("<instance-id>")
+#import "/typbase/plugin/my-plugin/main.typ" as my-plugin
+#my-plugin.embed("<instance-id>")
 ```
 
 The host serves plugin modules under `/typbase/plugin/<slug>/`, so the same
-sources compile in the app and in the generated project.
+sources compile in the app and in the generated project. `<slug>` is
+`ctx.plugin.slug`, which is the manifest id without a `local:` scheme, so a note
+carrying the embed keeps working after the plugin is forked or renamed.
 
 ## The studio
 

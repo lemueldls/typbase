@@ -478,7 +478,8 @@ describe("typbase app", async () => {
 
     // The line must not be filled. An opaque `background-color`, or any
     // `background-image`, paints over CodeMirror's selection and the selected
-    // attribute text loses its highlight. The boundary reads from a rule instead.
+    // attribute text loses its highlight. The boundary reads from a border,
+    // which sits outside the content box and so cannot cover the text.
     const style = await page.evaluate(() => {
       const line = document.querySelector(".cm-line.tb-cell-attribute");
       if (!line) return null;
@@ -487,14 +488,14 @@ describe("typbase app", async () => {
       return {
         backgroundColor: cs.backgroundColor,
         backgroundImage: cs.backgroundImage,
-        boxShadow: cs.boxShadow,
+        borderLeftWidth: cs.borderLeftWidth,
       };
     });
     expect(style).not.toBeNull();
     // `rgba(0, 0, 0, 0)` is the computed form of `transparent`.
     expect(style?.backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(style?.backgroundImage).toBe("none");
-    expect(style?.boxShadow).not.toBe("none");
+    expect(style?.borderLeftWidth).not.toBe("0px");
 
     // And the selection itself survives, which is the part a computed style
     // cannot promise: the highlight is painted by the browser, so this reads the
