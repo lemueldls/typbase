@@ -40,13 +40,15 @@ export type PluginFieldType = "string" | "number" | "boolean" | "datetime" | "js
 
 export interface PluginFieldSchema {
   type: PluginFieldType;
+  /** A record may be written without it. An absent required field is an error. */
   optional?: boolean;
 }
 
+/** Field name to its schema. */
+export type PluginFieldSchemaMap = Record<string, PluginFieldSchema>;
+
 export interface PluginCollectionSchema {
-  fields: Record<string, PluginFieldSchema>;
-  /** Field names copied into the workspace search index. */
-  searchable?: string[];
+  fields: PluginFieldSchemaMap;
 }
 
 export interface PluginManifest {

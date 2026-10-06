@@ -4,6 +4,14 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { ChatMessage } from "@typbase/typing";
 
 import type { AiProvider } from "~/lib/ai/providers";
+import type { BundleCheckResult, BundleTextFile } from "~/lib/bundleCheck";
+import type { ExportOptions } from "~/lib/exportPage";
+
+/** A built export bundle, reduced to the files a test can read. */
+export interface ExportBundle {
+  base: string;
+  files: BundleTextFile[];
+}
 
 /**
  * Dev-only handles for the demo capture script and e2e tests. Components write
@@ -73,6 +81,14 @@ export interface TypbaseTestApi {
   pluginState: ((instanceId: string) => Promise<Record<string, unknown[]>>) | null;
   /** Write a file under the workspace root (e2e seeds broken plugins). */
   writeWorkspaceFile: ((path: string, text: string) => Promise<void>) | null;
+  /** Read a text file from the generated project view, or null when absent. */
+  readProjectFile: ((path: string) => Promise<string | null>) | null;
+  /** Build a page export bundle and return its readable files. */
+  exportPage: ((pageId: string, options: Partial<ExportOptions>) => Promise<ExportBundle>) | null;
+  /** Mirror a page's compilable project view into the workspace. */
+  mirrorPage: ((pageId: string) => Promise<void>) | null;
+  /** Compile a bundle's entry against only the bundle's own files. */
+  compileBundle: ((files: BundleTextFile[], entry: string) => Promise<BundleCheckResult>) | null;
   /** Reload the plugin catalog from storage. */
   refreshPlugins: (() => Promise<void>) | null;
   /** Runtime log lines, newest first. */
@@ -107,6 +123,10 @@ export const testApi: TypbaseTestApi = {
   pluginWindowOpen: null,
   pluginState: null,
   writeWorkspaceFile: null,
+  readProjectFile: null,
+  exportPage: null,
+  mirrorPage: null,
+  compileBundle: null,
   refreshPlugins: null,
   pluginLogs: null,
 };

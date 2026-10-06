@@ -27,14 +27,13 @@ A home page that reads the workspace. The lists below come from \`#typbase.query
 ]
 `;
 
-const ATTENTION = `// %% [markup]
-= Attention, from scratch
+const ATTENTION = `= Attention, from scratch
 
 Scaled dot-product attention:
 
 $ "Attention"(Q, K, V) = op("softmax")((Q K^top) / sqrt(d_k)) V $
 
-// %% [code]
+//% kind=code
 #let rows = ((1, 1), (2, 3), (3, 6), (4, 10), (5, 15))
 
 #for (k, total) in rows [
@@ -43,7 +42,6 @@ $ "Attention"(Q, K, V) = op("softmax")((Q K^top) / sqrt(d_k)) V $
   #linebreak()
 ]
 
-// %% [markup]
 == Why divide by $sqrt(d_k)$?
 
 The dot products grow with the dimension, so the softmax saturates.

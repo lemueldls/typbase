@@ -54,6 +54,20 @@ describe("parseManifest", () => {
       parseManifest({ ...base, surfaces: [{ kind: "overlay", fn: "main", title: "Demo" }] }),
     ).toThrow(/unknown kind/);
   });
+
+  // A name the host does not implement used to be accepted and then skipped at
+  // mount, so the author only ever saw a missing element.
+  it("rejects a hostComponents name the host does not implement", () => {
+    expect(() => parseManifest({ ...base, hostComponents: ["chart", "canvas"] })).toThrow(
+      /no such component: chart/,
+    );
+  });
+
+  it("accepts the components the host implements", () => {
+    expect(parseManifest({ ...base, hostComponents: ["canvas"] }).hostComponents).toEqual([
+      "canvas",
+    ]);
+  });
 });
 
 describe("validatePatch", () => {
@@ -91,7 +105,11 @@ describe("validatePatch", () => {
     const result = validatePatch(
       {
         state: [
-          { op: "append", collection: "strokes", record: { id: "s1", color: "#fff", tilt: 4 } },
+          {
+            op: "append",
+            collection: "strokes",
+            record: { id: "s1", color: "#fff", width: 2, tilt: 4 },
+          },
         ],
       },
       manifest,
@@ -101,7 +119,7 @@ describe("validatePatch", () => {
     expect(result.patch.state?.[0]).toEqual({
       op: "append",
       collection: "strokes",
-      record: { color: "#fff", id: "s1" },
+      record: { color: "#fff", width: 2, id: "s1" },
     });
   });
 
@@ -120,6 +138,109 @@ describe("validatePatch", () => {
 
     expect(result.errors).toEqual([]);
     expect(result.patch.view).toEqual({ selected: "2026-09-26" });
+  });
+
+  // `optional` used to be parsed and then ignored, so an absent optional field
+  // and an absent required one both reported "is not a string".
+  describe("optional fields", () => {
+    const optionalManifest = parseManifest({
+      ...base,
+      collections: {
+        events: {
+          fields: {
+            title: { type: "string" },
+            time: { type: "string", optional: true },
+          },
+        },
+      },
+    });
+
+    it("accepts an append that omits an optional field", () => {
+      const result = validatePatch(
+        { state: [{ op: "append", collection: "events", record: { id: "e1", title: "Dentist" } }] },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual([]);
+      expect(result.patch.state?.[0]).toEqual({
+        op: "append",
+        collection: "events",
+        record: { title: "Dentist", id: "e1" },
+      });
+    });
+
+    it("names a missing required field as missing, not as a type error", () => {
+      const result = validatePatch(
+        { state: [{ op: "append", collection: "events", record: { id: "e1" } }] },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual(['field "events.title" is required but was not given']);
+    });
+
+    it("still reports a wrong type on a present field", () => {
+      const result = validatePatch(
+        { state: [{ op: "append", collection: "events", record: { id: "e1", title: 7 } }] },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual(['field "events.title" is not a string']);
+    });
+
+    // A merge only carries what it changes, so it must not demand the whole
+    // record again.
+    it("lets a merge omit every field it is not touching", () => {
+      const result = validatePatch(
+        { state: [{ op: "merge", collection: "events", id: "e1", record: { time: "10:00" } }] },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual([]);
+      expect(result.patch.state?.[0]).toEqual({
+        op: "merge",
+        collection: "events",
+        id: "e1",
+        record: { time: "10:00" },
+      });
+    });
+
+    // An explicit `undefined` in a merge means "leave this field alone", which is
+    // what the storage layer does with it too, so it is dropped quietly.
+    it("treats an explicit undefined in a merge as no change", () => {
+      const result = validatePatch(
+        {
+          state: [{ op: "merge", collection: "events", id: "e1", record: { title: undefined } }],
+        },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual([]);
+      expect(result.patch.state?.[0]).toEqual({
+        op: "merge",
+        collection: "events",
+        id: "e1",
+        record: {},
+      });
+    });
+
+    it("rejects setting a required field to undefined", () => {
+      const result = validatePatch(
+        { state: [{ op: "set", collection: "events", id: "e1", key: "title", value: undefined }] },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual(['field "events.title" is required but was not given']);
+      expect(result.patch.state).toEqual([]);
+    });
+
+    it("allows clearing an optional field with a set", () => {
+      const result = validatePatch(
+        { state: [{ op: "set", collection: "events", id: "e1", key: "time", value: undefined }] },
+        optionalManifest,
+      );
+
+      expect(result.errors).toEqual([]);
+    });
   });
 });
 

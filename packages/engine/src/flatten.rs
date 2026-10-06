@@ -4,7 +4,7 @@
 //! byte map back to the raw source, so FTS hits land in the editor.
 //! [`extract_sections`] finds `#typbase.section(kind: "...")[...]` calls and
 //! reports their content ranges, populating the page doc's `sections` list.
-//! [`extract_cells`] finds notebook cell markers (`// %%`) and reports their
+//! [`extract_cells`] finds notebook cell attributes (`//%`) and reports their
 //! spans in UTF-16, ready for CodeMirror.
 
 use serde::{Deserialize, Serialize};
@@ -37,8 +37,8 @@ pub struct SectionSpan {
     pub title: String,
 }
 
-/// A notebook cell: one `// %%` marker line plus the content below it, up to
-/// the next marker or the end of the document. Ranges are UTF-16 offsets into
+/// A notebook cell: one `//%` attribute line plus the content below it, up to
+/// the next boundary or the end of the document. Ranges are UTF-16 offsets into
 /// the raw source, so they can be used as editor positions directly.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CellSpan {
@@ -314,43 +314,7 @@ const CELL_KINDS: &[&str] = &["prose", "code", "log", "hidden"];
 
 /// Reads a cell attribute line
 fn cell_attribute(comment: &str) -> Option<CellAttribute> {
-    let rest = comment.strip_prefix("//")?.trim_start();
-
-    // `// %%`, the form notebooks were written in. Read so an existing notebook
-    // keeps its cells; the label set is the old one.
-    if let Some(rest) = rest.strip_prefix("%%") {
-        let label = rest
-            .trim()
-            .strip_prefix('[')
-            .and_then(|rest| rest.strip_suffix(']'))
-            .unwrap_or(rest.trim())
-            .trim()
-            .to_ascii_lowercase();
-
-        if label.is_empty() {
-            return Some(CellAttribute {
-                kind: String::from("prose"),
-                name: None,
-            });
-        }
-
-        // Display math was its own kind and rendered in place, which is what
-        // prose does, so it maps across.
-        return match label.as_str() {
-            "markup" | "content" | "text" | "math" => Some(CellAttribute {
-                kind: String::from("prose"),
-                name: None,
-            }),
-            "code" | "script" | "scripting" => Some(CellAttribute {
-                kind: String::from("code"),
-                name: None,
-            }),
-            _ => None,
-        };
-    }
-
-    // `//%`. Checked after `%%` so the two spellings do not overlap.
-    let attrs = rest.strip_prefix('%')?.trim();
+    let attrs = comment.strip_prefix("//")?.trim_start().strip_prefix('%')?.trim();
 
     let mut kind: Option<String> = None;
     let mut name: Option<String> = None;

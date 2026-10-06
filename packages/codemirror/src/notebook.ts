@@ -165,16 +165,20 @@ export function attributeText(type: NotebookCellType, name?: string | null): str
   return fields.length ? `//% ${fields.join(" ")}` : "//%";
 }
 
-/** Matches a whole attribute line, indentation and newline included. */
-const ATTRIBUTE_LINE = /^[ \t]*\/\/%?[ \t]*(?:\[[^\]]*\]|\S*)?[ \t]*\r?\n?/gm;
+/**
+ * Matches a whole attribute line, indentation and newline included. The rest of
+ * the line is taken whole rather than field by field, because this is a text
+ * cleaner for exports and the engine already decided what is an attribute.
+ */
+const ATTRIBUTE_LINE = /^[ \t]*\/\/%[^\r\n]*\r?\n?/gm;
 
 /**
  * Removes cell attribute lines. Notebooks are comments-plus-content, so a
  * cleaned file is the same document for anyone who does not know the
- * convention.
+ * convention. Only `//%` goes: any other comment is left as written.
  */
 export function stripCellAttributes(text: string): string {
-  return text.replace(ATTRIBUTE_LINE, (line) => (/^\s*\/\/%/.test(line) ? "" : line));
+  return text.replace(ATTRIBUTE_LINE, "");
 }
 
 /** A text replacement plus where the cursor should land after it. */

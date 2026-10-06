@@ -144,14 +144,16 @@ fn an_attribute_inside_a_raw_block_stays_text() {
     assert_eq!(contents(text), vec!["```\n//% kind=code\n```"]);
 }
 
-/// The old marker is still read, so an existing notebook keeps its cells after
-/// the syntax change. `//%` is checked after `// %%`, or the two would overlap.
+/// `// %%` was the marker before `//%`. It is an ordinary comment now, so it
+/// neither splits a cell nor names a kind. Pinned so the old spelling cannot
+/// quietly come back.
 #[test]
-fn the_old_marker_still_reads() {
+fn the_old_marker_is_a_plain_comment() {
     assert_eq!(kinds("// %%\nBody.\n"), vec!["prose"]);
-    assert_eq!(kinds("// %% [code]\n#let x = 1\n"), vec!["code"]);
+    assert_eq!(contents("// %%\nBody.\n"), vec!["// %%\nBody."]);
+    // A `[code]` label does not make a code cell either.
+    assert_eq!(kinds("// %% [code]\n#let x = 1\n"), vec!["prose"]);
     assert_eq!(kinds("//% kind=code\n#let x = 1\n"), vec!["code"]);
-    assert_eq!(kinds("// %% [markup]\nBody.\n"), vec!["prose"]);
 }
 
 /// Ranges are UTF-16, because CodeMirror positions are.

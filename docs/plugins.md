@@ -53,13 +53,27 @@ plugins/my-plugin/
 ```
 
 - `api` is exactly `typbase.host.v2`. v1 manifests are rejected.
+- `id` is `local:<name>` or an atproto URI. The `<slug>` a note imports from is
+  the id without the `local:` scheme, so `local:my-plugin` is
+  `/typbase/plugin/my-plugin/`. An atproto id keeps its whole form, because two
+  authors can both publish the same plugin name.
+- `version` is compared against the installed record on every catalog refresh.
+  Editing a plugin updates the sidebar and the studio without reopening the
+  workspace.
+- A field marked `optional: true` may be omitted. An absent required field is
+  reported as missing rather than as a type error, and an `append` is checked
+  for the fields it left out while a `merge` only carries what it changes.
+- `hostComponents` may only name components the host implements, today `canvas`.
+  An unknown name is rejected when the manifest is parsed, so the mistake shows
+  up in the studio rather than as a missing element in a surface.
+- `plugin.data` gates the instance's synced collections both ways. Without it a
+  surface sees `ctx.state` as empty and its patches are refused, which is
+  reported as an error on the surface.
 - `surfaces` declares at most one `widget` (sidebar), `pane` (main area), and
   `window` (floating window) per plugin. Every instance of the plugin renders
   all of them from the same data.
 - `collections` declares the fields a patch may write. `id` is reserved and
   never listed.
-- `hostComponents` lists the host-owned components the surfaces mount, today
-  `canvas`.
 
 Installing a plugin creates one instance. A second instance is an independent
 copy with its own data doc; both sync to atproto like pages. The plugin

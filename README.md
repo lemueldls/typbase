@@ -7,7 +7,7 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 ## Features
 
 - **Inline WYSIWYG:** Compiled output replaces the source as you type. Split edit and read views come with it.
-- **Notebook pages:** Create a page as a notebook and its source splits into cells on `// %%` markers. Cells render in place and run with a click with execution counters and Jupyter keybindings.
+- **Notebook pages:** Create a page as a notebook and its source splits into cells on `//%` attribute lines. Cells render in place and run with a click with execution counters and Jupyter keybindings.
 - **The workspace as data:** `#typbase.query`, `#typbase.embed`, `#typbase.page-link`, and `#typbase.section` read pages, categories, daily notes, and sections from inside a document.
 - **Plugins written in Typst:** Extend the app with sidebar widgets, panes, and floating windows written in the same language as your notes.
 - **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The source mirror is plain `.typ`, and `typst compile --root .` works outside the app.

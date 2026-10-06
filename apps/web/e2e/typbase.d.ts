@@ -16,6 +16,7 @@ interface StoreHandle {
   loadPageText(id: string): Promise<string>;
   getPage(id: string): { id: string; title: string; path: string } | undefined;
   getPluginInstance(id: string): { id: string; title: string } | undefined;
+  getPluginInstall(pluginId: string): { id: string; version: string } | undefined;
   getChat(id: string): { id: string; pageId: string | null } | undefined;
   flush(): Promise<void>;
   createDailyNote(date: string): Promise<{ id: string; title: string }>;
@@ -74,6 +75,20 @@ declare global {
       pluginWindowOpen(instanceId: string): boolean;
       pluginState(instanceId: string): Promise<Record<string, unknown[]>>;
       writeWorkspaceFile(path: string, text: string): Promise<void>;
+      /** Read a text file from the generated project view, or null when absent. */
+      readProjectFile(path: string): Promise<string | null>;
+      /** Build a page export bundle and return its readable files. */
+      exportPage(
+        pageId: string,
+        options?: Record<string, unknown>,
+      ): Promise<{ base: string; files: Array<{ name: string; text: string }> }>;
+      /** Mirror a page's compilable project view into the workspace. */
+      mirrorPage(pageId: string): Promise<void>;
+      /** Compile a bundle's entry against only the bundle's own files. */
+      compileBundle(
+        files: Array<{ name: string; text: string }>,
+        entry: string,
+      ): Promise<{ errors: string[]; missing: string[]; foundEntry: boolean }>;
       refreshPlugins(): Promise<void>;
       pluginLogs(): string[];
     };

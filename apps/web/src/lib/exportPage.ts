@@ -7,6 +7,7 @@ import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 
 import { pageContextBinding } from "~/lib/pageContext";
 import { THEME_COLOR_KEYS, paletteSlots } from "~/lib/palette";
+import { pluginBundleSummary, pluginProjectFiles } from "~/lib/pluginBundle";
 import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 import { createZip } from "~/lib/zip";
@@ -19,7 +20,7 @@ export interface ExportOptions {
   svgMerged: boolean;
   /** Write the compilable Typst project: source, lib, data, fonts. */
   project: boolean;
-  /** Strip `// %%` cell markers from project sources. */
+  /** Strip `//%` cell attributes from project sources. */
   stripMarkers?: boolean;
   fonts: boolean;
   /** "light" (default) normalizes colors for reading/printing. */
@@ -63,7 +64,10 @@ export async function buildExport(
 
   const source = await store.loadPageText(pageId);
   const base = fileBase(page.title, page.path);
-  const themeOptions = { theme: options.theme, pageSize: options.pageSize } as const;
+  const themeOptions = {
+    theme: options.theme,
+    pageSize: options.pageSize,
+  } as const;
   const context = pageContextBinding(store, pageId);
   const htmlPrelude = await publishPrelude(store.getSettings(), {
     ...themeOptions,
@@ -171,13 +175,22 @@ export async function buildExport(
 
   if (options.project) {
     const projectSource = options.stripMarkers ? stripCellAttributes(source) : source;
-    addFile({ name: `${base}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`) });
+    addFile({
+      name: `${base}.typ`,
+      bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`),
+    });
     if (typstState) {
-      addFile({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
+      addFile({
+        name: "typbase/lib.typ",
+        bytes: encoder.encode(typstState.typbaseLib()),
+      });
     }
     const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
     addFile({ name: syntax.path, bytes: encoder.encode(syntax.text) });
     for (const payload of payloads.values()) addFile(payload);
+    for (const plugin of await pluginProjectFiles(store)) {
+      addFile({ name: plugin.path, bytes: encoder.encode(plugin.text) });
+    }
     if (options.fonts) {
       for (const font of await fontFiles()) addFile(font);
     }
@@ -189,7 +202,10 @@ export async function buildExport(
     const readme = buildReadme(page.title, base, options);
     addFile({ name: "README.md", bytes: encoder.encode(readme) });
     if (artifacts.html || artifacts.svg.length) {
-      addFile({ name: "index.html", bytes: encoder.encode(buildIndex(page.title, artifacts)) });
+      addFile({
+        name: "index.html",
+        bytes: encoder.encode(buildIndex(page.title, artifacts)),
+      });
     }
   }
 
@@ -359,6 +375,8 @@ function buildReadme(title: string, base: string, options: ExportOptions): strin
       `- \`${base}.typ\`: the note source with the workspace prelude inlined`,
       "- `typbase/`: the library, referenced data and blobs, and optionally fonts",
     );
+    const plugins = pluginBundleSummary();
+    if (plugins) lines.push(plugins);
   }
   lines.push("");
 

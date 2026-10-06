@@ -1,7 +1,7 @@
 import type {
-  PluginAction,
   PluginCapability,
   PluginCollectionSchema,
+  PluginFieldSchemaMap,
   PluginFieldType,
   PluginManifest,
   PluginPatch,
@@ -11,6 +11,8 @@ import type {
 } from "@typbase/typing";
 
 import { PLUGIN_API } from "@typbase/typing";
+
+import { HOST_COMPONENTS, unknownHostComponents } from "./hostComponents";
 
 // Exact records, not Sets: adding a member to the typing unions breaks the
 // build here until the validator knows about it.
@@ -98,7 +100,7 @@ function parseCollection(raw: unknown, name: string): PluginCollectionSchema {
   if (!raw || typeof raw !== "object") throw new Error(`collection "${name}" is not an object`);
 
   const value = raw as Record<string, unknown>;
-  const fields: Record<string, { type: PluginFieldType; optional?: boolean }> = {};
+  const fields: PluginFieldSchemaMap = {};
   for (const [field, schema] of Object.entries((value.fields as object) ?? {})) {
     const entry = schema as Record<string, unknown>;
     const type = requireString(
@@ -111,12 +113,7 @@ function parseCollection(raw: unknown, name: string): PluginCollectionSchema {
     fields[field] = { type, optional: entry.optional === true };
   }
 
-  return {
-    fields,
-    searchable: Array.isArray(value.searchable)
-      ? value.searchable.filter((field): field is string => typeof field === "string")
-      : undefined,
-  };
+  return { fields };
 }
 
 /** Validates an untrusted manifest (file or record) into the typed shape. */
@@ -161,27 +158,52 @@ export function parseManifest(raw: unknown): PluginManifest {
     capabilities,
     collections,
     surfaces,
-    hostComponents: Array.isArray(value.hostComponents)
-      ? value.hostComponents.filter((name): name is string => typeof name === "string")
-      : undefined,
+    hostComponents: parseHostComponents(value.hostComponents),
   };
 }
 
-function fieldMatches(type: PluginFieldType, value: unknown): boolean {
-  switch (type) {
-    case "string":
-      return typeof value === "string";
-    case "number":
-      return typeof value === "number" && Number.isFinite(value);
-    case "boolean":
-      return typeof value === "boolean";
-    case "datetime":
-      return typeof value === "string" && /^\d{4}-\d{2}-\d{2}([T ].*)?$/.test(value);
-    case "json":
-      return value !== undefined;
-    default:
-      return false;
+/**
+ * An unimplemented component name is an authoring mistake, so it fails while the
+ * manifest is being validated rather than leaving the surface quietly without
+ * the component it asked for.
+ */
+function parseHostComponents(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+
+  const names = raw.filter((name): name is string => typeof name === "string");
+  const unknown = unknownHostComponents(names);
+  if (unknown.length) {
+    throw new Error(
+      `hostComponents names no such component: ${unknown.join(", ")} (available: ${HOST_COMPONENTS.join(", ")})`,
+    );
   }
+
+  return names;
+}
+
+/**
+ * Whether a value is acceptable for a field, and why not when it is not.
+ */
+function fieldVerdict(
+  field: { type: PluginFieldType; optional?: boolean },
+  value: unknown,
+): { ok: true } | { ok: false; message: string } {
+  if (value === undefined) {
+    return field.optional ? { ok: true } : { ok: false, message: "is required but was not given" };
+  }
+
+  const type = field.type;
+  const ok =
+    (type === "string" && typeof value === "string") ||
+    (type === "number" && typeof value === "number" && Number.isFinite(value)) ||
+    (type === "boolean" && typeof value === "boolean") ||
+    (type === "datetime" &&
+      typeof value === "string" &&
+      /^\d{4}-\d{2}-\d{2}([T ].*)?$/.test(value)) ||
+    // `json` takes anything the record can hold, including null and arrays.
+    type === "json";
+
+  return ok ? { ok: true } : { ok: false, message: `is not a ${type}` };
 }
 
 /**
@@ -198,6 +220,8 @@ export function validatePatch(
   const cleanRecord = (
     collection: string,
     record: Record<string, unknown>,
+    /** `append` builds a whole record, so it is also checked for completeness. */
+    requireComplete: boolean,
   ): Record<string, unknown> => {
     const schema = manifest.collections[collection];
     if (!schema) {
@@ -206,6 +230,7 @@ export function validatePatch(
     }
 
     const clean: Record<string, unknown> = {};
+    const mentioned = new Set<string>();
     for (const [key, value] of Object.entries(record)) {
       // `id` is the record key, added by the runtime. Schemas never declare it.
       if (key === "id") continue;
@@ -215,11 +240,23 @@ export function validatePatch(
         errors.push(`field "${collection}.${key}" is not declared`);
         continue;
       }
-      if (!fieldMatches(field.type, value)) {
-        errors.push(`field "${collection}.${key}" is not a ${field.type}`);
+      mentioned.add(key);
+
+      if (value === undefined && !requireComplete) continue;
+
+      const verdict = fieldVerdict(field, value);
+      if (!verdict.ok) {
+        errors.push(`field "${collection}.${key}" ${verdict.message}`);
         continue;
       }
-      clean[key] = value;
+      if (value !== undefined) clean[key] = value;
+    }
+
+    if (requireComplete) {
+      for (const [key, field] of Object.entries(schema.fields)) {
+        if (field.optional || mentioned.has(key)) continue;
+        errors.push(`field "${collection}.${key}" is required but was not given`);
+      }
     }
 
     return clean;
@@ -237,7 +274,7 @@ export function validatePatch(
         errors.push(`append into "${op.collection}" has no record id`);
         continue;
       }
-      const record = cleanRecord(op.collection, op.record);
+      const record = cleanRecord(op.collection, op.record, true);
       ops.push({ ...op, record: { ...record, id: op.record.id } });
       continue;
     }
@@ -260,9 +297,9 @@ export function validatePatch(
         errors.push(`field "${op.collection}.${op.key}" is not declared`);
         continue;
       }
-      const value = op.value;
-      if (!fieldMatches(field.type, value)) {
-        errors.push(`field "${op.collection}.${op.key}" is not a ${field.type}`);
+      const verdict = fieldVerdict(field, op.value);
+      if (!verdict.ok) {
+        errors.push(`field "${op.collection}.${op.key}" ${verdict.message}`);
         continue;
       }
       ops.push(op);
@@ -270,7 +307,7 @@ export function validatePatch(
     }
 
     if (op.op === "merge") {
-      ops.push({ ...op, record: cleanRecord(op.collection, op.record) });
+      ops.push({ ...op, record: cleanRecord(op.collection, op.record, false) });
       continue;
     }
 
@@ -282,9 +319,4 @@ export function validatePatch(
   const view = patch.view && typeof patch.view === "object" ? patch.view : undefined;
 
   return { patch: { state: ops, view }, errors };
-}
-
-/** Human label for an action, used in the lab log. */
-export function actionLabel(action: PluginAction): string {
-  return `${action.name}${Object.keys(action.args ?? {}).length ? " " + JSON.stringify(action.args) : ""}`;
 }

@@ -8,7 +8,7 @@ import { engineAvailable } from "~/lib/engineHealth";
 import { getLinkIndex } from "~/lib/linkIndex";
 import { extractLinksFallback, workspaceBacklinks } from "~/lib/links";
 import { fetchPackageBytes, samePackage, specString } from "~/lib/packages";
-import { getPluginSource } from "~/lib/plugins/registry";
+import { getPluginSource, pluginSlugs } from "~/lib/plugins/registry";
 import { mirrorRequestPayload } from "~/lib/projectMirror";
 
 interface TypstRequestHandler {
@@ -72,7 +72,11 @@ export async function resolveRequestPayloads(
       };
 
       try {
-        payloads.push({ type: "package", spec, bytes: await fetchPackageBytes(spec) });
+        payloads.push({
+          type: "package",
+          spec,
+          bytes: await fetchPackageBytes(spec),
+        });
       } catch (error) {
         console.warn(`[typbase] could not fetch ${specString(spec)}:`, error);
       }
@@ -104,7 +108,18 @@ export async function resolveRequestPayloads(
       // Plugin modules, so notes can `#import "/typbase/plugin/..."`.
       if (path.startsWith("typbase/plugin/") || path === "typbase/ui.typ") {
         const text = getPluginSource(`/${path}`);
-        if (text !== undefined) payloads.push({ type: "source", path, text });
+        if (text !== undefined) {
+          payloads.push({ type: "source", path, text });
+          continue;
+        }
+
+        if (path !== "typbase/ui.typ") {
+          console.warn(
+            `[typbase] ${path} is not a catalogued plugin module. Installed: ${
+              pluginSlugs().join(", ") || "none"
+            }`,
+          );
+        }
         continue;
       }
     } else if (request.type === "file") {

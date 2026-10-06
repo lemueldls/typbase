@@ -915,7 +915,7 @@ export class WorkspaceStore {
 
   /**
    * Flips a page between document and notebook. The source is untouched:
-   * `// %%` markers are plain comments in a document, so nothing is deleted
+   * `//%` attributes are plain comments in a document, so nothing is deleted
    * behind the editor's back.
    */
   async updatePageKind(id: string, kind: PageKind): Promise<void> {

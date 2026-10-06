@@ -691,7 +691,7 @@ function formatTime(at: number): string {
   align-items: center;
   gap: var(--space-2);
   min-height: var(--pane-header-height);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -776,6 +776,7 @@ function formatTime(at: number): string {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+  margin-left: var(--space-2);
 }
 
 .studio__row {

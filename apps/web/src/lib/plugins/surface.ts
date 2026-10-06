@@ -374,6 +374,10 @@ export function attachPluginSurface(
 
   function mountComponents(): void {
     const declared = options.components ? new Set(options.components) : undefined;
+    // One place decides which names mount. A name that reaches here but is not
+    // implemented cannot come from a parsed manifest, so it is a surface that
+    // was injected after the fact and gets reported rather than ignored.
+    const mounters: Record<string, (element: HTMLElement) => void> = { canvas: mountCanvas };
 
     for (const element of root.querySelectorAll<HTMLElement>("[data-tb-component]")) {
       const name = element.getAttribute("data-tb-component") ?? "";
@@ -381,10 +385,14 @@ export function attachPluginSurface(
         options.onError(`component "${name}" is not declared in hostComponents`);
         continue;
       }
-      if (name !== "canvas") continue;
+      const mount = mounters[name];
+      if (!mount) {
+        options.onError(`component "${name}" is not one the host implements`);
+        continue;
+      }
       if (element.dataset.tbMounted) continue;
       element.dataset.tbMounted = "1";
-      mountCanvas(element);
+      mount(element);
     }
   }
 

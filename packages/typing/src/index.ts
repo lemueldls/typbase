@@ -15,7 +15,7 @@ export interface PageMeta {
   path: string;
   title: string;
   /**
-   * How the page is edited. "notebook" splits the source into `// %%` cells, and
+   * How the page is edited. "notebook" splits the source into `//%` cells, and
    * "document" is the plain editor. Older docs read back as "document".
    */
   kind: PageKind;

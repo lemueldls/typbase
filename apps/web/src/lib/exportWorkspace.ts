@@ -14,6 +14,7 @@ import {
   type ExportOptions,
 } from "~/lib/exportPage";
 import { pageContext, pageContextBinding, typstContextValue } from "~/lib/pageContext";
+import { pluginBundleSummary, pluginProjectFiles } from "~/lib/pluginBundle";
 import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 
@@ -47,7 +48,10 @@ export async function buildWorkspaceExport(
     throw new Error("Choose per-page files, a combined document, or both.");
   }
 
-  const themeOptions = { theme: options.theme, pageSize: options.pageSize } as const;
+  const themeOptions = {
+    theme: options.theme,
+    pageSize: options.pageSize,
+  } as const;
   const palette = publishThemePalette(store.getSettings(), themeOptions);
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
@@ -285,17 +289,26 @@ export async function buildWorkspaceExport(
 
     if (options.project) {
       const combined = options.stripMarkers ? stripCellAttributes(paged) : paged;
-      addFile({ name: pagePath, bytes: encoder.encode(`${pagedPrelude}\n${combined}`) });
+      addFile({
+        name: pagePath,
+        bytes: encoder.encode(`${pagedPrelude}\n${combined}`),
+      });
     }
   }
 
   if (options.project) {
     if (typstState) {
-      addFile({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });
+      addFile({
+        name: "typbase/lib.typ",
+        bytes: encoder.encode(typstState.typbaseLib()),
+      });
     }
     const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
     addFile({ name: syntax.path, bytes: encoder.encode(syntax.text) });
     for (const payload of payloads.values()) addFile(payload);
+    for (const plugin of await pluginProjectFiles(store)) {
+      addFile({ name: plugin.path, bytes: encoder.encode(plugin.text) });
+    }
     if (options.fonts) {
       for (const font of await fontFiles()) addFile(font);
     }
@@ -307,7 +320,10 @@ export async function buildWorkspaceExport(
       bytes: encoder.encode(buildWorkspaceReadme(pages.length, options)),
     });
     if (index.length) {
-      addFile({ name: "index.html", bytes: encoder.encode(buildWorkspaceIndex(index)) });
+      addFile({
+        name: "index.html",
+        bytes: encoder.encode(buildWorkspaceIndex(index)),
+      });
     }
   }
 
@@ -364,6 +380,8 @@ function buildWorkspaceReadme(pageCount: number, options: WorkspaceExportOptions
   }
   if (options.project) {
     lines.push("- `typbase/`: the library, referenced data and blobs, and optionally fonts");
+    const plugins = pluginBundleSummary();
+    if (plugins) lines.push(plugins);
   }
   lines.push("");
 

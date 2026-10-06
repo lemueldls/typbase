@@ -21,8 +21,30 @@ export function getPluginSource(path: string): string | undefined {
   return sources.get(path) ?? sources.get(path.startsWith("/") ? path : `/${path}`);
 }
 
+/**
+ * Every registered plugin module, keyed by its root-relative path.
+ */
+export function pluginSourceFiles(): { path: string; text: string }[] {
+  return [...sources].map(([path, text]) => ({
+    path: path.replace(/^\//, ""),
+    text,
+  }));
+}
+
 export function bumpPluginsRevision(): void {
   pluginsRevision.value += 1;
+}
+
+/** The catalogued plugin slugs, for a diagnostic that names what is available. */
+export function pluginSlugs(): string[] {
+  const slugs = new Set<string>();
+
+  for (const path of sources.keys()) {
+    const match = /^\/typbase\/plugin\/([^/]+)\//.exec(path);
+    if (match?.[1]) slugs.add(match[1]);
+  }
+
+  return [...slugs].sort();
 }
 
 // Remote edits to plugin docs must refresh notes that embed plugin data.

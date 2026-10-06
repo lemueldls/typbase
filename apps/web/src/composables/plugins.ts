@@ -6,6 +6,8 @@ import type {
   PluginInstance,
   PluginManifest,
   PluginPatch,
+  PluginPatchOp,
+  PluginState,
   PluginSurface,
   PluginSurfaceKind,
 } from "@typbase/typing";
@@ -193,11 +195,43 @@ export function usePluginHost() {
     bumpPluginsRevision();
 
     await dropLegacyInstalls();
+    await adoptSourceChanges();
 
     log({
       kind: "info",
       message: `catalog refreshed: ${catalog.value.length} plugin(s), ${local.length} local`,
     });
+  }
+
+  /**
+   * Brings an install record up to date when the plugin's sources moved on.
+   */
+  async function adoptSourceChanges(): Promise<void> {
+    const store = workspace.value;
+    if (!store) return;
+
+    for (const record of store.listPluginInstalls()) {
+      const entry = catalog.value.find((candidate) => candidate.manifest.id === record.id);
+      if (!entry) continue;
+
+      const changed = entry.manifest.version !== record.version;
+      // The manifest is cached in the install record so the UI works before the
+      // sources load, so a capability or surface edit shows up as a change too.
+      const manifestChanged = JSON.stringify(entry.manifest) !== record.manifest;
+      if (!changed && !manifestChanged) continue;
+
+      store.setPluginInstall({
+        ...record,
+        version: entry.manifest.version,
+        manifest: JSON.stringify(entry.manifest),
+      });
+
+      log({
+        kind: "info",
+        pluginId: record.id,
+        message: `${record.version || "unknown"} -> ${entry.manifest.version}`,
+      });
+    }
   }
 
   /**
@@ -665,7 +699,8 @@ export function usePluginHost() {
     const key = keyOf(instanceId, kind);
     const styles = entry.styles.map((style) => style.text);
     const settings = store.getSettings();
-    const state = await store.readPluginState(instanceId);
+    const hasData = manifest.capabilities.includes("plugin.data");
+    const state: PluginState = hasData ? await store.readPluginState(instanceId) : {};
     const canReadPages = manifest.capabilities.includes("pages.read");
 
     const ctx: PluginContext = {
@@ -832,7 +867,12 @@ export function usePluginHost() {
 
       const sanitized = sanitizeHtml(compiled.html);
       for (const error of sanitized.errors) {
-        pushError({ instanceId, pluginId: manifest.id, surface: kind, message: error });
+        pushError({
+          instanceId,
+          pluginId: manifest.id,
+          surface: kind,
+          message: error,
+        });
       }
 
       let patched = false;
@@ -840,24 +880,32 @@ export function usePluginHost() {
       if (sanitized.patch) {
         const validated = validatePatch(sanitized.patch as PluginPatch, manifest);
         for (const error of validated.errors) {
-          pushError({ instanceId, pluginId: manifest.id, surface: kind, message: error });
-        }
-        if (validated.patch.state?.length) {
-          log({
-            kind: "patch",
+          pushError({
             instanceId,
             pluginId: manifest.id,
-            message: validated.patch.state
-              .map((op) => `${op.op}:${op.collection}`)
-              .join(", ")
-              .slice(0, 200),
+            surface: kind,
+            message: error,
           });
-          await store.applyPluginPatch(instanceId, validated.patch.state);
-          patched = true;
-          statePatched = true;
-          // Notes embedding this plugin's data recompile. Other surfaces
-          // re-render through the revision watcher.
-          bumpPluginsRevision();
+        }
+        if (validated.patch.state?.length) {
+          // Logged after the capability check, so the log does not claim a patch
+          // that was refused.
+          if (await patchData(instanceId, validated.patch.state)) {
+            log({
+              kind: "patch",
+              instanceId,
+              pluginId: manifest.id,
+              message: validated.patch.state
+                .map((op) => `${op.op}:${op.collection}`)
+                .join(", ")
+                .slice(0, 200),
+            });
+            patched = true;
+            statePatched = true;
+            // Notes embedding this plugin's data recompile. Other surfaces
+            // re-render through the revision watcher.
+            bumpPluginsRevision();
+          }
         }
         if (validated.patch.view && Object.keys(validated.patch.view).length) {
           log({
@@ -926,6 +974,15 @@ export function usePluginHost() {
 
     if (action.name.startsWith("app.") || action.name.startsWith("ai.")) {
       const result = await handleBuiltin(instanceId, action);
+      if (result.denied) {
+        publish(keyOf(instanceId, kind), {
+          status: "error",
+          html: "",
+          styles: [],
+          error: `"${action.name}" was denied: the ${result.denied} capability is not declared`,
+        });
+        return;
+      }
       if (!result.rerender) await renderInstance(instanceId, kind, action, result);
       return;
     }
@@ -952,14 +1009,41 @@ export function usePluginHost() {
       message: `action denied: missing capability "${capability}"`,
     });
 
-    return { action: action.name, ok: false, message: `missing capability "${capability}"` };
+    return {
+      action: action.name,
+      ok: false,
+      message: `missing capability "${capability}"`,
+      denied: capability,
+    };
+  }
+
+  /**
+   * Applies a patch to an instance's synced collections.
+   */
+  async function patchData(instanceId: string, ops: PluginPatchOp[]): Promise<boolean> {
+    if (!ops.length) return false;
+    if (!capabilityOf(instanceId, "plugin.data")) {
+      pushError({
+        instanceId,
+        pluginId: pluginIdOf(instanceId),
+        message: `patch refused: missing capability "plugin.data"`,
+      });
+
+      return false;
+    }
+
+    const store = workspace.value;
+    if (!store) return false;
+    await store.applyPluginPatch(instanceId, ops);
+
+    return true;
   }
 
   /** Host actions return a result the plugin sees on its next render. */
   async function handleBuiltin(
     instanceId: string,
     action: PluginAction,
-  ): Promise<PluginActionResult & { rerender?: boolean }> {
+  ): Promise<PluginActionResult & { rerender?: boolean; denied?: PluginCapability }> {
     const store = workspace.value;
     if (!store) return { action: action.name, ok: false, message: "no workspace" };
 
@@ -1022,7 +1106,10 @@ export function usePluginHost() {
         if (href.startsWith("typbase://plugin/")) {
           const id = href.slice("typbase://plugin/".length);
           if (store.getPluginInstance(id)) navigation.openPlugin(id);
-          return { action: action.name, ok: Boolean(store.getPluginInstance(id)) };
+          return {
+            action: action.name,
+            ok: Boolean(store.getPluginInstance(id)),
+          };
         }
         if (/^(https?:|mailto:|tel:)/i.test(href)) {
           if (!capabilityOf(instanceId, "ui.external"))
@@ -1040,7 +1127,12 @@ export function usePluginHost() {
         if (!capabilityOf(instanceId, "pages.write"))
           return deny(instanceId, action, "pages.write");
         const text = String(action.args.text ?? action.fields?.text ?? "");
-        if (!text) return { action: action.name, ok: false, message: "nothing to insert" };
+        if (!text)
+          return {
+            action: action.name,
+            ok: false,
+            message: "nothing to insert",
+          };
 
         const explicitId = String(action.args.pageId ?? "");
         const date = String(action.args.date ?? "");
@@ -1131,7 +1223,11 @@ export function usePluginHost() {
           pluginId: pluginIdOf(instanceId),
           message: `unknown host action "${action.name}"`,
         });
-        return { action: action.name, ok: false, message: "unknown host action" };
+        return {
+          action: action.name,
+          ok: false,
+          message: "unknown host action",
+        };
       }
     }
   }
@@ -1251,7 +1347,7 @@ export function usePluginHost() {
     let passText = "";
     let timer: ReturnType<typeof setTimeout> | undefined;
     const patch = async (): Promise<void> => {
-      await store.applyPluginPatch(instanceId, [
+      await patchData(instanceId, [
         {
           op: "merge",
           collection: input.collection,
@@ -1271,7 +1367,7 @@ export function usePluginHost() {
       }, 150);
     };
 
-    await store.applyPluginPatch(instanceId, [
+    await patchData(instanceId, [
       {
         op: "merge",
         collection: input.collection,
@@ -1301,7 +1397,7 @@ export function usePluginHost() {
       });
 
       if (timer) clearTimeout(timer);
-      await store.applyPluginPatch(instanceId, [
+      await patchData(instanceId, [
         {
           op: "merge",
           collection: input.collection,
@@ -1320,19 +1416,17 @@ export function usePluginHost() {
     } catch (error) {
       if (timer) clearTimeout(timer);
       const message = error instanceof Error ? error.message : String(error);
-      await store
-        .applyPluginPatch(instanceId, [
-          {
-            op: "merge",
-            collection: input.collection,
-            id: input.recordId,
-            record: {
-              [statusField]: "error",
-              [`${input.field}Error`]: message,
-            },
+      await patchData(instanceId, [
+        {
+          op: "merge",
+          collection: input.collection,
+          id: input.recordId,
+          record: {
+            [statusField]: "error",
+            [`${input.field}Error`]: message,
           },
-        ])
-        .catch(() => undefined);
+        },
+      ]).catch(() => undefined);
       await input.followUp({ error: message });
     } finally {
       if (aiStreams.get(instanceId) === controller) aiStreams.delete(instanceId);
