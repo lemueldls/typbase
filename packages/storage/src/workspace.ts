@@ -112,12 +112,10 @@ export function renamePagePathFor(page: PageMeta, title: string): string | null 
 }
 
 /**
- * Default source for a new notebook: one markup cell with the title, then an
- * empty code cell to type into. The marker line is a comment, so the file
- * still compiles anywhere.
+ * Default source for a new notebook.
  */
 export function notebookTemplate(title: string): string {
-  return `// %% [markup]\n= ${title}\n\n// %% [code]\n`;
+  return `//% kind=hidden\n#set document(title: "${title}")\n\n= ${title}\n\n//% kind=code\n`;
 }
 
 /**
@@ -272,7 +270,7 @@ export interface CreatePageInput {
   /** Virtual Typst path. Defaults to `pages/<slug>.typ`. */
   path?: string;
   categoryId?: string | null;
-  /** "notebook" writes the cell-marker template as the default content. */
+  /** "notebook" writes the cell template as the default content. */
   kind?: PageKind;
   /** Typst source. Defaults to a `= Title` heading (or the notebook template). */
   content?: string;
@@ -684,10 +682,6 @@ export class WorkspaceStore {
       ...DEFAULT_SETTINGS.search,
       ...decodeSetting<Partial<WorkspaceSettings["search"]>>(map.get("search")),
     };
-    settings.notebook = {
-      ...DEFAULT_SETTINGS.notebook,
-      ...decodeSetting<Partial<WorkspaceSettings["notebook"]>>(map.get("notebook")),
-    };
     settings.editor = {
       ...DEFAULT_SETTINGS.editor,
       ...decodeSetting<Partial<WorkspaceSettings["editor"]>>(map.get("editor")),
@@ -738,7 +732,6 @@ export class WorkspaceStore {
       if (key === "publish") map.set("publish", encodeSetting(value));
       else if (key === "ai") map.set("ai", encodeSetting(value));
       else if (key === "search") map.set("search", encodeSetting(value));
-      else if (key === "notebook") map.set("notebook", encodeSetting(value));
       else if (key === "editor") map.set("editor", encodeSetting(value));
       else if (key === "graph") map.set("graph", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));

@@ -51,8 +51,13 @@ struct RawLink {
 /// Finds every app link call in `text`, sorted by source position.
 pub fn extract_links(text: &str) -> Vec<LinkSpan> {
     let root = typst_syntax::parse(text);
+    extract_links_root(&root, text)
+}
+
+/// `extract_links` over a tree the caller already has.
+pub fn extract_links_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<LinkSpan> {
     let mut raw = Vec::new();
-    let mut stack = vec![LinkedNode::new(&root)];
+    let mut stack = vec![LinkedNode::new(root)];
 
     while let Some(node) = stack.pop() {
         if let Some(call) = node.get().cast::<FuncCall>() {

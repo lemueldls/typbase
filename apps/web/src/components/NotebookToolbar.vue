@@ -1,67 +1,90 @@
 <script setup lang="ts">
-import type { NotebookSession } from "~/lib/notebook";
+import { NOTEBOOK_CELL_TYPES } from "@typbase/codemirror";
+
+import type { NotebookCellType, NotebookSession } from "~/lib/notebook";
 
 const props = defineProps<{
   session: NotebookSession;
-  /** Cell selected in command mode, or null while editing. */
-  selected: number | null;
+  /** The cell the actions apply to, or null when there is none. */
+  active: number | null;
   disabled: boolean;
+  compact: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: "runCell"): void;
-  (e: "runAll"): void;
-  (e: "restart"): void;
-  (e: "clearOutput"): void;
   (e: "addCell"): void;
+  (e: "split"): void;
+  (e: "merge"): void;
+  (e: "releaseAll"): void;
+  (e: "setType", type: NotebookCellType): void;
 }>();
 
-const activeIndex = computed(() => props.selected ?? props.session.active);
+const typeLabels: Record<NotebookCellType, string> = {
+  prose: "notebook.prose",
+  code: "notebook.code",
+  log: "notebook.log",
+  hidden: "notebook.hidden",
+};
 
-const status = computed(() => {
-  if (props.session.running !== null) return "notebook.running";
-  if (props.selected !== null) return "notebook.commandHint";
+const activeType = computed<NotebookCellType>(
+  () => props.session.cells[props.active ?? -1]?.kind ?? "prose",
+);
 
-  return null;
-});
+const hasCell = computed(() => props.active !== null);
 </script>
 
 <template>
-  <div class="notebook-toolbar">
-    <UiIconButton
-      icon="play_arrow"
-      :label="$t('notebook.runCell')"
-      :disabled="disabled || activeIndex === null"
-      @click="emit('runCell')"
-    />
-    <UiIconButton
-      icon="fast_forward"
-      :label="$t('notebook.runAll')"
-      :disabled="disabled"
-      @click="emit('runAll')"
-    />
-    <UiIconButton
-      icon="restart_alt"
-      :label="$t('notebook.restart')"
-      :disabled="disabled"
-      @click="emit('restart')"
-    />
+  <div class="notebook-toolbar" :class="{ 'notebook-toolbar--compact': compact }">
     <UiIconButton
       icon="add"
       :label="$t('notebook.addCell')"
       :disabled="disabled"
       @click="emit('addCell')"
     />
+
+    <UiMenu align="start">
+      <template #trigger>
+        <UiIconButton
+          icon="category"
+          :label="$t('notebook.cellType')"
+          :disabled="disabled || !hasCell"
+        />
+      </template>
+      <DropdownMenuRadioGroup
+        :model-value="activeType"
+        @update:model-value="(value) => emit('setType', value as NotebookCellType)"
+      >
+        <DropdownMenuRadioItem
+          v-for="type in NOTEBOOK_CELL_TYPES"
+          :key="type"
+          :value="type"
+          class="menu__item"
+          :disabled="disabled || !hasCell"
+        >
+          {{ $t(typeLabels[type]) }}
+          <MsIcon name="check" :size="16" class="menu__item-check" />
+        </DropdownMenuRadioItem>
+      </DropdownMenuRadioGroup>
+    </UiMenu>
+
     <UiIconButton
-      icon="delete_sweep"
-      :label="$t('notebook.clearOutput')"
-      :disabled="disabled || activeIndex === null"
-      @click="emit('clearOutput')"
+      icon="call_split"
+      :label="$t('notebook.split')"
+      :disabled="disabled || !hasCell"
+      @click="emit('split')"
     />
-
-    <span class="notebook-toolbar__spacer" />
-
-    <span v-if="status" class="notebook-toolbar__status">{{ $t(status) }}</span>
+    <UiIconButton
+      icon="merge_type"
+      :label="$t('notebook.merge')"
+      :disabled="disabled || props.active === null || props.active === 0"
+      @click="emit('merge')"
+    />
+    <UiIconButton
+      icon="play_arrow"
+      :label="$t('notebook.releaseAll')"
+      :disabled="disabled || Object.keys(session.held).length === 0"
+      @click="emit('releaseAll')"
+    />
   </div>
 </template>
 
@@ -81,14 +104,12 @@ const status = computed(() => {
   display: none;
 }
 
-.notebook-toolbar__spacer {
-  flex: 1;
-}
-
-.notebook-toolbar__status {
-  flex: none;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
+.notebook-toolbar--compact {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  border-top: 1px solid var(--color-border);
+  border-bottom: none;
+  padding-bottom: calc(var(--safe-bottom) + var(--space-1));
 }
 </style>

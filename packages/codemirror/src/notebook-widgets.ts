@@ -1,11 +1,13 @@
-import type { EditorState, Range } from "@codemirror/state";
+import type { Range } from "@codemirror/state";
+import type { EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typbase/engine";
 
 import { Decoration, WidgetType } from "@codemirror/view";
 
 import type { ExternalLinkOpener } from "./frames";
-import type { NotebookCell, NotebookCellState, NotebookLabels, NotebookOptions } from "./notebook";
+import type { NotebookCell } from "./notebook";
+import type { NotebookCellState, NotebookLabels, NotebookOptions } from "./notebook";
 
 import {
   attachFrameInteractions,
@@ -18,159 +20,218 @@ import {
 import {
   cellIndexAt,
   cellStart,
-  deleteCellAt,
-  duplicateCellAt,
   focusCell,
-  hasMarker,
-  moveCellAt,
-  notebookOptions,
-  notebookRefreshEffect,
-  runCell,
-  toggleCellType,
+  hasAttribute,
+  hasOutput,
+  hidesSource,
+  rendersInPlace,
 } from "./notebook";
 
-function iconSpan(name: string): HTMLSpanElement {
+function icon(name: string, size?: number): HTMLElement {
   const span = document.createElement("span");
-
   span.className = "ms-icon material-symbols-rounded";
-  span.textContent = name;
   span.setAttribute("aria-hidden", "true");
+  if (size !== undefined) {
+    span.style.fontSize = `calc(${size}px * var(--ui-size, 1))`;
+  }
+  span.textContent = name;
 
   return span;
 }
 
-/** Fallback labels for consumers that enable cells without i18n strings. */
-const FALLBACK_LABELS: NotebookLabels = {
-  run: "Run cell",
-  code: "Code",
-  markup: "Text",
-  moveUp: "Move cell up",
-  moveDown: "Move cell down",
-  duplicate: "Duplicate cell",
-  remove: "Delete cell",
-  clearOutput: "Clear output",
-  toggleSource: "Collapse cell",
-  noOutput: "No output",
-  error: "Cell error",
-};
-
-/** Buttons must not hand the mousedown to CodeMirror's selection handling. */
-function actionButton(
-  icon: string,
+/** A button that must not hand the mousedown to CodeMirror's selection. */
+function button(
+  name: string,
   label: string,
-  onClick: (event: MouseEvent) => void,
+  onClick: () => void,
   className = "",
 ): HTMLButtonElement {
-  const button = document.createElement("button");
-
-  button.type = "button";
-  button.className = `tb-cell-btn ${className}`.trim();
-  button.title = label;
-  button.setAttribute("aria-label", label);
-  button.append(iconSpan(icon));
-  button.addEventListener("mousedown", (event) => event.preventDefault());
-  button.addEventListener("click", (event) => {
+  const element = document.createElement("button");
+  element.type = "button";
+  element.className = `tb-cell-btn${className ? ` ${className}` : ""}`;
+  element.title = label;
+  element.setAttribute("aria-label", label);
+  element.append(icon(name, RAIL_ICON_SIZE));
+  element.addEventListener("mousedown", (event) => event.preventDefault());
+  element.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    onClick(event);
+    onClick();
   });
 
-  return button;
+  return element;
 }
 
-interface HeaderArgs {
-  index: number;
-  kind: NotebookCell["kind"];
-  counter: boolean;
-  count?: number;
-  collapsed: boolean;
-  labels: NotebookLabels;
-}
+/**
+ * Icon size across the rail: the chip glyph, its overflow button, and the menu's
+ * items, which is the same row and `UiMenuItem`'s default.
+ */
+const RAIL_ICON_SIZE = 20;
 
-class NotebookHeaderWidget extends WidgetType {
+/** The glyph and label for a cell kind. */
+const KIND_PRESENTATION: Record<NotebookCell["kind"], string> = {
+  prose: "notes",
+  code: "code",
+  log: "terminal",
+  hidden: "visibility_off",
+};
+
+class NotebookRailWidget extends WidgetType {
+  private menu: HTMLElement | null = null;
+
   public constructor(
     private readonly view: EditorView,
-    private readonly args: HeaderArgs,
+    private readonly args: {
+      index: number;
+      kind: NotebookCell["kind"];
+      name?: string | null;
+      collapsed: boolean;
+      held: boolean;
+      labels: NotebookLabels;
+      onCommand: (command: string, index: number) => void;
+    },
   ) {
     super();
   }
 
-  public override eq(other: NotebookHeaderWidget) {
+  public override eq(other: NotebookRailWidget) {
     const a = this.args;
     const b = other.args;
 
     return (
       a.index === b.index &&
       a.kind === b.kind &&
-      a.counter === b.counter &&
-      a.count === b.count &&
+      a.name === b.name &&
       a.collapsed === b.collapsed &&
+      a.held === b.held &&
       a.labels === b.labels
     );
   }
 
+  public override ignoreEvent(event: Event): boolean {
+    return (
+      event.type === "mousedown" && (event.target as HTMLElement).classList.contains("tb-cell-rail")
+    );
+  }
+
   public toDOM() {
-    const { index, kind, labels } = this.args;
-    const header = document.createElement("div");
+    const { index, kind, name, labels } = this.args;
+    const rail = document.createElement("div");
+    rail.className = "tb-cell-rail";
+    rail.dataset.kind = kind;
+    rail.dataset.cell = String(index);
 
-    header.className = "tb-cell-header";
-    header.dataset.kind = kind;
-    header.dataset.cell = String(index);
+    const chip = document.createElement("span");
+    chip.className = "tb-cell-chip";
+    chip.append(icon(KIND_PRESENTATION[kind], RAIL_ICON_SIZE));
+    chip.append(document.createTextNode(name || labels[kind]));
+    rail.append(chip);
 
-    const run = actionButton("play_arrow", labels.run, () => runCell(this.view, index));
-    run.classList.add("tb-cell-btn--run");
-    header.append(run);
-
-    if (this.args.counter) {
-      const chip = document.createElement("span");
-      chip.className = "tb-cell-counter";
-      chip.textContent = this.args.count === undefined ? "[ ]" : `[${this.args.count}]`;
-      header.append(chip);
+    if (this.args.held) {
+      const held = document.createElement("span");
+      held.className = "tb-cell-held";
+      held.textContent = labels.held;
+      rail.append(held);
     }
 
-    header.append(
-      actionButton(
-        kind === "code" ? "code" : "notes",
-        kind === "code" ? labels.code : labels.markup,
-        () => toggleCellType(this.view, index),
-        "tb-cell-btn--type",
-      ),
-    );
+    const menu = button("more_vert", labels.menu, () => this.toggleMenu(rail), "tb-cell-btn--menu");
+    rail.append(menu);
 
-    const spacer = document.createElement("span");
-    spacer.className = "tb-cell-spacer";
-    header.append(spacer);
-
-    const actions = document.createElement("span");
-    actions.className = "tb-cell-actions";
-    actions.append(
-      actionButton("arrow_upward", labels.moveUp, () => moveCellAt(this.view, index, -1)),
-      actionButton("arrow_downward", labels.moveDown, () => moveCellAt(this.view, index, 1)),
-      actionButton("content_copy", labels.duplicate, () => duplicateCellAt(this.view, index)),
-      actionButton(this.args.collapsed ? "unfold_more" : "unfold_less", labels.toggleSource, () => {
-        notebookOptions(this.view.state)?.onToggleCollapse?.(index);
-        this.view.dispatch({ effects: notebookRefreshEffect.of(null) });
-      }),
-      actionButton("delete_sweep", labels.clearOutput, () => {
-        notebookOptions(this.view.state)?.onClearOutput?.(index);
-        this.view.dispatch({ effects: notebookRefreshEffect.of(null) });
-      }),
-      actionButton("delete", labels.remove, () => deleteCellAt(this.view, index)),
-    );
-    header.append(actions);
-
-    // Clicking the bar selects the cell without fighting the buttons.
-    header.addEventListener("mousedown", (event) => {
-      if ((event.target as Element | null)?.closest("button")) return;
+    rail.addEventListener("mousedown", (event) => {
+      if ((event.target as HTMLElement).closest("button")) return;
       event.preventDefault();
       focusCell(this.view, index);
     });
 
-    return header;
+    return rail;
   }
 
-  public override get estimatedHeight() {
-    return 24;
+  private toggleMenu(anchor: HTMLElement): void {
+    if (this.menu) {
+      this.closeMenu();
+
+      return;
+    }
+
+    const { labels, index, collapsed, held } = this.args;
+    const items: Array<{ command: string; label: string; name: string }> = [
+      {
+        command: "toggleSource",
+        label: labels.toggleSource,
+        name: collapsed ? "unfold_more" : "unfold_less",
+      },
+      { command: "split", label: labels.split, name: "call_split" },
+      { command: "merge", label: labels.merge, name: "merge_type" },
+      {
+        command: "moveUp",
+        label: labels.moveUp,
+        name: "keyboard_double_arrow_up",
+      },
+      {
+        command: "moveDown",
+        label: labels.moveDown,
+        name: "keyboard_double_arrow_down",
+      },
+      { command: "duplicate", label: labels.duplicate, name: "content_copy" },
+      { command: "copy", label: labels.copy, name: "content_paste" },
+      {
+        command: held ? "release" : "hold",
+        label: held ? labels.release : labels.hold,
+        name: held ? "play_arrow" : "pause",
+      },
+      {
+        command: "clearOutput",
+        label: labels.clearOutput,
+        name: "delete_sweep",
+      },
+      { command: "remove", label: labels.remove, name: "delete" },
+    ];
+
+    const menu = document.createElement("div");
+    menu.className = "menu tb-cell-menu";
+    menu.setAttribute("role", "menu");
+
+    for (const item of items) {
+      const entry = document.createElement("button");
+      entry.type = "button";
+      entry.className = "menu__item";
+      entry.setAttribute("role", "menuitem");
+      entry.append(icon(item.name, RAIL_ICON_SIZE));
+      entry.append(document.createTextNode(item.label));
+      entry.addEventListener("click", () => {
+        this.closeMenu();
+        this.args.onCommand(item.command, index);
+      });
+      menu.append(entry);
+    }
+
+    document.body.append(menu);
+    const box = anchor.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.left = `${Math.round(box.left)}px`;
+    menu.style.top = `${Math.round(box.bottom + 4)}px`;
+    this.menu = menu;
+
+    const dismiss = (event: Event): void => {
+      if (menu.contains(event.target as Node)) return;
+      this.closeMenu();
+    };
+    setTimeout(() => document.addEventListener("mousedown", dismiss), 0);
+    document.addEventListener("keyup", this.onEscape);
+  }
+
+  private readonly onEscape = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") this.closeMenu();
+  };
+
+  private closeMenu(): void {
+    this.menu?.remove();
+    this.menu = null;
+    document.removeEventListener("keyup", this.onEscape);
+  }
+
+  public override destroy(): void {
+    this.closeMenu();
   }
 }
 
@@ -179,11 +240,14 @@ interface OutputArgs {
   frames: SvgRangedFrame[];
   diagnostics: TypstDiagnostic[];
   cleared: boolean;
-  /** The cell has been run at least once. Only then does "No output" show. */
-  hasRun: boolean;
+  /** The cell is held, so what is shown is its last output. */
+  held: boolean;
   labels: NotebookLabels;
 }
 
+/**
+ * A cell's output: its frames and the diagnostics whose span falls inside it.
+ */
 class NotebookOutputWidget extends WidgetType {
   public constructor(
     private readonly view: EditorView,
@@ -195,11 +259,7 @@ class NotebookOutputWidget extends WidgetType {
     super();
   }
 
-  /** Hash of everything the DOM depends on, since DOM identity is expensive. */
-  private get key(): string {
-    // Frame height is not in the render hash: a list item's chunk grows with
-    // the compiled spacing while its ink stays the same. Keep the size in the
-    // key or a spacing change reuses the old DOM.
+  private get key() {
     const frames = this.args.frames
       .map((frame) => {
         const size = frameSize(frame);
@@ -209,7 +269,7 @@ class NotebookOutputWidget extends WidgetType {
       .join(",");
     const diagnostics = this.args.diagnostics.map((diagnostic) => diagnostic.message).join("|");
 
-    return `${this.args.index}:${this.args.cleared}:${this.args.hasRun}:${frames}:${diagnostics}`;
+    return `${this.args.index}:${this.args.cleared}:${this.args.held}:${frames}:${diagnostics}`;
   }
 
   public override eq(other: NotebookOutputWidget) {
@@ -218,19 +278,11 @@ class NotebookOutputWidget extends WidgetType {
 
   public toDOM() {
     const root = document.createElement("div");
-    const { cleared, labels } = this.args;
+    const { cleared, held, labels } = this.args;
 
     root.className = "tb-cell-output";
     if (cleared) {
       root.classList.add("tb-cell-output--cleared");
-
-      return root;
-    }
-
-    const hasContent =
-      this.args.frames.length > 0 || this.args.diagnostics.length > 0 || this.args.hasRun;
-    if (!hasContent) {
-      root.classList.add("tb-cell-output--empty");
 
       return root;
     }
@@ -257,7 +309,6 @@ class NotebookOutputWidget extends WidgetType {
     for (const frame of this.args.frames) {
       const holder = document.createElement("div");
       holder.className = "tb-cell-frame";
-
       const container = createFrameContainer(frame);
       attachFrameInteractions(
         container,
@@ -271,7 +322,12 @@ class NotebookOutputWidget extends WidgetType {
       body.append(holder);
     }
 
-    if (!this.args.frames.length && !this.args.diagnostics.length && this.args.hasRun) {
+    if (held) {
+      const note = document.createElement("div");
+      note.className = "tb-cell-stale";
+      note.textContent = labels.held;
+      body.append(note);
+    } else if (!this.args.frames.length && !this.args.diagnostics.length) {
       const empty = document.createElement("div");
       empty.className = "tb-cell-empty";
       empty.textContent = labels.noOutput;
@@ -291,6 +347,30 @@ class NotebookOutputWidget extends WidgetType {
   }
 }
 
+/**
+ * The height an off-screen cell's output reserves, without building any of it.
+ */
+class NotebookOutputSpacer extends WidgetType {
+  public constructor(private readonly height: number) {
+    super();
+  }
+
+  public override eq(other: NotebookOutputSpacer) {
+    return this.height === other.height;
+  }
+
+  public toDOM() {
+    const root = document.createElement("div");
+    root.className = "tb-cell-output tb-cell-output--offscreen";
+
+    return root;
+  }
+
+  public override get estimatedHeight() {
+    return this.height;
+  }
+}
+
 export interface NotebookDecorateArgs {
   view: EditorView;
   state: EditorState;
@@ -300,6 +380,17 @@ export interface NotebookDecorateArgs {
   fileId: FileId;
   typstState: TypstState;
   locked: boolean;
+  readOnly: boolean;
+  /**
+   * Draw the frames. Source mode keeps the cells, the rails, and the attribute
+   * lines but shows the text unrendered, which is what makes it different from
+   * write mode for a notebook.
+   */
+  renderFrames: boolean;
+  /** The cell the reader is in, which gets an accent rule down its side. */
+  activeIndex: number | null;
+  /** A command from the rail's overflow menu. */
+  onCommand: (command: string, index: number) => void;
   onExternalLink?: ExternalLinkOpener;
   options: NotebookOptions;
 }
@@ -314,6 +405,10 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
     fileId,
     typstState,
     locked,
+    readOnly,
+    renderFrames,
+    activeIndex,
+    onCommand,
     onExternalLink,
     options,
   } = args;
@@ -325,45 +420,69 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
     if (index >= 0) byCell[index]!.push(frame);
   }
 
-  const counter = options.counters?.() ?? false;
+  const labels = options.labels ?? FALLBACK_LABELS;
+  const cellState = (index: number): NotebookCellState => options.state?.(index) ?? {};
+
+  // Only cells near the viewport get a real output widget. One screen of margin
+  // covers a fast scroll landing between two frames.
+  const visible = new Set<number>();
+  for (const range of view.visibleRanges) {
+    const from = cellIndexAt(cells, range.from);
+    const to = cellIndexAt(cells, range.to);
+    for (let index = Math.max(0, from); index <= Math.min(cells.length - 1, to); index++) {
+      visible.add(index);
+    }
+  }
 
   cells.forEach((cell, index) => {
-    const cellState: NotebookCellState = options.state?.(index) ?? {};
+    const own = cellState(index);
+    const firstLine = state.doc.lineAt(cellStart(cell)).from;
 
-    // The header rides the marker line as an inline widget, so it never
-    // collides with an output block widget placed at the same position.
-    const headerPos = state.doc.lineAt(cellStart(cell)).from;
-    decorations.push(
-      Decoration.widget({
-        widget: new NotebookHeaderWidget(view, {
-          index,
-          kind: cell.kind,
-          counter,
-          count: cellState.count,
-          collapsed: cellState.collapsed ?? false,
-          labels: options.labels ?? FALLBACK_LABELS,
-        }),
-        side: -1,
-      }).range(headerPos),
-    );
+    if (index === activeIndex) {
+      decorations.push(Decoration.line({ class: "tb-cell-active" }).range(firstLine));
+    }
 
-    if (hasMarker(cell)) {
+    if (!readOnly) {
       decorations.push(
-        Decoration.line({ class: "tb-cell-marker" }).range(
-          state.doc.lineAt(cell.marker_start).from,
-        ),
+        Decoration.widget({
+          widget: new NotebookRailWidget(view, {
+            index,
+            kind: cell.kind,
+            name: cell.name,
+            collapsed: own.collapsed ?? false,
+            held: own.held ?? false,
+            labels,
+            onCommand,
+          }),
+          block: !hasAttribute(cell),
+          side: -1,
+        }).range(firstLine),
       );
+
+      if (hasAttribute(cell)) {
+        decorations.push(
+          Decoration.line({ class: "tb-cell-attribute" }).range(
+            state.doc.lineAt(cell.marker_start).from,
+          ),
+        );
+      }
     }
 
-    // Collapse hides the source. A code cell keeps its output, a markup cell
-    // has nothing else to show.
-    const hideContent = cellState.collapsed && cell.content_end > cell.content_start;
-    if (hideContent) {
-      decorations.push(Decoration.replace({}).range(cell.content_start, cell.content_end));
+    const contentStart = cell.content_start;
+    const contentEnd = cell.content_end;
+    const hideSource = (own.collapsed ?? false) || hidesSource(cell.kind);
+    if (hideSource && contentEnd > contentStart) {
+      decorations.push(Decoration.replace({}).range(contentStart, contentEnd));
     }
 
-    if (cell.kind === "markup") {
-      if (cellState.collapsed) return;
+    if (hideSource) {
+      if (renderFrames) pushDiagnostics(decorations, state, cell, diagnostics);
+
+      return;
+    }
+
+    if (rendersInPlace(cell.kind)) {
+      if (!renderFrames) return;
 
       for (const frame of byCell[index] ?? []) {
         const { start, end } = frame.range;
@@ -380,18 +499,34 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
         }
       }
 
+      if (renderFrames) pushDiagnostics(decorations, state, cell, diagnostics);
+
       return;
     }
 
-    // Code cells keep their source visible, and the render moves below the cell.
-    const outputPos =
-      cell.content_end > cell.content_start
-        ? state.doc.lineAt(cell.content_end).to
-        : cell.content_start;
-    const cellDiagnostics = diagnostics.filter(
-      (diagnostic) =>
-        diagnostic.range.start >= cell.content_start && diagnostic.range.start <= cell.content_end,
-    );
+    if (!hasOutput(cell.kind)) return;
+    if (!renderFrames) return;
+
+    const outputPos = contentEnd > contentStart ? state.doc.lineAt(contentEnd).to : contentStart;
+    const held = own.held ?? false;
+    const output = held
+      ? (own.frozen ?? { frames: [], diagnostics: [] })
+      : {
+          frames: byCell[index] ?? [],
+          diagnostics: cellDiagnosticsFor(cell, diagnostics),
+        };
+
+    if (!visible.has(index)) {
+      decorations.push(
+        Decoration.widget({
+          widget: new NotebookOutputSpacer(outputHeight(output.frames)),
+          block: true,
+          side: 1,
+        }).range(outputPos),
+      );
+
+      return;
+    }
 
     decorations.push(
       Decoration.widget({
@@ -401,11 +536,11 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
           typstState,
           {
             index,
-            frames: byCell[index] ?? [],
-            diagnostics: cellDiagnostics,
-            cleared: cellState.cleared ?? false,
-            hasRun: cellState.count !== undefined,
-            labels: options.labels ?? FALLBACK_LABELS,
+            frames: output.frames,
+            diagnostics: output.diagnostics,
+            cleared: own.cleared ?? false,
+            held,
+            labels,
           },
           onExternalLink,
         ),
@@ -417,3 +552,99 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
 
   return decorations;
 }
+
+function outputHeight(frames: SvgRangedFrame[]): number {
+  let height = 0;
+  for (const frame of frames) height += frameSize(frame).height;
+
+  return height + 16;
+}
+
+/** The diagnostics whose span starts inside a cell's content. */
+function cellDiagnosticsFor(cell: NotebookCell, diagnostics: TypstDiagnostic[]): TypstDiagnostic[] {
+  return diagnostics.filter(
+    (diagnostic) =>
+      diagnostic.range.start >= cell.content_start && diagnostic.range.start <= cell.content_end,
+  );
+}
+
+/**
+ * A cell's diagnostics as a block under its content, so an error is locatable
+ * by cell rather than only in the lint panel.
+ */
+function pushDiagnostics(
+  decorations: Range<Decoration>[],
+  state: EditorState,
+  cell: NotebookCell,
+  diagnostics: TypstDiagnostic[],
+): void {
+  const own = cellDiagnosticsFor(cell, diagnostics);
+  if (!own.length) return;
+
+  const pos =
+    cell.content_end > cell.content_start
+      ? state.doc.lineAt(cell.content_end).to
+      : cell.content_start;
+
+  decorations.push(
+    Decoration.widget({
+      widget: new NotebookDiagnosticsWidget(own),
+      block: true,
+      side: 1,
+    }).range(pos),
+  );
+}
+
+class NotebookDiagnosticsWidget extends WidgetType {
+  public constructor(private readonly diagnostics: TypstDiagnostic[]) {
+    super();
+  }
+
+  public override eq(other: NotebookDiagnosticsWidget) {
+    return (
+      this.diagnostics.length === other.diagnostics.length &&
+      this.diagnostics.every(
+        (diagnostic, index) => diagnostic.message === other.diagnostics[index]?.message,
+      )
+    );
+  }
+
+  public toDOM() {
+    const root = document.createElement("div");
+    root.className = "tb-cell-diagnostics";
+
+    for (const diagnostic of this.diagnostics) {
+      const item = document.createElement("div");
+      item.className = `tb-cell-diagnostic tb-cell-diagnostic--${diagnostic.severity}`;
+      item.textContent = diagnostic.message;
+      root.append(item);
+    }
+
+    return root;
+  }
+
+  public override get estimatedHeight() {
+    return this.diagnostics.length * 22 + 8;
+  }
+}
+
+const FALLBACK_LABELS: NotebookLabels = {
+  code: "Code",
+  prose: "Text",
+  log: "Log",
+  hidden: "Hidden",
+  menu: "Cell actions",
+  split: "Split cell",
+  merge: "Merge with the cell above",
+  moveUp: "Move cell up",
+  moveDown: "Move cell down",
+  duplicate: "Duplicate cell",
+  remove: "Delete cell",
+  copy: "Copy cell",
+  hold: "Hold output",
+  release: "Release output",
+  clearOutput: "Clear output",
+  toggleSource: "Collapse cell",
+  noOutput: "No output",
+  held: "Held",
+};

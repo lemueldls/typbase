@@ -256,14 +256,6 @@ function clearIgnoredLints() {
   props.store.updateSettings({ spellcheckIgnoredLints: [] });
 }
 
-const notebookCounters = computed({
-  get: () => settings.value.notebook?.showCounters ?? true,
-  set: (value: boolean) =>
-    props.store.updateSettings({
-      notebook: { ...settings.value.notebook, showCounters: value },
-    }),
-});
-
 // Display-only editor options. The pane reconfigures them in place.
 const editorLineNumbers = computed({
   get: () => settings.value.editor?.lineNumbers ?? false,
@@ -693,18 +685,6 @@ async function renameWorkspace(event: Event) {
             </UiButton>
             <span class="settings__hint">{{ $t("settings.spellcheckIgnoredHint") }}</span>
           </div>
-
-          <section class="settings__section">
-            <h4 class="settings__heading">{{ $t("settings.notebook") }}</h4>
-            <div class="settings__field">
-              <UiSwitch
-                v-model="notebookCounters"
-                :label="$t('settings.notebookCounters')"
-                :aria-label="$t('settings.notebookCounters')"
-              />
-              <span class="settings__hint">{{ $t("settings.notebookCountersHint") }}</span>
-            </div>
-          </section>
 
           <section class="settings__section">
             <h4 class="settings__heading">{{ $t("settings.editor") }}</h4>

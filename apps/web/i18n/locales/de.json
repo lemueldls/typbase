@@ -115,8 +115,7 @@
     "publishConfirm": "Diese Notiz zurückziehen? Öffentliche Einträge können von Firehose-Diensten gespiegelt werden und sind nicht zurückholbar.",
     "publishHint": "Öffentliche Einträge kann jeder lesen. Zurückziehen löscht den Eintrag, doch Spiegel können Kopien behalten.",
     "publishWorking": "Arbeite…",
-    "dropMedia": "Zum Einfügen von Medien hier ablegen",
-    "notebook": "Notizbuch"
+    "dropMedia": "Zum Einfügen von Medien hier ablegen"
   },
   "settings": {
     "title": "Arbeitsbereich-Einstellungen",
@@ -144,7 +143,7 @@
     "uiSizeLarge": "Groß",
     "uiSizeHint": "Skaliert Text, Schaltflächen und Symbole.",
     "appBar": "App-Leiste",
-    "appBarHint": "Der Streifen über den Seiten mit Navigation, Suche und Synchronisierung. Cmd-J schaltet ihn auf diesem Gerät um.",
+    "appBarHint": "Der Streifen über den Seiten mit Navigation, Suche und Synchronisierung.",
     "uiDensity": "Dichte",
     "uiDensityCompact": "Kompakt",
     "uiDensityDefault": "Standard",
@@ -587,28 +586,27 @@
     "filters": "Filter"
   },
   "notebook": {
-    "runCell": "Zelle ausführen",
-    "run": "Zelle ausführen",
-    "runAll": "Alle ausführen",
-    "restart": "Neu starten",
     "addCell": "Zelle hinzufügen",
     "clearOutput": "Ausgabe löschen",
-    "running": "Läuft…",
-    "commandHint": "Enter bearbeitet · A/B fügt · DD löscht · M/Y/X Typ · T wechselt",
     "code": "Code",
-    "markup": "Text",
     "moveUp": "Zelle nach oben",
     "moveDown": "Zelle nach unten",
     "duplicate": "Zelle duplizieren",
     "remove": "Zelle löschen",
     "toggleSource": "Zelle einklappen",
     "noOutput": "Keine Ausgabe",
-    "error": "Zellenfehler",
-    "math": "Mathematik",
-    "stale": "Veraltet. Zelle ausführen, um zu aktualisieren.",
     "cellType": "Zellentyp",
-    "autoRunCode": "Auto-Ausführung",
-    "counters": "Zähler"
+    "prose": "Text",
+    "log": "Protokoll",
+    "hidden": "Versteckt",
+    "menu": "Zellenaktionen",
+    "split": "Zelle teilen",
+    "merge": "Mit der Zelle darüber verbinden",
+    "copy": "Zelle kopieren",
+    "hold": "Ausgabe halten",
+    "release": "Ausgabe freigeben",
+    "releaseAll": "Alle gehaltenen Ausgaben freigeben",
+    "held": "Gehalten"
   },
   "updates": {
     "title": "Software-Aktualisierung",

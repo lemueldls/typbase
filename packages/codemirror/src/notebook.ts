@@ -2,47 +2,80 @@ import type { EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { SvgRangedFrame, TypstDiagnostic } from "@typbase/engine";
 
-import { Facet, Prec, StateEffect } from "@codemirror/state";
+import { Facet, StateEffect } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 
-/**
- * Notebook cells. A cell is a `// %%` marker comment plus the content under
- * it, up to the next marker or the end of the document. Offsets are UTF-16
- * and match the engine's `CellSpan`, so `extractCells` results pass through.
- */
-export type NotebookCellType = "markup" | "code";
+export type NotebookCellType = "prose" | "code" | "log" | "hidden";
+
+/** Every type, in the order the menu lists them. */
+export const NOTEBOOK_CELL_TYPES: readonly NotebookCellType[] = ["prose", "code", "log", "hidden"];
+
+/** True when the cell renders in place rather than showing source plus output. */
+export function rendersInPlace(kind: NotebookCellType): boolean {
+  return kind === "prose";
+}
+
+/** True when the cell's source is not part of what the reader sees. */
+export function hidesSource(kind: NotebookCellType): boolean {
+  return kind === "log" || kind === "hidden";
+}
+
+/** True when the cell has an output area below its source. */
+export function hasOutput(kind: NotebookCellType): boolean {
+  return kind === "code" || kind === "log";
+}
 
 export interface NotebookCell {
   kind: NotebookCellType;
+  /** `name=` from the attribute line, when it carries one. */
+  name?: string | null;
   marker_start: number;
   marker_end: number;
   content_start: number;
   content_end: number;
 }
 
-/** Per-cell state the host owns: run counters and visibility. */
 export interface NotebookCellState {
-  /** Execution counter shown as `[n]`. Undefined until the cell is run. */
-  count?: number;
-  /** Output hidden until the next run. */
-  cleared?: boolean;
   /** Source hidden behind the header. */
   collapsed?: boolean;
+  /**
+   * Keep the output this cell had when it was held. For the cells where a live
+   * render is wrong or expensive: a heavy query, a non-deterministic one, one
+   * with a side effect. See the note in `NotebookOptions.onCompile`.
+   */
+  held?: boolean;
+  /** The held cell's last output, kept by the host. */
+  frozen?: NotebookCellOutput;
+  /** Output hidden until the cell is refreshed. */
+  cleared?: boolean;
+}
+
+/** One cell's rendered output: its frames and the diagnostics inside it. */
+export interface NotebookCellOutput {
+  frames: SvgRangedFrame[];
+  diagnostics: TypstDiagnostic[];
 }
 
 /** UI strings, injected by the app so the package stays i18n-free. */
 export interface NotebookLabels {
-  run: string;
   code: string;
-  markup: string;
+  prose: string;
+  log: string;
+  hidden: string;
+  menu: string;
+  split: string;
+  merge: string;
   moveUp: string;
   moveDown: string;
   duplicate: string;
   remove: string;
+  copy: string;
+  hold: string;
+  release: string;
   clearOutput: string;
   toggleSource: string;
   noOutput: string;
-  error: string;
+  held: string;
 }
 
 export interface NotebookCompileResult {
@@ -54,23 +87,23 @@ export interface NotebookCompileResult {
 export interface NotebookOptions {
   /** Cells for a document text. The host reads them from the engine. */
   cells: (text: string) => NotebookCell[];
-  /** Run/visibility state per cell index. */
+  /** Per-cell state. The host owns it. */
   state?: (index: number) => NotebookCellState | undefined;
-  /** Show `[n]` execution counters. */
-  counters?: () => boolean;
   labels?: NotebookLabels;
   /** Fires whenever the extension re-extracts cells. */
   onCells?: (cells: NotebookCell[]) => void;
   /** Fires when the cursor moves to a different cell. */
   onActiveCell?: (index: number | null) => void;
-  /** Fires after every compile that ran. `run` carries the requested cell. */
-  onRun?: (index: number | "all") => void;
-  /** Fires after a compile with the fresh frames and diagnostics. */
+  /**
+   * Fires after a compile with the fresh frames and diagnostics.
+   */
   onCompile?: (result: NotebookCompileResult) => void;
-  onClearOutput?: (index: number) => void;
-  onToggleCollapse?: (index: number) => void;
-  /** Escape: leave edit mode and select the current cell. */
-  onCommandMode?: () => void;
+  /** A cell's state changed and the decorations need a rebuild. */
+  onStateChange?: () => void;
+  /** A command from the rail's overflow menu, so the app owns the actions. */
+  onCommand?: (command: string, index: number) => void;
+  /** Read-only pages show cells without source or chrome. */
+  readOnly?: () => boolean;
 }
 
 /** The options of the notebook extension active in this state, if any. */
@@ -85,17 +118,13 @@ export function notebookOptions(state: EditorState): NotebookOptions | undefined
 /** Re-renders notebooks from cached frames without recompiling. */
 export const notebookRefreshEffect = StateEffect.define();
 
-/** Asks the plugin to recompile and report the result through `onRun`. */
-export const notebookRunEffect = StateEffect.define<{
-  index: number | "all";
-}>();
-
-/** First position that belongs to the cell (marker line, or content). */
+/** First position that belongs to the cell (attribute line, or content). */
 export function cellStart(cell: NotebookCell): number {
   return cell.marker_end > cell.marker_start ? cell.marker_start : cell.content_start;
 }
 
-export function hasMarker(cell: NotebookCell): boolean {
+/** True when the cell opened with an attribute line rather than a heading. */
+export function hasAttribute(cell: NotebookCell): boolean {
   return cell.marker_end > cell.marker_start;
 }
 
@@ -124,9 +153,28 @@ function blockEnd(cells: NotebookCell[], index: number, text: string): number {
   return next ? cellStart(next) : text.length;
 }
 
-/** The marker line for a cell type. Markup is the unlabeled default. */
-export function markerText(type: NotebookCellType): string {
-  return type === "code" ? "// %% [code]" : "// %%";
+/**
+ * The attribute line for a cell type. Prose needs no `kind=`, so a plain cell is
+ * three characters.
+ */
+export function attributeText(type: NotebookCellType, name?: string | null): string {
+  const fields = [name ? `name=${name}` : "", type === "prose" ? "" : `kind=${type}`].filter(
+    Boolean,
+  );
+
+  return fields.length ? `//% ${fields.join(" ")}` : "//%";
+}
+
+/** Matches a whole attribute line, indentation and newline included. */
+const ATTRIBUTE_LINE = /^[ \t]*\/\/%?[ \t]*(?:\[[^\]]*\]|\S*)?[ \t]*\r?\n?/gm;
+
+/**
+ * Removes cell attribute lines. Notebooks are comments-plus-content, so a
+ * cleaned file is the same document for anyone who does not know the
+ * convention.
+ */
+export function stripCellAttributes(text: string): string {
+  return text.replace(ATTRIBUTE_LINE, (line) => (/^\s*\/\/%/.test(line) ? "" : line));
 }
 
 /** A text replacement plus where the cursor should land after it. */
@@ -135,152 +183,143 @@ export interface CellEdit {
   anchor: number;
 }
 
-export function insertCellText(
-  text: string,
-  cells: NotebookCell[],
-  index: number,
-  where: "above" | "below" | "end",
-  type: NotebookCellType,
-  content = "",
-): CellEdit {
-  const marker = markerText(type);
-
-  if (where === "end" || cells.length === 0) {
-    const from = text.length;
-    const prefix = from === 0 || text.endsWith("\n\n") ? "" : text.endsWith("\n") ? "\n" : "\n\n";
-    const insert = `${prefix}${marker}\n${content ? `${content}\n` : ""}`;
-
-    return { changes: { from, insert }, anchor: from + insert.length };
-  }
-
-  const cell = cells[index]!;
-  const from = where === "above" ? cellStart(cell) : blockEnd(cells, index, text);
-  // A blank line after the new cell keeps it a separate paragraph. The
-  // gap before the following marker is already there when inserting above.
-  const insert = `${marker}\n${content ? `${content}\n` : ""}\n`;
-
-  return {
-    changes: { from, insert },
-    anchor: from + marker.length + 1 + content.length,
-  };
-}
-
-export function duplicateCellText(text: string, cells: NotebookCell[], index: number): CellEdit {
-  const cell = cells[index]!;
-
-  return insertCellText(
-    text,
-    cells,
-    index,
-    "below",
-    cell.kind,
-    text.slice(cell.content_start, cell.content_end),
-  );
-}
-
-export function deleteCellText(text: string, cells: NotebookCell[], index: number): CellEdit {
-  const cell = cells[index]!;
-
-  if (cells.length <= 1) {
-    return { changes: { from: 0, to: text.length, insert: "" }, anchor: 0 };
-  }
-
-  const from = cellStart(cell);
-  const to = blockEnd(cells, index, text);
-
-  return { changes: { from, to, insert: "" }, anchor: from };
-}
-
-export function moveCellText(
-  text: string,
-  cells: NotebookCell[],
-  index: number,
-  delta: -1 | 1,
-): CellEdit | null {
-  const target = index + delta;
-  if (target < 0 || target >= cells.length) return null;
-
-  const aStart = cellStart(cells[index]!);
-  const aEnd = blockEnd(cells, index, text);
-  const bStart = cellStart(cells[target]!);
-  const bEnd = blockEnd(cells, target, text);
-
-  const from = Math.min(aStart, bStart);
-  const to = Math.max(aEnd, bEnd);
-  // Normalize the separation: cells need a blank line between them for the
-  // compiler (and the reader), and the document keeps one trailing newline.
-  const a = text.slice(aStart, aEnd).trimEnd();
-  const b = text.slice(bStart, bEnd).trimEnd();
-  const insert = delta < 0 ? `${a}\n\n${b}` : `${b}\n\n${a}`;
-
-  return {
-    changes: {
-      from,
-      to,
-      insert: `${insert}${to < text.length ? "\n\n" : "\n"}`,
-    },
-    anchor: delta < 0 ? bStart : bStart + b.length + 2,
-  };
-}
-
+/**
+ * Splits a cell at `pos` inside its content. The new cell takes the text from
+ * `pos` and inherits the old cell's kind, because a split is a continuation.
+ */
 export function splitCellText(
   text: string,
   cells: NotebookCell[],
   index: number,
   pos: number,
 ): CellEdit | null {
-  const cell = cells[index]!;
-  if (pos < cell.content_start || pos > cell.content_end) return null;
+  const cell = cells[index];
+  if (!cell || pos < cell.content_start || pos > cell.content_end) return null;
 
-  const insert = `\n\n${markerText(cell.kind)}\n\n`;
+  const tail = text.slice(pos, cell.content_end);
+  // Collapse the paragraph break the caret sits after, or the new cell opens
+  // with a blank line.
+  const trimmed = tail.replace(/^\n+/, "");
+  const insert = `\n\n${attributeText(cell.kind, cell.name)}\n\n${trimmed}`;
 
-  return { changes: { from: pos, insert }, anchor: pos };
-}
-
-export function mergeCellText(text: string, cells: NotebookCell[], index: number): CellEdit | null {
-  const cell = cells[index]!;
-  if (index === 0 || !hasMarker(cell)) return null;
-
-  // Drop the marker line, so the gap before it becomes the paragraph break.
   return {
-    changes: { from: cell.marker_start, to: cell.content_start, insert: "" },
-    anchor: cell.marker_start,
+    changes: { from: pos, to: cell.content_end, insert },
+    anchor: pos + 2 + attributeText(cell.kind, cell.name).length + 2,
   };
 }
 
+/**
+ * Merges a cell into the one above. The result takes the lower cell's kind,
+ * since that is the one the reader was last looking at.
+ */
+export function mergeCellText(cells: NotebookCell[], index: number): CellEdit | null {
+  const cell = cells[index];
+  const above = cells[index - 1];
+  if (!cell || !above) return null;
+
+  // Drop the lower cell's attribute line and join the two bodies.
+  const from = cellStart(cell);
+  const head = above.content_end > above.content_start ? above.content_end : from;
+  const gap = text_between_gap(head, cell.content_start);
+
+  return {
+    changes: { from: head, to: cell.content_start, insert: gap },
+    anchor: head,
+  };
+}
+
+/** The whitespace between two offsets, which a merge keeps as a separator. */
+function text_between_gap(from: number, to: number): string {
+  return from < to ? "\n\n" : "";
+}
+
+/**
+ * Rewrites a cell's attribute line. A cell that began at a heading has no line
+ * to rewrite, so one is inserted.
+ */
 export function setCellTypeText(
   text: string,
   cells: NotebookCell[],
   index: number,
   type: NotebookCellType,
-): CellEdit {
-  const cell = cells[index]!;
-  const marker = markerText(type);
+): CellEdit | null {
+  const cell = cells[index];
+  if (!cell) return null;
+  if (cell.kind === type) return null;
 
-  if (hasMarker(cell)) {
+  const attribute = attributeText(type, cell.name);
+
+  if (hasAttribute(cell)) {
     return {
-      changes: { from: cell.marker_start, to: cell.marker_end, insert: marker },
-      anchor: cell.content_start + (marker.length - (cell.marker_end - cell.marker_start)),
+      changes: {
+        from: cell.marker_start,
+        to: cell.marker_end,
+        insert: attribute,
+      },
+      anchor: cell.content_start + (attribute.length - (cell.marker_end - cell.marker_start)),
     };
   }
 
-  // An implicit cell gets a marker line of its own.
   return {
-    changes: { from: cellStart(cell), insert: `${marker}\n` },
-    anchor: cell.content_start + marker.length + 1,
+    changes: { from: cellStart(cell), insert: `${attribute}\n` },
+    anchor: cell.content_start + attribute.length + 1,
   };
 }
 
-/** Matches a whole cell marker line, indentation and newline included. */
-const MARKER_LINE = /^[ \t]*\/\/[ \t]*%%(?:[ \t]*\[(?:code|markup|text)\])?[ \t]*\r?\n?/gm;
+/** Appends a cell of `type` after `index` (or at the end of the document). */
+export function insertCellText(
+  text: string,
+  cells: NotebookCell[],
+  index: number,
+  type: NotebookCellType,
+  content = "",
+): CellEdit | null {
+  const attribute = attributeText(type);
+  const at = blockEnd(cells, index, text);
+  const prefix = text.slice(Math.max(0, at - 2), at).includes("\n\n") || at === 0 ? "" : "\n\n";
+  const insert = `${prefix}${attribute}\n${content}\n\n`;
 
-/**
- * Removes `// %%` cell markers. Notebooks are comments-plus-content, so a
- * cleaned file is the same document for anyone who does not know the
- * convention.
- */
-export function stripCellMarkers(text: string): string {
-  return text.replace(MARKER_LINE, "");
+  return {
+    changes: { from: at, insert },
+    anchor: at + prefix.length + attribute.length + 1 + content.length,
+  };
+}
+
+export function deleteCellText(
+  cells: NotebookCell[],
+  index: number,
+  docLength: number,
+): CellEdit | null {
+  const cell = cells[index];
+  if (!cell) return null;
+
+  const next = cells[index + 1];
+  const nextStart = next
+    ? cellStart(next)
+    : // No next cell: take the trailing blank lines with the body so the
+      // document does not keep a gap that belonged to this cell.
+      docLength;
+  const from = hasAttribute(cell) ? cell.marker_start : cell.content_start;
+
+  if (!cells.length || (index === 0 && !next && from === 0)) {
+    return { changes: { from: 0, to: docLength, insert: "" }, anchor: 0 };
+  }
+
+  return { changes: { from, to: nextStart, insert: "" }, anchor: from };
+}
+
+/** Copies a cell's kind, name, and body below it. */
+export function duplicateCellText(
+  text: string,
+  cells: NotebookCell[],
+  index: number,
+): CellEdit | null {
+  const cell = cells[index];
+  if (!cell) return null;
+
+  const body = text.slice(cell.content_start, cell.content_end);
+
+  return insertCellText(text, cells, index, cell.kind, body);
 }
 
 function dispatchEdit(view: EditorView, edit: CellEdit): boolean {
@@ -293,23 +332,7 @@ function dispatchEdit(view: EditorView, edit: CellEdit): boolean {
   return true;
 }
 
-/** Compiles and reports through `onRun`, but does not move the cursor. */
-export function runCell(view: EditorView, index: number): boolean {
-  if (!notebookOptions(view.state) || index < 0) return false;
-
-  view.dispatch({ effects: notebookRunEffect.of({ index }) });
-
-  return true;
-}
-
-export function runAllCells(view: EditorView): boolean {
-  if (!notebookOptions(view.state)) return false;
-
-  view.dispatch({ effects: notebookRunEffect.of({ index: "all" }) });
-
-  return true;
-}
-
+/** Selects a cell's content so the keyboard commands act on it. */
 export function focusCell(
   view: EditorView,
   index: number,
@@ -319,212 +342,127 @@ export function focusCell(
   const cell = cells[index];
   if (!cell) return false;
 
-  view.dispatch({
-    selection: {
-      anchor: edge === "start" ? cell.content_start : cell.content_end,
-    },
-    scrollIntoView: true,
-  });
+  const pos = edge === "start" ? cell.content_start : cell.content_end;
+  view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
   view.focus();
 
   return true;
 }
 
-function currentCell(view: EditorView): number {
+export function currentCell(view: EditorView): number {
   return cellIndexAt(cellsOf(view.state), view.state.selection.main.head);
 }
 
-export function insertCell(view: EditorView, where: "above" | "below" | "end"): boolean {
-  return insertCellAt(view, currentCell(view), where);
-}
-
-export function insertCellAt(
+/** Inserts a cell below `index`, or at the end of the document. */
+export function insertCell(
   view: EditorView,
-  index: number,
-  where: "above" | "below" | "end",
+  type: NotebookCellType,
+  content = "",
+  index = -1,
 ): boolean {
   const cells = cellsOf(view.state);
-  if (index < 0 || !cells[index]) return false;
+  const text = view.state.doc.toString();
+  const at = index >= 0 ? index : cells.length ? currentCell(view) : -1;
+  const edit = insertCellText(text, cells, at, type, content);
 
-  const type = cells[index]?.kind ?? "markup";
-  const edit = insertCellText(view.state.doc.toString(), cells, index, where, type);
-
-  return dispatchEdit(view, edit);
+  return edit ? dispatchEdit(view, edit) : false;
 }
 
-export function duplicateCell(view: EditorView): boolean {
-  return duplicateCellAt(view, currentCell(view));
-}
-
-export function duplicateCellAt(view: EditorView, index: number): boolean {
+export function duplicateCell(view: EditorView, index = -1): boolean {
   const cells = cellsOf(view.state);
-  if (index < 0 || !cells[index]) return false;
+  const at = index >= 0 ? index : currentCell(view);
+  const edit = duplicateCellText(view.state.doc.toString(), cells, at);
 
-  return dispatchEdit(view, duplicateCellText(view.state.doc.toString(), cells, index));
+  return edit ? dispatchEdit(view, edit) : false;
 }
 
-export function deleteCell(view: EditorView): boolean {
-  return deleteCellAt(view, currentCell(view));
-}
-
-export function deleteCellAt(view: EditorView, index: number): boolean {
+export function deleteCell(view: EditorView, index = -1): boolean {
   const cells = cellsOf(view.state);
-  if (index < 0 || !cells[index]) return false;
+  const at = index >= 0 ? index : currentCell(view);
+  const edit = deleteCellText(cells, at, view.state.doc.length);
 
-  return dispatchEdit(view, deleteCellText(view.state.doc.toString(), cells, index));
+  return edit ? dispatchEdit(view, edit) : false;
 }
 
-export function moveCell(view: EditorView, delta: -1 | 1): boolean {
-  return moveCellAt(view, currentCell(view), delta);
-}
-
-export function moveCellAt(view: EditorView, index: number, delta: -1 | 1): boolean {
+/** Moves the active cell up or down. */
+export function moveCell(view: EditorView, delta: number): boolean {
   const cells = cellsOf(view.state);
-  if (index < 0 || !cells[index]) return false;
+  const index = currentCell(view);
+  const next = index + delta;
+  if (next < 0 || next >= cells.length || index < 0) return false;
 
-  const edit = moveCellText(view.state.doc.toString(), cells, index, delta);
-  if (!edit) return false;
+  const text = view.state.doc.toString();
+  const first = cells[index]!;
+  const second = cells[next]!;
+  const from = cellStart(first);
+  const to = cellStart(second);
+  const firstEnd = blockEnd(cells, index, text);
+  const secondEnd = blockEnd(cells, next, text);
 
-  return dispatchEdit(view, edit);
+  // Two changes rather than one splice, so the gap between the two cells keeps
+  // its place and only the bodies trade positions.
+  view.dispatch({
+    changes: [
+      { from, to: firstEnd, insert: text.slice(to, secondEnd) },
+      { from: to, to: secondEnd, insert: text.slice(from, firstEnd) },
+    ],
+    selection: { anchor: from },
+    scrollIntoView: true,
+  });
+
+  return true;
+}
+
+export function setCellType(view: EditorView, index: number, type: NotebookCellType): boolean {
+  const cells = cellsOf(view.state);
+  const edit = setCellTypeText(view.state.doc.toString(), cells, index, type);
+
+  return edit ? dispatchEdit(view, edit) : false;
 }
 
 export function splitCell(view: EditorView): boolean {
   const cells = cellsOf(view.state);
   const index = currentCell(view);
-  if (index < 0) return false;
-
   const edit = splitCellText(
     view.state.doc.toString(),
     cells,
     index,
-    view.state.selection.main.head,
+    view.state.selection.main.from,
   );
-  if (!edit) return false;
 
-  return dispatchEdit(view, edit);
+  return edit ? dispatchEdit(view, edit) : false;
 }
 
 export function mergeCell(view: EditorView): boolean {
   const cells = cellsOf(view.state);
-  const index = currentCell(view);
-  if (index < 0) return false;
+  const edit = mergeCellText(cells, currentCell(view));
 
-  const edit = mergeCellText(view.state.doc.toString(), cells, index);
-  if (!edit) return false;
-
-  return dispatchEdit(view, edit);
-}
-
-export function toggleCellType(view: EditorView, index: number): boolean {
-  const cells = cellsOf(view.state);
-  const cell = cells[index];
-  if (!cell) return false;
-
-  const next: NotebookCellType = cell.kind === "code" ? "markup" : "code";
-  const edit = setCellTypeText(view.state.doc.toString(), cells, index, next);
-
-  return dispatchEdit(view, edit);
-}
-
-export function setCellType(view: EditorView, index: number, type: NotebookCellType): boolean {
-  const cells = cellsOf(view.state);
-  if (!cells[index]) return false;
-
-  return dispatchEdit(view, setCellTypeText(view.state.doc.toString(), cells, index, type));
-}
-
-function runAndAdvance(view: EditorView): boolean {
-  const cells = cellsOf(view.state);
-  const index = currentCell(view);
-  if (index < 0) return false;
-
-  runCell(view, index);
-
-  const next = cells[index + 1];
-  if (next) {
-    focusCell(view, index + 1);
-  } else {
-    const edit = insertCellText(
-      view.state.doc.toString(),
-      cells,
-      index,
-      "below",
-      cells[index]?.kind ?? "markup",
-    );
-    dispatchEdit(view, edit);
-  }
-
-  return true;
-}
-
-function runAndInsert(view: EditorView): boolean {
-  const cells = cellsOf(view.state);
-  const index = currentCell(view);
-  if (index < 0) return false;
-
-  runCell(view, index);
-
-  const edit = insertCellText(
-    view.state.doc.toString(),
-    cells,
-    index,
-    "below",
-    cells[index]?.kind ?? "markup",
-  );
-
-  return dispatchEdit(view, edit);
-}
-
-function runCurrent(view: EditorView): boolean {
-  const index = currentCell(view);
-
-  return index < 0 ? false : runCell(view, index);
-}
-
-/** Arrow keys at a cell's first or last line move between cells. */
-function boundaryMove(view: EditorView, direction: -1 | 1): boolean {
-  const { state } = view;
-  const range = state.selection.main;
-  if (!range.empty) return false;
-
-  const cells = cellsOf(state);
-  const index = cellIndexAt(cells, range.head);
-  const cell = cells[index];
-  if (!cell) return false;
-
-  if (direction === -1) {
-    const first = state.doc.lineAt(cell.content_start);
-    if (range.head < first.from || range.head > first.to || index === 0) return false;
-
-    return focusCell(view, index - 1, "end");
-  }
-
-  const last = state.doc.lineAt(cell.content_end);
-  if (range.head < last.from || range.head > last.to || index >= cells.length - 1) return false;
-
-  return focusCell(view, index + 1);
+  return edit ? dispatchEdit(view, edit) : false;
 }
 
 /**
- * Notebook keymap. Mounted with high precedence so Alt-ArrowUp/Down move
- * cells instead of lines and Escape reaches command mode.
+ * The editor's cell commands. Everything here is also in the cell menu, and
+ * every one of them is a text edit, so the undo stack covers them all.
  */
-export const notebookKeymap = Prec.high(
-  keymap.of([
-    { key: "Shift-Enter", run: runAndAdvance },
-    { key: "Mod-Enter", run: runCurrent },
-    { key: "Alt-Enter", run: runAndInsert },
-    { key: "Alt-ArrowUp", run: (view) => moveCell(view, -1) },
-    { key: "Alt-ArrowDown", run: (view) => moveCell(view, 1) },
-    {
-      key: "Escape",
-      run: (view) => {
-        notebookOptions(view.state)?.onCommandMode?.();
-
-        return true;
-      },
-    },
-    { key: "ArrowUp", run: (view) => boundaryMove(view, -1) },
-    { key: "ArrowDown", run: (view) => boundaryMove(view, 1) },
-  ]),
-);
+export const notebookKeymap = keymap.of([
+  {
+    key: "Mod-Enter",
+    preventDefault: true,
+    run: (view) => focusCell(view, currentCell(view), "end"),
+  },
+  {
+    key: "Mod-Shift-Enter",
+    preventDefault: true,
+    run: (view) => splitCell(view),
+  },
+  {
+    key: "Mod-Shift-ArrowUp",
+    preventDefault: true,
+    run: (view) => moveCell(view, -1),
+  },
+  {
+    key: "Mod-Shift-ArrowDown",
+    preventDefault: true,
+    run: (view) => moveCell(view, 1),
+  },
+]);

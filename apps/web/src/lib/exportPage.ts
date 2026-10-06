@@ -2,7 +2,7 @@ import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
 
-import { stripCellMarkers } from "@typbase/codemirror";
+import { stripCellAttributes } from "@typbase/codemirror";
 import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 
 import { pageContextBinding } from "~/lib/pageContext";
@@ -170,7 +170,7 @@ export async function buildExport(
   }
 
   if (options.project) {
-    const projectSource = options.stripMarkers ? stripCellMarkers(source) : source;
+    const projectSource = options.stripMarkers ? stripCellAttributes(source) : source;
     addFile({ name: `${base}.typ`, bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`) });
     if (typstState) {
       addFile({ name: "typbase/lib.typ", bytes: encoder.encode(typstState.typbaseLib()) });

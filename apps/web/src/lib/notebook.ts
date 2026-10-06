@@ -1,166 +1,166 @@
 import type { EditorView } from "@codemirror/view";
 import type {
   NotebookCell,
+  NotebookCellOutput,
   NotebookCellState,
+  NotebookCellType,
   NotebookLabels,
   NotebookOptions,
 } from "@typbase/codemirror";
-import type { TypstState } from "@typbase/engine";
-import type { WorkspaceStore } from "@typbase/storage";
+import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typbase/engine";
 
-import { notebookRefreshEffect, typstRecompileEffect } from "@typbase/codemirror";
+import { cellIndexAt, notebookRefreshEffect, typstRecompileEffect } from "@typbase/codemirror";
 import { reactive } from "vue";
 
 import { noteCompileSuccess } from "~/lib/engineHealth";
+import { cellsOf } from "~/lib/engineSyntax";
+
+export type { NotebookCellType, NotebookLabels };
 
 /**
- * Notebook session state. Everything here is per open page and per session:
- * execution counters, output visibility, collapse, and the active cell.
- * Counters and cleared flags are keyed by cell index, so a structural edit
- * shifts them. Closing the page resets them the way a Jupyter restart does.
- *
- * Outputs are always live: the editor recompiles as the text changes, and a
- * run only records the counter and clears any explicitly cleared output.
+ * Notebook session state.
  */
 export interface NotebookSession {
   cells: NotebookCell[];
-  counts: Record<number, number>;
-  cleared: Record<number, boolean>;
+  /** Cells whose source is hidden. */
   collapsed: Record<number, boolean>;
+  /**
+   * Cells whose output is frozen at its last render. For the cells where a live
+   * render is wrong or expensive: a heavy query, a non-deterministic one, or one
+   * with a side effect.
+   */
+  held: Record<number, boolean>;
+  /** The held cell's output, kept so releasing it does not blank the cell. */
+  frozen: Record<number, NotebookCellOutput>;
+  /** The cell the caret is in. */
   active: number | null;
-  running: number | "all" | null;
 }
 
 export function createNotebookSession(): NotebookSession {
   return reactive({
     cells: [] as NotebookCell[],
-    counts: {} as Record<number, number>,
-    cleared: {} as Record<number, boolean>,
     collapsed: {} as Record<number, boolean>,
+    held: {} as Record<number, boolean>,
+    frozen: {} as Record<number, NotebookCellOutput>,
     active: null,
-    running: null,
   }) as NotebookSession;
 }
 
-/** Engine cells are UTF-16 spans. The package's shape matches field for field. */
-export function extractNotebookCells(typstState: TypstState, text: string): NotebookCell[] {
-  return typstState.extractCells(text) as NotebookCell[];
+/**
+ * Splits one compile's output per cell, the same way the widget does: a frame
+ * belongs to the cell holding its start, a diagnostic to the cell whose content
+ * range its span falls in.
+ */
+export function splitCellOutputs(
+  cells: NotebookCell[],
+  frames: SvgRangedFrame[],
+  diagnostics: TypstDiagnostic[],
+): NotebookCellOutput[] {
+  const outputs: NotebookCellOutput[] = cells.map(() => ({
+    frames: [],
+    diagnostics: [],
+  }));
+
+  for (const frame of frames) {
+    const index = cellIndexAt(cells, frame.range.start);
+    if (index >= 0) outputs[index]?.frames.push(frame);
+  }
+
+  for (const diagnostic of diagnostics) {
+    const at = diagnostic.range.start;
+    const index = cells.findIndex((cell) => at >= cell.content_start && at <= cell.content_end);
+    if (index >= 0) outputs[index]?.diagnostics.push(diagnostic);
+  }
+
+  return outputs;
+}
+
+/**
+ * Engine cells are UTF-16 spans. The package's shape matches field for field.
+ */
+export function extractNotebookCells(
+  typstState: TypstState,
+  fileId: FileId,
+  text: string,
+): NotebookCell[] {
+  return cellsOf(typstState, fileId, text);
 }
 
 export interface NotebookController {
   options: NotebookOptions;
-  /** Clears counters and output visibility, then recompiles. */
-  restart(view: EditorView | undefined): void;
-  clearOutput(view: EditorView | undefined, index: number): void;
-  toggleCollapse(view: EditorView | undefined, index: number): void;
-  /** A wasm panic killed the compile a run was waiting on. */
-  cancelRun(): void;
+  /** Re-renders from cached frames, without recompiling. */
+  refresh(view: EditorView | undefined): void;
+  /** Releases every held cell and recompiles. */
+  releaseAll(view: EditorView | undefined): void;
 }
 
 export function createNotebookController(args: {
-  store: WorkspaceStore;
   typstState: TypstState;
+  /** The open note's source id, so cell extraction shares its parse tree. */
+  fileId: () => FileId;
   session: NotebookSession;
   labels: NotebookLabels;
-  onCommandMode?: () => void;
+  readOnly: () => boolean;
+  /** Runs a cell command from the rail's overflow menu. */
+  onCommand: (command: string, index: number) => void;
 }): NotebookController {
-  const { store, typstState, session, labels, onCommandMode } = args;
-
-  /** Run request waiting for its compile. Set by onRun and consumed by onCompile. */
-  let pendingRun: number | "all" | null = null;
+  const { typstState, fileId, session, labels, readOnly, onCommand } = args;
 
   const refresh = (view: EditorView | undefined): void => {
-    if (!view) return;
-    view.dispatch({ effects: notebookRefreshEffect.of(null) });
-  };
-
-  const nextCount = (): number => {
-    let max = 0;
-    for (const value of Object.values(session.counts)) max = Math.max(max, value);
-
-    return max + 1;
-  };
-
-  const applyRun = (run: number | "all"): void => {
-    if (run === "all") {
-      let count = nextCount();
-      for (let index = 0; index < session.cells.length; index++) {
-        session.counts[index] = count++;
-        delete session.cleared[index];
-      }
-
-      return;
-    }
-
-    // Running cell N also clears the outputs of the cells above it.
-    session.counts[run] = nextCount();
-    for (let index = 0; index <= run; index++) delete session.cleared[index];
+    view?.dispatch({ effects: notebookRefreshEffect.of(null) });
   };
 
   const options: NotebookOptions = {
-    cells: (text) => extractNotebookCells(typstState, text),
+    cells: (text) => extractNotebookCells(typstState, fileId(), text),
     state: (index): NotebookCellState => ({
-      count: session.counts[index],
-      cleared: session.cleared[index] ?? false,
       collapsed: session.collapsed[index] ?? false,
+      held: session.held[index] ?? false,
+      frozen: session.frozen[index],
     }),
-    counters: () => store.getSettings().notebook.showCounters,
     labels,
+    readOnly,
     onCells: (cells) => {
-      // Structural changes invalidate output visibility. Counters survive,
-      // the way Jupyter keeps execution counts across cell moves.
-      if (cells.length !== session.cells.length) session.cleared = {};
+      if (cells.length !== session.cells.length) {
+        session.collapsed = {};
+        session.held = {};
+        session.frozen = {};
+      }
       session.cells = cells;
     },
     onActiveCell: (index) => {
       session.active = index;
     },
-    onRun: (index) => {
-      pendingRun = index;
-      session.running = index;
-    },
-    onCompile: () => {
-      // The compile that a run waits on is also the one that proves the
-      // engine recovered. Report it so a notebook that was mid-run when the
-      // engine died does not leave the failure breaker set.
+    onCompile: (result) => {
+      // The compile that a cell waits on is also the one that proves the engine
+      // recovered. Report it so a notebook that was mid-render when the engine
+      // died does not leave the failure breaker set.
       noteCompileSuccess();
 
-      if (pendingRun !== null) {
-        applyRun(pendingRun);
-        pendingRun = null;
+      // Snapshot every cell that is not held. The whole page is one compile, so
+      // holding cannot stop the next one: this is what a held cell falls back to
+      // until it is released.
+      const outputs = splitCellOutputs(session.cells, result.frames, result.diagnostics);
+      for (let index = 0; index < outputs.length; index++) {
+        if (session.held[index]) continue;
+        session.frozen[index] = outputs[index]!;
       }
-      session.running = null;
     },
-    onClearOutput: (index) => {
-      session.cleared[index] = true;
+    onStateChange: () => {
+      // Nothing to do here yet. The session is reactive, so the widget layer
+      // picks the change up through `state()` on the next decoration pass.
     },
-    onToggleCollapse: (index) => {
-      session.collapsed[index] = !session.collapsed[index];
-    },
-    onCommandMode,
+    onCommand,
   };
 
   return {
     options,
-    restart(view) {
-      session.counts = {};
-      session.cleared = {};
-      pendingRun = null;
-      session.running = null;
-      // A forced compile repopulates every output.
+    refresh,
+    releaseAll(view) {
+      session.held = {};
+      session.frozen = {};
+      // A forced compile repopulates every output from the fresh render.
       view?.dispatch({ effects: typstRecompileEffect.of(null) });
-    },
-    clearOutput(view, index) {
-      session.cleared[index] = true;
       refresh(view);
-    },
-    toggleCollapse(view, index) {
-      session.collapsed[index] = !session.collapsed[index];
-      refresh(view);
-    },
-    cancelRun() {
-      pendingRun = null;
-      session.running = null;
     },
   };
 }

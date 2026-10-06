@@ -8,13 +8,20 @@ withDefaults(
     /** Accessible name when there is no visible label. */
     ariaLabel?: string;
     disabled?: boolean;
+    size?: "default" | "small";
   }>(),
-  { label: undefined, ariaLabel: undefined, disabled: false },
+  { label: undefined, ariaLabel: undefined, disabled: false, size: "default" },
 );
 </script>
 
 <template>
-  <Label class="ui-switch" :class="{ 'ui-switch--disabled': disabled }">
+  <Label
+    class="ui-switch"
+    :class="{
+      'ui-switch--disabled': disabled,
+      'ui-switch--small': size === 'small',
+    }"
+  >
     <span v-if="label || $slots.default" class="ui-switch__label">
       <slot>{{ label }}</slot>
     </span>
@@ -50,14 +57,20 @@ withDefaults(
   flex: 1;
 }
 
+.ui-switch--small {
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.ui-switch--small .ui-switch__track {
+  --switch-h: calc(var(--control-xs) * 0.85);
+}
+
 .ui-switch__track {
-  /* Track, thumb, and padding all follow the control scale. The switch is a
-     compound widget, so its proportions stay here instead of in tokens. */
   --switch-h: var(--control-xs);
   --switch-thumb: calc(var(--switch-h) * 0.78);
   --switch-w: calc(var(--switch-h) * 1.75);
   --switch-pad: calc((var(--switch-h) - var(--switch-thumb) - 2px) / 2);
-  /* How far the thumb travels between the two ends. */
   --switch-travel: calc(var(--switch-w) - var(--switch-thumb) - var(--switch-pad) * 2 - 2px);
 
   display: flex;

@@ -4,6 +4,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { IndexedBlock, IndexStatus, SearchHit } from "~/workers/index.worker";
 
 import { useTypst } from "~/composables/typst";
+import { blocksOf } from "~/lib/engineSyntax";
 
 /**
  * Search manager: owns the index worker connection, feeds it flattened
@@ -261,7 +262,7 @@ export class SearchManager {
 
     const text = await this.store.loadPageText(docId);
 
-    const blocks = typstState.flattenDocument(text) as unknown as IndexedBlock[];
+    const blocks = blocksOf(typstState, text) as unknown as IndexedBlock[];
     const maps = new Map<number, Uint8Array>();
     for (const [i, block] of blocks.entries()) {
       const map = new Uint8Array(new Uint32Array(block.map).buffer);

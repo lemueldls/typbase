@@ -115,8 +115,7 @@
     "publishConfirm": "取消发布这篇笔记？公开记录可能被 firehose 服务镜像，且无法撤回。",
     "publishHint": "公开记录人人可读。取消发布会删除记录；镜像可能保留副本。",
     "publishWorking": "处理中…",
-    "dropMedia": "拖放以插入素材",
-    "notebook": "笔记本"
+    "dropMedia": "拖放以插入素材"
   },
   "settings": {
     "title": "工作区设置",
@@ -144,7 +143,7 @@
     "uiSizeLarge": "大",
     "uiSizeHint": "缩放文字、按钮和图标。",
     "appBar": "应用栏",
-    "appBarHint": "页面顶部的导航、搜索与同步栏。在本设备上可用 Cmd-J 切换。",
+    "appBarHint": "页面顶部的导航、搜索与同步栏。",
     "uiDensity": "密度",
     "uiDensityCompact": "紧凑",
     "uiDensityDefault": "默认",
@@ -587,28 +586,27 @@
     "filters": "筛选"
   },
   "notebook": {
-    "runCell": "运行单元格",
-    "run": "运行单元格",
-    "runAll": "全部运行",
-    "restart": "重新启动",
     "addCell": "添加单元格",
     "clearOutput": "清除输出",
-    "running": "运行中…",
-    "commandHint": "Enter 编辑 · A/B 新增 · DD 删除 · M/Y/X 类型 · T 轮换",
     "code": "代码",
-    "markup": "文本",
     "moveUp": "上移单元格",
     "moveDown": "下移单元格",
     "duplicate": "复制单元格",
     "remove": "删除单元格",
     "toggleSource": "折叠单元格",
     "noOutput": "无输出",
-    "error": "单元格错误",
-    "math": "数学",
-    "stale": "已过期。运行单元格以更新。",
     "cellType": "单元格类型",
-    "autoRunCode": "自动运行",
-    "counters": "计数器"
+    "prose": "文本",
+    "log": "日志",
+    "hidden": "隐藏",
+    "menu": "单元格操作",
+    "split": "拆分单元格",
+    "merge": "与上方单元格合并",
+    "copy": "复制单元格",
+    "hold": "固定输出",
+    "release": "释放输出",
+    "releaseAll": "释放全部固定输出",
+    "held": "已固定"
   },
   "updates": {
     "title": "软件更新",

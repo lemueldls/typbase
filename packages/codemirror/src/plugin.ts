@@ -44,10 +44,16 @@ export interface TypstPluginOptions {
   onExternalLink?: (url: string) => void;
   /**
    * Cell rendering and cell commands. When set, the editor behaves like a
-   * notebook: markup cells render inline, code cells render below, and the
+   * notebook: prose cells render inline, code cells render below, and the
    * notebook keymap takes precedence over the line editing bindings.
    */
   notebook?: NotebookOptions;
+  /**
+   * Draw the frames, or show plain source. Defaults to true. A notebook page in
+   * source mode passes false: the cells and their rails stay, but nothing is
+   * rendered, which is the only difference between its write and source modes.
+   */
+  renderFrames?: boolean;
 }
 
 export const typstPlugin = (

@@ -42,14 +42,16 @@ pub struct SectionSpan {
 /// the raw source, so they can be used as editor positions directly.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CellSpan {
-    /// Cell type from the marker label: `"markup"` or `"code"`.
+    /// `"prose"`, `"code"`, `"log"`, or `"hidden"`.
     pub kind: String,
-    /// Marker line range, excluding the newline. Both zero on the implicit
-    /// leading cell of a document whose first marker is not on line one.
+    /// `name=` from the attribute line, when it carries one.
+    pub name: Option<String>,
+    /// Attribute line range, excluding the newline. Both zero on a cell that
+    /// began at a heading and on the implicit cell above the first boundary.
     pub marker_start: usize,
     pub marker_end: usize,
     /// Content range. Blank lines below the content belong to the gap before
-    /// the next marker and are excluded.
+    /// the next boundary and are excluded.
     pub content_start: usize,
     pub content_end: usize,
 }
@@ -57,7 +59,12 @@ pub struct CellSpan {
 /// Flattens a whole document into per-block plain text.
 pub fn flatten_document(text: &str) -> Vec<FlattenedBlock> {
     let root = typst_syntax::parse(text);
-    let linked = LinkedNode::new(&root);
+    flatten_document_root(&root, text)
+}
+
+/// `flatten_document` over a tree the caller already has.
+pub fn flatten_document_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<FlattenedBlock> {
+    let linked = LinkedNode::new(root);
     let children: Vec<LinkedNode> = linked.children().collect();
 
     let mut out = Vec::new();
@@ -193,8 +200,13 @@ fn flatten_node(node: &LinkedNode, src: &str, plain: &mut String, map: &mut Vec<
 /// Finds every `typbase.section` call and its content block.
 pub fn extract_sections(text: &str) -> Vec<SectionSpan> {
     let root = typst_syntax::parse(text);
+    extract_sections_root(&root, text)
+}
+
+/// `extract_sections` over a tree the caller already has.
+pub fn extract_sections_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<SectionSpan> {
     let mut sections = Vec::new();
-    let mut stack = vec![LinkedNode::new(&root)];
+    let mut stack = vec![LinkedNode::new(root)];
 
     while let Some(node) = stack.pop() {
         if let Some(call) = node.get().cast::<FuncCall>() {
@@ -290,70 +302,146 @@ fn make_title(content: &str) -> String {
     title.trim().to_string()
 }
 
-/// Marker lines look like `// %%`, `// %% [markup]`, or `// %% [code]`.
-/// Unknown labels return `None` so a future cell type degrades to a plain
-/// comment instead of splitting cells the app does not understand.
-fn marker_kind(comment: &str) -> Option<String> {
-    let rest = comment.strip_prefix("//")?.trim();
-    let rest = rest.strip_prefix("%%")?.trim();
+/// What a cell attribute line declares.
+pub struct CellAttribute {
+    pub kind: String,
+    pub name: Option<String>,
+}
 
-    if rest.is_empty() {
-        return Some(String::from("markup"));
+/// The cell kinds an attribute line can name. Unlisted is prose, which is also
+/// what an attribute line with no `kind=` says.
+const CELL_KINDS: &[&str] = &["prose", "code", "log", "hidden"];
+
+/// Reads a cell attribute line
+fn cell_attribute(comment: &str) -> Option<CellAttribute> {
+    let rest = comment.strip_prefix("//")?.trim_start();
+
+    // `// %%`, the form notebooks were written in. Read so an existing notebook
+    // keeps its cells; the label set is the old one.
+    if let Some(rest) = rest.strip_prefix("%%") {
+        let label = rest
+            .trim()
+            .strip_prefix('[')
+            .and_then(|rest| rest.strip_suffix(']'))
+            .unwrap_or(rest.trim())
+            .trim()
+            .to_ascii_lowercase();
+
+        if label.is_empty() {
+            return Some(CellAttribute {
+                kind: String::from("prose"),
+                name: None,
+            });
+        }
+
+        // Display math was its own kind and rendered in place, which is what
+        // prose does, so it maps across.
+        return match label.as_str() {
+            "markup" | "content" | "text" | "math" => Some(CellAttribute {
+                kind: String::from("prose"),
+                name: None,
+            }),
+            "code" | "script" | "scripting" => Some(CellAttribute {
+                kind: String::from("code"),
+                name: None,
+            }),
+            _ => None,
+        };
     }
 
-    let label = rest
-        .strip_prefix('[')?
-        .strip_suffix(']')?
-        .trim()
-        .to_ascii_lowercase();
-    match label.as_str() {
-        "markup" | "text" => Some(String::from("markup")),
-        "code" => Some(String::from("code")),
-        _ => None,
+    // `//%`. Checked after `%%` so the two spellings do not overlap.
+    let attrs = rest.strip_prefix('%')?.trim();
+
+    let mut kind: Option<String> = None;
+    let mut name: Option<String> = None;
+    for field in attrs.split_whitespace() {
+        let (key, value) = field.split_once('=')?;
+
+        match key.to_ascii_lowercase().as_str() {
+            "kind" => {
+                let value = value.to_ascii_lowercase();
+                if !CELL_KINDS.contains(&value.as_str()) {
+                    return None;
+                }
+                kind = Some(value);
+            }
+            "name" => name = Some(value.to_string()),
+            _ => return None,
+        }
     }
+
+    Some(CellAttribute {
+        kind: kind.unwrap_or_else(|| String::from("prose")),
+        name,
+    })
 }
 
 /// Cells in raw-byte coordinates, before the UTF-16 conversion.
 struct CellBytes {
     kind: String,
+    name: Option<String>,
     marker_start: usize,
     marker_end: usize,
     content_start: usize,
     content_end: usize,
 }
 
-/// Finds notebook cells. Only top-level line comments count, so a `// %%`
-/// line inside a raw block, a code block, or a nested content block stays
-/// text. A document with no markers is one implicit markup cell, which is what
-/// lets notebook mode open any page.
+/// Finds notebook cells.
+///
+/// Only top-level line comments count, so an attribute line inside a raw block,
+/// a code block, or a nested content block stays text.
 pub fn extract_cells(text: &str) -> Vec<CellSpan> {
     let root = typst_syntax::parse(text);
-    let linked = LinkedNode::new(&root);
+    extract_cells_root(&root, text)
+}
 
-    let mut markers: Vec<(usize, String)> = Vec::new();
+/// `extract_cells` over a tree the caller already has.
+pub fn extract_cells_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<CellSpan> {
+    let linked = LinkedNode::new(root);
+
+    // A boundary is a line start, the kind it declares, and whether it declared
+    // one at all (a heading carries no attribute, so it is always prose).
+    struct Boundary {
+        line_start: usize,
+        attribute: Option<CellAttribute>,
+    }
+
+    let mut boundaries: Vec<Boundary> = Vec::new();
 
     for child in linked.children() {
-        if child.kind() != SyntaxKind::LineComment {
+        // A heading carries no attribute, so `None` here means "prose". A
+        // comment has to name a known kind or it is just a comment.
+        let attribute = match child.kind() {
+            SyntaxKind::Heading => None,
+            SyntaxKind::LineComment => match text.get(child.range()).and_then(cell_attribute) {
+                Some(attribute) => Some(attribute),
+                None => continue,
+            },
+            _ => continue,
+        };
+
+        let range = child.range();
+        let line_start = text[..range.start].rfind('\n').map_or(0, |index| index + 1);
+        // The attribute range covers the line from its start, so an attribute
+        // sharing its line with content would swallow it.
+        if attribute.is_some() && !text[line_start..range.start].trim().is_empty() {
             continue;
         }
 
-        let range = child.range();
-        let Some(comment) = text.get(range.clone()) else {
-            continue;
-        };
-        let Some(kind) = marker_kind(comment) else {
-            continue;
-        };
-
-        let line_start = text[..range.start].rfind('\n').map_or(0, |index| index + 1);
-        markers.push((line_start, kind));
+        boundaries.push(Boundary {
+            line_start,
+            attribute,
+        });
     }
 
-    if markers.is_empty() {
+    boundaries.sort_by_key(|boundary| boundary.line_start);
+
+    if boundaries.is_empty() {
         return to_spans(
             text,
             vec![CellBytes {
-                kind: String::from("markup"),
+                kind: String::from("prose"),
+                name: None,
                 marker_start: 0,
                 marker_end: 0,
                 content_start: 0,
@@ -364,12 +452,13 @@ pub fn extract_cells(text: &str) -> Vec<CellSpan> {
 
     let mut cells: Vec<CellBytes> = Vec::new();
 
-    // Content above the first marker is a cell of its own, but a document that
-    // starts with a marker does not get an empty leading cell.
-    let leading_end = trim_trailing_blank(text, 0, markers[0].0);
+    // Content above the first boundary is a cell of its own, but a document that
+    // starts with one does not get an empty leading cell.
+    let leading_end = trim_trailing_blank(text, 0, boundaries[0].line_start);
     if !text[..leading_end].trim().is_empty() {
         cells.push(CellBytes {
-            kind: String::from("markup"),
+            kind: String::from("prose"),
+            name: None,
             marker_start: 0,
             marker_end: 0,
             content_start: 0,
@@ -377,17 +466,36 @@ pub fn extract_cells(text: &str) -> Vec<CellSpan> {
         });
     }
 
-    for (index, (line_start, kind)) in markers.iter().enumerate() {
-        let next_start = markers
+    for (index, boundary) in boundaries.iter().enumerate() {
+        let next_start = boundaries
             .get(index + 1)
-            .map_or(text.len(), |(start, _)| *start);
-        let marker_end = line_end(text, *line_start);
-        let content_start = after_line(text, marker_end);
+            .map_or(text.len(), |next| next.line_start);
+        // A heading's own line is content, so the cell starts there. An
+        // attribute line is not: it is replaced by the header, so the content
+        // starts on the line after it.
+        let is_heading = boundary.attribute.is_none();
+        let marker_end = if is_heading {
+            boundary.line_start
+        } else {
+            line_end(text, boundary.line_start)
+        };
+        let content_start = if is_heading {
+            boundary.line_start
+        } else {
+            after_line(text, marker_end)
+        };
         let content_end = trim_trailing_blank(text, content_start, next_start);
 
         cells.push(CellBytes {
-            kind: kind.clone(),
-            marker_start: *line_start,
+            kind: boundary
+                .attribute
+                .as_ref()
+                .map_or_else(|| String::from("prose"), |attribute| attribute.kind.clone()),
+            name: boundary
+                .attribute
+                .as_ref()
+                .and_then(|attribute| attribute.name.clone()),
+            marker_start: boundary.line_start,
             marker_end,
             content_start,
             content_end,
@@ -450,6 +558,7 @@ fn to_spans(text: &str, cells: Vec<CellBytes>) -> Vec<CellSpan> {
         .enumerate()
         .map(|(index, cell)| CellSpan {
             kind: cell.kind,
+            name: cell.name,
             marker_start: utf16[index * 4],
             marker_end: utf16[index * 4 + 1],
             content_start: utf16[index * 4 + 2],
@@ -483,7 +592,6 @@ pub(crate) fn utf16_offsets(text: &str, bytes: &[usize]) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn flattens_headings_and_paragraphs() {
         let blocks = flatten_document("= Title\n\nHello *world* today.\n\n- one\n- two\n");
@@ -530,16 +638,17 @@ mod tests {
     }
 
     #[test]
-    fn splits_cells_by_marker() {
-        let text = "// %% [markup]\n= Title\n\n// %% [code]\n#let x = 1\n\n// %%\n#x\n";
+    fn splits_cells_by_attribute() {
+        let text = "//% name=intro\nProse.\n\n//% kind=code\n#let x = 1\n\n//% kind=log\n#x\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 3);
-        assert_eq!(cells[0].kind, "markup");
+        assert_eq!(cells[0].kind, "prose");
+        assert_eq!(cells[0].name.as_deref(), Some("intro"));
         assert_eq!(cells[1].kind, "code");
-        assert_eq!(cells[2].kind, "markup");
+        assert_eq!(cells[2].kind, "log");
         assert_eq!(
             &text[cells[0].content_start..cells[0].content_end],
-            "= Title"
+            "Prose."
         );
         assert_eq!(
             &text[cells[1].content_start..cells[1].content_end],
@@ -548,16 +657,34 @@ mod tests {
         assert_eq!(&text[cells[2].content_start..cells[2].content_end], "#x");
         assert_eq!(
             &text[cells[1].marker_start..cells[1].marker_end],
-            "// %% [code]"
+            "//% kind=code"
         );
     }
 
+    /// A heading is a boundary wherever it is, so it splits the cell the attribute
+    /// above it opened. That cell is left empty, which is the same shape as an
+    /// attribute with nothing between it and the next attribute.
     #[test]
-    fn no_markers_is_one_implicit_cell() {
-        let text = "= Title\n\nParagraph.\n";
+    fn a_heading_splits_an_attributed_cell() {
+        let text = "//%\n= Title\n\nBody.\n";
+        let cells = extract_cells(text);
+
+        assert_eq!(cells.len(), 2);
+        assert_eq!(cells[0].content_start, cells[0].content_end);
+        assert_eq!(
+            &text[cells[1].content_start..cells[1].content_end],
+            "= Title\n\nBody."
+        );
+        // The heading cell has no attribute line of its own.
+        assert_eq!(cells[1].marker_start, cells[1].marker_end);
+    }
+
+    #[test]
+    fn no_boundaries_is_one_implicit_cell() {
+        let text = "Paragraph.\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 1);
-        assert_eq!(cells[0].kind, "markup");
+        assert_eq!(cells[0].kind, "prose");
         assert_eq!(cells[0].content_start, 0);
         assert_eq!(cells[0].content_end, text.len());
         assert_eq!(cells[0].marker_start, cells[0].marker_end);
@@ -565,7 +692,7 @@ mod tests {
 
     #[test]
     fn leading_content_becomes_a_cell() {
-        let text = "= Intro\n\n// %%\nBody\n";
+        let text = "= Intro\n\n//% kind=code\nBody\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 2);
         assert_eq!(
@@ -578,7 +705,7 @@ mod tests {
 
     #[test]
     fn keeps_empty_cells() {
-        let text = "// %%\n\n// %%\n#let x = 1\n\n// %%\n";
+        let text = "//%\n\n//% kind=code\n#let x = 1\n\n//% kind=code\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 3);
         assert_eq!(cells[0].content_start, cells[0].content_end);
@@ -586,16 +713,16 @@ mod tests {
     }
 
     #[test]
-    fn markers_inside_raw_and_code_blocks_are_text() {
-        let text = "// %%\n```\n// %%\n```\n\n#{\n  // %%\n  let x = 1\n}\n";
+    fn attributes_inside_raw_and_code_blocks_are_text() {
+        let text = "//%\n```\n//%\n```\n\n#{\n  //%\n  let x = 1\n}\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 1);
-        assert_eq!(cells[0].kind, "markup");
+        assert_eq!(cells[0].kind, "prose");
     }
 
     #[test]
     fn trailing_blank_lines_belong_to_the_gap() {
-        let text = "// %%\n#let x = 1\n\n\n// %%\n#x\n";
+        let text = "//%\n#let x = 1\n\n\n//% kind=code\n#x\n";
         let cells = extract_cells(text);
         assert_eq!(
             &text[cells[0].content_start..cells[0].content_end],
@@ -604,8 +731,8 @@ mod tests {
     }
 
     #[test]
-    fn unknown_marker_labels_are_comments() {
-        let text = "// %% [widget]\n#let x = 1\n";
+    fn unknown_kinds_are_comments() {
+        let text = "//% kind=widget\n#let x = 1\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 1);
         assert_eq!(cells[0].content_start, 0);
@@ -615,15 +742,15 @@ mod tests {
     fn cell_ranges_are_utf16() {
         // "é" is one UTF-16 unit in two UTF-8 bytes. The emoji is two units in
         // four bytes. Offsets after them must count code units, not bytes.
-        let text = "// %%\nHéllo 🎉\n\n// %%\n#x\n";
+        let text = "//%\nHéllo 🎉\n\n//% kind=code\n#x\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 2);
 
-        let boundary = text.find("\n\n// %%").unwrap();
+        let boundary = text.find("\n\n//%").unwrap();
         let expected = text[..boundary].chars().map(char::len_utf16).sum::<usize>();
         assert_eq!(cells[0].content_end, expected);
 
-        let second = text.rfind("// %%").unwrap() + "// %%\n".len();
+        let second = text.rfind("//%").unwrap() + "//% kind=code\n".len();
         let second_start = text[..second].chars().map(char::len_utf16).sum::<usize>();
         assert_eq!(cells[1].content_start, second_start);
         assert_eq!(cells[1].content_end, second_start + 2);

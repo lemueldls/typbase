@@ -2,7 +2,7 @@ import type { TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta } from "@typbase/typing";
 
-import { stripCellMarkers } from "@typbase/codemirror";
+import { stripCellAttributes } from "@typbase/codemirror";
 
 import {
   escapeHtml,
@@ -169,7 +169,7 @@ export async function buildWorkspaceExport(
     }
 
     if (options.project) {
-      const projectSource = options.stripMarkers ? stripCellMarkers(source) : source;
+      const projectSource = options.stripMarkers ? stripCellAttributes(source) : source;
       addFile({
         name: sourceName,
         bytes: encoder.encode(`${pagedPrelude}\n${projectSource}`),
@@ -284,7 +284,7 @@ export async function buildWorkspaceExport(
     }
 
     if (options.project) {
-      const combined = options.stripMarkers ? stripCellMarkers(paged) : paged;
+      const combined = options.stripMarkers ? stripCellAttributes(paged) : paged;
       addFile({ name: pagePath, bytes: encoder.encode(`${pagedPrelude}\n${combined}`) });
     }
   }

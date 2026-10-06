@@ -5,6 +5,7 @@ import { useChat, takeChatSeed } from "~/composables/chat";
 import { pushToast } from "~/composables/toasts";
 import { useWorkspace } from "~/composables/workspace";
 import { engineAvailable } from "~/lib/engineHealth";
+import { sectionsOf } from "~/lib/engineSyntax";
 import { refreshSections, toSections } from "~/lib/sections";
 
 const props = defineProps<{ threadId: string; docked?: boolean }>();
@@ -190,7 +191,7 @@ async function insertMessage(message: ChatMessage): Promise<void> {
   const typstState = await useTypst().catch(() => null);
   if (typstState) {
     await refreshSections(store, pageId, next, (source) =>
-      engineAvailable() ? toSections(typstState.extractSections(source), source) : null,
+      engineAvailable() ? toSections(sectionsOf(typstState, source), source) : null,
     );
   }
   pushToast({ titleKey: "chat.inserted", duration: 2500 });

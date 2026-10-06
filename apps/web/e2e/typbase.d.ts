@@ -22,7 +22,12 @@ interface StoreHandle {
   updatePageKind(id: string, kind: "document" | "notebook"): Promise<void>;
   deletePage(id: string): Promise<void>;
   updateSettings(patch: Record<string, unknown>): void;
-  getSettings(): Record<string, unknown>;
+  getSettings(): {
+    name?: string;
+    notebook?: { showCounters?: boolean };
+    [key: string]: unknown;
+  };
+  setPageText(id: string, text: string): Promise<void>;
   getAiSettings(): Record<string, unknown>;
   listPages(): Array<{ id: string; title: string; path: string; order?: number }>;
   listCategories(): Array<{ id: string; name: string }>;

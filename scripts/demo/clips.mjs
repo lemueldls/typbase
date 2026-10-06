@@ -35,7 +35,7 @@ import {
  */
 
 const exec = promisify(execFile);
-const RAW = "/tmp/opencode/demo-video";
+const RAW = "/tmp/typbase/demo-video";
 
 const argv = process.argv.slice(2);
 const only = argv.find((arg) => arg.startsWith("--only="))?.split("=")[1];

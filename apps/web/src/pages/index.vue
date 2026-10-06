@@ -12,6 +12,7 @@ import { setChatNavigation, useChat } from "~/composables/chat";
 import { setProviderOverride } from "~/lib/ai/engine";
 import { formatDocumentTitle } from "~/lib/documentTitle";
 import { engineAvailable } from "~/lib/engineHealth";
+import { sectionsOf } from "~/lib/engineSyntax";
 import { resolveOpenPageId } from "~/lib/openPage";
 import { isMac } from "~/lib/platform";
 import { requestReveal } from "~/lib/reveal";
@@ -42,21 +43,8 @@ const currentChatId = ref<string | null>(null);
 /** Desktop side dock: the chat sits beside the main pane instead of replacing it. */
 const dockChatId = ref<string | null>(null);
 const graphOpen = ref(false);
-/**
- * The view mode the user picked, or null to follow the open page's kind. The
- * effective `mode` below is derived from it, so a conversion resolves the mode
- * instead of racing a watcher that has to patch it.
- */
 const requestedMode = ref<ViewModeId | null>(null);
-/** The open page's kind, refreshed whenever page metadata changes. */
-const currentPageKind = useWorkspaceValue(
-  workspace,
-  ["pages"],
-  (store) => (currentPageId.value ? store.getPage(currentPageId.value)?.kind : undefined),
-  undefined,
-);
-/** What the shell shows. `null` follows the open page's kind. */
-const mode = computed<ViewModeId>(() => requestedMode.value ?? modeForKind(currentPageKind.value));
+const mode = computed<ViewModeId>(() => requestedMode.value ?? "write");
 const plugins = usePlugins();
 const {
   open: paletteOpen,
@@ -283,7 +271,7 @@ watch(currentPageId, async (id) => {
   if (!typstState) return;
 
   await refreshSections(store, id, text, (source) =>
-    engineAvailable() ? toSections(typstState.extractSections(source), source) : null,
+    engineAvailable() ? toSections(sectionsOf(typstState, source), source) : null,
   );
 });
 
@@ -439,11 +427,9 @@ function routeQuery(): LocationQueryRaw {
   delete query.aside;
 
   if (currentPageId.value) query.page = currentPageId.value;
-  // The mode is written whenever it is not the page's natural one, so an
-  // explicit choice round-trips through the URL. Writing it only when it differs
-  // from "write" would drop `?mode=write` for a notebook, and reading that back
-  // would reset the choice to follow the kind.
-  if (mode.value !== modeForKind(currentPageKind.value)) query.mode = mode.value;
+  // Written only when it differs from the default, so an explicit choice
+  // round-trips through the URL and a default one leaves it out.
+  if (mode.value !== "write") query.mode = mode.value;
   const view = paneViewValue();
   if (view) query.view = view;
   if (dockChatId.value) query.aside = `chat:${dockChatId.value}`;
@@ -650,18 +636,6 @@ function openSearchResult(payload: { pageId: string; from?: number; to?: number 
   }
 }
 
-/**
- * Notebook pages open in notebook mode and documents in write mode. `requested`
- * is what the user chose, and null means "follow the page's kind", so a kind
- * flip resolves the mode instead of patching it. Patching it could not express
- * this: a notebook converted from split mode has no mode that shows cells, and
- * a page converted from a mode that is valid for both kinds had nothing to
- * change at all.
- */
-function modeForKind(kind: PageKind | undefined): ViewModeId {
-  return kind === "notebook" ? "notebook" : "write";
-}
-
 /** Tab and window title for the open page: "Page · Workspace". */
 const pageTitle = useWorkspaceValue(
   workspace,
@@ -678,18 +652,6 @@ useSeoMeta({
   title: () => pageTitle.value,
   ogTitle: () => pageTitle.value,
   ogType: "website",
-});
-
-// Converting the open page hands the mode back to the page's kind. Clearing the
-// request is the whole fix: the effective mode is derived, so there is nothing
-// to patch and nothing that can revert. A mode chosen by hand on a page that
-// was not converted stays put, which is what the check for an explicit request
-// buys.
-watch(currentPageKind, (kind, previous) => {
-  if (kind === previous || requestedMode.value === null) return;
-
-  requestedMode.value = null;
-  syncRoute("replace");
 });
 
 function openPlugin(instanceId: string) {
@@ -828,9 +790,7 @@ useEventListener("pagehide", () => {
 });
 
 async function setMode(value: ViewModeId) {
-  // Picking the page's natural mode is not a choice, so it clears the request
-  // and the mode follows the kind again after a conversion.
-  requestedMode.value = value === modeForKind(currentPageKind.value) ? null : value;
+  requestedMode.value = value === "write" ? null : value;
   syncRoute("replace");
 }
 

@@ -13,7 +13,7 @@ import type { TextRef, TypstRequestHandler } from "./types";
 
 import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
 import { frameActiveDecorations, frameIsInactive, installSharedDefs, TypstWidget } from "./frames";
-import { cellIndexAt, notebookRunEffect, notebookRefreshEffect } from "./notebook";
+import { cellIndexAt, notebookRefreshEffect } from "./notebook";
 import { decorateNotebook } from "./notebook-widgets";
 
 /**
@@ -120,7 +120,10 @@ function buildDecorations({
   typstState,
   openExternal,
   lineHeights,
-}: BuildDecorationsArgs): { decorations: DecorationSet; active: SvgRangedFrame[] } {
+}: BuildDecorationsArgs): {
+  decorations: DecorationSet;
+  active: SvgRangedFrame[];
+} {
   const decorations: Range<Decoration>[] = [];
   const active: SvgRangedFrame[] = [];
 
@@ -194,6 +197,7 @@ interface DecorateArgs {
   /** Opens a link clicked inside a rendered frame. See ExternalLinkOpener. */
   onExternalLink?: ExternalLinkOpener;
   notebook?: NotebookOptions;
+  renderFrames?: boolean;
 }
 
 function decorate({
@@ -213,6 +217,7 @@ function decorate({
   onCompile,
   onExternalLink,
   notebook,
+  renderFrames = true,
 }: DecorateArgs): DecorateResult {
   const text = update.state.doc.toString();
   const isFlaggedForUpdate = updateFlagStore.has(path);
@@ -272,9 +277,12 @@ function decorate({
 
     ({ frames, tooltips, equation_ranges: equationRanges } = compileResult);
     diagnostics = compileResult.diagnostics;
-    compileCache.set(cacheKey, { frames, tooltips, equationRanges, diagnostics });
-
-    notebook?.onCompile?.({ text, frames, diagnostics });
+    compileCache.set(cacheKey, {
+      frames,
+      tooltips,
+      equationRanges,
+      diagnostics,
+    });
   } else {
     const cached = compileCache.get(cacheKey)!;
     ({ frames, tooltips, equationRanges, diagnostics } = cached);
@@ -300,7 +308,10 @@ function decorate({
     }
 
     notebook.onCells?.(cells);
-    notebook.onActiveCell?.(cells.length ? cellIndexAt(cells, state.selection.main.head) : null);
+    notebook.onCompile?.({ text, frames, diagnostics });
+
+    const activeIndex = cells.length ? cellIndexAt(cells, state.selection.main.head) : null;
+    notebook.onActiveCell?.(activeIndex);
 
     return {
       decorations: Decoration.set(
@@ -313,7 +324,11 @@ function decorate({
           fileId,
           typstState,
           locked,
+          readOnly: notebook.readOnly?.() ?? false,
+          renderFrames,
+          activeIndex,
           onExternalLink,
+          onCommand: (command, index) => notebook.onCommand?.(command, index),
           options: notebook,
         }),
         true,
@@ -375,6 +390,7 @@ export interface TypstViewPluginOptions {
   onExternalLink?: ExternalLinkOpener;
   /** Cell rendering, run effects, and cell commands for notebook mode. */
   notebook?: NotebookOptions;
+  renderFrames?: boolean;
 }
 
 export const typstViewPlugin = (
@@ -395,6 +411,7 @@ export const typstViewPlugin = (
     // runs until the user clicks or types.
     let firstUpdate = true;
     let resizeTimer: number | undefined;
+    const renderFrames = options.renderFrames ?? true;
 
     // Dedupes remeasure requests for this view. The latest one wins.
     const remeasureKey = {};
@@ -440,7 +457,9 @@ export const typstViewPlugin = (
             });
 
             view.dispatch({
-              effects: typstStateEffect.of({ decorations: rebuilt.decorations }),
+              effects: typstStateEffect.of({
+                decorations: rebuilt.decorations,
+              }),
             });
           });
         },
@@ -451,7 +470,6 @@ export const typstViewPlugin = (
       update(update: ViewUpdate) {
         let widthChanged = false;
         const effects = update.transactions.flatMap((transaction) => transaction.effects);
-        const run = effects.find((effect) => effect.is(notebookRunEffect));
         const refresh = effects.some((effect) => effect.is(notebookRefreshEffect));
         const forced =
           firstUpdate ||
@@ -459,8 +477,6 @@ export const typstViewPlugin = (
             transaction.effects.some((effect) => effect.is(typstRecompileEffect)),
           );
         firstUpdate = false;
-
-        if (run) options.notebook?.onRun?.(run.value.index);
 
         if (update.geometryChanged) {
           const { scrollDOM, contentDOM } = update.view;
@@ -493,14 +509,7 @@ export const typstViewPlugin = (
           }, 150);
         }
 
-        if (
-          update.docChanged ||
-          update.selectionSet ||
-          update.focusChanged ||
-          forced ||
-          run ||
-          refresh
-        ) {
+        if (update.docChanged || update.selectionSet || update.focusChanged || forced || refresh) {
           queueMicrotask(() => {
             let result: DecorateResult;
             try {
@@ -513,7 +522,7 @@ export const typstViewPlugin = (
                 update,
                 updateInWidget: false,
                 widthChanged,
-                forced: forced || Boolean(run),
+                forced,
                 typstState,
                 revision: options.revision,
                 onRequests: options.onRequests,
@@ -521,6 +530,7 @@ export const typstViewPlugin = (
                 onCompile: options.onCompile,
                 onExternalLink: options.onExternalLink,
                 notebook: options.notebook,
+                renderFrames,
               });
             } catch (error) {
               console.error("[typst] decorate panicked:", error);

@@ -6,14 +6,16 @@ import type { MaterialSymbol } from "material-symbols";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import {
-  deleteCellAt,
+  currentCell,
+  deleteCell,
+  duplicateCell,
   focusCell,
   insertCell,
-  insertCellAt,
-  moveCellAt,
-  runAllCells,
-  runCell,
+  mergeCell,
+  moveCell,
   setCellType,
+  splitCell,
+  type NotebookCellType,
   type NotebookLabels,
 } from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
@@ -105,6 +107,7 @@ useResizeObserver(pageView, (entries) => {
   if (entry) paneWidth.value = entry.contentRect.width;
 });
 const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
+const coarsePointer = useMediaQuery("(hover: none) and (pointer: coarse)");
 
 function onKeydown(event: KeyboardEvent): void {
   if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
@@ -120,27 +123,94 @@ useEventListener("keydown", onKeydown, { capture: true });
 
 const notebookSession = createNotebookSession();
 const notebookController = shallowRef<NotebookController>();
-/** Cell selected in command mode (editor blurred). Null while editing. */
-const notebookSelected = ref<number | null>(null);
-let pendingNotebookDelete = false;
-let pendingDeleteTimer: ReturnType<typeof setTimeout> | undefined;
 
 const notebookLabels = computed<NotebookLabels>(() => ({
-  run: t("notebook.run"),
   code: t("notebook.code"),
-  markup: t("notebook.markup"),
+  prose: t("notebook.prose"),
+  log: t("notebook.log"),
+  hidden: t("notebook.hidden"),
+  menu: t("notebook.menu"),
+  split: t("notebook.split"),
+  merge: t("notebook.merge"),
   moveUp: t("notebook.moveUp"),
   moveDown: t("notebook.moveDown"),
   duplicate: t("notebook.duplicate"),
   remove: t("notebook.remove"),
+  copy: t("notebook.copy"),
+  hold: t("notebook.hold"),
+  release: t("notebook.release"),
   clearOutput: t("notebook.clearOutput"),
   toggleSource: t("notebook.toggleSource"),
   noOutput: t("notebook.noOutput"),
-  error: t("notebook.error"),
+  held: t("notebook.held"),
 }));
 
 function notebookView(): EditorView | undefined {
   return editorPane.value?.view;
+}
+
+/** The cell the toolbar and the rail act on. */
+const notebookActive = computed<number | null>(() => notebookSession.active);
+
+/** The cell's body text, for a copy action. */
+function cellText(index: number): string {
+  const view = notebookView();
+  const cell = notebookSession.cells[index];
+  if (!view || !cell) return "";
+
+  return view.state.doc.sliceString(cell.content_start, cell.content_end);
+}
+
+/**
+ * One handler for every cell command, because the rail's menu, the toolbar and
+ * the keyboard all dispatch the same names. A command that is a text edit goes
+ * through the package's own dispatch, so it lands on the undo stack; the rest
+ * change session state and ask for a re-decoration.
+ */
+function runNotebookCommand(command: string, index: number): void {
+  const view = notebookView();
+  const session = notebookSession;
+
+  switch (command) {
+    case "toggleSource":
+      session.collapsed[index] = !(session.collapsed[index] ?? false);
+      break;
+    case "split":
+      if (view) splitCell(view);
+      break;
+    case "merge":
+      if (view) mergeCell(view);
+      break;
+    case "moveUp":
+      if (view) moveCell(view, -1);
+      break;
+    case "moveDown":
+      if (view) moveCell(view, 1);
+      break;
+    case "hold":
+      session.held[index] = true;
+      break;
+    case "release":
+      delete session.held[index];
+      delete session.frozen[index];
+      break;
+    case "clearOutput":
+      delete session.frozen[index];
+      break;
+    case "duplicate":
+      if (view) duplicateCell(view, index);
+      break;
+    case "copy":
+      void navigator.clipboard?.writeText(cellText(index));
+      break;
+    case "remove":
+      if (view) deleteCell(view, index);
+      break;
+    default:
+      return;
+  }
+
+  notebookController.value?.refresh(view);
 }
 
 function syncNotebookController(): void {
@@ -148,159 +218,40 @@ function syncNotebookController(): void {
   if (!state || !store) return;
 
   notebookController.value = createNotebookController({
-    store,
     typstState: state,
+    fileId: () => boundFileId.value,
     session: notebookSession,
     labels: notebookLabels.value,
-    onCommandMode: () => {
-      notebookSelected.value = notebookSession.active;
-      notebookView()?.contentDOM.blur();
-    },
+    readOnly: () => props.modelValue === "read",
+    onCommand: runNotebookCommand,
   });
-}
-
-function runNotebookCell(): void {
-  const view = notebookView();
-  const index = notebookSelected.value ?? notebookSession.active;
-  if (view && index !== null && index >= 0) runCell(view, index);
-}
-
-function runAllNotebook(): void {
-  const view = notebookView();
-  if (view) runAllCells(view);
-}
-
-function restartNotebook(): void {
-  notebookController.value?.restart(notebookView());
-}
-
-function clearNotebookOutput(): void {
-  const view = notebookView();
-  const index = notebookSelected.value ?? notebookSession.active;
-  if (view && index !== null && index >= 0) notebookController.value?.clearOutput(view, index);
 }
 
 function addNotebookCell(): void {
   const view = notebookView();
-  if (view) insertCell(view, "end");
+  if (view) insertCell(view, "prose");
 }
 
-function selectNotebookCell(index: number | null): void {
-  const count = notebookSession.cells.length;
-  if (index === null || count === 0) {
-    notebookSelected.value = null;
-
-    return;
-  }
-
-  notebookSelected.value = Math.min(Math.max(index, 0), count - 1);
-}
-
-/** Command-mode keys, Jupyter style (A/B/DD/M/Y/L), while the editor is blurred. */
-function onNotebookCommandKey(event: KeyboardEvent): void {
-  if (notebookSelected.value === null) return;
-
-  const target = event.target as HTMLElement | null;
-  if (
-    target &&
-    (target.isContentEditable ||
-      target.closest("input, textarea, select, [contenteditable='true']"))
-  ) {
-    return;
-  }
-
+function splitNotebookCell(): void {
   const view = notebookView();
-  const index = notebookSelected.value;
-  if (!view) return;
-
-  const consume = () => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const resetDelete = () => {
-    pendingNotebookDelete = false;
-    clearTimeout(pendingDeleteTimer);
-  };
-
-  if (event.key === "Enter") {
-    consume();
-    if (event.shiftKey) {
-      runCell(view, index);
-
-      return;
-    }
-
-    focusCell(view, index);
-    notebookSelected.value = null;
-
-    return;
-  }
-
-  if (event.key === "Escape") {
-    consume();
-    resetDelete();
-    notebookSelected.value = null;
-
-    return;
-  }
-
-  if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-    consume();
-
-    const delta = event.key === "ArrowUp" ? -1 : 1;
-    if (event.altKey) {
-      moveCellAt(view, index, delta);
-      selectNotebookCell(index + delta);
-
-      return;
-    }
-
-    resetDelete();
-    selectNotebookCell(index + delta);
-
-    return;
-  }
-
-  switch (event.key.toLowerCase()) {
-    case "a":
-      consume();
-      insertCellAt(view, index, "above");
-      return;
-    case "b":
-      consume();
-      insertCellAt(view, index, "below");
-      selectNotebookCell(index + 1);
-      return;
-    case "d":
-      consume();
-      if (pendingNotebookDelete) {
-        resetDelete();
-        deleteCellAt(view, index);
-        selectNotebookCell(Math.min(index, notebookSession.cells.length - 1));
-      } else {
-        pendingNotebookDelete = true;
-        pendingDeleteTimer = setTimeout(resetDelete, 800);
-      }
-      return;
-    case "m":
-      consume();
-      setCellType(view, index, "markup");
-      return;
-    case "y":
-      consume();
-      setCellType(view, index, "code");
-      return;
-    case "l":
-      consume();
-      notebookController.value?.toggleCollapse(view, index);
-      return;
-    default:
-      break;
-  }
+  if (view) splitCell(view);
 }
 
-useEventListener("keydown", onNotebookCommandKey);
+function mergeNotebookCell(): void {
+  const view = notebookView();
+  if (view) mergeCell(view);
+}
+
+function releaseAllNotebook(): void {
+  notebookController.value?.releaseAll(notebookView());
+}
+
+/** The toolbar's type menu, on the cell under the caret. */
+function setNotebookCellType(type: NotebookCellType): void {
+  const view = notebookView();
+  const index = notebookSession.active;
+  if (view && index !== null && index >= 0) setCellType(view, index, type);
+}
 
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
 // this remount, so the editor plugin and preview bind to the fresh instance.
@@ -345,7 +296,10 @@ async function handlePanic(options: { manual?: boolean } = {}) {
     await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
     if (pageDisposed) return;
 
-    notebookController.value?.cancelRun();
+    // Every held cell was showing the last output, which is still the output of
+    // the dead instance's render. Release them so the fresh state repaints.
+    notebookSession.held = {};
+    notebookSession.frozen = {};
     if (meta.value) bindPage(props.pageId, meta.value, setupToken);
     // Bump last: the remount has to see the fresh state and the new file id
     // together, or the editor binds one to the other.
@@ -422,9 +376,6 @@ const extraExtensions = computed(() => {
   return [
     presenceCursors(props.pageId, () => presence.value as Map<string, PresencePeer>),
     EditorView.updateListener.of((update) => {
-      // Focusing the editor leaves command mode. The cursor cell becomes the
-      // active one again.
-      if (update.focusChanged && update.view.hasFocus) notebookSelected.value = null;
       if (!update.selectionSet && !update.docChanged) return;
 
       reportCursor(update);
@@ -695,7 +646,11 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
   if (!store || !state) return;
 
   requestService?.setCurrentPage(pageId);
-  setTypstInputs(state, { pageId, workspaceId: workspaceId.value, reason: "editor" });
+  setTypstInputs(state, {
+    pageId,
+    workspaceId: workspaceId.value,
+    reason: "editor",
+  });
   syncNotebookController();
 
   fileId.value = state.createSourceId(page.path, workspaceId.value);
@@ -1046,15 +1001,11 @@ function startSplitDrag(event: PointerEvent) {
 }
 
 const modes = computed<Array<{ id: ViewModeId; icon: MaterialSymbol; key: string }>>(() =>
-  // Notebook mode belongs to notebook pages. `meta` refreshes on dataRevision,
-  // so converting the open page updates the tabs in place.
-  VIEW_MODES.filter((mode) => mode.id !== "notebook" || meta.value?.kind === "notebook").map(
-    (mode) => ({
-      id: mode.id,
-      icon: mode.icon,
-      key: `pageView.${mode.id}`,
-    }),
-  ),
+  VIEW_MODES.map((mode) => ({
+    id: mode.id,
+    icon: mode.icon,
+    key: `pageView.${mode.id}`,
+  })),
 );
 
 const activeMode = computed(
@@ -1289,15 +1240,16 @@ function setCategory(categoryId: string | null): void {
     </div>
 
     <NotebookToolbar
-      v-if="modelValue === 'notebook' && store"
+      v-if="store && meta?.kind === 'notebook'"
       :session="notebookSession"
-      :selected="notebookSelected"
+      :active="notebookActive"
       :disabled="!ready || degraded"
-      @run-cell="runNotebookCell"
-      @run-all="runAllNotebook"
-      @restart="restartNotebook"
-      @clear-output="clearNotebookOutput"
+      :compact="coarsePointer"
       @add-cell="addNotebookCell"
+      @split="splitNotebookCell"
+      @merge="mergeNotebookCell"
+      @release-all="releaseAllNotebook"
+      @set-type="setNotebookCellType"
     />
 
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">
@@ -1339,7 +1291,7 @@ function setCategory(categoryId: string | null): void {
         :space-id="workspaceId"
         :path="meta?.path ?? ''"
         :wysiwyg="modelValue === 'write'"
-        :notebook="modelValue === 'notebook' ? notebookController?.options : undefined"
+        :notebook="meta?.kind === 'notebook' ? notebookController?.options : undefined"
         :degraded="degraded"
         :spellcheck="spellcheckMode"
         :spellcheck-words="spellcheckWords"

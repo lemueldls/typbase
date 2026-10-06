@@ -55,9 +55,16 @@ const props = defineProps<{
   path: string;
   text: TextRef;
   prelude: TextRef;
-  /** WYSIWYG (inline previews) vs plain source editing. */
+  /**
+   * Render the frames, or show plain source. Write mode renders inline previews
+   * and source mode does not, for a document and for a notebook alike.
+   */
   wysiwyg: boolean;
-  /** Notebook cell rendering. Undefined outside notebook mode. */
+  /**
+   * Notebook cell rendering. Set for a notebook page in every editable mode, so
+   * it is not a mode switch on its own: `wysiwyg` still decides whether the
+   * frames are drawn.
+   */
   notebook?: NotebookOptions;
   /**
    * Engine failed: install only engine-free extensions so the user keeps
@@ -346,6 +353,7 @@ function createStateConfig(): EditorStateConfig {
           onCompile: props.onCompile,
           onExternalLink: openExternal,
           notebook: props.notebook,
+          renderFrames: props.wysiwyg,
         },
       ),
     );
@@ -767,15 +775,41 @@ defineExpose({ view, recompile, revealRange, insertAt });
   white-space: nowrap;
 }
 
-.tb-cell-header {
-  display: inline-flex;
+.tb-cell-rail {
+  display: flex;
   align-items: center;
   gap: var(--space-1);
+  min-height: 1.6rem;
+  padding: 0 var(--space-1);
   margin-right: var(--space-2);
-  vertical-align: middle;
+  color: var(--color-text-secondary);
   font-size: var(--text-xs);
   line-height: 1;
   user-select: none;
+  vertical-align: middle;
+  opacity: 0.55;
+  transition: opacity var(--motion-fast);
+}
+
+.tb-cell-rail:hover,
+.tb-cell-rail:focus-within {
+  opacity: 1;
+}
+
+.tb-cell-active {
+  border-left: 2px solid var(--color-accent) !important;
+  margin-left: calc(-1 * var(--space-2) - 2px);
+  padding-left: var(--space-2) !important;
+}
+
+.tb-cell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.tb-cell-held {
+  color: var(--color-warning);
 }
 
 .tb-cell-btn {
@@ -785,13 +819,15 @@ defineExpose({ view, recompile, revealRange, insertAt });
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  font-family: inherit;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  background: transparent;
   border: none;
   border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: var(--text-xs);
   cursor: pointer;
+  transition:
+    color var(--motion-fast),
+    background-color var(--motion-fast);
 }
 
 .tb-cell-btn:hover {
@@ -799,58 +835,20 @@ defineExpose({ view, recompile, revealRange, insertAt });
   background: var(--color-surface-2);
 }
 
-.tb-cell-btn--run {
-  color: var(--color-accent);
+.tb-cell-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
-.tb-cell-btn--type {
-  width: auto;
-  gap: var(--space-1);
-  height: 1.4rem;
-  padding: 0 var(--space-1-5);
-  border: 1px solid var(--color-border);
-}
-
-.tb-cell-counter {
-  display: inline-flex;
-  align-items: center;
-  flex: none;
-  font-family: var(--font-mono);
+.tb-cell-attribute {
   color: var(--color-text-secondary);
-}
-
-.tb-cell-spacer {
-  flex: 1;
-}
-
-.tb-cell-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  opacity: 0;
-  transition: opacity var(--motion-fast);
-}
-
-.tb-cell-header:hover .tb-cell-actions,
-.tb-cell-header:focus-within .tb-cell-actions {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .tb-cell-actions {
-    opacity: 1;
-  }
-}
-
-/* Marker lines read as cell separators, not source. */
-.tb-cell-marker {
-  color: var(--color-text-secondary);
-  background: var(--color-surface-2);
   font-size: var(--text-xs);
 }
 
-.tb-cell-marker.cm-line {
-  padding-left: var(--space-1);
+.tb-cell-attribute.cm-line {
+  margin-left: calc(-1 * var(--space-2) - 2px);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--color-border-strong);
 }
 
 .tb-cell-output {
@@ -862,6 +860,13 @@ defineExpose({ view, recompile, revealRange, insertAt });
 .tb-cell-output--cleared,
 .tb-cell-output--empty {
   display: none;
+}
+
+.tb-cell-output--offscreen {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .tb-cell-output-body {
@@ -884,6 +889,24 @@ defineExpose({ view, recompile, revealRange, insertAt });
   color: var(--color-text-secondary);
 }
 
+.tb-cell-stale {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.tb-cell-diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border);
+}
+
 .tb-cell-diagnostic {
   padding: var(--space-1-5) var(--space-2);
   font-size: var(--text-sm);
@@ -897,5 +920,9 @@ defineExpose({ view, recompile, revealRange, insertAt });
   margin: var(--space-1) 0 0;
   padding-left: var(--space-4);
   color: var(--color-text-secondary);
+}
+
+.tb-cell-menu {
+  z-index: 90;
 }
 </style>

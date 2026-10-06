@@ -572,11 +572,28 @@ impl TypstState {
 
 #[wasm_bindgen]
 impl TypstState {
+    /// The note's parse tree for `text`, parsed only when the cached one is for
+    /// other bytes.
+    fn parse_shared(&mut self, id: Option<TypstFileId>, text: &str) -> typst_syntax::SyntaxNode {
+        match id
+            .as_ref()
+            .and_then(|id| self.source_context_map.get_mut(id))
+        {
+            Some(context) => context.parse_cached(text),
+            None => typst_syntax::parse(text),
+        }
+    }
+
     /// Plain-text flattening per block for the search index, plus the byte
-    /// map back to raw source. Pure syntax pass. No state needed.
+    /// map back to raw source.
     #[wasm_bindgen(js_name = "flattenDocument")]
-    pub fn flatten_document(&self, text: &str) -> Result<Vec<Ts<FlattenedBlock>>, JsError> {
-        Ok(crate::flatten::flatten_document(text)
+    pub fn flatten_document(
+        &mut self,
+        id: Option<TypstFileId>,
+        text: &str,
+    ) -> Result<Vec<Ts<FlattenedBlock>>, JsError> {
+        let root = self.parse_shared(id, text);
+        Ok(crate::flatten::flatten_document_root(&root, text)
             .into_iter()
             .map(|block| block.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
@@ -584,29 +601,44 @@ impl TypstState {
 
     /// Extracts `#typbase.section` spans for the page doc's sections list.
     #[wasm_bindgen(js_name = "extractSections")]
-    pub fn extract_sections(&self, text: &str) -> Result<Vec<Ts<SectionSpan>>, JsError> {
-        Ok(crate::flatten::extract_sections(text)
+    pub fn extract_sections(
+        &mut self,
+        id: Option<TypstFileId>,
+        text: &str,
+    ) -> Result<Vec<Ts<SectionSpan>>, JsError> {
+        let root = self.parse_shared(id, text);
+        Ok(crate::flatten::extract_sections_root(&root, text)
             .into_iter()
             .map(|span| span.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Extracts the app's link calls (`typbase.page-link`, `typbase.embed`,
-    /// and `typbase://page/` URLs) with UTF-16 ranges. Pure syntax pass
-    /// that needs no state.
+    /// and `typbase://page/` URLs) with UTF-16 ranges. Shares the note's parse
+    /// tree, like the other syntax passes.
     #[wasm_bindgen(js_name = "extractLinks")]
-    pub fn extract_links(&self, text: &str) -> Result<Vec<Ts<LinkSpan>>, JsError> {
-        Ok(crate::links::extract_links(text)
+    pub fn extract_links(
+        &mut self,
+        id: Option<TypstFileId>,
+        text: &str,
+    ) -> Result<Vec<Ts<LinkSpan>>, JsError> {
+        let root = self.parse_shared(id, text);
+        Ok(crate::links::extract_links_root(&root, text)
             .into_iter()
             .map(|span| span.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
     }
 
-    /// Extracts notebook cells (`// %%` markers) as UTF-16 spans, ready for
-    /// CodeMirror positions. Pure syntax pass with no state needed.
+    /// Extracts notebook cells as UTF-16 spans, ready for CodeMirror
+    /// positions. Shares the note's parse tree, like the other syntax passes.
     #[wasm_bindgen(js_name = "extractCells")]
-    pub fn extract_cells(&self, text: &str) -> Result<Vec<Ts<CellSpan>>, JsError> {
-        Ok(crate::flatten::extract_cells(text)
+    pub fn extract_cells(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+    ) -> Result<Vec<Ts<CellSpan>>, JsError> {
+        let root = self.parse_shared(Some(id.clone()), text);
+        Ok(crate::flatten::extract_cells_root(&root, text)
             .into_iter()
             .map(|cell| cell.into_ts())
             .collect::<Result<Vec<_>, _>>()?)

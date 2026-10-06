@@ -110,11 +110,9 @@ export const typstEditorTheme = EditorView.theme({
     padding: "0",
   },
   ".cm-lint-marker": {
-    // The base theme paints an SVG with `content:`. Swap it for a dot.
     content: "none",
-    width: "0.5rem",
-    height: "0.5rem",
-    borderRadius: "var(--radius-full)",
+    width: "2px",
+    height: "100%",
     backgroundImage: "none",
   },
   ".cm-lint-marker-error": {

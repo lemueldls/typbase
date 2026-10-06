@@ -115,6 +115,7 @@ fn style_prelude(
     let h5 = text_size;
     let h6 = text_size * 0.875;
     let block_math = text_size * 1.125;
+    let raw_code = text_size * 1.2;
 
     formatdoc!(
         r#"
@@ -146,7 +147,7 @@ fn style_prelude(
             #show math.equation.where(block:true):set par(leading:0.5em)
 
             #set raw(lang:"typst",theme:"/{syntax_theme}")
-            #show raw:set text(font:"{code_font}")
+            #show raw:set text(font:"{code_font}",size:{raw_code}pt)
             #show raw.where(block:true):it=>block(fill:theme.code,inset:8pt,radius:4pt,width:100%,it)
 
             #context {{show math.equation:set text(size:text.size*2)}}

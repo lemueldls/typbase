@@ -8,14 +8,17 @@
 use std::{hint::black_box, path::Path};
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use flate2::{Compression, write::GzEncoder};
-use tar::{Builder, EntryType, Header};
 use engine::{
     bindings::TypstFileId,
+    flatten::{extract_cells, flatten_document},
+    links::extract_links,
     renderer::{html, paged::items::chunk_by_items},
     source::{RenderTarget, Side, find_fixes, sync_source_state},
     state::TypstState,
 };
+use flate2::{Compression, write::GzEncoder};
+use tar::{Builder, EntryType, Header};
+use typst_syntax::parse as parse_typst;
 
 const FONTS: &[&str] = &[
     "maple/MapleMono-Regular.ttf",
@@ -99,6 +102,34 @@ fn large_document(paragraphs: usize) -> String {
     text
 }
 
+/// A notebook of `cells` cells, alternating prose and code.
+fn large_notebook(cells: usize) -> String {
+    let mut text = String::with_capacity(cells * 80);
+
+    for index in 0..cells {
+        if index % 2 == 0 {
+            text.push_str(&format!(
+                "//% kind=code\n#let value_{index} = {index}\n#value_{index}\n\n"
+            ));
+        } else {
+            text.push_str(&format!(
+                "Paragraph {index} with $x_{index} + y$ and some *markup*.\n\n"
+            ));
+        }
+    }
+
+    text
+}
+
+/// Varies one character so each iteration is a real build.
+fn varying(base: &str) -> impl FnMut() -> String {
+    let mut tick = 0usize;
+    move || {
+        tick += 1;
+        format!("{base}\nkeystroke {tick}\n")
+    }
+}
+
 fn bench_synth(c: &mut Criterion) {
     let cases = [
         ("plain", PLAIN.to_string()),
@@ -113,11 +144,13 @@ fn bench_synth(c: &mut Criterion) {
     for (name, text) in &cases {
         let mut state = TypstState::new();
         let id = page(&mut state, name);
+        let mut next = varying(text);
 
-        group.bench_with_input(BenchmarkId::from_parameter(name), text, |b, text| {
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
             b.iter(|| {
+                let text = next();
                 let result =
-                    sync_source_state(&id, black_box(text), "", RenderTarget::Svg, &mut state);
+                    sync_source_state(&id, black_box(&text), "", RenderTarget::Svg, &mut state);
                 black_box(result.blocks.len());
             });
         });
@@ -202,11 +235,19 @@ fn bench_compile(c: &mut Criterion) {
     for (name, text) in &cases {
         let mut state = state();
         let id = page(&mut state, name);
+        let mut next = varying(text);
 
-        group.bench_with_input(BenchmarkId::from_parameter(name), text, |b, text| {
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
             b.iter(|| {
-                let render =
-                    chunk_by_items(&id, black_box(text), "", None, RenderTarget::Svg, &mut state);
+                let text = next();
+                let render = chunk_by_items(
+                    &id,
+                    black_box(&text),
+                    "",
+                    None,
+                    RenderTarget::Svg,
+                    &mut state,
+                );
                 black_box(render.chunks.len());
             });
         });
@@ -220,14 +261,41 @@ fn bench_compile(c: &mut Criterion) {
     for (name, text) in &cases {
         let mut state = state();
         let id = page(&mut state, name);
+        let mut next = varying(text);
 
-        group.bench_with_input(BenchmarkId::from_parameter(name), text, |b, text| {
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
             b.iter(|| {
-                let render = html::render(&id, black_box(text), "", &mut state);
+                let text = next();
+                let render = html::render(&id, black_box(&text), "", &mut state);
                 black_box(render.frames.len());
             });
         });
     }
+
+    group.finish();
+
+    // A notebook of 300 cells, which is the shape the editor sees in notebook
+    // mode. The per-cell chrome and extraction work sits on top of this.
+    let mut group = c.benchmark_group("compile_notebook");
+    group.sample_size(10);
+
+    let mut state = state();
+    let id = page(&mut state, "notebook");
+    let mut next = varying(&large_notebook(300));
+    group.bench_function("300_cells", |b| {
+        b.iter(|| {
+            let text = next();
+            let render = chunk_by_items(
+                &id,
+                black_box(&text),
+                "",
+                None,
+                RenderTarget::Svg,
+                &mut state,
+            );
+            black_box(render.chunks.len());
+        });
+    });
 
     group.finish();
 }
@@ -253,8 +321,14 @@ fn bench_recovery(c: &mut Criterion) {
 
         group.bench_with_input(BenchmarkId::from_parameter(name), &text, |b, text| {
             b.iter(|| {
-                let render =
-                    chunk_by_items(&id, black_box(text), "", None, RenderTarget::Svg, &mut state);
+                let render = chunk_by_items(
+                    &id,
+                    black_box(text),
+                    "",
+                    None,
+                    RenderTarget::Svg,
+                    &mut state,
+                );
                 black_box(render.diagnostics.len());
             });
         });
@@ -313,6 +387,41 @@ fn bench_package(c: &mut Criterion) {
     group.finish();
 }
 
+/// The pure syntax passes. They run on the same text as the highlighter, so
+/// sharing one parse is the difference between one parse per keystroke and four.
+fn bench_syntax(c: &mut Criterion) {
+    let cases = [
+        ("plain", PLAIN.to_string()),
+        ("structure", STRUCTURE.to_string()),
+        ("large", large_document(300)),
+        ("notebook_300", large_notebook(300)),
+    ];
+
+    let mut group = c.benchmark_group("syntax");
+    group.sample_size(20);
+
+    for (name, text) in &cases {
+        group.bench_function(BenchmarkId::new("extract_cells", name), |b| {
+            b.iter(|| black_box(extract_cells(black_box(text)).len()));
+        });
+
+        group.bench_function(BenchmarkId::new("extract_links", name), |b| {
+            b.iter(|| black_box(extract_links(black_box(text)).len()));
+        });
+
+        group.bench_function(BenchmarkId::new("flatten_document", name), |b| {
+            b.iter(|| black_box(flatten_document(black_box(text)).len()));
+        });
+    }
+
+    // A bare parse, for the baseline the three passes above would share.
+    group.bench_function("parse/notebook_300", |b| {
+        b.iter(|| black_box(parse_typst(black_box(&large_notebook(300)))));
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_synth,
@@ -321,5 +430,6 @@ criterion_group!(
     bench_compile,
     bench_recovery,
     bench_package,
+    bench_syntax,
 );
 criterion_main!(benches);

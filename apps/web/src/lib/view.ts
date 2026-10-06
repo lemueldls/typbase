@@ -1,7 +1,7 @@
 import type { PageKind } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
-export type ViewModeId = "write" | "notebook" | "split" | "source" | "read";
+export type ViewModeId = "write" | "split" | "source" | "read";
 
 export interface ViewMode {
   /** The mode's unique identifier, used in the URL and for state. */
@@ -10,13 +10,14 @@ export interface ViewMode {
   icon: MaterialSymbol;
 }
 
-/** Notebook glyph, shared by the view-mode tab and the sidebar rows. */
+/** Notebook glyph, used by the sidebar rows and the convert menu. */
 const NOTEBOOK_ICON: MaterialSymbol = "view_agenda";
 
-/** View modes in tab order. The shell validates `?mode=` against this list. */
+/**
+ * View modes in tab order. The shell validates `?mode=` against this list.
+ */
 export const VIEW_MODES: ViewMode[] = [
   { id: "write", icon: "edit_square" },
-  { id: "notebook", icon: NOTEBOOK_ICON },
   { id: "split", icon: "split_scene" },
   { id: "source", icon: "frame_source" },
   { id: "read", icon: "article" },

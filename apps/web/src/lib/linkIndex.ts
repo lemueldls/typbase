@@ -2,6 +2,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 import { resolveAppTheme } from "~/composables/theme";
 import { useTypst } from "~/composables/typst";
+import { linksOf } from "~/lib/engineSyntax";
 import {
   purgeLinkResolver,
   resolvePageLinks,
@@ -85,5 +86,5 @@ function createResolver(store: WorkspaceStore) {
 async function extractLinks(text: string) {
   const state = await useTypst();
 
-  return state.extractLinks(text);
+  return linksOf(state, text);
 }

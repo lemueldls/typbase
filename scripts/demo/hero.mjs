@@ -36,7 +36,7 @@ import {
  */
 
 const exec = promisify(execFile);
-const RAW = "/tmp/opencode/demo-video";
+const RAW = "/tmp/typbase/demo-video";
 
 const pause = (page, ms) => page.waitForTimeout(ms);
 

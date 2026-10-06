@@ -115,8 +115,7 @@
     "publishConfirm": "Dépublier cette note ? Les enregistrements publics peuvent être répliqués par des services firehose et ne peuvent pas être rappelés.",
     "publishHint": "Tout le monde peut lire les enregistrements publics. Dépublier supprime l'enregistrement, mais les miroirs peuvent en garder des copies.",
     "publishWorking": "En cours…",
-    "dropMedia": "Déposer pour insérer un média",
-    "notebook": "Carnet"
+    "dropMedia": "Déposer pour insérer un média"
   },
   "settings": {
     "title": "Paramètres de l'espace",
@@ -144,7 +143,7 @@
     "uiSizeLarge": "Grande",
     "uiSizeHint": "Met à l'échelle texte, boutons et icônes.",
     "appBar": "Barre de l'application",
-    "appBarHint": "La bandeau au-dessus des pages, avec navigation, recherche et synchronisation. Cmd-J la bascule sur cet appareil.",
+    "appBarHint": "La bandeau au-dessus des pages, avec navigation, recherche et synchronisation.",
     "uiDensity": "Densité",
     "uiDensityCompact": "Compacte",
     "uiDensityDefault": "Par défaut",
@@ -587,28 +586,27 @@
     "filters": "Filtres"
   },
   "notebook": {
-    "runCell": "Exécuter la cellule",
-    "run": "Exécuter la cellule",
-    "runAll": "Tout exécuter",
-    "restart": "Redémarrer",
     "addCell": "Ajouter une cellule",
     "clearOutput": "Effacer la sortie",
-    "running": "Exécution…",
-    "commandHint": "Entrée édite · A/B ajoute · DD supprime · M/Y/X type · T parcourt",
     "code": "Code",
-    "markup": "Texte",
     "moveUp": "Monter la cellule",
     "moveDown": "Descendre la cellule",
     "duplicate": "Dupliquer la cellule",
     "remove": "Supprimer la cellule",
     "toggleSource": "Replier la cellule",
     "noOutput": "Aucune sortie",
-    "error": "Erreur de cellule",
-    "math": "Maths",
-    "stale": "Périmé. Exécutez la cellule pour actualiser.",
     "cellType": "Type de cellule",
-    "autoRunCode": "Exécution auto",
-    "counters": "Compteurs"
+    "prose": "Texte",
+    "log": "Journal",
+    "hidden": "Masquée",
+    "menu": "Actions de la cellule",
+    "split": "Diviser la cellule",
+    "merge": "Fusionner avec la cellule du dessus",
+    "copy": "Copier la cellule",
+    "hold": "Figer la sortie",
+    "release": "Libérer la sortie",
+    "releaseAll": "Libérer toutes les sorties figées",
+    "held": "Figée"
   },
   "updates": {
     "title": "Mise à jour",

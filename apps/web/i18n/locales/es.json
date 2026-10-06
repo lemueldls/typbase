@@ -115,8 +115,7 @@
     "publishConfirm": "¿Despublicar esta nota? Los registros públicos pueden estar replicados por servicios de firehose y no se pueden retirar.",
     "publishHint": "Cualquiera puede leer los registros públicos. Despublicar borra el registro, pero las réplicas pueden conservar copias.",
     "publishWorking": "Trabajando…",
-    "dropMedia": "Suelta para insertar medios",
-    "notebook": "Cuaderno"
+    "dropMedia": "Suelta para insertar medios"
   },
   "settings": {
     "title": "Ajustes del espacio",
@@ -144,7 +143,7 @@
     "uiSizeLarge": "Grande",
     "uiSizeHint": "Escala texto, botones e iconos.",
     "appBar": "Barra de la aplicación",
-    "appBarHint": "La franja sobre las páginas con navegación, búsqueda y sincronización. Cmd-J la alterna en este dispositivo.",
+    "appBarHint": "La franja sobre las páginas con navegación, búsqueda y sincronización.",
     "uiDensity": "Densidad",
     "uiDensityCompact": "Compacta",
     "uiDensityDefault": "Predeterminada",
@@ -587,28 +586,27 @@
     "filters": "Filtros"
   },
   "notebook": {
-    "runCell": "Ejecutar celda",
-    "run": "Ejecutar celda",
-    "runAll": "Ejecutar todo",
-    "restart": "Reiniciar",
     "addCell": "Añadir celda",
     "clearOutput": "Borrar salida",
-    "running": "Ejecutando…",
-    "commandHint": "Intro edita · A/B añade · DD borra · M/Y/X tipo · T rota",
     "code": "Código",
-    "markup": "Texto",
     "moveUp": "Subir celda",
     "moveDown": "Bajar celda",
     "duplicate": "Duplicar celda",
     "remove": "Eliminar celda",
     "toggleSource": "Contraer celda",
     "noOutput": "Sin salida",
-    "error": "Error de celda",
-    "math": "Matemáticas",
-    "stale": "Obsoleto. Ejecuta la celda para actualizar.",
     "cellType": "Tipo de celda",
-    "autoRunCode": "Ejecución automática",
-    "counters": "Contadores"
+    "prose": "Texto",
+    "log": "Registro",
+    "hidden": "Oculto",
+    "menu": "Acciones de la celda",
+    "split": "Dividir celda",
+    "merge": "Combinar con la celda anterior",
+    "copy": "Copiar celda",
+    "hold": "Fijar la salida",
+    "release": "Liberar la salida",
+    "releaseAll": "Liberar todas las salidas fijadas",
+    "held": "Fijada"
   },
   "updates": {
     "title": "Actualización de software",

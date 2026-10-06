@@ -21,6 +21,7 @@ import { useTypst } from "~/composables/typst";
 import { useWorkspace } from "~/composables/workspace";
 import { completeForPlugin } from "~/lib/ai/engine";
 import { engineAvailable } from "~/lib/engineHealth";
+import { sectionsOf } from "~/lib/engineSyntax";
 import { todayISO } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
 import { specString } from "~/lib/packages";
@@ -1066,7 +1067,7 @@ export function usePluginHost() {
         const typstState = await useTypst().catch(() => null);
         if (typstState) {
           await refreshSections(store, page.id, next, (source) =>
-            engineAvailable() ? toSections(typstState.extractSections(source), source) : null,
+            engineAvailable() ? toSections(sectionsOf(typstState, source), source) : null,
           );
         }
         bumpPluginsRevision();

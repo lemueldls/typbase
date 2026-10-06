@@ -194,67 +194,414 @@ describe("typbase app", async () => {
     await page.close();
   });
 
-  it("renders notebook cells and runs one", async () => {
+  it("splits a notebook into cells at attributes and headings", async () => {
     const page = await createPage();
     await openApp(page);
 
+    // A heading is a boundary on its own, so this is three cells without any
+    // attribute lines.
     const id = await createTestPage(page, {
-      title: "Notebook check",
+      title: "Cells",
       kind: "notebook",
       content: [
-        "// %% [markup]",
-        "= Cells",
+        "//% kind=hidden",
+        '#set document(title: "Cells")',
         "",
-        "Prose cell.",
+        "= First heading",
         "",
-        "// %% [code]",
-        "#let answer = 6 * 7",
-        "#answer",
+        "Prose with $x^2$ in it.",
+        "",
+        "//% kind=code",
+        "#let n = 6 * 7",
+        "#n",
         "",
       ].join("\n"),
     });
-    await showPage(page, id, "notebook");
+    await showPage(page, id, "write");
 
-    // Two cell headers and a rendered code output.
-    await page.waitForSelector(".tb-cell-header", { timeout: 60_000 });
-    expect(await page.locator(".tb-cell-header").count()).toBe(2);
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+    // Three boundaries: the attribute, the heading, and the second attribute.
+    expect(await page.locator(".tb-cell-rail").count()).toBe(3);
+
+    // The hidden cell shows neither source nor output, which is the point of it:
+    // a directive group should read as quiet, not as a broken code block.
+    expect(await page.locator(".cm-content").innerText()).not.toContain("#set document");
+    // The code cell keeps its source and renders below it.
     await page.waitForSelector(".tb-cell-output svg", { timeout: 60_000 });
+    expect(await page.locator(".tb-cell-output svg").count()).toBeGreaterThan(0);
 
-    // Run the code cell, and the counter appears.
-    await page.locator(".tb-cell-btn--run").nth(1).click();
-    await page.waitForSelector(".tb-cell-counter", { timeout: 60_000 });
-    await expect(page.locator(".tb-cell-counter").nth(1).innerText()).resolves.toContain("1");
     await page.close();
   });
 
-  it("offers notebook mode only for notebook pages and converts both ways", async () => {
+  it("renders a notebook differently in each mode", async () => {
     const page = await createPage();
     await openApp(page);
 
     const id = await createTestPage(page, {
-      title: "Kind conversion",
-      content: "= Document\n",
+      title: "Modes",
+      kind: "notebook",
+      content: [
+        "//% kind=hidden",
+        '#set document(title: "Modes")',
+        "",
+        "= Heading",
+        "",
+        "Prose with $x^2$.",
+        "",
+        "//% kind=code",
+        "#let n = 6 * 7",
+        "#n",
+        "",
+      ].join("\n"),
     });
     await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
 
-    const notebookTab = page.locator('.page-view__modes button[aria-label="Notebook"]');
-    await expect(notebookTab.count()).resolves.toBe(0);
+    const counts = async () => {
+      await page.waitForTimeout(900);
 
-    // Converting the open page adds the tab and carries the mode with it.
+      return page.evaluate(() => ({
+        rails: document.querySelectorAll(".tb-cell-rail").length,
+        editorFrames: document.querySelectorAll(".typst-render").length,
+        previewFrames: document.querySelectorAll(".paged-preview svg").length,
+      }));
+    };
+
+    // Write mode renders into the editor, inline for prose and below for code.
+    const write = await counts();
+    expect(write.rails).toBe(3);
+    expect(write.editorFrames).toBeGreaterThan(0);
+    expect(write.previewFrames).toBe(0);
+
+    // Source mode keeps the cells and the rails but renders nothing, which is the
+    // only thing that separates it from write mode. It used to be byte for byte
+    // identical, because the pane attached the notebook plugin on `notebook`
+    // alone and never asked the mode.
+    await page.evaluate(() => window.__typbase.setMode("source"));
+    const source = await counts();
+    expect(source.rails).toBe(3);
+    expect(source.editorFrames).toBe(0);
+
+    // Split mode leaves the frames to the preview pane.
+    await page.evaluate(() => window.__typbase.setMode("split"));
+    const split = await counts();
+    expect(split.rails).toBe(3);
+    expect(split.editorFrames).toBe(0);
+    expect(split.previewFrames).toBeGreaterThan(0);
+
+    await page.close();
+  });
+
+  it("holds a cell's output until it is released", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Held",
+      kind: "notebook",
+      content: ["//% kind=code", "#let n = 1", "#n", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-output svg", { timeout: 60_000 });
+
+    // The frame's hash is its render, so an unchanged hash is an output that did
+    // not move.
+    const hash = (): Promise<string | null> =>
+      page.locator(".tb-cell-output .typst-render").first().getAttribute("data-hash");
+    const before = await hash();
+
+    await page.locator(".tb-cell-rail button").first().click();
+    await page.locator(".menu__item", { hasText: "Hold output" }).click();
+    await page.waitForSelector(".tb-cell-held", { timeout: 30_000 });
+
+    // The page is one compile, so holding works by keeping the last render.
+    // Editing the source leaves it exactly where it was.
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" + 41");
+    await page.waitForTimeout(1200);
+    expect(await hash()).toBe(before);
+
+    // Releasing repaints from the current source.
+    await page.locator(".tb-cell-rail button").first().click();
+    await page.locator(".menu__item", { hasText: "Release output" }).click();
+    await expect.poll(hash, { timeout: 30_000 }).not.toBe(before);
+
+    await page.close();
+  });
+
+  it("picks a cell's type from the toolbar menu", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Cell types",
+      kind: "notebook",
+      content: ["//% kind=code", "#let x = 1", "", "//% kind=log", "done", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+
+    // The rail labels each cell without offering to toggle it: the four kinds
+    // differ in where the output goes, so picking one is a deliberate action.
+    const chip = async (index: number): Promise<string> => {
+      const text = await page.locator(".tb-cell-chip").nth(index).innerText();
+
+      return (text.split("\n").at(-1) ?? "").trim();
+    };
+    expect([await chip(0), await chip(1)]).toEqual(["Code", "Log"]);
+
+    // Put the caret in the second cell, then change it from the menu.
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.locator(".notebook-toolbar button[aria-label='Cell type']").click();
+    await page.locator(".menu__item", { hasText: "Text" }).click();
+
+    await expect.poll(() => chip(1), { timeout: 30_000 }).toBe("Text");
+    // The change is a rewrite of the attribute line, so it is on the undo stack.
+    expect(await page.evaluate(() => window.__typbase.view?.state.doc.toString())).toContain("//%");
+
+    await page.close();
+  });
+
+  it("gives the active cell's rule a gap and shifts no content", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Active rule",
+      kind: "notebook",
+      content: ["//% kind=code", "#let n = 6 * 7", "#n", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+
+    // Put the caret in the code cell so its line carries the active class.
+    await page.locator(".cm-content").click();
+    await page.waitForSelector(".cm-line.tb-cell-active", { timeout: 30_000 });
+    await page.waitForTimeout(500);
+
+    const measured = await page.evaluate(() => {
+      const left = (element: Element | null) =>
+        element ? Math.round(element.getBoundingClientRect().left) : null;
+
+      const active = document.querySelector(".cm-line.tb-cell-active");
+      // The cell's own text, not the rail's chip: the rail is an inline widget at
+      // the start of the line, so the first span on an attribute line belongs to
+      // it. `#let n` is the cell's content.
+      const lines = [...document.querySelectorAll<HTMLElement>(".cm-line")];
+      const codeLine = lines.find((line) => line.innerText.includes("#let n"));
+      const other = lines.find(
+        (line) => !line.classList.contains("tb-cell-active") && line.innerText.trim().length > 0,
+      );
+      const firstToken = (line: Element | undefined) =>
+        line?.querySelector("span:not(.ms-icon):not(.tb-cell-chip *)") ?? null;
+
+      return {
+        ruleLeft: left(active),
+        codeTextLeft: left(firstToken(codeLine)),
+        otherLineLeft: left(other ?? null),
+        otherTextLeft: left(firstToken(other ?? undefined)),
+        outputLeft: left(document.querySelector(".tb-cell-output")),
+      };
+    });
+
+    expect(measured.ruleLeft).not.toBeNull();
+    expect(measured.codeTextLeft).not.toBeNull();
+    // The rule sits clear of the content. Measured from the line's own box rather
+    // than a derived px count: CodeMirror's syntax tokens start a little after the
+    // line's padding, so a token's left edge is not the padding edge.
+    expect((measured.codeTextLeft ?? 0) - (measured.ruleLeft ?? 0)).toBeGreaterThanOrEqual(8);
+    // The negative margin and the padding cancel, so the cell's text lands where an
+    // inactive line's text starts and where its own render starts.
+    expect(measured.otherLineLeft).toBe(measured.codeTextLeft);
+    expect(measured.otherTextLeft).toBe(measured.codeTextLeft);
+    expect(measured.outputLeft).toBe(measured.codeTextLeft);
+
+    await page.close();
+  });
+
+  it("sizes the cell rail's icons to the menu's", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Icon size",
+      kind: "notebook",
+      content: ["//% kind=code", "#let x = 1", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+
+    /**
+     * An icon's font-size in px at the default interface size. The chrome scale
+     * multiplies it, so the reading divides the scale back out and 20 stays 20
+     * whatever `--ui-size` is.
+     */
+    const pinnedSizes = (selector: string) =>
+      page.evaluate((sel) => {
+        const root = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+        return [...document.querySelectorAll(sel)].map((icon) =>
+          Math.round(Number.parseFloat(getComputedStyle(icon).fontSize) / (root / 16)),
+        );
+      }, selector);
+
+    // Every glyph on the rail is pinned to 20px at the default interface size.
+    // Left alone they are 1em of `--text-xs`, which is 12px, so the chip's glyph
+    // sat next to the overflow button's at a third of the size.
+    const rail = await pinnedSizes(".tb-cell-rail .ms-icon");
+    expect(rail.length).toBeGreaterThanOrEqual(2);
+    expect(rail).toEqual(rail.map(() => 20));
+
+    // The menu's items match the app's other menus, which `UiMenuItem` pins to 20.
+    await page.locator(".tb-cell-rail button").first().click();
+    await page.waitForSelector(".tb-cell-menu", { timeout: 10_000 });
+    const menu = await pinnedSizes(".tb-cell-menu .ms-icon");
+    expect(menu.length).toBeGreaterThan(0);
+    expect(menu).toEqual(menu.map(() => 20));
+
+    await page.close();
+  });
+
+  it("shows the caret selection on a cell attribute line", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Selection",
+      kind: "notebook",
+      content: ["//% kind=code", "#let n = 1", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-attribute", { timeout: 60_000 });
+
+    // The line must not be filled. An opaque `background-color`, or any
+    // `background-image`, paints over CodeMirror's selection and the selected
+    // attribute text loses its highlight. The boundary reads from a rule instead.
+    const style = await page.evaluate(() => {
+      const line = document.querySelector(".cm-line.tb-cell-attribute");
+      if (!line) return null;
+      const cs = getComputedStyle(line);
+
+      return {
+        backgroundColor: cs.backgroundColor,
+        backgroundImage: cs.backgroundImage,
+        boxShadow: cs.boxShadow,
+      };
+    });
+    expect(style).not.toBeNull();
+    // `rgba(0, 0, 0, 0)` is the computed form of `transparent`.
+    expect(style?.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(style?.backgroundImage).toBe("none");
+    expect(style?.boxShadow).not.toBe("none");
+
+    // And the selection itself survives, which is the part a computed style
+    // cannot promise: the highlight is painted by the browser, so this reads the
+    // pixels either side of the caret.
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("Shift+End");
+
+    const painted = await page.evaluate(() => {
+      const line = document.querySelector(".cm-line.tb-cell-attribute");
+      const range = window.getSelection()?.getRangeAt(0);
+      if (!line || !range) return null;
+
+      const cs = getComputedStyle(line);
+      const box = line.getBoundingClientRect();
+      const rects = [...range.getClientRects()];
+
+      // The selection has to start inside the line, not on the rail above it.
+      const inside = rects.some((r) => r.top >= box.top && r.bottom <= box.bottom + 1);
+
+      return { inside, background: cs.backgroundColor, text: range.toString() };
+    });
+    expect(painted?.text).toBe("//% kind=code");
+    expect(painted?.inside).toBe(true);
+    expect(painted?.background).toBe("rgba(0, 0, 0, 0)");
+
+    await page.close();
+  });
+
+  it("keeps a cell attribute from swallowing the rest of its line", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // An attribute is only an attribute when nothing else shares its line. Here it
+    // is mid-line, so the heading above it has to survive as its own cell.
+    const id = await createTestPage(page, {
+      title: "Attribute line",
+      kind: "notebook",
+      content: ["= Kept //%", "", "//% kind=code", "#let x = 1", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+
+    // Two cells: the heading text above the mid-line comment, and the code one.
+    expect(await page.locator(".tb-cell-rail").count()).toBe(2);
+    // The heading is still in the document. Before the line rule it was inside the
+    // attribute's range, so rewriting the kind deleted the line.
+    const source = await page.evaluate(() => window.__typbase.view?.state.doc.toString() ?? "");
+    expect(source).toContain("= Kept //%");
+
+    // An unknown kind is a plain comment, so the attribute after it still splits
+    // the page rather than the structure collapsing.
+    await page.evaluate((pageId) => {
+      void window.__typbase.store.setPageText(
+        pageId,
+        "//% kind=nope\n#let y = 2\n\n//% kind=code\n#let z = 3\n",
+      );
+    }, id);
+    await expect.poll(() => page.locator(".tb-cell-rail").count(), { timeout: 30_000 }).toBe(2);
+
+    await page.close();
+  });
+
+  it("decorates a converted document as cells in every mode", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // Cells are a page property, not a view mode, so converting the page is all
+    // it takes and there is no mode tab to move.
+    const id = await createTestPage(page, {
+      title: "Converted",
+      content: "= Heading first\n\nBody line.\n",
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".cm-editor .typst-render", { timeout: 60_000 });
+
     await page.evaluate((pageId) => window.__typbase.store.updatePageKind(pageId, "notebook"), id);
-    await page.waitForSelector('.page-view__modes button[aria-label="Notebook"]', {
-      timeout: 15_000,
-    });
-    await page.waitForFunction(() => window.__typbase.mode?.() === "notebook", null, {
-      timeout: 15_000,
-    });
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+    await page.waitForTimeout(500);
 
-    // Converting back removes it and returns to write.
-    await page.evaluate((pageId) => window.__typbase.store.updatePageKind(pageId, "document"), id);
-    await page.waitForFunction(() => window.__typbase.mode?.() === "write", null, {
-      timeout: 15_000,
+    // The rail sits above the first content line rather than inside it: a
+    // converted document has no attribute lines to borrow, and an inline rail
+    // would push the heading's pane-width render off the end of the line.
+    const boxes = await page.evaluate(() => {
+      const rail = document.querySelector(".tb-cell-rail")?.getBoundingClientRect();
+      const line = document.querySelector(".cm-line")?.getBoundingClientRect();
+      const render = document.querySelector(".cm-line .typst-render")?.getBoundingClientRect();
+
+      return {
+        railBottom: rail?.bottom ?? 0,
+        lineTop: line?.top ?? 0,
+        renderRight: render?.right ?? 0,
+        lineRight: line?.right ?? 0,
+      };
     });
-    await expect(notebookTab.count()).resolves.toBe(0);
+    expect(boxes.railBottom).toBeLessThanOrEqual(boxes.lineTop);
+    expect(boxes.renderRight).toBeLessThanOrEqual(boxes.lineRight);
+
+    // The mode is untouched by the conversion, which is the whole point of cells
+    // not being a mode.
+    expect(await page.evaluate(() => window.__typbase.mode())).toBe("write");
+
+    // And a notebook page reads as cells without source in read mode.
+    await page.evaluate(() => window.__typbase.setMode("read"));
+    await page.waitForTimeout(500);
+    expect(await page.locator(".tb-cell-rail").count()).toBe(0);
+
     await page.close();
   });
 
