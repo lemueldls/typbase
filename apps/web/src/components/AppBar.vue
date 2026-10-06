@@ -46,6 +46,7 @@ const updateReady = computed(() => appUpdates.status.value === "available");
 const sidebarLabel = computed(() =>
   props.sidebarVisible ? "sidebar.hideSidebar" : "sidebar.showSidebar",
 );
+const sidebarIcon = computed(() => (props.sidebarVisible ? "left_panel_close" : "left_panel_open"));
 
 function onCreated(page: { id: string }): void {
   emit("openPage", page.id);
@@ -84,7 +85,7 @@ async function openToday(): Promise<void> {
         </UiMenubarMenu>
 
         <UiMenubarMenu :label="$t('nav.menuView')" value="view">
-          <UiMenubarItem icon="left_panel_close" @select="emit('toggleSidebar')">
+          <UiMenubarItem :icon="sidebarIcon" @select="emit('toggleSidebar')">
             {{ $t(sidebarLabel) }}
           </UiMenubarItem>
         </UiMenubarMenu>

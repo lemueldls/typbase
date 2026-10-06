@@ -924,7 +924,7 @@ definePageMeta({ ssr: false });
                   <template #nav-toggle>
                     <UiIconButton
                       v-if="sidebarCollapsed"
-                      :icon="sidebarCollapsed ? 'chevron_right' : 'chevron_left'"
+                      :icon="sidebarCollapsed ? 'left_panel_open' : 'left_panel_close'"
                       :label="
                         sidebarCollapsed ? $t('sidebar.showSidebar') : $t('sidebar.hideSidebar')
                       "
