@@ -115,7 +115,7 @@ export function renamePagePathFor(page: PageMeta, title: string): string | null 
  * Default source for a new notebook.
  */
 export function notebookTemplate(title: string): string {
-  return `//% kind=hidden\n#set document(title: "${title}")\n\n= ${title}\n\n//% kind=code\n`;
+  return `= ${title}\n\n//% kind=code\n`;
 }
 
 /**

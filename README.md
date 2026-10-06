@@ -8,8 +8,8 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 
 - **Inline WYSIWYG:** Compiled output replaces the source as you type. Split edit and read views come with it.
 - **Notebook pages:** Create a page as a notebook and its source splits into cells on `//%` attribute lines.
-- **The workspace as data:** `#typbase.query`, `#typbase.embed`, `#typbase.page-link`, and `#typbase.section` read pages, categories, daily notes, and sections from inside a document.
-- **Plugins written in Typst:** Extend the app with sidebar widgets, panes, and floating windows written in the same language as your notes.
+- **The workspace as data:** `#typbase.query` and `#typbase.page-link` read pages, categories, daily notes, and sections from inside a document.
+- **Plugin system in Typst:** Extend the app with sidebar widgets, panes, and floating windows written in the same language as your notes.
 - **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The exported project is plain `.typ` with the library, resolved data, and plugin modules it needs, so `typst compile --root .` works outside the app.
 - **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto Spaces. Publish a page as a public post when you want a URL.
 

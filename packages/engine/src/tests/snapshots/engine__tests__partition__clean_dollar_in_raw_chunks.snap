@@ -8,7 +8,7 @@ expression: summarize(&render.chunks)
       0,
       38
     ],
-    "items": 21,
+    "items": 19,
     "width": 54.16,
     "height": 224.0,
     "x": 0.0,

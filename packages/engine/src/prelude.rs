@@ -122,11 +122,11 @@ fn style_prelude(
             #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
 
             #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
-            #show heading.where(level:2):set text(fill:theme.text,size:{h2}pt,weight:400)
-            #show heading.where(level:3):set text(fill:theme.text-secondary,size:{h3}pt,weight:400)
-            #show heading.where(level:4):set text(fill:theme.accent,size:{h4}pt,weight:400)
-            #show heading.where(level:5):set text(fill:theme.text,size:{h5}pt,weight:500)
-            #show heading.where(level:6):set text(fill:theme.text-secondary,size:{h6}pt,weight:500)
+            #show heading.where(level:2):set text(fill:theme.violet,size:{h2}pt,weight:400)
+            #show heading.where(level:3):set text(fill:theme.cyan,size:{h3}pt,weight:400)
+            #show heading.where(level:4):set text(fill:theme.green,size:{h4}pt,weight:400)
+            #show heading.where(level:5):set text(fill:theme.yellow,size:{h5}pt,weight:500)
+            #show heading.where(level:6):set text(fill:theme.red,size:{h6}pt,weight:500)
 
             #show link:set text(fill:theme.accent)
             #show link:underline
@@ -147,8 +147,6 @@ fn style_prelude(
             #set raw(lang:"typst",theme:"/{syntax_theme}")
             #show raw:set text(font:"{code_font}",size:1.25em)
             #show raw.where(block:true):it=>block(fill:theme.code,inset:8pt,radius:4pt,width:100%,it)
-
-            #context {{show math.equation:set text(size:text.size*2)}}
 
             {typbase_prelude}
         "#,

@@ -636,31 +636,31 @@ defineExpose({ view, recompile, revealRange, insertAt });
 }
 
 .typ-heading-level-2 {
-  color: var(--color-text);
+  color: var(--color-violet);
   font-size: 1.75em;
   font-weight: 400;
 }
 
 .typ-heading-level-3 {
-  color: var(--color-text-secondary);
+  color: var(--color-cyan);
   font-size: 1.5em;
   font-weight: 400;
 }
 
 .typ-heading-level-4 {
-  color: var(--color-accent);
+  color: var(--color-green);
   font-size: 1.375em;
   font-weight: 400;
 }
 
 .typ-heading-level-5 {
-  color: var(--color-text);
+  color: var(--color-yellow);
   font-size: 1em;
   font-weight: 500;
 }
 
 .typ-heading-level-6 {
-  color: var(--color-text-secondary);
+  color: var(--color-red);
   font-size: 0.875em;
   font-weight: 500;
 }
