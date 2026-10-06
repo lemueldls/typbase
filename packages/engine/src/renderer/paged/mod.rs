@@ -262,6 +262,11 @@ impl TypstState {
     }
 }
 
+/// The pristine check, reachable from outside the crate.
+pub fn check_pristine(ctx: &mut RenderContext<'_>) -> Vec<TypstDiagnostic> {
+    check_paged_ctx(ctx)
+}
+
 /// Diagnostics-only compile of the pristine synth. Recovery is deliberately
 /// skipped: the editor's warnings must describe the user's text.
 fn check_paged_ctx(ctx: &mut RenderContext<'_>) -> Vec<TypstDiagnostic> {
