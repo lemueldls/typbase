@@ -814,7 +814,9 @@ impl TypstState {
 
             tooltip.map(|tooltip| match tooltip {
                 Tooltip::Text(text) => text.to_string(),
-                Tooltip::Code(text) => typst_syntax::highlight_html(&typst_syntax::parse(&text)),
+                Tooltip::Code(code) => {
+                    typst_syntax::highlight_html(&typst_syntax::parse_code(&code))
+                }
             })
         })();
 
