@@ -81,12 +81,8 @@ export interface TypbaseTestApi {
   pluginState: ((instanceId: string) => Promise<Record<string, unknown[]>>) | null;
   /** Write a file under the workspace root (e2e seeds broken plugins). */
   writeWorkspaceFile: ((path: string, text: string) => Promise<void>) | null;
-  /** Read a text file from the generated project view, or null when absent. */
-  readProjectFile: ((path: string) => Promise<string | null>) | null;
   /** Build a page export bundle and return its readable files. */
   exportPage: ((pageId: string, options: Partial<ExportOptions>) => Promise<ExportBundle>) | null;
-  /** Mirror a page's compilable project view into the workspace. */
-  mirrorPage: ((pageId: string) => Promise<void>) | null;
   /** Compile a bundle's entry against only the bundle's own files. */
   compileBundle: ((files: BundleTextFile[], entry: string) => Promise<BundleCheckResult>) | null;
   /** Reload the plugin catalog from storage. */
@@ -123,9 +119,7 @@ export const testApi: TypbaseTestApi = {
   pluginWindowOpen: null,
   pluginState: null,
   writeWorkspaceFile: null,
-  readProjectFile: null,
   exportPage: null,
-  mirrorPage: null,
   compileBundle: null,
   refreshPlugins: null,
   pluginLogs: null,

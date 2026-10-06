@@ -17,7 +17,6 @@ import { sectionsOf } from "~/lib/engineSyntax";
 import { buildExport, type ExportOptions } from "~/lib/exportPage";
 import { resolveOpenPageId } from "~/lib/openPage";
 import { isMac } from "~/lib/platform";
-import { mirrorPageProject } from "~/lib/projectMirror";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
 import { testApi } from "~/lib/testApi";
@@ -374,15 +373,6 @@ onMounted(async () => {
   testApi.writeWorkspaceFile = async (path, text) => {
     await useWorkspace().backend.value?.write(path, new TextEncoder().encode(text));
   };
-  // Workspace-relative, matching `writeProjectFile`. Plugins live at the storage
-  // root instead, which is what `writeWorkspaceFile` writes to.
-  testApi.readProjectFile = async (path) => {
-    const bytes = await useWorkspace()
-      .backend.value?.read(`workspaces/${store.workspaceId}/${path}`)
-      .catch(() => null);
-
-    return bytes ? new TextDecoder().decode(bytes) : null;
-  };
   testApi.exportPage = async (pageId, options) => {
     if (!store) throw new Error("no workspace");
 
@@ -399,10 +389,6 @@ onMounted(async () => {
     });
 
     return { base, files: bundleTextFiles(files) };
-  };
-  testApi.mirrorPage = async (pageId) => {
-    if (!store) throw new Error("no workspace");
-    await mirrorPageProject(store, pageId);
   };
   testApi.compileBundle = (files, entry) =>
     compileBundle(files, entry, workspace.value?.workspaceId ?? "bundle");

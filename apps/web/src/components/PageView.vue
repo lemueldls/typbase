@@ -41,7 +41,6 @@ import {
 import { pageContextBinding } from "~/lib/pageContext";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
-import { mirrorPageProject } from "~/lib/projectMirror";
 import { revealRequests } from "~/lib/reveal";
 import { setSaveHandler } from "~/lib/saveRequest";
 import { addDictionaryWord, addIgnoredLint } from "~/lib/spellcheckSettings";
@@ -655,12 +654,6 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
 
   fileId.value = state.createSourceId(page.path, workspaceId.value);
   state.insertSource(fileId.value, text.value);
-
-  // Mirror a compilable entry for external tools (typst CLI, Tinymist):
-  // `typst compile --root <workspace> typbase/entries/<path>`.
-  void mirrorPageProject(store, pageId, state).catch((cause) => {
-    console.warn("[page] project mirror failed:", cause);
-  });
 
   unsubscribeSave?.();
   unsubscribeSave = watch(text, (value) => {

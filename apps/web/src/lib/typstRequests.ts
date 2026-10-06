@@ -9,7 +9,6 @@ import { getLinkIndex } from "~/lib/linkIndex";
 import { extractLinksFallback, workspaceBacklinks } from "~/lib/links";
 import { fetchPackageBytes, samePackage, specString } from "~/lib/packages";
 import { getPluginSource, pluginSlugs } from "~/lib/plugins/registry";
-import { mirrorRequestPayload } from "~/lib/projectMirror";
 
 interface TypstRequestHandler {
   (requests: TypstRequest[], spaceId: string): Promise<boolean> | boolean;
@@ -163,7 +162,6 @@ export function createTypstRequestService(
 ): TypstRequestService {
   const insertedFiles = new Set<string>();
   const insertedSources = new Set<string>();
-  const mirroredBlobs = new Set<string>();
   let currentPage: string | null = null;
 
   async function handle(requests: TypstRequest[]): Promise<boolean> {
@@ -178,19 +176,10 @@ export function createTypstRequestService(
       } else if (payload.type === "source") {
         typstState.insertSource(typstState.createFileId(payload.path), payload.text);
         insertedSources.add(payload.path);
-        mirrorRequestPayload(store, payload.path, new TextEncoder().encode(payload.text));
         changed = true;
       } else {
         typstState.insertFile(typstState.createFileId(payload.path), payload.bytes);
         insertedFiles.add(payload.path);
-        // Blobs are content-addressed: mirror each one once per session
-        // instead of rewriting large files on every recompile.
-        if (!payload.path.startsWith("typbase/blob/")) {
-          mirrorRequestPayload(store, payload.path, payload.bytes);
-        } else if (!mirroredBlobs.has(payload.path)) {
-          mirroredBlobs.add(payload.path);
-          mirrorRequestPayload(store, payload.path, payload.bytes);
-        }
         changed = true;
       }
     }

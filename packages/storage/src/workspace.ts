@@ -418,20 +418,6 @@ export class WorkspaceStore {
     return close;
   }
 
-  /**
-   * Writes a file into the generated project view. Request payloads arrive
-   * root-absolute (`/typbase/...`). Anything outside `typbase/` is rejected so
-   * a stray path cannot land on a page source.
-   */
-  async writeProjectFile(path: string, bytes: Uint8Array): Promise<void> {
-    const relative = pathSegments(path).join("/");
-    if (!relative.startsWith("typbase/")) {
-      throw new Error(`Refusing to write outside typbase/: ${path}`);
-    }
-
-    await this.backend.write(`${this.root}/${relative}`, bytes);
-  }
-
   private async loadSourceHashes(): Promise<Record<string, SourceHashRecord>> {
     this.sourceHashes ??=
       (await this.sourceSync?.get<Record<string, SourceHashRecord>>(SOURCE_HASHES_KEY)) ?? {};

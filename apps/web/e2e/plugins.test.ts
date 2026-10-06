@@ -278,14 +278,13 @@ describe("plugin system", async () => {
     await page.close();
   });
 
-  it("carries plugin sources into an exported bundle and the project mirror", async () => {
+  it("carries plugin sources into an exported bundle", async () => {
     const page = await createPage();
     await openApp(page);
 
     // A note that carries the embed the insert action writes. The note is never
     // opened, so nothing in the app has compiled it and no request has asked for
-    // the plugin module: whatever the bundle and the mirror carry, they carried
-    // it without being told to.
+    // the plugin module: the bundle carries it without being told to.
     const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:drawing"));
     await page.evaluate(
       (id) =>
@@ -331,14 +330,6 @@ describe("plugin system", async () => {
     expect(check.foundEntry).toBe(true);
     expect(check.missing, "the compile asked for files the bundle lacks").toEqual([]);
     expect(check.errors).toEqual([]);
-
-    // The project mirror is the same promise for external tools, so it carries
-    // the module too rather than relying on the editor having requested it.
-    await page.evaluate((id) => window.__typbase.mirrorPage(id), noteId);
-    const mirrored = await page.evaluate(() =>
-      window.__typbase.readProjectFile("typbase/plugin/drawing/main.typ"),
-    );
-    expect(mirrored, "the mirror is missing the plugin module").toContain("#let embed");
 
     await page.close();
   });
