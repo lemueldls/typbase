@@ -5,7 +5,7 @@ const { t } = useI18n();
 
 const icon = computed<"account_circle" | "cloud_done" | "sync" | "warning">(() => {
   if (!atprotoReady.value) return "account_circle";
-  if (atprotoStatus.value.error) return "warning";
+  if (atprotoStatus.value.error) return "sync_disabled";
   if (!atprotoStatus.value.signedIn) return "account_circle";
   if (atprotoStatus.value.syncing) return "sync";
 
