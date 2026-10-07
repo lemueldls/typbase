@@ -114,7 +114,7 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
   gap: var(--space-1);
   min-width: 12rem;
   max-width: min(20rem, calc(100vw - var(--space-8)));
-  max-height: calc(100dvh - var(--space-8));
+  max-height: calc(50dvh - var(--space-8));
   padding: var(--space-2);
   background: var(--color-surface);
   border: 1px solid var(--color-border);

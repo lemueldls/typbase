@@ -44,16 +44,12 @@ const label = computed(() => {
 </template>
 
 <style>
-/* The popover surface, same shape as the graph's filter popover. UiPopover lands
-   its class on the content and gives it no surface of its own. */
 .app-bar-account {
   z-index: 65;
   display: flex;
   flex-direction: column;
-  /* Wide enough for the sign-in form and its caveats, narrow enough to stay a
-     popover rather than a pane. */
   width: min(340px, calc(100vw - var(--space-4)));
-  max-height: calc(100dvh - var(--space-8));
+  max-height: calc(50dvh - var(--space-8));
   overflow-y: auto;
   padding: var(--space-3);
   background: var(--color-surface);

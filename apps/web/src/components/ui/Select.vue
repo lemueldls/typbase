@@ -69,7 +69,7 @@ useBackLayer(open);
 .ui-select__content {
   z-index: 90;
   min-width: var(--reka-select-trigger-width);
-  max-height: calc(100dvh - var(--space-8));
+  max-height: calc(50dvh - var(--space-8));
   padding: var(--space-1);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
