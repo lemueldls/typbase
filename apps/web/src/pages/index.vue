@@ -119,7 +119,7 @@ const appUpdates = useAppUpdates();
 
 // Cmd-K / Ctrl-K opens the search palette.
 onCapturedKey(
-  (event) => (event.metaKey || event.ctrlKey) && event.key === "K",
+  (event) => (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k",
   (event) => {
     event.preventDefault();
     togglePalette();
@@ -164,7 +164,10 @@ for (const direction of ["back", "forward"] as const) {
 // Cmd-J / Ctrl-J hides the app bar for the editor's full height.
 onCapturedKey(
   (event) =>
-    (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key === "j",
+    (event.metaKey || event.ctrlKey) &&
+    !event.altKey &&
+    !event.shiftKey &&
+    event.key.toLowerCase() === "j",
   (event) => {
     event.preventDefault();
     toggleAppBar();
@@ -829,8 +832,8 @@ definePageMeta({ ssr: false });
 
     <Transition name="splash">
       <div v-if="!loaded" class="app__splash" role="status" aria-live="polite">
-        <img class="app__splash-mark" :src="iconUrl" alt="" />
-        <h1 class="app__splash-title">Typbase</h1>
+        <!-- <img class="app__splash-mark" :src="iconUrl" alt="" />
+        <h1 class="app__splash-title">Typbase</h1> -->
         <div class="app__splash-bar" aria-hidden="true"><span /></div>
         <p class="app__splash-step">
           {{ activeBootStep?.label ?? $t("boot.title") }}
@@ -1233,7 +1236,7 @@ definePageMeta({ ssr: false });
 .app__splash-bar {
   position: relative;
   width: 11rem;
-  height: 3px;
+  height: 0.25rem;
   overflow: hidden;
   background: var(--color-border);
   border-radius: var(--radius-full);
