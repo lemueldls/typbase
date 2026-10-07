@@ -3,7 +3,7 @@ const { atprotoStatus, atprotoReady } = useWorkspace();
 
 const { t } = useI18n();
 
-const icon = computed<"account_circle" | "cloud_done" | "sync" | "warning">(() => {
+const icon = computed<"account_circle" | "cloud_done" | "sync" | "sync_disabled">(() => {
   if (!atprotoReady.value) return "account_circle";
   if (atprotoStatus.value.error) return "sync_disabled";
   if (!atprotoStatus.value.signedIn) return "account_circle";
