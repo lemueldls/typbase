@@ -323,6 +323,14 @@ describe("plugin system", async () => {
       `typbase/query/plugin-data/${instanceId}.json`,
     );
 
+    // The exported body text is scaled for a page, not for the editor pane.
+    // `settings.textSize` is a screen metric, so reusing it verbatim on A4
+    // renders larger than the editor ever showed.
+    const textSize = await page.evaluate(() => window.__typbase.store.getSettings().textSize);
+    const entry = bundle.files.find((file) => file.name === "carries-a-drawing.typ");
+    expect(entry, "the bundle has no entry source").toBeTruthy();
+    expect(entry?.text).toContain(`size:${textSize * 0.5}pt`);
+
     const check = await page.evaluate(
       ({ files }) => window.__typbase.compileBundle(files, "carries-a-drawing.typ"),
       { files: bundle.files },

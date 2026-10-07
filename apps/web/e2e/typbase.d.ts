@@ -25,6 +25,7 @@ interface StoreHandle {
   updateSettings(patch: Record<string, unknown>): void;
   getSettings(): {
     name?: string;
+    textSize: number;
     notebook?: { showCounters?: boolean };
     [key: string]: unknown;
   };

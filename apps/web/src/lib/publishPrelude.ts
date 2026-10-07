@@ -6,6 +6,11 @@ import { useTypst } from "~/composables/typst";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { resolveLightTheme, resolveTheme } from "~/lib/themes";
 
+/**
+ * How much the body text shrinks when a document leaves the editor.
+ */
+export const EXPORT_TEXT_SCALE = 0.5;
+
 export interface PublishPreludeOptions {
   /**
    * "light" (the default) normalizes to a light palette so documents stay
@@ -20,8 +25,14 @@ export interface PublishPreludeOptions {
    * it. HTML export has no pages.
    */
   paged?: boolean;
-  /** Body text size in pt. Defaults to the workspace's configured size. */
+  /** Body text size in pt, before `textScale`. Defaults to the workspace's size. */
   textSize?: number;
+  /**
+   * Multiplier on the body text size. Leave it at 1 for anything standing in
+   * for the editor pane (chat rendering, link resolution) and pass
+   * `EXPORT_TEXT_SCALE` for output that lands on a real page.
+   */
+  textScale?: number;
   /**
    * The `note` binding for the page being compiled, built by
    * `pageContextBinding`. Inlined per entry so a bundle stays self-contained.
@@ -67,9 +78,10 @@ export async function publishPrelude(
   options: PublishPreludeOptions = {},
 ): Promise<string> {
   await useTypst();
+  const textSize = (options.textSize ?? settings.textSize) * (options.textScale ?? 1);
   const style = TypstState.stylePrelude(
     themeColorsFromPalette(publishThemePalette(settings, options)),
-    options.textSize ?? settings.textSize,
+    textSize,
     settings.font,
     settings.mathFont,
     settings.codeFont,

@@ -8,7 +8,12 @@ import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 import { pageContextBinding } from "~/lib/pageContext";
 import { THEME_COLOR_KEYS, paletteSlots } from "~/lib/palette";
 import { pluginBundleSummary, pluginProjectFiles } from "~/lib/pluginBundle";
-import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
+import {
+  EXPORT_TEXT_SCALE,
+  publishPrelude,
+  publishSyntaxTheme,
+  publishThemePalette,
+} from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 import { createZip } from "~/lib/zip";
 
@@ -69,14 +74,17 @@ export async function buildExport(
     pageSize: options.pageSize,
   } as const;
   const context = pageContextBinding(store, pageId);
+  // Both targets scale: a page and a browser document are not the editor pane.
   const htmlPrelude = await publishPrelude(store.getSettings(), {
     ...themeOptions,
     paged: false,
+    textScale: EXPORT_TEXT_SCALE,
     context,
   });
   const pagedPrelude = await publishPrelude(store.getSettings(), {
     ...themeOptions,
     paged: true,
+    textScale: EXPORT_TEXT_SCALE,
     context,
   });
   const palette = publishThemePalette(store.getSettings(), themeOptions);

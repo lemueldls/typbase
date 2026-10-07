@@ -141,7 +141,7 @@ async function run(): Promise<void> {
         </label>
       </div>
 
-      <p class="export__hint">{{ $t("exportPage.dialogHint") }}</p>
+      <!-- <p class="export__hint">{{ $t("exportPage.dialogHint") }}</p> -->
       <p v-if="error" class="export__error" role="alert">{{ error }}</p>
 
       <div class="export__actions">

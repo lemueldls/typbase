@@ -15,7 +15,12 @@ import {
 } from "~/lib/exportPage";
 import { pageContext, pageContextBinding, typstContextValue } from "~/lib/pageContext";
 import { pluginBundleSummary, pluginProjectFiles } from "~/lib/pluginBundle";
-import { publishPrelude, publishSyntaxTheme, publishThemePalette } from "~/lib/publishPrelude";
+import {
+  EXPORT_TEXT_SCALE,
+  publishPrelude,
+  publishSyntaxTheme,
+  publishThemePalette,
+} from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore, type RenderOutcome } from "~/lib/renderWorker";
 
 export interface WorkspaceExportOptions extends ExportOptions {
@@ -96,14 +101,17 @@ export async function buildWorkspaceExport(
     title?: string;
   }): Promise<void> => {
     const { source, pagePath, sourceName, stem, context, pageId, title } = input;
+    // Both targets scale: a page and a browser document are not the editor pane.
     const htmlPrelude = await publishPrelude(store.getSettings(), {
       ...themeOptions,
       paged: false,
+      textScale: EXPORT_TEXT_SCALE,
       context,
     });
     const pagedPrelude = await publishPrelude(store.getSettings(), {
       ...themeOptions,
       paged: true,
+      textScale: EXPORT_TEXT_SCALE,
       context,
     });
 
@@ -205,10 +213,12 @@ export async function buildWorkspaceExport(
     const htmlPrelude = await publishPrelude(store.getSettings(), {
       ...themeOptions,
       paged: false,
+      textScale: EXPORT_TEXT_SCALE,
     });
     const pagedPrelude = await publishPrelude(store.getSettings(), {
       ...themeOptions,
       paged: true,
+      textScale: EXPORT_TEXT_SCALE,
     });
 
     // A combined document is one compile, so each page carries its own
