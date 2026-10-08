@@ -18,6 +18,12 @@ allowBuilds:
 
 overrides:
   "@internationalized/date": "3.12.4"
+  # nuxt-nightly depends on `@nuxt/cli` aliased to `@nuxt/cli-nightly@latest`,
+  # so any install floats the CLI. The 2026-10-07 build ships
+  # `runtime/dev-close-sockets.mjs`, which `impound` rejects as a build-time
+  # import in the server runtime, and the dev server never finishes booting.
+  # The override has to name the alias target, not the aliased package.
+  "@nuxt/cli": "npm:@nuxt/cli-nightly@4.0.0-20260924-135740-11226da"
   "@atproto/syntax": "0.0.0-spaces-alpha-20260913191958"
   "@atproto/lex-data": "0.0.0-spaces-alpha-20260913191958"
   "@atproto/lex-builder": "0.0.0-spaces-alpha-20260913191958"

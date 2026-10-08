@@ -1,19 +1,12 @@
 import type { TypstRequest, TypstState } from "@typbase/engine";
 
 import type { ChatWorkerRequest, ChatWorkerResponse, ChatWorkerStyle } from "~/lib/chatWorker";
+import type { FontPayload } from "~/lib/customFonts";
 
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { setTypstInputs } from "~/lib/typstInputs";
 
 import { initTypstState, installPayload, payloadKey, requestKey } from "./typstWorkerCore";
-
-/**
- * Worker entry for chat rendering and verification. One warm `TypstState`
- * serves every message: comemo memoizes across the growing source, so
- * recompiling on each debounce tick is cheap. Renders go through the pristine
- * → synth pipeline like every other compile, and `#typbase.query` requests
- * resolve through the main thread.
- */
 
 let wasmModuleUrl: string | undefined;
 let state: TypstState | undefined;
@@ -23,11 +16,16 @@ let styleKey = "";
  *  library, and the chat streams many renders of the same page. */
 let inputsKey = "";
 
+/** Uploaded workspace faces. The worker cannot read the blob store, so the
+ *  bytes ride the configure message and install with the bundled fonts. */
+let customFonts: FontPayload[] = [];
+
 async function ensureState(): Promise<TypstState> {
   if (state) return state;
   if (!wasmModuleUrl) throw new Error("Chat worker was not configured with a wasm URL");
 
   state = await initTypstState(wasmModuleUrl);
+  for (const font of customFonts) state.installFont(font.bytes);
 
   return state;
 }
@@ -47,6 +45,7 @@ function applyStyle(typstState: TypstState, next: ChatWorkerStyle, spaceId: stri
   typstState.setMathFont(config, next.mathFont);
   typstState.setCodeFont(config, next.codeFont);
   typstState.setTextSize(config, next.textSize);
+  typstState.setTypography(config, next.ligatures, next.kerning);
   // The code-block theme file referenced by the prelude is generated from the
   // palette. Setting it installs that file into the world.
   typstState.setTheme(config, themeColorsFromPalette(next.palette));
@@ -63,6 +62,7 @@ self.addEventListener(
 
     if (message.type === "configure") {
       wasmModuleUrl = message.wasmUrl;
+      if (message.fonts) customFonts = message.fonts;
       if (message.style) style = message.style;
 
       return;

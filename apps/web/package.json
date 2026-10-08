@@ -30,7 +30,7 @@
     "@typbase/typing": "workspace:*",
     "@vueuse/nuxt": "14.4.0",
     "@vueuse/router": "^14.4.0",
-    "airspace": "^0.1.6",
+    "airspace": "^0.1.7",
     "d3-force": "^3.0.0",
     "h3": "2.0.1-rc.22",
     "harper.js": "^2.10.0",

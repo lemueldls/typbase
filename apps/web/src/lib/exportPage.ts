@@ -200,7 +200,7 @@ export async function buildExport(
       addFile({ name: plugin.path, bytes: encoder.encode(plugin.text) });
     }
     if (options.fonts) {
-      for (const font of await fontFiles()) addFile(font);
+      for (const font of await fontFiles(store)) addFile(font);
     }
   }
 
@@ -287,10 +287,22 @@ function base64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-/** Bundled fonts, so the project renders the same without system fonts. */
-export async function fontFiles(): Promise<ExportFile[]> {
+/**
+ * Every font the exported project needs: the bundled families, so it renders
+ * without system fonts, plus the workspace's uploaded faces, which exist
+ * nowhere else. A document set in an uploaded family compiles elsewhere only if
+ * its bytes travel with it.
+ */
+export async function fontFiles(store?: WorkspaceStore): Promise<ExportFile[]> {
   const { getTypstFontImports } = await import("~/composables/typst");
   const files: ExportFile[] = [];
+  const seen = new Set<string>();
+
+  const add = (name: string, bytes: Uint8Array): void => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    files.push({ name: `typbase/fonts/${name}`, bytes });
+  };
 
   for (const fontImports of getTypstFontImports()) {
     const urls = await Promise.all(
@@ -300,11 +312,31 @@ export async function fontFiles(): Promise<ExportFile[]> {
       const response = await fetch(url);
       const bytes = new Uint8Array(await response.arrayBuffer());
       const name = decodeURIComponent(url.split("?")[0]!.split("/").pop() ?? "font");
-      files.push({ name: `typbase/fonts/${name}`, bytes });
+      add(name, bytes);
+    }
+  }
+
+  for (const font of store?.getSettings().customFonts ?? []) {
+    for (const hash of font.hashes) {
+      const bytes = await store?.getBlob(hash);
+      if (!bytes) continue;
+      // The extension follows the bytes, so a bundle keeps the `.otf`/`.ttf`
+      // distinction Typst uses to pick a face.
+      add(
+        `${font.family.replace(/[^\w.-]+/g, "-")}-${hash.slice(0, 8)}.${fontExtension(bytes)}`,
+        bytes,
+      );
     }
   }
 
   return files;
+}
+
+/** The extension matching the sfnt version, so a bundle is self-describing. */
+function fontExtension(bytes: Uint8Array): string {
+  const tag = String.fromCharCode(...bytes.slice(0, 4));
+
+  return tag === "OTTO" ? "otf" : tag === "ttcf" ? "ttc" : "ttf";
 }
 
 export function escapeHtml(value: string): string {

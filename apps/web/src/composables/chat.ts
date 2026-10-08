@@ -22,8 +22,10 @@ import {
   checkChatMessage,
   renderChatMessage,
   setChatRequestStore,
+  setChatWorkerFonts,
   setChatWorkerStyle,
 } from "~/lib/chatWorker";
+import { customFontPayloads } from "~/lib/customFonts";
 import { pageContextBinding } from "~/lib/pageContext";
 import { sanitizeHtml } from "~/lib/plugins/sanitize";
 import { publishPrelude } from "~/lib/publishPrelude";
@@ -93,6 +95,8 @@ function useChatState() {
       mathFont: settings.mathFont,
       codeFont: settings.codeFont,
       textSize: settings.textSize,
+      ligatures: settings.typography.ligatures,
+      kerning: settings.typography.kerning,
       palette: palette ?? resolveAppTheme(settings).palette,
     };
     const key = JSON.stringify(style);
@@ -100,6 +104,9 @@ function useChatState() {
 
     styleKey = key;
     setChatWorkerStyle(style);
+    // The chat renders the same document the editor does, so it needs the
+    // workspace's uploaded faces as well as its fonts.
+    void customFontPayloads(store).then(setChatWorkerFonts);
   }
 
   function installDeps(store: ReturnType<typeof currentStore>): void {

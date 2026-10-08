@@ -17,9 +17,17 @@ import type { MaterialSymbol } from "material-symbols";
 import { isTauri } from "@typbase/storage";
 import { THEME_PALETTE_TOKEN_KEYS } from "@typbase/typing";
 
+import type { ComboboxOption } from "~/components/ui/Combobox.vue";
 import type { SelectOption } from "~/components/ui/Select.vue";
 
+import { BUNDLED_FONTS } from "~/composables/typst";
 import { getAiKeys, setAiKey } from "~/lib/ai/keys";
+import {
+  fontFamilyOf,
+  mergeCustomFont,
+  missingFontFamilies,
+  removeCustomFont,
+} from "~/lib/customFonts";
 import { normalizeDictionaryWords } from "~/lib/spellcheckSettings";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 import { CUSTOM_THEME_ID, resolveTheme, THEMES } from "~/lib/themes";
@@ -339,10 +347,21 @@ const uiRadius = computed({
 });
 
 /** Current value first, so a configured font stays visible before it loads. */
-function fontOptionList(families: string[], current: string | null | undefined): SelectOption[] {
+function fontOptionList(families: string[], current: string | null | undefined): ComboboxOption[] {
   const values = [...new Set([...(current ? [current] : []), ...families])];
+  const uploaded = new Set(settings.value.customFonts.map((font) => font.family));
 
-  return values.map((family) => ({ value: family, label: family }));
+  return values.map((family) => ({
+    value: family,
+    label: family,
+    // The second line says where the family came from, which is the part a
+    // long list cannot show.
+    description: uploaded.has(family)
+      ? t("settings.fontUploaded")
+      : BUNDLED_FONTS.text.includes(family) || BUNDLED_FONTS.math.includes(family)
+        ? t("settings.fontBundled")
+        : undefined,
+  }));
 }
 
 const textFontOptions = computed(() =>
@@ -507,6 +526,80 @@ async function updateFont(patch: {
   codeFont?: string | null;
 }) {
   props.store.updateSettings(patch);
+}
+
+const fontUploadError = ref("");
+const missingFonts = ref<string[]>([]);
+
+async function refreshMissingFonts(): Promise<void> {
+  missingFonts.value = await missingFontFamilies(props.store);
+}
+
+watch(
+  () => settings.value.customFonts,
+  () => void refreshMissingFonts(),
+  { immediate: true },
+);
+
+/**
+ * Stores each file as a blob and files it under the family the engine reads out
+ * of the font itself. The user never types a family name, so a selection cannot
+ * miss because it was spelled differently from the font.
+ */
+async function addFontFiles(files: File[]): Promise<void> {
+  fontUploadError.value = "";
+  if (!files.length) return;
+
+  let fonts = props.store.getSettings().customFonts;
+  const rejected: string[] = [];
+
+  for (const file of files) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const family = fontFamilyOf(bytes);
+    if (!family) {
+      rejected.push(file.name);
+      continue;
+    }
+
+    const entry = await props.store.putBlob(bytes);
+    fonts = mergeCustomFont(fonts, family, entry.hash);
+  }
+
+  if (fonts !== props.store.getSettings().customFonts) {
+    props.store.updateSettings({ customFonts: fonts });
+  }
+  if (rejected.length)
+    fontUploadError.value = t("settings.fontUploadFailed", { names: rejected.join(", ") });
+}
+
+async function uploadFonts(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  await addFontFiles([...(input.files ?? [])]);
+  input.value = "";
+}
+
+/** The whole panel is a drop target, so a font can be dragged straight in. */
+const fontDropZone = ref<HTMLElement | null>(null);
+const { isOverDropZone } = useDropZone(fontDropZone, (files) => {
+  if (files?.length) void addFontFiles(files);
+});
+
+function dropFont(family: string): void {
+  props.store.updateSettings({
+    customFonts: removeCustomFont(props.store.getSettings().customFonts, family),
+  });
+}
+
+function setLigatures(value: boolean): void {
+  props.store.updateSettings({
+    typography: { ...settings.value.typography, ligatures: value },
+  });
+}
+
+function setKerning(value: boolean): void {
+  props.store.updateSettings({
+    typography: { ...settings.value.typography, kerning: value },
+  });
 }
 
 async function renameWorkspace(event: Event) {
@@ -819,33 +912,119 @@ async function renameWorkspace(event: Event) {
 
           <Label class="settings__field">
             <span>{{ $t("settings.textFont") }}</span>
-            <UiSelect
+            <FontPicker
               v-model="textFont"
               :options="textFontOptions"
               :label="$t('settings.textFont')"
+              :placeholder="$t('settings.fontSearch')"
             />
           </Label>
 
           <Label class="settings__field">
             <span>{{ $t("settings.mathFont") }}</span>
-            <UiSelect
+            <FontPicker
               v-model="mathFont"
               :options="mathFontOptions"
               :label="$t('settings.mathFont')"
+              :placeholder="$t('settings.fontSearch')"
             />
           </Label>
 
           <Label class="settings__field">
             <span>{{ $t("settings.codeFont") }}</span>
-            <UiSelect
+            <FontPicker
               v-model="codeFont"
               :options="codeFontOptions"
               :label="$t('settings.codeFont')"
+              :placeholder="$t('settings.fontSearch')"
             />
           </Label>
 
+          <div class="settings__field">
+            <span>{{ $t("settings.typography") }}</span>
+            <div class="settings__toggles">
+              <label class="settings__toggle">
+                <UiSwitch
+                  :model-value="settings.typography.ligatures"
+                  :aria-label="$t('settings.ligatures')"
+                  @update:model-value="setLigatures"
+                />
+                <span class="settings__toggle-body">
+                  <span>{{ $t("settings.ligatures") }}</span>
+                  <span class="settings__hint">{{ $t("settings.ligaturesHint") }}</span>
+                </span>
+              </label>
+              <label class="settings__toggle">
+                <UiSwitch
+                  :model-value="settings.typography.kerning"
+                  :aria-label="$t('settings.kerning')"
+                  @update:model-value="setKerning"
+                />
+                <span class="settings__toggle-body">
+                  <span>{{ $t("settings.kerning") }}</span>
+                  <span class="settings__hint">{{ $t("settings.kerningHint") }}</span>
+                </span>
+              </label>
+            </div>
+            <!-- <span class="settings__hint">{{ $t("settings.typographyHint") }}</span> -->
+          </div>
+
+          <div class="settings__field">
+            <span>{{ $t("settings.workspaceFonts") }}</span>
+
+            <!-- The panel is the drop target and the file picker's label, so
+                 the whole row opens the chooser as well as accepting a drop. -->
+            <label
+              ref="fontDropZone"
+              class="settings__drop"
+              :class="{ 'settings__drop--over': isOverDropZone }"
+            >
+              <MsIcon name="font_download" :size="20" />
+              <span class="settings__drop-body">
+                <span class="settings__drop-text">{{ $t("settings.fontDrop") }}</span>
+                <span class="settings__drop-hint">{{ $t("settings.fontDropHint") }}</span>
+              </span>
+              <input
+                type="file"
+                accept=".ttf,.otf,.ttc,font/*"
+                multiple
+                class="settings__font-input"
+                @change="uploadFonts"
+              />
+            </label>
+
+            <p v-if="fontUploadError" class="settings__error" role="alert">
+              {{ fontUploadError }}
+            </p>
+
+            <ul v-if="settings.customFonts.length" class="settings__font-list">
+              <li v-for="font in settings.customFonts" :key="font.family">
+                <MsIcon name="font_download" :size="18" />
+                <span class="settings__font-family">{{ font.family }}</span>
+                <span
+                  v-if="missingFonts.includes(font.family)"
+                  class="settings__font-missing"
+                  :title="$t('settings.fontMissingHint')"
+                >
+                  {{ $t("settings.fontMissing") }}
+                </span>
+                <span v-else class="settings__font-count">
+                  {{ $t("settings.fontFaceCount", { count: font.hashes.length }) }}
+                </span>
+                <UiIconButton
+                  icon="delete"
+                  :size="18"
+                  danger
+                  :label="$t('settings.fontRemove')"
+                  @click="dropFont(font.family)"
+                />
+              </li>
+            </ul>
+            <span class="settings__hint">{{ $t("settings.workspaceFontsHint") }}</span>
+          </div>
+
           <div class="settings__system-fonts">
-            <p class="settings__hint">{{ $t("settings.systemFontsHint") }}</p>
+            <!-- <p class="settings__hint">{{ $t("settings.systemFontsHint") }}</p> -->
 
             <template v-if="supportsLocalFonts()">
               <UiButton
@@ -1271,6 +1450,111 @@ async function renameWorkspace(event: Event) {
   margin: 0 0 var(--space-2);
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+/* Two switches share the row so the right half is not left empty. */
+.settings__toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* gap: var(--space-3); */
+}
+
+.settings__toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.settings__toggle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings__toggle-body .settings__hint {
+  margin: 0;
+}
+
+/* One quiet row. The list below is the content; this is only the way in. */
+.settings__drop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2-5);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.settings__drop:hover,
+.settings__drop--over {
+  border-color: var(--color-accent);
+  border-style: solid;
+  color: var(--color-accent);
+}
+
+.settings__drop-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings__drop-text {
+  font-size: var(--text-sm);
+}
+
+.settings__drop-hint {
+  font-size: var(--text-xs);
+  opacity: 0.75;
+}
+
+/* The file input is driven by the label button around it. */
+.settings__font-input {
+  display: none;
+}
+
+.settings__font-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+}
+
+.settings__font-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.settings__font-family {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings__font-count {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.settings__font-missing {
+  font-size: var(--text-sm);
+  color: var(--color-warning);
 }
 
 .settings__storage {

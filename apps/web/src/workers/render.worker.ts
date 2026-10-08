@@ -1,24 +1,19 @@
 import type { TypstRequest } from "@typbase/engine";
 import type { TypstState } from "@typbase/engine";
 
+import type { FontPayload } from "~/lib/customFonts";
 import type { RenderWorkerRequest, RenderWorkerResponse } from "~/lib/renderWorker";
 
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { setTypstInputs } from "~/lib/typstInputs";
 import { initTypstState, installPayload, payloadKey, requestKey } from "~/workers/typstWorkerCore";
 
-/**
- * Worker entry: owns one TypstState for publish and export renders. The page
- * source and prelude arrive with each request. `#typbase.query` and
- * `#typbase.embed` resolve through the main thread, which posts insert
- * messages that land in THIS instance (file ids are created from the request
- * paths, so the world's roots stay consistent). Compiles loop until no
- * requests remain. A pass that makes no progress stops instead of recompiling.
- */
-
 /** The wasm asset URL arrives in a configure message. The main thread already
  *  loaded it, and worker-side asset resolution is not portable. */
 let wasmModuleUrl: string | undefined;
+/** Uploaded workspace faces. The worker cannot read the blob store, so the
+ *  bytes ride the configure message and install with the bundled fonts. */
+let customFonts: FontPayload[] = [];
 let state: TypstState | undefined;
 
 async function ensureState(): Promise<TypstState> {
@@ -26,6 +21,7 @@ async function ensureState(): Promise<TypstState> {
   if (!wasmModuleUrl) throw new Error("Render worker was not configured with a wasm URL");
 
   state = await initTypstState(wasmModuleUrl);
+  for (const font of customFonts) state.installFont(font.bytes);
 
   return state;
 }
@@ -43,6 +39,7 @@ self.addEventListener(
 
     if (message.type === "configure") {
       wasmModuleUrl = message.wasmUrl;
+      if (message.fonts) customFonts = message.fonts;
 
       return;
     }

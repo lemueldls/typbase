@@ -14,6 +14,7 @@ export const typstEditorTheme = EditorView.theme({
     color: "var(--color-text)",
     fontFamily: "var(--font-mono)",
     fontSize: "var(--doc-text-size, 1rem)",
+    fontFeatureSettings: "var(--doc-font-features, normal)",
   },
   "&.cm-editor.cm-focused": {
     outline: "none",

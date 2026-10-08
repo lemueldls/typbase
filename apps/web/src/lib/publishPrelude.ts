@@ -86,6 +86,8 @@ export async function publishPrelude(
     settings.mathFont,
     settings.codeFont,
     settings.locale && settings.locale !== "auto" ? settings.locale : "en",
+    settings.typography.ligatures,
+    settings.typography.kerning,
   );
 
   const page = options.paged

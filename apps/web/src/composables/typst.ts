@@ -1,11 +1,12 @@
 import type { FileId, ThemeColors } from "@typbase/engine";
-import type { WorkspaceSettings } from "@typbase/typing";
+import type { WorkspaceStore } from "@typbase/storage";
 
 import init, { TypstState } from "@typbase/engine";
 import { isTauri } from "@typbase/storage";
 
 import { currentThemeColors } from "~/composables/theme";
 import { EDITOR_LINE_HEIGHT } from "~/lib/cmTheme";
+import { installCustomFonts } from "~/lib/customFonts";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
 
 export function getTypstFontImports() {
@@ -134,7 +135,8 @@ export interface SystemFontOptions {
   code: string[];
 }
 
-const BUNDLED_FONTS: SystemFontOptions = {
+/** Families that ship with the app, so a picker can label them as built in. */
+export const BUNDLED_FONTS: SystemFontOptions = {
   text: ["Maple Mono"],
   math: ["New Computer Modern Math"],
   code: ["Maple Mono"],
@@ -320,6 +322,9 @@ export function applyWorkspaceStyle(
     codeFont: string | null;
     /** Body text size in pt (1 pt renders as 1 px, like the editor). */
     textSize: number;
+    /** Ligatures and kerning, applied to every compile of this workspace. */
+    ligatures: boolean;
+    kerning: boolean;
     /** Renderer palette for the current workspace theme. */
     themeColors: ThemeColors;
   },
@@ -328,6 +333,7 @@ export function applyWorkspaceStyle(
   typstState.setMathFont(configId, settings.mathFont);
   typstState.setCodeFont(configId, settings.codeFont);
   typstState.setTextSize(configId, settings.textSize);
+  typstState.setTypography(configId, settings.ligatures, settings.kerning);
   // Frame crops start at the editor's line box, so a rendered block and the
   // source text it replaces share a baseline.
   typstState.setLineHeightRatio(configId, EDITOR_LINE_HEIGHT);
@@ -371,7 +377,7 @@ function workspaceConfigId(typstState: TypstState, workspaceId: string): FileId 
  */
 export async function applyWorkspaceStyleToTypst(
   workspaceId: string,
-  store: { getSettings(): WorkspaceSettings },
+  store: WorkspaceStore,
   extraFamilies: string[] = [],
 ): Promise<void> {
   const typstState = await useTypst();
@@ -391,12 +397,18 @@ export async function applyWorkspaceStyleToTypst(
     settings.codeFont,
     ...extraFamilies,
   ]);
+  // Uploaded faces come from the workspace's blobs, not from the system, so
+  // they install separately. Without this a workspace font renders in the
+  // picker and falls back in the document.
+  await installCustomFonts(typstState, store);
 
   applyWorkspaceStyle(typstState, workspaceConfigId(typstState, workspaceId), {
     font: settings.font,
     mathFont: settings.mathFont,
     codeFont: settings.codeFont,
     textSize: settings.textSize,
+    ligatures: settings.typography.ligatures,
+    kerning: settings.typography.kerning,
     themeColors: currentThemeColors(settings),
   });
 }

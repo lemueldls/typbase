@@ -2,6 +2,7 @@ import type {
   ThemeMode,
   ThemePaletteTokens,
   ThemeSeeds,
+  TypographySettings,
   UiDensity,
   UiRadius,
   UiSize,
@@ -11,21 +12,6 @@ import { ThemeColors } from "@typbase/engine";
 
 import { expandSeeds, normalizeCssColor } from "./palette";
 import { themeColorsFromPalette } from "./rendererPalette";
-
-/**
- * Theme registry. A theme is pure data: a token map for the app chrome plus
- * a light/dark classification, and the Typst renderer palette is derived
- * from the same tokens so published pages match the chrome around them.
- *
- * Surface ordering is part of the contract. Light themes step down:
- * surface > surface2 > surface3. Dark themes step up: surface < surface2 <
- * surface3. Borders sit above the surfaces they separate in both modes, and
- * each token carries the theme's tint instead of plain gray.
- *
- * Adding a theme: append a ThemeDefinition. The workspace's `themeCustom`
- * palette is its own theme id ("custom"): it layers over the default palette
- * and never masks a named theme.
- */
 
 export interface ThemeDefinition {
   id: string;
@@ -518,6 +504,8 @@ export interface AppChromeSettings extends AppFontSettings {
   uiRadius?: UiRadius;
   /** Document text size in pt. The editor renders 1pt as 1px. */
   textSize?: number;
+  /** Editor-side mirror of the engine's typographic features. */
+  typography?: TypographySettings;
 }
 
 /** Preset to multiplier for the three scale variables in tokens.css. */
@@ -593,8 +581,26 @@ export function themeCssVars(
   // The editor and the rendered headings follow the document text size. The
   // engine gets the same number for compiled output.
   vars["--doc-text-size"] = `${settings?.textSize ?? 16}px`;
+  // The source text carries the same OpenType features the engine applies, so
+  // toggling ligatures does not make the source and the render disagree.
+  vars["--doc-font-features"] = fontFeatureSettings(settings?.typography);
 
   return vars;
+}
+
+/**
+ * The `font-feature-settings` value matching Typst's `ligatures` and `kerning`
+ * parameters. Typst maps `ligatures` onto `liga` and `clig`, so both tags go
+ * off together.
+ */
+function fontFeatureSettings(typography: TypographySettings | undefined): string {
+  if (!typography) return "normal";
+
+  const features: string[] = [];
+  if (!typography.ligatures) features.push('"liga" 0', '"clig" 0');
+  if (!typography.kerning) features.push('"kern" 0');
+
+  return features.length ? features.join(", ") : "normal";
 }
 
 export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSettings): void {

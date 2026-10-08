@@ -13,6 +13,7 @@ mod harness;
 
 mod cells;
 mod characterize;
+mod fonts;
 mod ide;
 mod incomplete;
 mod inputs;

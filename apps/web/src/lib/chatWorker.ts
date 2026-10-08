@@ -2,23 +2,20 @@ import type { TypstRequest } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
 
+import type { FontPayload } from "~/lib/customFonts";
+
 import { pushToast } from "~/composables/toasts";
 import { isWasmTrap } from "~/lib/typstRecovery";
 import { resolveRequestPayloads, type RequestPayload } from "~/lib/typstRequests";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
-
-/**
- * Chat compile client. One warm worker owns a `TypstState`: the engine's
- * memoization makes recompiling a growing message cheap, which is what lets
- * the chat render on every debounce tick. Compiles are serialized and only
- * the newest one matters, so a stopped stream cannot stack work.
- */
 
 export interface ChatWorkerStyle {
   font: string;
   mathFont: string | null;
   codeFont: string | null;
   textSize: number;
+  ligatures: boolean;
+  kerning: boolean;
   palette: ThemePaletteTokens;
 }
 
@@ -36,6 +33,8 @@ export interface ChatWorkerResponse {
   id: number;
   type: "configure" | "request" | "insert" | "answer" | "result";
   wasmUrl?: string;
+  /** Configure: uploaded workspace faces, which the worker cannot fetch. */
+  fonts?: FontPayload[];
   style?: ChatWorkerStyle;
   requests?: TypstRequest[];
   payload?: RequestPayload;
@@ -54,6 +53,8 @@ export interface ChatCompileResult {
 const COMPILE_TIMEOUT_MS = 30_000;
 
 let worker: Worker | undefined;
+/** Uploaded faces for the worker's world, resent on every configure. */
+let chatFonts: FontPayload[] = [];
 let nextId = 1;
 let store: WorkspaceStore | undefined;
 let style: ChatWorkerStyle | undefined;
@@ -82,6 +83,20 @@ export function setChatWorkerStyle(next: ChatWorkerStyle): void {
   } satisfies ChatWorkerResponse);
 }
 
+/**
+ * Hands the chat worker the workspace's uploaded faces. A change drops the
+ * worker, because a live world cannot unload a face it already installed.
+ */
+export function setChatWorkerFonts(fonts: FontPayload[]): void {
+  const same =
+    fonts.length === chatFonts.length &&
+    fonts.every((font, index) => font.bytes === chatFonts[index]?.bytes);
+  if (same) return;
+
+  chatFonts = fonts;
+  stopChatWorker(new Error("Chat fonts changed; the worker was restarted."));
+}
+
 /** Rejects everything in flight and drops the worker so the next compile
  *  starts from a fresh wasm instance. */
 export function stopChatWorker(reason: Error): void {
@@ -104,6 +119,7 @@ function ensureWorker(): Worker {
     id: 0,
     type: "configure",
     wasmUrl: wasmBinaryUrl,
+    fonts: chatFonts,
     ...(style ? { style } : {}),
   } satisfies ChatWorkerResponse);
 

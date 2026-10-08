@@ -17,7 +17,7 @@
   "dependencies": {
     "@atproto/oauth-client-browser": "0.0.0-spaces-alpha-20260913191958",
     "@typbase/typing": "workspace:*",
-    "airspace": "^0.1.6"
+    "airspace": "^0.1.7"
   },
   "devDependencies": {
     "tsdown": "0.23.0",

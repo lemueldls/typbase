@@ -104,6 +104,18 @@ impl TypstState {
         self.revision += 1;
     }
 
+    /// Typographic features the generated prelude turns on or off. They live in
+    /// the space context rather than in an app-side prelude so the editor,
+    /// previews, plugin surfaces, exports, and published pages all read the
+    /// same values from one place.
+    #[wasm_bindgen(js_name = "setTypography")]
+    pub fn set_typography(&mut self, id: &TypstFileId, ligatures: bool, kerning: bool) {
+        let context = self.get_space_context_mut(id);
+        context.ligatures = ligatures;
+        context.kerning = kerning;
+        self.revision += 1;
+    }
+
     /// Host values for `sys.inputs`: the compiling page and workspace (both
     /// optional) plus the compile reason (`editor`, `resolve`, `render`,
     /// `chat`). The library bakes them into its global scope, so a change
@@ -304,6 +316,14 @@ impl TypstState {
     pub fn install_font(&mut self, bytes: Vec<u8>) {
         self.world.install_font(bytes);
         self.revision += 1;
+    }
+
+    /// The families a font file declares, so an upload can be filed under the
+    /// name the font itself carries. Empty when the bytes are not a font.
+    #[must_use]
+    #[wasm_bindgen(js_name = "fontFamilies")]
+    pub fn font_families(bytes: Vec<u8>) -> Vec<String> {
+        crate::fonts::family_names(&bytes)
     }
 
     /// Index mapping self-test for the debug lab. Builds the synth exactly

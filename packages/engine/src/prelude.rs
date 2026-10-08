@@ -107,6 +107,8 @@ fn style_prelude(
     math_font: &str,
     code_font: &str,
     locale: &str,
+    ligatures: bool,
+    kerning: bool,
 ) -> String {
     let h1 = text_size * 2.0;
     let h2 = text_size * 1.75;
@@ -119,7 +121,7 @@ fn style_prelude(
         r#"
             #let theme={theme}
 
-            #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}")
+            #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}",ligatures:{ligatures},kerning:{kerning})
 
             #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
             #show heading.where(level:2):set text(fill:theme.violet,size:{h2}pt,weight:400)
@@ -192,6 +194,8 @@ impl TypstState {
             space_ctx.math_font.as_ref().unwrap_or(&space_ctx.font),
             space_ctx.code_font.as_ref().unwrap_or(&space_ctx.font),
             &space_ctx.locale,
+            space_ctx.ligatures,
+            space_ctx.kerning,
         );
 
         formatdoc!(
@@ -224,6 +228,8 @@ impl TypstState {
         math_font: Option<String>,
         code_font: Option<String>,
         locale: String,
+        ligatures: bool,
+        kerning: bool,
     ) -> String {
         style_prelude(
             &theme,
@@ -232,6 +238,8 @@ impl TypstState {
             math_font.as_deref().unwrap_or(&font),
             code_font.as_deref().unwrap_or(&font),
             &locale,
+            ligatures,
+            kerning,
         )
     }
 }

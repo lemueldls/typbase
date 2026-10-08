@@ -320,7 +320,7 @@ export async function buildWorkspaceExport(
       addFile({ name: plugin.path, bytes: encoder.encode(plugin.text) });
     }
     if (options.fonts) {
-      for (const font of await fontFiles()) addFile(font);
+      for (const font of await fontFiles(store)) addFile(font);
     }
   }
 

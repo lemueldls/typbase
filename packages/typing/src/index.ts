@@ -333,6 +333,34 @@ export interface WorkspaceSettings {
   notebook: NotebookSettings;
   editor: EditorSettings;
   graph: GraphSettings;
+  /** Typographic features the engine turns on for every compile. */
+  typography: TypographySettings;
+  /**
+   * Fonts uploaded into the workspace. The family list syncs with the workspace
+   * and the bytes ride the space as blobs, so a font added on one device is
+   * available on the others.
+   */
+  customFonts: CustomFont[];
+}
+
+export interface TypographySettings {
+  /** Standard ligatures, the `liga` and `clig` features. */
+  ligatures: boolean;
+  /** Pair kerning, the `kern` feature. */
+  kerning: boolean;
+}
+
+export interface CustomFont {
+  /**
+   * The family Typst resolves, read from the file's own name table rather than
+   * typed by the user, so a selection always matches an installed face.
+   */
+  family: string;
+  /**
+   * Blob hashes of the uploaded files, one per face. The engine reads each
+   * file's own weight and style, so the app never has to classify them.
+   */
+  hashes: string[];
 }
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
@@ -352,6 +380,11 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   mathFont: "New Computer Modern Math",
   codeFont: null,
   textSize: 16,
+  typography: {
+    ligatures: true,
+    kerning: true,
+  },
+  customFonts: [],
   spellcheck: "off",
   spellcheckWords: [],
   spellcheckIgnoredLints: [],

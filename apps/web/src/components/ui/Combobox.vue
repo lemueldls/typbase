@@ -1,3 +1,13 @@
+<script lang="ts">
+/** One row of a combobox list. */
+export interface ComboboxOption {
+  value: string;
+  label: string;
+  /** Optional second line under the label, for provenance or a path. */
+  description?: string;
+}
+</script>
+
 <script setup lang="ts">
 import {
   ComboboxAnchor,
@@ -15,7 +25,7 @@ defineOptions({ inheritAttrs: false });
 
 withDefaults(
   defineProps<{
-    options: Array<{ value: string; label: string; description?: string }>;
+    options: ComboboxOption[];
     placeholder?: string;
     /** Shown when `options` is empty. */
     empty?: string;
@@ -55,10 +65,6 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
     reset-search-term-on-blur
     reset-search-term-on-select
   >
-    <!-- ComboboxAnchor stays outside the tooltip: UiTooltip renders its own
-         PopperRoot, and a ComboboxAnchor inside it would register with the
-         tooltip's popper instead of the combobox's. The anchor wraps the span
-         so the tooltip can target the trigger without stealing that ref. -->
     <ComboboxAnchor as-child>
       <span class="combobox__anchor">
         <UiTooltip :text="label" :disabled="!label">
@@ -112,15 +118,15 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  min-width: 12rem;
-  max-width: min(20rem, calc(100vw - var(--space-8)));
+  min-width: var(--reka-combobox-trigger-width);
+  max-width: min(24rem, calc(100vw - var(--space-8)));
   max-height: calc(50dvh - var(--space-8));
   padding: var(--space-2);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
-  z-index: 65;
+  z-index: 90;
   animation: ui-overlay-fade-in var(--motion-fast);
 }
 
@@ -132,6 +138,8 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
   width: 100%;
   padding: var(--space-1) var(--space-2);
   font-family: inherit;
+  font-size: var(--text-md);
+  height: var(--control-md);
   font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);

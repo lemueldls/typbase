@@ -676,6 +676,14 @@ export class WorkspaceStore {
       ...DEFAULT_SETTINGS.graph,
       ...decodeSetting<Partial<WorkspaceSettings["graph"]>>(map.get("graph")),
     };
+    settings.typography = {
+      ...DEFAULT_SETTINGS.typography,
+      ...decodeSetting<Partial<WorkspaceSettings["typography"]>>(map.get("typography")),
+    };
+    const customFonts = decodeSetting<WorkspaceSettings["customFonts"] | null>(
+      map.get("customFonts"),
+    );
+    settings.customFonts = Array.isArray(customFonts) ? customFonts : [];
     const themeName = map.get("themeName");
     settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
     const themeCustom = decodeSetting<WorkspaceSettings["themeCustom"] | null>(
@@ -720,9 +728,11 @@ export class WorkspaceStore {
       else if (key === "search") map.set("search", encodeSetting(value));
       else if (key === "editor") map.set("editor", encodeSetting(value));
       else if (key === "graph") map.set("graph", encodeSetting(value));
+      else if (key === "typography") map.set("typography", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
       else if (
         key === "installedPackages" ||
+        key === "customFonts" ||
         key === "spellcheckWords" ||
         key === "spellcheckIgnoredLints"
       )

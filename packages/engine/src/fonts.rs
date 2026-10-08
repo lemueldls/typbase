@@ -4,6 +4,21 @@ use typst::{
     utils::LazyHash,
 };
 
+/// The families a font file declares, one entry per face and deduplicated.
+#[must_use]
+pub fn family_names(bytes: &[u8]) -> Vec<String> {
+    let mut families: Vec<String> = Vec::new();
+
+    for font in Font::iter(Bytes::new(bytes.to_vec())) {
+        let family = font.info().family.clone();
+        if !family.is_empty() && !families.contains(&family) {
+            families.push(family);
+        }
+    }
+
+    families
+}
+
 #[derive(Debug, Default)]
 pub struct FontLoader {
     pub book: LazyHash<FontBook>,

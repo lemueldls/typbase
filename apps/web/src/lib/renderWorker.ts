@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type { ThemePaletteTokens } from "@typbase/typing";
 
 import { pushToast } from "~/composables/toasts";
+import { customFontPayloads, type FontPayload } from "~/lib/customFonts";
 import { isWasmTrap } from "~/lib/typstRecovery";
 import { resolveRequestPayloads, type RequestPayload } from "~/lib/typstRequests";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
@@ -28,6 +29,8 @@ export interface RenderWorkerResponse {
   type: "configure" | "request" | "result" | "insert" | "answer";
   /** Configure: the wasm URL proven to work on the main thread. */
   wasmUrl?: string;
+  /** Configure: uploaded workspace faces, which the worker cannot fetch. */
+  fonts?: FontPayload[];
   requests?: TypstRequest[];
   payload?: RequestPayload;
   ok?: boolean;
@@ -56,12 +59,30 @@ const RENDER_IDLE_TIMEOUT_MS = 30_000;
 let worker: Worker | undefined;
 let nextId = 1;
 let requestStore: WorkspaceStore | undefined;
+/** Uploaded faces for the worker's world. The worker has no blob store, so the
+ *  bytes are sent with the configure message. */
+let renderFonts: FontPayload[] = [];
 /** Renders share one worker and its request loop. Run them one at a time so a
  *  concurrent publish and export cannot interleave request passes. */
 let renderQueue: Promise<unknown> = Promise.resolve();
 
 export function setPublishRequestStore(store: WorkspaceStore | undefined): void {
   requestStore = store;
+}
+
+/**
+ * Hands the render worker the workspace's uploaded faces. A change drops the
+ * worker: the alternative is reinstalling into a live world, which cannot
+ * unload a face and would leave a replaced font in place until the next restart.
+ */
+export function setRenderFonts(fonts: FontPayload[]): void {
+  const same =
+    fonts.length === renderFonts.length &&
+    fonts.every((font, index) => font.bytes === renderFonts[index]?.bytes);
+  if (same) return;
+
+  renderFonts = fonts;
+  stopWorker(new Error("Render fonts changed; the worker was restarted."));
 }
 
 interface PendingRender {
@@ -106,6 +127,7 @@ function ensureWorker(): Worker {
     id: 0,
     type: "configure",
     wasmUrl: wasmBinaryUrl,
+    fonts: renderFonts,
   } satisfies RenderWorkerResponse);
 
   worker.addEventListener("message", (event: MessageEvent<RenderWorkerResponse>) => {
@@ -195,7 +217,14 @@ export function renderInWorker(input: {
   pageId?: string | null;
   theme?: ThemePaletteTokens;
 }): Promise<RenderOutcome> {
-  const run = renderQueue.then(() => renderOnce(input));
+  // Every render syncs the workspace's uploaded faces first, so a caller cannot
+  // forget and get a document that falls back on a bundled font. The call is
+  // cheap when nothing changed: `setRenderFonts` compares and returns.
+  const run = renderQueue.then(async () => {
+    if (requestStore) setRenderFonts(await customFontPayloads(requestStore));
+
+    return renderOnce(input);
+  });
   renderQueue = run.catch(() => undefined);
 
   return run;

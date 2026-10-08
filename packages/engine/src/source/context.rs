@@ -38,6 +38,10 @@ pub struct SpaceContext {
     /// generated prelude. One app pt is one screen px, so the default 16pt
     /// matches the editor's 16px source text.
     pub text_size: f64,
+    /// Standard ligatures (`liga`, `clig`). On by default, as in Typst.
+    pub ligatures: bool,
+    /// Pair kerning (`kern`). On by default, as in Typst.
+    pub kerning: bool,
     /// The editor's line-height as a multiple of the text size. See
     /// [`DEFAULT_LINE_HEIGHT_RATIO`].
     pub line_height_ratio: f64,
@@ -53,6 +57,8 @@ impl SpaceContext {
             theme: ThemeColors::default(),
             locale: String::from("en"),
             text_size: 16.0,
+            ligatures: true,
+            kerning: true,
             line_height_ratio: DEFAULT_LINE_HEIGHT_RATIO,
         }
     }
