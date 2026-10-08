@@ -2079,7 +2079,13 @@ describe("typbase app", async () => {
 
     await page.locator(".menubar__trigger", { hasText: "File" }).click();
     await page.waitForSelector(".menubar__content", { timeout: 30_000 });
-    expect(await page.locator(".menubar__content .menu__item").count()).toBe(4);
+    // Named rather than counted: the menu grows, and a count would only say
+    // that it changed.
+    for (const label of ["New page", "Today", "Search", "Export workspace", "Workspace settings"]) {
+      await expect(
+        page.locator(".menubar__content .menu__item", { hasText: label }).count(),
+      ).resolves.toBe(1);
+    }
 
     // A trigger click switches menus instead of closing the bar, and the menu it
     // left is gone.

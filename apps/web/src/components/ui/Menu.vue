@@ -59,7 +59,7 @@ useBackLayer(open);
   animation: ui-overlay-fade-out var(--motion-exit);
 }
 
-.menu [data-reka-menu-item],
+.menu [data-reka-collection-item],
 .menu [data-placeholder] {
   display: flex;
   align-items: center;
@@ -71,8 +71,13 @@ useBackLayer(open);
   cursor: pointer;
 }
 
-.menu [data-reka-menu-item][data-highlighted] {
+.menu [data-reka-collection-item][data-highlighted] {
   background: var(--color-accent-soft);
+}
+
+.menu .menu__item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .menu .menu__item {
@@ -93,13 +98,13 @@ useBackLayer(open);
   background: var(--color-accent-soft);
 }
 
-.menu [data-reka-menu-item][data-disabled],
+.menu [data-reka-collection-item][data-disabled],
 .menu .menu__item:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.menu [data-reka-menu-item][data-disabled]:hover,
+.menu [data-reka-collection-item][data-disabled]:hover,
 .menu .menu__item:disabled:hover {
   background: transparent;
 }
