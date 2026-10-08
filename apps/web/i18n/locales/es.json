@@ -103,6 +103,7 @@
     "source": "Fuente",
     "read": "Lectura",
     "viewMode": "Modo de vista",
+    "loadingEditor": "Cargando el editor…",
     "moreActions": "Más acciones",
     "noWorkspace": "No hay ningún espacio abierto.",
     "noPage": "No hay ninguna página llamada {id}",

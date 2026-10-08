@@ -103,6 +103,7 @@
     "source": "Quelle",
     "read": "Lesen",
     "viewMode": "Ansichtsmodus",
+    "loadingEditor": "Editor wird geladen…",
     "moreActions": "Weitere Aktionen",
     "noWorkspace": "Kein Arbeitsbereich geöffnet.",
     "noPage": "Keine Seite mit dem Namen {id}",

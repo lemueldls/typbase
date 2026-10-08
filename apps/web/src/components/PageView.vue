@@ -1303,6 +1303,11 @@ function setCategory(categoryId: string | null): void {
         :on-asset-drop="handleAssetDrop"
       />
 
+      <div v-else-if="!degraded" class="page-view__loading" role="status" aria-live="polite">
+        <div class="page-view__loading-bar" aria-hidden="true"><span /></div>
+        <p class="page-view__loading-text">{{ $t("pageView.loadingEditor") }}</p>
+      </div>
+
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
 
       <PagedPreview
@@ -1538,6 +1543,42 @@ function setCategory(categoryId: string | null): void {
   flex: 1;
   min-height: 0;
   min-width: 0;
+}
+
+/* The same sliding bar the boot splash uses, so the two waits read as one
+   system. The keyframes live in `pages/index.vue`'s global style block. */
+.page-view__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+
+.page-view__loading-bar {
+  position: relative;
+  width: 11rem;
+  height: 0.25rem;
+  overflow: hidden;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.page-view__loading-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: var(--color-accent);
+  border-radius: inherit;
+  animation: app-splash-slide 1.1s ease-in-out infinite;
+}
+
+.page-view__loading-text {
+  margin: 0;
+  font-size: var(--text-sm);
 }
 
 .page-view__body--single {

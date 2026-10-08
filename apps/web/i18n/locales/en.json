@@ -103,6 +103,7 @@
     "source": "Source",
     "read": "Read",
     "viewMode": "View mode",
+    "loadingEditor": "Loading editor…",
     "moreActions": "More actions",
     "noWorkspace": "No workspace is open.",
     "noPage": "No page named {id}",

@@ -103,6 +103,7 @@
     "source": "源码",
     "read": "阅读",
     "viewMode": "视图模式",
+    "loadingEditor": "正在加载编辑器…",
     "moreActions": "更多操作",
     "noWorkspace": "没有打开任何工作区。",
     "noPage": "没有名为 {id} 的页面",
