@@ -109,4 +109,4 @@ Most phones use `arm64-v8a`, older 32-bit devices use `armeabi-v7a`, and emulato
 
 ## License
 
-This project is licensed under [AGPL-3.0](https://choosealicense.com/licenses/agpl-3.0/). See the [LICENSE](LICENSE) file for details.
+This project is licensed under [Apache-2.0](https://choosealicense.com/licenses/apache-2.0/). See the [LICENSE](LICENSE) file for details.

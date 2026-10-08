@@ -55,7 +55,7 @@ stdenv.mkDerivation (finalAttrs: {
     description = "Local-first knowledge base made for Typst and the Atmosphere.";
     homepage = "https://github.com/lemueldls/typbase";
     changelog = "https://github.com/lemueldls/typbase/releases/tag/typbase-v${finalAttrs.version}";
-    license = lib.licenses.agpl3Only;
+    license = lib.licenses.asl20;
     mainProgram = "typbase";
     platforms = [ "x86_64-linux" ];
   };

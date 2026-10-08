@@ -2,7 +2,7 @@
   "name": "@typbase/typing",
   "version": "0.3.2",
   "description": "Shared workspace/page types for Typbase: app, storage, and future server.",
-  "license": "AGPL-3.0",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/lemueldls/typbase"

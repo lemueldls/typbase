@@ -2,7 +2,7 @@
   "name": "@typbase/spaces",
   "version": "0.3.2",
   "description": "The only module that talks to atproto: browser OAuth, the airspace data model, and Loro sync.",
-  "license": "AGPL-3.0",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/lemueldls/typbase"
