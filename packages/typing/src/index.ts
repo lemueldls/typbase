@@ -48,10 +48,10 @@ export interface Category {
 /** One workspace in the local registry (`workspaces.json`). */
 export interface WorkspaceInfo {
   id: string;
-  /** Cache of the workspace doc's `settings.name`. Refreshed on open/rename. */
   name: string;
   /** Material Symbols glyph name (e.g. "folder"). Empty means the default. */
   icon?: string;
+  accent?: string;
   createdAt: number;
   lastOpenedAt: number;
 }

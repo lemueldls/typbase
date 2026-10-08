@@ -30,6 +30,7 @@ import type { AtprotoService, AtprotoStatus } from "~/lib/atproto";
 
 import { initAiKeys, type AiKeyState } from "~/lib/ai/keys";
 import { AtprotoService as Atproto } from "~/lib/atproto";
+import { resolveTheme } from "~/lib/themes";
 import { withTimeout } from "~/lib/timeout";
 
 const LAST_WORKSPACE_KEY = "typbase:lastWorkspace";
@@ -542,9 +543,14 @@ function useWorkspaceState() {
       const store = await WorkspaceStore.open(backendRef.value!, id, { name: info.name });
       if (token !== openingSeq) return store;
 
-      // Keep the registry name in sync with the workspace doc.
-      const name = store.getSettings().name;
-      if (name !== info.name) await reg.save({ ...info, lastOpenedAt: Date.now(), name });
+      // Keep the registry name and accent in sync with the workspace doc. The
+      // accent is what tints this workspace's row in the switcher.
+      const settings = store.getSettings();
+      const name = settings.name;
+      const accent = resolveTheme(settings).palette.accent;
+      if (name !== info.name || accent !== info.accent) {
+        await reg.save({ ...info, lastOpenedAt: Date.now(), name, accent });
+      }
       updateBootStep("workspace", {
         status: "done",
         detail: `${store.listPages().length} page(s)`,
@@ -555,7 +561,7 @@ function useWorkspaceState() {
 
       store.onStructureChange(() => {
         dataRevision.value += 1;
-        void syncRegistryName(store);
+        void syncRegistryEntry(store);
       });
 
       activeWorkspaceId.value = id;
@@ -600,16 +606,23 @@ function useWorkspaceState() {
     }
   }
 
-  /** Mirrors the workspace doc's name into the registry, only when changed. */
-  async function syncRegistryName(store: WorkspaceStore): Promise<void> {
+  /**
+   * Mirrors the workspace doc's name and accent into the registry, only when
+   * one of them changed. Called on every structure change, so the comparison is
+   * what keeps a page edit from rewriting the manifest.
+   */
+  async function syncRegistryEntry(store: WorkspaceStore): Promise<void> {
     const reg = await ensureRegistry();
     const entry = await reg.get(store.workspaceId);
     if (!entry) return;
-    const name = store.getSettings().name;
-    if (entry.name !== name) {
-      await reg.save({ ...entry, name });
-      workspaces.value = await reg.list();
-    }
+
+    const settings = store.getSettings();
+    const name = settings.name;
+    const accent = resolveTheme(settings).palette.accent;
+    if (entry.name === name && entry.accent === accent) return;
+
+    await reg.save({ ...entry, name, accent });
+    workspaces.value = await reg.list();
   }
 
   /** Picks the workspace to boot: last opened, else first, else a legacy "local", else a fresh one. */

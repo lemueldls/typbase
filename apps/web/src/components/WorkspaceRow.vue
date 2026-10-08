@@ -34,12 +34,17 @@ const { t } = useI18n();
 const icon = computed(
   () => (props.info.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON,
 );
+
+const rowStyle = computed(() =>
+  props.info.accent ? { "--ws-accent": props.info.accent } : undefined,
+);
 </script>
 
 <template>
   <div
     class="ws-row"
     :class="{ 'ws-row--active': active, 'ws-row--drag': dragging }"
+    :style="rowStyle"
     data-drag-workspace
     @pointerdown="emit('dragStart', $event)"
   >
@@ -146,8 +151,8 @@ const icon = computed(
   width: var(--control-sm);
   height: var(--control-sm);
   flex: none;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+  color: var(--ws-accent, var(--color-accent));
+  background: color-mix(in srgb, var(--ws-accent, var(--color-accent)) 16%, transparent);
   border-radius: var(--radius-sm);
 }
 
