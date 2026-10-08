@@ -166,7 +166,7 @@ async function pruneUnused(): Promise<void> {
   try {
     for (const row of unused) await store.deleteBlob(row.hash);
     await refresh();
-    status.value = t("explorer.assetPruned", { count: unused.length });
+    status.value = t("explorer.assetPruned", { count: unused.length }, unused.length);
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
@@ -205,7 +205,11 @@ async function pruneUnused(): Promise<void> {
             <span class="assets__refs">
               {{
                 row.pageTitles.length
-                  ? $t("explorer.assetReferences", { count: row.pageTitles.length })
+                  ? $t(
+                      "explorer.assetReferences",
+                      { count: row.pageTitles.length },
+                      row.pageTitles.length,
+                    )
                   : $t("explorer.assetUnused")
               }}
               <template v-if="row.pageTitles.length">

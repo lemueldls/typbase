@@ -436,7 +436,7 @@ function useWorkspaceState() {
     local: LocalState,
   ): Promise<void> {
     const token = ++openingSeq;
-    updateBootStep("atproto", { status: "active", detail: "in background" });
+    updateBootStep("atproto", { status: "active", detail: t("boot.inBackground") });
     try {
       // AI keys are device-only state. Load once. Writes go through the
       // setter so settings UI and generators see the same object.
@@ -527,7 +527,12 @@ function useWorkspaceState() {
 
     try {
       teardownActive();
-      bootProgress.value = initialBootSteps((key) => t(key as never));
+      // Storage already succeeded before a workspace opens. Resetting it would
+      // show a finished step flipping back to pending in the boot list.
+      const storage = bootProgress.value.find((step) => step.id === "storage");
+      bootProgress.value = initialBootSteps((key) => t(key as never)).map((step) =>
+        step.id === "storage" && storage ? storage : step,
+      );
       bootNote.value = "";
 
       const reg = await ensureRegistry();
@@ -551,9 +556,10 @@ function useWorkspaceState() {
       if (name !== info.name || accent !== info.accent) {
         await reg.save({ ...info, lastOpenedAt: Date.now(), name, accent });
       }
+      const pageCount = store.listPages().length;
       updateBootStep("workspace", {
         status: "done",
-        detail: `${store.listPages().length} page(s)`,
+        detail: t("boot.pageCount", { count: pageCount }, pageCount),
       });
 
       // The engine's memo caches belong to the previous workspace's docs.
@@ -688,6 +694,15 @@ function useWorkspaceState() {
     });
 
     return ensurePromise as Promise<WorkspaceStore | null>;
+  }
+
+  /**
+   * Forgets a finished boot attempt so `ensure()` runs again. A failed boot
+   * memoizes its rejected promise, so retrying without this re-throws the same
+   * reason forever.
+   */
+  function resetEnsure(): void {
+    ensurePromise = undefined;
   }
 
   async function switchWorkspace(id: string): Promise<void> {
@@ -830,6 +845,7 @@ function useWorkspaceState() {
     dataRevision,
     pluginFilesRevision,
     ensure,
+    resetEnsure,
     workspaceId,
     atproto,
     atprotoStatus,

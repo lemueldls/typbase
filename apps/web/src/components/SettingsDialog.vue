@@ -1009,7 +1009,9 @@ async function renameWorkspace(event: Event) {
                   {{ $t("settings.fontMissing") }}
                 </span>
                 <span v-else class="settings__font-count">
-                  {{ $t("settings.fontFaceCount", { count: font.hashes.length }) }}
+                  {{
+                    $t("settings.fontFaceCount", { count: font.hashes.length }, font.hashes.length)
+                  }}
                 </span>
                 <UiIconButton
                   icon="delete"

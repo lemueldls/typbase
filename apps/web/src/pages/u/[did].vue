@@ -102,7 +102,7 @@ definePageMeta({ ssr: false });
       <h1>{{ author.handle ?? author.did }}</h1>
       <p class="profile__sub">{{ author.did }}</p>
       <p v-if="posts.length" class="profile__count">
-        {{ $t("profile.publishedCount", { count: posts.length }) }}
+        {{ $t("profile.publishedCount", { count: posts.length }, posts.length) }}
       </p>
     </header>
 

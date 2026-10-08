@@ -255,6 +255,45 @@ function setNotebookCellType(type: NotebookCellType): void {
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
 // this remount, so the editor plugin and preview bind to the fresh instance.
 const stateGeneration = ref(0);
+
+/**
+ * Whether to show the loading placeholder. Held back for a moment because a
+ * page switch against an already-warm engine binds in well under a frame or
+ * two, and a placeholder that appears and vanishes that fast reads as a flicker
+ * rather than as progress.
+ */
+const showEditorLoading = ref(false);
+let editorLoadingTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Whether the editor fades in when it replaces the placeholder. Armed only
+ * while the placeholder is up, so the first bind animates and a later page
+ * switch, which never shows a placeholder, does not.
+ */
+const animateEditor = ref(false);
+
+watch(showEditorLoading, (showing) => {
+  if (showing) animateEditor.value = true;
+});
+
+watch(
+  boundFileId,
+  (id) => {
+    clearTimeout(editorLoadingTimer);
+    if (id) {
+      showEditorLoading.value = false;
+
+      return;
+    }
+
+    editorLoadingTimer = setTimeout(() => {
+      showEditorLoading.value = true;
+    }, 200);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => clearTimeout(editorLoadingTimer));
 let recovering = false;
 
 /**
@@ -1274,39 +1313,46 @@ function setCategory(categoryId: string | null): void {
       :class="modelValue === 'split' ? 'page-view__body--split' : 'page-view__body--single'"
       :style="{ '--split-left': `${splitLeft}%` }"
     >
-      <EditablePane
-        v-if="boundFileId"
-        :key="`${pageId}:${stateGeneration}`"
-        v-show="modelValue !== 'read'"
-        v-bind="sharedState"
-        ref="editorPane"
-        :file-id="boundFileId"
-        :space-id="workspaceId"
-        :path="meta?.path ?? ''"
-        :wysiwyg="modelValue === 'write'"
-        :notebook="meta?.kind === 'notebook' ? notebookController?.options : undefined"
-        :degraded="degraded"
-        :spellcheck="spellcheckMode"
-        :spellcheck-words="spellcheckWords"
-        :spellcheck-ignored-lints="spellcheckIgnoredLints"
-        :editor="editorDisplay"
-        :on-add-spellcheck-word="addSpellcheckWord"
-        :on-ignore-spellcheck-lint="ignoreSpellcheckLint"
-        :typst-state="boundState"
-        :on-requests="onRequests"
-        :revision="editorRevision"
-        :extensions="extraExtensions"
-        :on-panic="() => handlePanic()"
-        :on-compile="onEngineCompile"
-        :on-navigate="(pageId) => emit('openPage', pageId)"
-        :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
-        :on-asset-drop="handleAssetDrop"
-      />
+      <Transition :css="animateEditor" name="editor-fade" @after-enter="animateEditor = false">
+        <EditablePane
+          v-if="boundFileId"
+          :key="`${pageId}:${stateGeneration}`"
+          v-show="modelValue !== 'read'"
+          v-bind="sharedState"
+          ref="editorPane"
+          :file-id="boundFileId"
+          :space-id="workspaceId"
+          :path="meta?.path ?? ''"
+          :wysiwyg="modelValue === 'write'"
+          :notebook="meta?.kind === 'notebook' ? notebookController?.options : undefined"
+          :degraded="degraded"
+          :spellcheck="spellcheckMode"
+          :spellcheck-words="spellcheckWords"
+          :spellcheck-ignored-lints="spellcheckIgnoredLints"
+          :editor="editorDisplay"
+          :on-add-spellcheck-word="addSpellcheckWord"
+          :on-ignore-spellcheck-lint="ignoreSpellcheckLint"
+          :typst-state="boundState"
+          :on-requests="onRequests"
+          :revision="editorRevision"
+          :extensions="extraExtensions"
+          :on-panic="() => handlePanic()"
+          :on-compile="onEngineCompile"
+          :on-navigate="(pageId) => emit('openPage', pageId)"
+          :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
+          :on-asset-drop="handleAssetDrop"
+        />
 
-      <div v-else-if="!degraded" class="page-view__loading" role="status" aria-live="polite">
-        <div class="page-view__loading-bar" aria-hidden="true"><span /></div>
-        <p class="page-view__loading-text">{{ $t("pageView.loadingEditor") }}</p>
-      </div>
+        <div
+          v-else-if="showEditorLoading && !degraded"
+          class="page-view__loading"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="page-view__loading-bar" aria-hidden="true"><span /></div>
+          <p class="page-view__loading-text">{{ $t("pageView.loadingEditor") }}</p>
+        </div>
+      </Transition>
 
       <div v-if="modelValue === 'split'" class="page-view__handle" @pointerdown="startSplitDrag" />
 
@@ -1555,6 +1601,26 @@ function setCategory(categoryId: string | null): void {
   gap: var(--space-3);
   color: var(--color-text-secondary);
   user-select: none;
+}
+
+/* Both states sit in the editor's cell so the placeholder can fade out under
+   the editor instead of pushing it into a second grid row. */
+.page-view__body > .page-view__loading,
+.page-view__body > .editable-pane {
+  grid-area: 1 / 1;
+}
+
+.editor-fade-enter-active {
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+
+.editor-fade-leave-active {
+  transition: opacity var(--motion-exit) var(--ease-in);
+}
+
+.editor-fade-enter-from,
+.editor-fade-leave-to {
+  opacity: 0;
 }
 
 .page-view__loading-bar {

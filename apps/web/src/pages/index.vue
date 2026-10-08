@@ -4,7 +4,6 @@ import type { SplitterPanel } from "reka-ui";
 import type { LocationQueryRaw } from "vue-router";
 
 import { isTauri } from "@typbase/storage";
-import iconUrl from "~~/public/icon.svg?url";
 
 import type { NavQuery } from "~/lib/navStack";
 
@@ -27,6 +26,7 @@ const {
   workspaces,
   error,
   ensure,
+  resetEnsure,
   dataRevision,
   bootProgress,
   bootNote,
@@ -36,9 +36,6 @@ const {
 } = useWorkspace();
 
 const loaded = ref(false);
-const activeBootStep = computed(
-  () => bootProgress.value.find((step) => step.status === "active") ?? bootProgress.value.at(-1),
-);
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
@@ -306,10 +303,11 @@ function isViewMode(value: unknown): value is ViewModeId {
   );
 }
 
-onMounted(async () => {
-  await ensure();
-  loaded.value = true;
-
+/**
+ * Everything that runs once a workspace is open. `retryBoot` runs it again
+ * after a failure, so the setup cannot live in `onMounted` alone.
+ */
+function afterBoot(): void {
   // Dev builds run against a release channel they cannot install over, but the
   // Settings row still needs to know which channel it is.
   void appUpdates.detect();
@@ -400,7 +398,39 @@ onMounted(async () => {
     plugins.logs.value.map((entry) =>
       `${entry.kind} ${entry.pluginId ?? ""} ${entry.message}`.trim(),
     );
+}
+
+async function boot(): Promise<void> {
+  await ensure();
+  loaded.value = true;
+  afterBoot();
+}
+
+onMounted(() => {
+  void boot();
 });
+
+const retryingBoot = ref(false);
+
+/** The escape hatch when a retry cannot work either, e.g. a wedged storage handle. */
+function reloadApp(): void {
+  window.location.reload();
+}
+
+/** Retries a boot that failed. The splash carries the reason; this is the way out. */
+async function retryBoot(): Promise<void> {
+  retryingBoot.value = true;
+  try {
+    // `ensure()` memoizes its promise, so a failed boot has to be forgotten
+    // before it can run again.
+    resetEnsure();
+    await boot();
+  } catch {
+    // The reason is already in the splash.
+  } finally {
+    retryingBoot.value = false;
+  }
+}
 
 watch(currentPageId, (id) => {
   testApi.pageId = id || null;
@@ -832,15 +862,48 @@ definePageMeta({ ssr: false });
 
     <Transition name="splash">
       <div v-if="!loaded" class="app__splash" role="status" aria-live="polite">
-        <!-- <img class="app__splash-mark" :src="iconUrl" alt="" />
-        <h1 class="app__splash-title">Typbase</h1> -->
+        <h1 class="app__splash-title">{{ $t("boot.title") }}</h1>
         <div class="app__splash-bar" aria-hidden="true"><span /></div>
-        <p class="app__splash-step">
-          {{ activeBootStep?.label ?? $t("boot.title") }}
-          <template v-if="activeBootStep?.detail"> · {{ activeBootStep.detail }}</template>
-        </p>
+
+        <ol class="app__splash-steps">
+          <li
+            v-for="step in bootProgress"
+            :key="step.id"
+            class="app__splash-step"
+            :class="`app__splash-step--${step.status}`"
+          >
+            <span
+              class="app__splash-step-mark"
+              :class="`app__splash-step-mark--${step.status}`"
+              aria-hidden="true"
+            >
+              <svg v-if="step.status === 'done'" class="app__splash-step-check" viewBox="0 0 16 16">
+                <path
+                  d="M3.5 8.5l3 3 6-7"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <span class="app__splash-step-label">{{ step.label }}</span>
+            <span v-if="step.detail" class="app__splash-step-detail">{{ step.detail }}</span>
+          </li>
+        </ol>
+
         <p v-if="bootNote" class="app__splash-note">{{ bootNote }}</p>
-        <p v-if="error" class="app__splash-error">{{ error }}</p>
+
+        <template v-if="error">
+          <p class="app__splash-error">{{ error }}</p>
+          <div class="app__splash-actions">
+            <UiButton variant="primary" :disabled="retryingBoot" @click="retryBoot">
+              {{ retryingBoot ? $t("boot.retrying") : $t("boot.retry") }}
+            </UiButton>
+            <UiButton variant="ghost" @click="reloadApp">{{ $t("engine.reload") }}</UiButton>
+          </div>
+        </template>
       </div>
     </Transition>
 
@@ -1228,9 +1291,99 @@ definePageMeta({ ssr: false });
 
 .app__splash-title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+/* Fixed, not a minimum: the splash centres its children, so a block that grows
+   to fit the longest label drags its left edge inward and the labels appear to
+   shift as the steps change. A fixed width holds the start still. */
+.app__splash-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: min(20rem, 80vw);
+}
+
+/* A step's detail arrives after the step starts ("12 page(s)", "in background"),
+   so the row has to fit the longest label plus a detail without wrapping. */
+.app__splash-step-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app__splash-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Pending recedes, the running step reads as current, done stays quiet. */
+.app__splash-step--pending {
+  opacity: 0.5;
+}
+
+.app__splash-step--active {
+  color: var(--color-text);
+}
+
+.app__splash-step--error {
+  color: var(--color-danger);
+}
+
+/* State is carried by the shape, not by a glyph: a hollow ring, a spinning
+   ring, a filled one. Nothing here waits on a font. */
+.app__splash-step-mark {
+  display: grid;
+  place-content: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 50%;
+}
+
+.app__splash-step-mark--active {
+  border-color: var(--color-accent);
+  border-top-color: transparent;
+  animation: app-splash-spin 0.8s linear infinite;
+}
+
+.app__splash-step-mark--done {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.app__splash-step-mark--error {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+}
+
+.app__splash-step-check {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+.app__splash-step-detail {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+@keyframes app-splash-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .app__splash-bar {
@@ -1266,6 +1419,12 @@ definePageMeta({ ssr: false });
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+.app__splash-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .app__splash-note {

@@ -163,7 +163,7 @@ async function askDelete(asset: Asset): Promise<void> {
 
   deleteTarget.value = asset;
   deleteDescription.value = used
-    ? t("assets.deleteUsed", { count: used })
+    ? t("assets.deleteUsed", { count: used }, used)
     : t("assets.deleteUnused");
   deleteOpen.value = true;
 }
