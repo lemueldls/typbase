@@ -322,6 +322,9 @@ export async function buildWorkspaceExport(
     if (options.fonts) {
       for (const font of await fontFiles(store)) addFile(font);
     }
+    for (const file of editorConfigFiles()) {
+      addFile({ name: file.name, bytes: encoder.encode(file.text) });
+    }
   }
 
   if (files.length > 1) {
@@ -369,6 +372,47 @@ ${items}
 `;
 }
 
+/**
+ * Editor config so the bundle behaves the same in an external editor as it does
+ * here. The one that matters is Tinymist's project root: every source imports
+ * `/typbase/lib.typ`, and a root-absolute import only resolves against a root,
+ * so without it every file opens with a wall of unresolved imports.
+ *
+ * Only written for a project export. A bundle of rendered artifacts is not
+ * something anyone opens in an editor.
+ */
+function editorConfigFiles(): { name: string; text: string }[] {
+  const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
+
+  return [
+    {
+      name: ".vscode/settings.json",
+      text: json({
+        "tinymist.typstExtraArgs": ["--root", "."],
+      }),
+    },
+    {
+      name: ".vscode/extensions.json",
+      text: json({ recommendations: ["myriad-dreamin.tinymist"] }),
+    },
+    {
+      // Not editor-specific: the same line endings and indent whatever opens it.
+      name: ".editorconfig",
+      text: [
+        "root = true",
+        "",
+        "[*]",
+        "charset = utf-8",
+        "end_of_line = lf",
+        "insert_final_newline = true",
+        "indent_style = space",
+        "indent_size = 2",
+        "",
+      ].join("\n"),
+    },
+  ];
+}
+
 function buildWorkspaceReadme(pageCount: number, options: WorkspaceExportOptions): string {
   const lines = [
     "# Workspace export",
@@ -392,6 +436,9 @@ function buildWorkspaceReadme(pageCount: number, options: WorkspaceExportOptions
     lines.push("- `typbase/`: the library, referenced data and blobs, and optionally fonts");
     const plugins = pluginBundleSummary();
     if (plugins) lines.push(plugins);
+    lines.push(
+      "- `.vscode/`, `.editorconfig`: editor settings, including the Tinymist project root",
+    );
   }
   lines.push("");
 
@@ -405,8 +452,9 @@ function buildWorkspaceReadme(pageCount: number, options: WorkspaceExportOptions
       `typst compile --root .${options.fonts ? " --font-path typbase/fonts" : ""} pages/<page.path>`,
       "```",
       "",
-      'Tinymist needs the same root (`"tinymist.typstExtraArgs": ["--root", "."]`), because',
-      "the prelude's import is root-absolute.",
+      "Tinymist needs the same root, because the prelude's import is root-absolute.",
+      "`.vscode/settings.json` already sets it, so opening the bundle folder in VS Code",
+      "works without configuring anything.",
       "",
     );
   }

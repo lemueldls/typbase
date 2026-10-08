@@ -40,6 +40,7 @@ const appUpdates = useAppUpdates();
 const openMenu = ref("");
 const newPageOpen = ref(false);
 const settingsOpen = ref(false);
+const workspaceExportOpen = ref(false);
 
 const searchHint = computed(() => (isMac() ? "⌘K" : "Ctrl K"));
 const updateReady = computed(() => appUpdates.status.value === "available");
@@ -78,6 +79,10 @@ async function openToday(): Promise<void> {
           </UiMenubarItem>
 
           <UiMenubarSeparator />
+
+          <UiMenubarItem icon="folder_zip" @select="workspaceExportOpen = true">
+            {{ $t("exportWorkspace.title") }}
+          </UiMenubarItem>
 
           <UiMenubarItem icon="settings" @select="settingsOpen = true">
             {{ $t("sidebar.workspaceSettings") }}
@@ -135,6 +140,7 @@ async function openToday(): Promise<void> {
     </div>
 
     <NewPageDialog v-model:open="newPageOpen" :store="store" @created="onCreated" />
+    <WorkspaceExportDialog v-model:open="workspaceExportOpen" :store="store" />
     <SettingsDialog v-model:open="settingsOpen" :store="store" />
   </div>
 </template>
