@@ -285,8 +285,11 @@ function openRepository(entry: PackageEntry) {
       />
     </div>
 
-    <p v-if="!indexError && entries.length > 0" class="package-browser__count">
-      {{ $t("packages.showing", { shown: filtered.length, total: entries.length }) }}
+    <p class="package-browser__count">
+      <template v-if="!indexError && entries.length > 0">
+        {{ $t("packages.showing", { shown: filtered.length, total: entries.length }) }}
+      </template>
+      <template v-else>&nbsp;</template>
     </p>
 
     <p v-if="actionError || (indexError && entries.length > 0)" class="package-browser__banner">
@@ -429,6 +432,9 @@ function openRepository(entry: PackageEntry) {
 /* Wide enough for the list and the per-row actions. */
 .package-dialog {
   width: min(760px, calc(100vw - var(--space-8)));
+  /* The list, the skeleton, and the empty and error states all reserve the same
+     height, so switching between them does not resize the dialog. */
+  --package-list-height: min(60vh, 26rem);
 }
 
 .package-browser__toolbar {
@@ -451,7 +457,7 @@ function openRepository(entry: PackageEntry) {
 }
 
 .package-browser__list {
-  height: min(60vh, 26rem);
+  height: var(--package-list-height);
   overflow-y: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -574,8 +580,11 @@ function openRepository(entry: PackageEntry) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-8) var(--space-4);
+  height: var(--package-list-height);
+  padding: var(--space-4);
+  text-align: center;
 }
 
 .package-browser__note,

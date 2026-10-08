@@ -117,7 +117,7 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
 .combobox {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: var(--reka-combobox-trigger-width);
   max-width: min(24rem, calc(100vw - var(--space-8)));
   max-height: calc(50dvh - var(--space-8));
