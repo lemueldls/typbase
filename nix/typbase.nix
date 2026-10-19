@@ -67,7 +67,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
     binaryen
     cargo-tauri.hook
     cmake
-    # nixpkgs' rustc targets `lld` for wasm32-unknown-unknown, not rust-lld.
     lld
     nodejs
     pkg-config
@@ -94,10 +93,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
     ''{"build":{"beforeBuildCommand":"true"}}''
   ];
 
-  # wasm-pack downloads wasm-bindgen and wasm-opt, which the sandbox cannot do.
-  # It prefers an installed wasm-bindgen whose version matches Cargo.lock, and
-  # that CLI is on PATH, so nothing is fetched for it; --no-opt skips the
-  # wasm-opt install and nixpkgs' wasm-opt optimizes the output instead.
   preBuild = ''
     (cd packages/engine && printf '{}' > pkg/package.json \
       && wasm-pack build --release --target web --scope typbase --no-opt .)
@@ -105,10 +100,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
       -o packages/engine/pkg/engine_bg.opt.wasm
     mv packages/engine/pkg/engine_bg.opt.wasm packages/engine/pkg/engine_bg.wasm
 
-    pnpm --filter @typbase/typing build
-    pnpm --filter @typbase/storage build
-    pnpm --filter @typbase/spaces build
-    pnpm --filter @typbase/codemirror build
     pnpm --filter @typbase/web generate
   '';
 

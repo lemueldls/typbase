@@ -11,8 +11,4 @@ cd "$repo_root"
 # rebuild, so the moon task resets the file first; do the same here.
 (cd packages/engine && printf '{}' > pkg/package.json && wasm-pack build --release --target web --scope typbase .)
 
-pnpm --filter @typbase/typing build
-pnpm --filter @typbase/storage build
-pnpm --filter @typbase/spaces build
-pnpm --filter @typbase/codemirror build
 pnpm --filter @typbase/web generate

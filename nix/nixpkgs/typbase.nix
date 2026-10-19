@@ -96,10 +96,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
       -o packages/engine/pkg/engine_bg.opt.wasm
     mv packages/engine/pkg/engine_bg.opt.wasm packages/engine/pkg/engine_bg.wasm
 
-    pnpm --filter @typbase/typing build
-    pnpm --filter @typbase/storage build
-    pnpm --filter @typbase/spaces build
-    pnpm --filter @typbase/codemirror build
     pnpm --filter @typbase/web generate
   '';
 
