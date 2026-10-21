@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Writes the Android signing files from the base64 secrets. Leaves the release
 # build unsigned when the secrets are missing.
+
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)

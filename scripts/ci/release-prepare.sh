@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+
 # Validates the release tag against the Tauri config and the tag's changelog,
 # creates the draft release if it is missing, and writes the `tag` and
 # `version` step outputs.
+
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

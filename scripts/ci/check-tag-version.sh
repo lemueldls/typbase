@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+
 # Fails unless <tag> contains the version in apps/native/tauri.conf.json.
+
 set -euo pipefail
 
 tag=${1:-}

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Configures git to sign commits and tags with the SSH key in SSH_SIGNING_KEY.
 # Leaves signing off when the key is missing.
+
 set -euo pipefail
 
 if [[ -z "${SSH_SIGNING_KEY:-}" ]]; then

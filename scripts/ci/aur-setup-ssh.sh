@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Writes the AUR deploy key into the build user's ~/.ssh. Skips when the key is
 # missing. Run as root, before aur-publish.sh switches to the build user.
+
 set -euo pipefail
 
 if [[ -z "${AUR_DEPLOY_KEY:-}" ]]; then

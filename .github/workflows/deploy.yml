@@ -61,7 +61,7 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         env:
           APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
-        run: bash scripts/ci/check-wisp-metadata.sh
+        run: bash scripts/ci/check-oauth-metadata.sh
 
       - name: 🚀 Deploy to wisp.place
         if: steps.gate.outputs.deploy == 'true'

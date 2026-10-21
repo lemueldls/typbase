@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+
 # Prints the SHA-256 of the file at <url>.
+
 set -euo pipefail
 
 url=${1:-}

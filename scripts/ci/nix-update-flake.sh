@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Updates both flake derivations to <version>, builds them, and pushes the
 # change. Signing follows SSH_SIGNING_KEY through git-ssh-signing.sh.
+
 set -euo pipefail
 
 version=${1:-}

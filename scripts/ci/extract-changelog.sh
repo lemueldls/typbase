@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+
 # Prints the CHANGELOG.md section for a release tag. The changelog committed at
 # the tag is the source of truth for the GitHub release body, so a tag without
 # a section fails here instead of shipping an empty release.
+
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

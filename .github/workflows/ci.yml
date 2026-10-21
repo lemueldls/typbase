@@ -39,6 +39,9 @@ jobs:
       - name: 🦀 Build @typbase/engine
         run: pnpm moon run engine:build
 
+      - name: 📏 Check the wasm size
+        run: node scripts/ci/check-wasm-size.mjs
+
       - name: 🧹 Lint
         run: pnpm lint
 

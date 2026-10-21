@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Copies the per-ABI APKs and the universal AAB into dist/ with release asset
 # names, and writes android.json (the sideload update manifest) for releases.
+
 set -euo pipefail
 
 version=${1:-}

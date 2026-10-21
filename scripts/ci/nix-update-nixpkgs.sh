@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Copies the derivation into NIXPKGS_FORK, updates it to <version>, and opens a
 # pull request. Skips when NIXPKGS_FORK or NIXPKGS_TOKEN is missing.
+
 set -euo pipefail
 
 version=${1:-}

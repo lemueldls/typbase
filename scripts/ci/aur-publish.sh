@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+
 # Regenerates the PKGBUILD for <name>, builds it, and pushes it to the AUR.
 # Assumes aur-setup-ssh.sh already installed AUR_DEPLOY_KEY. Run as the
 # unprivileged build user.
+#
 set -euo pipefail
 
 name=${1:-}

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Helpers for the scripts in this directory. Source this file, do not run it.
 
 # Fails with a message on stderr.

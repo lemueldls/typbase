@@ -42,6 +42,10 @@ self.addEventListener("message", async (event: MessageEvent<EmbedRequest>) => {
     if (!extractor || loadedModel !== model) {
       const { pipeline, env } = await import("@huggingface/transformers");
       env.allowLocalModels = false;
+      const wasm = env.backends.onnx.wasm;
+      if (!wasm) throw new Error("onnxruntime wasm config is missing");
+      const ortVersion = (env as unknown as { versions: { web: string } }).versions.web;
+      wasm.wasmPaths = `https://unpkg.com/onnxruntime-web@${ortVersion}/dist/`;
       try {
         extractor = await pipeline("feature-extraction", model, {
           dtype: "q8" as never,

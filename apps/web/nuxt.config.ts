@@ -44,12 +44,6 @@ export default defineNuxtConfig({
       ],
       script: [
         {
-          // Runs before first paint. The workspace doc is async, so without
-          // this the boot splash paints in the default palette and then
-          // switches. The cache holds the exact vars applyThemeToDom writes.
-          // With no cache (first run, or unreadable storage) it follows the
-          // OS: #1b1d21 is the default theme's dark surface, so a dark-mode
-          // launch never paints a white canvas before the workspace lands.
           innerHTML:
             '(function(){var root=document.documentElement;try{var raw=localStorage.getItem("typbase:themeCache");if(raw){var cached=JSON.parse(raw);var vars=cached.vars;if(vars){for(var key in vars)root.style.setProperty(key,vars[key]);if(vars["--color-surface"])root.style.backgroundColor=vars["--color-surface"];}if(cached.mode){root.dataset.theme=cached.mode;root.style.colorScheme=cached.mode;}return;}}catch(e){}try{if(!window.matchMedia||!window.matchMedia("(prefers-color-scheme: dark)").matches)return;root.dataset.theme="dark";root.style.colorScheme="dark";root.style.backgroundColor="#1b1d21";}catch(e){}})();',
           tagPosition: "head",
@@ -63,17 +57,10 @@ export default defineNuxtConfig({
         name: "typbase:dev-coep",
         apply: "serve",
         configureServer(server) {
-          // Vite serves worker scripts itself and bypasses Nitro's routeRules,
-          // so they miss the COOP/COEP the document has. Chromium refuses to
-          // create a worker under COEP unless the worker response carries them
-          // too, which silently blocked every worker in dev.
           server.middlewares.use((request, response, next) => {
             response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
             response.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
 
-            // Nuxt dev serves public JS through a virtual module, which a
-            // service worker cannot evaluate. Serve the raw file so the
-            // offline test can register it. Production copies public/ as-is.
             if (request.url?.split("?")[0] === "/sw.js") {
               void readFile(new URL("./public/sw.js", import.meta.url), "utf8").then(
                 (source) => {
@@ -90,13 +77,20 @@ export default defineNuxtConfig({
           });
         },
       },
+      {
+        name: "typbase:external-onnx-wasm",
+        apply: "build",
+        generateBundle(_options, bundle) {
+          for (const fileName of Object.keys(bundle)) {
+            if (fileName.endsWith(".wasm") && fileName.includes("ort-wasm-simd-threaded")) {
+              delete bundle[fileName];
+            }
+          }
+        },
+      },
     ],
     resolve: {
       alias: {
-        // Loro's exports map sends the production client build to its
-        // `browser` entry, which loads the wasm with a synchronous XHR. The
-        // `bundler` entry imports the wasm as a module (the path dev already
-        // resolves), so Vite handles it and nothing blocks the main thread.
         "loro-crdt": "loro-crdt/bundler",
       },
     },
@@ -120,14 +114,7 @@ export default defineNuxtConfig({
       // websocket: true,
     },
     prerender: {
-      routes: [
-        "/",
-        // Static client metadata documents: the PDS fetches them by URL and
-        // they only depend on NUXT_PUBLIC_APP_URL, so a static deploy needs no
-        // worker for sign-in. See `server/routes/oauth-client-metadata*`.
-        "/oauth-client-metadata.json",
-        "/oauth-client-metadata/native.json",
-      ],
+      routes: ["/", "/oauth-client-metadata.json", "/oauth-client-metadata/native.json"],
       crawlLinks: true,
     },
     routeRules: {

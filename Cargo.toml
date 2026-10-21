@@ -35,11 +35,11 @@ codegen-units = 1
 debug = 0
 incremental = false
 lto = true
-opt-level = 3
+opt-level = "s"
 panic = "abort"
 
 [profile.release.package."*"]
 codegen-units = 1
 debug = 0
 incremental = false
-opt-level = 3
+opt-level = "s"

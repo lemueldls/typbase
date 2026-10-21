@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+
 # Bumps every version source with scripts/release/bump-version.mjs and, unless
 # DRY_RUN is true, regenerates CHANGELOG.md, commits, tags, and pushes the
 # release tag. Writes the new version as the `version` step output.
+
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

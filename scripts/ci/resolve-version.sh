@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Writes the `tag` and `version` step outputs from TAG, a typbase-v<version>
 # release tag.
+
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

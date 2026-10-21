@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Fails when the prerendered OAuth client metadata does not match the deploy
 # origin. Static builds bake NUXT_PUBLIC_APP_URL into these documents, and the
 # default is localhost, which produces a loopback client id that the PDS will

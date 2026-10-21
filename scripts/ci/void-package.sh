@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+
 # Builds the xbps package from the generated template and signs the repository
 # when XBPS_REPOSITORY_SIGNING_KEY is set. Runs inside the Void Linux container.
+
 set -euo pipefail
 
 version=${VERSION:-}

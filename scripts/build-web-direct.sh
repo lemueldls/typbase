@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+
 # Builds the engine, the workspace packages, and the web app without moon.
 # Packaging builds (AUR, Void, nix) consume the release tarball, which carries
 # no git metadata, and moon reads the VCS revision while running a task.
+
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
