@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.4.0] - 2026-10-21
+
+### New
+
+- Allow reordering of sidebar items
+- Initial app nav bar
+- Plugin slug for path imports
+- Custom font uploads
+- Standalone editor settings
+- Loading editor state
+- Add accent property to workspace info
+
+### Fixed
+
+- Export config options
+- Tooltip z ordering
+- Sidebar plugin spacing
+- Deep math discovery and partial rendering
+- Source and diagnostics synchronization
+- Handle page deletion and renaming cases
+- Baseline reset styles
+- Stale link re-rendering
+- Plugin project export
+- Hover syntax highlighting
+- Plugin open event
+- Search shortcut
+- Scale text size for exports
+- Stabilize package browser
+- Disabled menu item state
+
+### Improved
+
+- Share SVG definitions
+
 ## [0.3.2] - 2026-09-28
 
 ### New
