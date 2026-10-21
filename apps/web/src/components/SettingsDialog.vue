@@ -4,6 +4,7 @@ import type {
   AiProviderSettings,
   AiSettings,
   SpellcheckMode,
+  SplitScrollMode,
   ThemeMode,
   ThemePaletteToken,
   ThemePaletteTokens,
@@ -286,6 +287,21 @@ const editorScrollPastEnd = computed({
   set: (value: boolean) =>
     props.store.updateSettings({
       editor: { ...settings.value.editor, scrollPastEnd: value },
+    }),
+});
+
+const editorSplitScrollOptions = computed<SelectOption[]>(() => [
+  { value: "both", label: t("settings.editorSplitScrollBoth") },
+  { value: "editor", label: t("settings.editorSplitScrollEditor") },
+  { value: "preview", label: t("settings.editorSplitScrollPreview") },
+  { value: "off", label: t("settings.editorSplitScrollOff") },
+]);
+
+const editorSplitScroll = computed({
+  get: () => settings.value.editor?.splitScroll ?? "both",
+  set: (value: string) =>
+    props.store.updateSettings({
+      editor: { ...settings.value.editor, splitScroll: value as SplitScrollMode },
     }),
 });
 
@@ -804,6 +820,15 @@ async function renameWorkspace(event: Event) {
                 :aria-label="$t('settings.editorScrollPastEnd')"
               />
               <span class="settings__hint">{{ $t("settings.editorScrollPastEndHint") }}</span>
+            </div>
+            <div class="settings__field">
+              <span>{{ $t("settings.editorSplitScroll") }}</span>
+              <UiSelect
+                v-model="editorSplitScroll"
+                :options="editorSplitScrollOptions"
+                :label="$t('settings.editorSplitScroll')"
+              />
+              <span class="settings__hint">{{ $t("settings.editorSplitScrollHint") }}</span>
             </div>
           </section>
         </section>

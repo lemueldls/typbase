@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FileId, TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
-import type { IgnoredSpellcheckLint, PageMeta } from "@typbase/typing";
+import type { IgnoredSpellcheckLint, PageMeta, SplitScrollMode } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { EditorView, ViewUpdate } from "@codemirror/view";
@@ -666,7 +666,6 @@ async function setupPage() {
           .filter(Boolean)
           .join("\n");
         editorPane.value?.recompile();
-        cleanupScrollSync();
         meta.value = store.getPage(props.pageId);
       })();
     });
@@ -930,32 +929,84 @@ watch(renderRevision, () => {
   editorPane.value?.recompile();
 });
 
-watch([() => props.modelValue, () => props.pageId, fileId], async () => {
-  cleanupScrollSync();
-  if (props.modelValue !== "split") return;
+/** The pane whose programmatic scroll must not bounce back into a sync. */
+let scrollEcho: "editor" | "preview" | null = null;
+let echoTimer: ReturnType<typeof setTimeout> | undefined;
 
-  await nextTick();
+/** Which pane follows the other in split view. */
+function splitScrollMode(): SplitScrollMode {
+  return editorDisplay.value?.splitScroll ?? "both";
+}
 
-  const view = editorPane.value?.view;
-  const scroller = previewPane.value?.scroller;
-  if (!view || !scroller) return;
+watch(
+  () => ({
+    mode: props.modelValue,
+    page: props.pageId,
+    editor: editorPane.value?.view?.scrollDOM,
+    preview: previewPane.value?.scroller,
+  }),
+  (current) => {
+    cleanupScrollSync();
+    scrollEcho = null;
+    clearTimeout(echoTimer);
+    if (current.mode !== "split") return;
 
-  const onEditor = () => syncFromEditor(view, scroller);
-  const onPreview = () => syncFromPreview(view, scroller);
+    const view = editorPane.value?.view;
+    const scroller = previewPane.value?.scroller;
+    if (!view || !scroller) return;
 
-  view.scrollDOM.addEventListener("scroll", onEditor, { passive: true });
-  scroller.addEventListener("scroll", onPreview, { passive: true });
-  detachScrollSync = () => {
-    view.scrollDOM.removeEventListener("scroll", onEditor);
-    scroller.removeEventListener("scroll", onPreview);
-  };
-});
+    let previewExtent = `${scroller.scrollHeight}:${scroller.clientHeight}`;
 
-let syncLockUntil = 0;
+    const onEditor = () => {
+      if (scrollEcho === "editor") {
+        scrollEcho = null;
+
+        return;
+      }
+      scrollEcho = null;
+
+      const mode = splitScrollMode();
+      if (mode === "both" || mode === "editor") syncFromEditor(view, scroller);
+    };
+    const onPreview = () => {
+      if (scrollEcho === "preview") {
+        scrollEcho = null;
+
+        return;
+      }
+      scrollEcho = null;
+
+      const extent = `${scroller.scrollHeight}:${scroller.clientHeight}`;
+      if (extent !== previewExtent) {
+        previewExtent = extent;
+
+        return;
+      }
+
+      const mode = splitScrollMode();
+      if (mode === "both" || mode === "preview") syncFromPreview(view, scroller);
+    };
+
+    view.scrollDOM.addEventListener("scroll", onEditor, { passive: true });
+    scroller.addEventListener("scroll", onPreview, { passive: true });
+
+    detachScrollSync = () => {
+      view.scrollDOM.removeEventListener("scroll", onEditor);
+      scroller.removeEventListener("scroll", onPreview);
+    };
+  },
+  { immediate: true, flush: "post" },
+);
+
+function expectEcho(pane: "editor" | "preview") {
+  scrollEcho = pane;
+  clearTimeout(echoTimer);
+  echoTimer = setTimeout(() => {
+    scrollEcho = null;
+  }, 250);
+}
 
 function syncFromEditor(view: EditorView, scroller: HTMLElement) {
-  if (Date.now() < syncLockUntil) return;
-
   const layout = previewPane.value?.getFrameLayout();
   if (!layout || !layout.tops.length) return;
 
@@ -976,13 +1027,11 @@ function syncFromEditor(view: EditorView, scroller: HTMLElement) {
   const top = layout.tops[index];
   if (top === undefined || Math.abs(scroller.scrollTop - top) < 4) return;
 
-  syncLockUntil = Date.now() + 200;
+  expectEcho("preview");
   scroller.scrollTop = top;
 }
 
 function syncFromPreview(view: EditorView, scroller: HTMLElement) {
-  if (Date.now() < syncLockUntil) return;
-
   const layout = previewPane.value?.getFrameLayout();
   if (!layout || !layout.tops.length) return;
 
@@ -999,7 +1048,7 @@ function syncFromPreview(view: EditorView, scroller: HTMLElement) {
 
   const line = view.state.doc.lineAt(range.start);
 
-  syncLockUntil = Date.now() + 200;
+  expectEcho("editor");
   view.dispatch({
     effects: EditorView.scrollIntoView(line.from, { y: "start", yMargin: 0 }),
   });

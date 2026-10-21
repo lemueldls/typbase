@@ -28,6 +28,7 @@ import {
 import {
   type TextRef,
   autocomplete,
+  typstEditingExtensions,
   typstHoverTooltip,
   typstKeymap,
   typstLanguageData,
@@ -334,6 +335,7 @@ function createStateConfig(): EditorStateConfig {
       typstStaticHighlighting,
       typstKeymap,
       typstLanguageData,
+      typstEditingExtensions,
       autocompletion(),
     );
   } else if (props.wysiwyg || props.notebook) {
@@ -358,9 +360,6 @@ function createStateConfig(): EditorStateConfig {
       ),
     );
   } else {
-    // Write mode syncs text through the typst plugin's update hook. The
-    // split/source extension set has no plugin, so sync here or edits never
-    // reach the store or the preview.
     extensions.push(
       EditorView.updateListener.of((update) => {
         if (update.docChanged) props.text.value = update.state.doc.toString();
@@ -370,8 +369,7 @@ function createStateConfig(): EditorStateConfig {
       typstSourceSync(props.fileId, props.prelude, props.typstState),
       typstKeymap,
       typstLanguageData,
-      // The WYSIWYG plugin installs the same source. Split and Source mode
-      // need it too or the editor has no completions at all.
+      typstEditingExtensions,
       autocompletion({
         override: [(context) => autocomplete(context, props.fileId, props.typstState)],
       }),
@@ -379,9 +377,6 @@ function createStateConfig(): EditorStateConfig {
   }
 
   extensions.push(
-    // Diagnostics in every engine-backed mode: the linter source combines with
-    // the spellcheck source instead of replacing it, and split/source have no
-    // WYSIWYG plugin to compile for them.
     ...(props.degraded
       ? []
       : [

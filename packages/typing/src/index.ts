@@ -140,6 +140,9 @@ export interface NotebookSettings {
   showCounters: boolean;
 }
 
+/** Which pane follows the other in split-view scroll sync. */
+export type SplitScrollMode = "both" | "editor" | "preview" | "off";
+
 /** Editor display options, synced with the workspace like the theme. */
 export interface EditorSettings {
   /** Show source line numbers in the gutter. */
@@ -148,6 +151,8 @@ export interface EditorSettings {
   softWrap: boolean;
   /** Leave scroll room below the last line so the cursor is not pinned to the bottom. */
   scrollPastEnd: boolean;
+  /** Follow scrolls between the editor and the rendered pane in split view. */
+  splitScroll: SplitScrollMode;
 }
 
 export type ThemeMode = "auto" | "light" | "dark";
@@ -426,6 +431,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     lineNumbers: false,
     softWrap: true,
     scrollPastEnd: false,
+    splitScroll: "both",
   },
   graph: {
     local: false,

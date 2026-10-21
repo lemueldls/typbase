@@ -833,6 +833,123 @@ describe("typbase app", async () => {
     });
   }
 
+  // The bracket-space handler and the indent service used to live inside the
+  // WYSIWYG plugin, so split and source mode typed plain spaces and kept the
+  // previous line's indent.
+  for (const mode of ["split", "source"] as const) {
+    it(`spaces before a closer and indents after an opener in ${mode} mode`, async () => {
+      const page = await createPage();
+      await openApp(page);
+
+      const id = await createTestPage(page, {
+        title: "Editing",
+        content: "#let x = ()\n\n#let y = (\n",
+      });
+      await showPage(page, id, mode);
+
+      await page.evaluate(() => {
+        const view = window.__typbase.view!;
+        const pos = view.state.doc.toString().indexOf("()") + 1;
+        view.dispatch({ selection: { anchor: pos } });
+        view.focus();
+      });
+      await page.keyboard.type(" ");
+
+      const spaced = await page.evaluate(() => window.__typbase.view!.state.doc.toString());
+      expect(spaced).toContain("#let x = ( )");
+
+      // Enter at the end of the unclosed line takes the indent unit from
+      // `indentService`, not from the line above.
+      await page.evaluate(() => {
+        const view = window.__typbase.view!;
+        const text = view.state.doc.toString();
+        const pos = text.indexOf("#let y = (") + "#let y = (".length;
+        view.dispatch({ selection: { anchor: pos } });
+        view.focus();
+      });
+      // A completion left open would take Enter as accept instead of newline.
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Enter");
+
+      const indented = await page.evaluate(() => window.__typbase.view!.state.doc.toString());
+      expect(indented).toMatch(/#let x = \( \)\n\n#let y = \(\n {2}\n$/);
+      await page.close();
+    });
+  }
+
+  it("keeps split scroll sync across an engine rebuild and turns it off", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const content = Array.from(
+      { length: 80 },
+      (_, index) => `Paragraph ${index} with enough words to fill a line.`,
+    ).join("\n\n");
+    const id = await createTestPage(page, { title: "Scroll sync", content });
+    await showPage(page, id, "split");
+    await page.waitForSelector(".paged-preview [data-frame]", { timeout: 60_000 });
+
+    const previewTop = (): Promise<number> =>
+      page.evaluate(() => document.querySelector<HTMLElement>(".paged-preview")?.scrollTop ?? -1);
+    const setPreviewTop = (top: number): Promise<void> =>
+      page.evaluate((value) => {
+        const scroller = document.querySelector<HTMLElement>(".paged-preview");
+        if (scroller) scroller.scrollTop = value;
+      }, top);
+    const setEditorTop = (top: number): Promise<void> =>
+      page.evaluate((value) => {
+        window.__typbase.view!.scrollDOM.scrollTop = value;
+      }, top);
+
+    await setPreviewTop(0);
+    await setEditorTop(600);
+    await expect.poll(previewTop, { timeout: 10_000 }).toBeGreaterThan(0);
+
+    // A trap remounts both panes with a fresh wasm state. The listeners used
+    // to stay on the destroyed editor, so the preview stopped following.
+    await page.evaluate(() => {
+      try {
+        window.__typbase.crashEngine();
+      } catch {
+        // expected: the wasm trap surfaces as a thrown RuntimeError
+      }
+    });
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" x");
+    await page.waitForFunction(() => window.__typbase.engineStatus() === "failed", null, {
+      timeout: 60_000,
+    });
+    await page.locator(".page-view__engine button").first().click();
+    await page.waitForFunction(() => window.__typbase.engineStatus() === "ok", null, {
+      timeout: 120_000,
+    });
+    await page.waitForFunction(() => window.__typbase.mode() === "split", null, {
+      timeout: 30_000,
+    });
+    await page.waitForSelector(".paged-preview [data-frame]", { timeout: 60_000 });
+
+    await setEditorTop(0);
+    await setPreviewTop(0);
+    await setEditorTop(800);
+    await expect.poll(previewTop, { timeout: 10_000 }).toBeGreaterThan(0);
+
+    // Turning sync off leaves the preview where the reader put it.
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({
+        editor: { ...store.getSettings().editor, splitScroll: "off" },
+      });
+    });
+    await page.waitForTimeout(500);
+    await setPreviewTop(0);
+    await setEditorTop(0);
+    await setEditorTop(1000);
+    await page.waitForTimeout(500);
+    expect(await previewTop()).toBe(0);
+    await page.close();
+  });
+
   it("shows editor tooltips above the panes", async () => {
     const page = await createPage();
     await openApp(page);

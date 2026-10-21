@@ -27,6 +27,12 @@ interface StoreHandle {
     name?: string;
     textSize: number;
     notebook?: { showCounters?: boolean };
+    editor?: {
+      lineNumbers?: boolean;
+      softWrap?: boolean;
+      scrollPastEnd?: boolean;
+      splitScroll?: "both" | "editor" | "preview" | "off";
+    };
     [key: string]: unknown;
   };
   setPageText(id: string, text: string): Promise<void>;

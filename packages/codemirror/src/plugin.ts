@@ -19,6 +19,43 @@ import { typstSourceSync } from "./sync";
 import { tooltipStateField, tooltipViewPlugin } from "./tooltip";
 import { typstStateField, typstViewPlugin, tooltipsStateField } from "./widgets";
 
+/**
+ * Typing a space with the caret between `(` and `)`, `[` and `]`, `{` and `}`,
+ * or two `$` inserts it before the closer. Returning true stops CodeMirror's
+ * default insertion, which would otherwise land a second space at the caret.
+ */
+const addSpaceBeforeClosingBracket = EditorView.inputHandler.of((view, from, to, text) => {
+  if (text !== " " || from !== to) return false;
+
+  const { state } = view;
+  const pos = from;
+  const bracketPairs = { "(": ")", "[": "]", "{": "}", $: "$" };
+  const before = state.doc.sliceString(pos - 1, pos) as keyof typeof bracketPairs;
+  const after = state.doc.sliceString(pos, pos + 1) as keyof typeof bracketPairs;
+
+  if (!bracketPairs[before] || after !== bracketPairs[before]) return false;
+
+  view.dispatch({
+    changes: { from: pos, to: pos, insert: " " },
+    selection: { anchor: pos + 1 },
+  });
+
+  return true;
+});
+
+export const typstEditingExtensions: Extension = [
+  addSpaceBeforeClosingBracket,
+  indentService.of((ctx: IndentContext, pos: number): number => {
+    const last = Math.max(0, pos - 1);
+    const prev = ctx.lineAt(last).text;
+    if (prev.endsWith("$") && prev !== "$") return 0;
+
+    const indent = /[{[($]\s*$/.test(prev);
+
+    return ctx.lineIndent(last) + (indent ? ctx.unit : 0);
+  }),
+];
+
 export interface TypstPluginOptions {
   /**
    * Called when Typst needs a source, file, or package that is not loaded
@@ -83,16 +120,7 @@ export const typstPlugin = (
     typstSyntaxHighlighting(fileId, typstState),
     typstHoverTooltip(fileId, typstState),
 
-    addSpaceBeforeClosingBracket,
-    indentService.of((ctx: IndentContext, pos: number): number => {
-      const last = Math.max(0, pos - 1);
-      const prev = ctx.lineAt(last).text;
-      if (prev.endsWith("$") && prev !== "$") return 0;
-
-      const indent = /[{[($]\s*$/.test(prev);
-
-      return ctx.lineIndent(last) + (indent ? ctx.unit : 0);
-    }),
+    typstEditingExtensions,
   ];
 
   if (options.notebook) {
@@ -103,23 +131,3 @@ export const typstPlugin = (
 
   return extensions;
 };
-
-const addSpaceBeforeClosingBracket = EditorView.inputHandler.of((view, from, to, text) => {
-  if (text === " ") {
-    const { state } = view;
-    const pos = from;
-    const bracketPairs = { "(": ")", "[": "]", "{": "}", $: "$" };
-    const before = state.doc.sliceString(pos - 1, pos) as keyof typeof bracketPairs;
-    const after = state.doc.sliceString(pos, pos + 1) as keyof typeof bracketPairs;
-
-    if (bracketPairs[before] && after === bracketPairs[before]) {
-      // Insert a space before the closing bracket
-      view.dispatch({
-        changes: { from: pos, to: pos, insert: " " },
-        selection: { anchor: pos + 1 },
-      });
-    }
-  }
-
-  return false;
-});
