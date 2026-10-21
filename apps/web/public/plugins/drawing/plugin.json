@@ -1,8 +1,8 @@
 {
   "id": "local:drawing",
   "name": "Drawing",
-  "version": "0.3.0",
-  "description": "A touch-friendly drawing canvas in a floating window, with a Typst embed for notes.",
+  "version": "0.4.0",
+  "description": "A touch-friendly drawing canvas in a floating window, with undo, an eraser, and a Typst embed for notes.",
   "api": "typbase.host.v2",
   "entry": "main.typ",
   "icon": "draw",
@@ -12,7 +12,8 @@
       "fields": {
         "color": { "type": "string" },
         "width": { "type": "number" },
-        "points": { "type": "json" }
+        "points": { "type": "json" },
+        "seq": { "type": "number", "optional": true }
       }
     }
   },

@@ -157,7 +157,7 @@ leave Typst, like canvas stroke colors; the CSS variables below cover the rest.
 | `field` / `textarea` / `select` / `checkbox` / `form`                                          | inputs; `#form` scopes field collection                                                                                                                                       |
 | `panel` / `card` / `stack` / `row` / `grid` / `toolbar` / `badge` / `muted` / `empty`          | layout                                                                                                                                                                        |
 | `board` / `movable` / `draggable` / `droppable`                                                | drag components; `movable` sends x/y on drop                                                                                                                                  |
-| `canvas(action, strokes, color, width, height)`                                                | drawing surface; requires the `canvas` host component                                                                                                                         |
+| `canvas(action, strokes, color, width, height, tool, erase-action, erase-width)`               | drawing surface; `tool: "erase"` emits `erase-action` with the ids the eraser touched; requires the `canvas` host component                                                   |
 | `op-append` / `op-set` / `op-merge` / `op-inc` / `op-remove`                                   | state ops                                                                                                                                                                     |
 | `ai-complete` / `ai-stream`                                                                    | AI calls; `format: "typst"` runs the dialect check                                                                                                                            |
 
@@ -165,6 +165,24 @@ leave Typst, like canvas stroke colors; the CSS variables below cover the rest.
 call `typbase.query(...)` and `typbase.embed(...)`; the host answers requests
 like it does for pages. `plugin-data` queries are scoped to the calling
 plugin.
+
+`canvas` draws the strokes it is given and, in erase mode, hit-tests the
+pointer path against them. Every stroke needs an `id` so the eraser can name
+what it touched, and one action carries the ids. The drawing plugin is the
+reference.
+
+## Undo history
+
+History is device-local, so it belongs in `ctx.view`, not in the synced
+collections. One entry holds the ops that undo and redo one edit, and
+replaying the entry is the whole undo step. The drawing plugin's
+`history.undo` pops the last entry from `view.undo`, applies `entry.undo`,
+and pushes the entry onto `view.redo`.
+
+View patches merge one level deep, so return the complete `undo` and `redo`
+arrays on every edit. A new edit clears `redo`. The stacks cap at 50 entries
+because a cleared board stores every removed record in one entry, and the
+history is written to `local.json` with the rest of the device state.
 
 ## Styling
 

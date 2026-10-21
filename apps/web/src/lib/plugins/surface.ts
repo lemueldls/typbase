@@ -1,5 +1,6 @@
 import type { PluginAction } from "@typbase/typing";
 
+import { mountCanvas } from "./canvas";
 import hostCss from "./surface.css?inline";
 
 /**
@@ -57,7 +58,7 @@ export function attachPluginSurface(
 
   let lastHeight = 0;
   let inputTimer: ReturnType<typeof setTimeout> | undefined;
-  let observers: ResizeObserver[] = [];
+  let disposers: (() => void)[] = [];
   let moving:
     | {
         element: HTMLElement;
@@ -261,123 +262,18 @@ export function attachPluginSurface(
     moving = undefined;
   }
 
-  function mountCanvas(hostElement: HTMLElement): void {
-    let props: {
-      strokes?: Array<{ color?: string; width?: number; points?: number[][] }>;
-      color?: string;
-      width?: number;
-    } = {};
-    try {
-      props = JSON.parse(hostElement.getAttribute("data-tb-props") ?? "{}") as typeof props;
-    } catch (error) {
-      options.onError(`bad canvas props: ${String(error)}`);
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.className = "tb-canvas";
-    hostElement.append(canvas);
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
-    const strokes = Array.isArray(props.strokes) ? props.strokes.slice() : [];
-    let current: { color: string; width: number; points: number[][] } | undefined;
-    let drawing = false;
-
-    function drawStroke(stroke: { color?: string; width?: number; points?: number[][] }): void {
-      const points = Array.isArray(stroke.points) ? stroke.points : [];
-      if (points.length === 0) return;
-      ctx!.strokeStyle = stroke.color || "#1f2328";
-      ctx!.lineWidth = Number(stroke.width) || 3;
-      ctx!.lineCap = "round";
-      ctx!.lineJoin = "round";
-      ctx!.beginPath();
-      points.forEach((pt, index) => {
-        const x = Number(pt[0]);
-        const y = Number(pt[1]);
-        if (index === 0) ctx!.moveTo(x, y);
-        else ctx!.lineTo(x, y);
-      });
-      ctx!.stroke();
-    }
-
-    function redraw(): void {
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx!.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-      for (const stroke of strokes) drawStroke(stroke);
-      if (current) drawStroke(current);
-    }
-
-    function resize(): void {
-      const rect = hostElement.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-      redraw();
-    }
-
-    function point(event: PointerEvent): number[] {
-      const rect = canvas.getBoundingClientRect();
-
-      return [
-        Math.round((event.clientX - rect.left) * 10) / 10,
-        Math.round((event.clientY - rect.top) * 10) / 10,
-      ];
-    }
-
-    canvas.addEventListener("pointerdown", (event) => {
-      if (!hostElement.getAttribute("data-tb-action")) return;
-      drawing = true;
-      canvas.setPointerCapture(event.pointerId);
-      current = {
-        color: props.color || "#1f2328",
-        width: Number(props.width) || 3,
-        points: [point(event)],
-      };
-      redraw();
-      event.preventDefault();
-    });
-
-    canvas.addEventListener("pointermove", (event) => {
-      if (!drawing || !current) return;
-      current.points.push(point(event));
-      redraw();
-      event.preventDefault();
-    });
-
-    const finish = (event: PointerEvent) => {
-      if (!drawing || !current) return;
-      drawing = false;
-      const actionName = hostElement.getAttribute("data-tb-action");
-      const stroke = { color: current.color, width: current.width, points: current.points };
-      strokes.push(stroke);
-      current = undefined;
-      redraw();
-      if (actionName) {
-        options.onAction({ id: newId(), name: actionName, args: { stroke }, fields: {} });
-      }
-      try {
-        canvas.releasePointerCapture(event.pointerId);
-      } catch {
-        // already released
-      }
-    };
-    canvas.addEventListener("pointerup", finish);
-    canvas.addEventListener("pointercancel", finish);
-
-    const observer = new ResizeObserver(resize);
-    observer.observe(hostElement);
-    observers.push(observer);
-    resize();
-  }
-
   function mountComponents(): void {
     const declared = options.components ? new Set(options.components) : undefined;
     // One place decides which names mount. A name that reaches here but is not
     // implemented cannot come from a parsed manifest, so it is a surface that
     // was injected after the fact and gets reported rather than ignored.
-    const mounters: Record<string, (element: HTMLElement) => void> = { canvas: mountCanvas };
+    const mounters: Record<string, (element: HTMLElement) => () => void> = {
+      canvas: (element) =>
+        mountCanvas(element, {
+          onAction: (name, args) => options.onAction({ id: newId(), name, args, fields: {} }),
+          onError: options.onError,
+        }),
+    };
 
     for (const element of root.querySelectorAll<HTMLElement>("[data-tb-component]")) {
       const name = element.getAttribute("data-tb-component") ?? "";
@@ -392,13 +288,13 @@ export function attachPluginSurface(
       }
       if (element.dataset.tbMounted) continue;
       element.dataset.tbMounted = "1";
-      mount(element);
+      disposers.push(mount(element));
     }
   }
 
   function teardownComponents(): void {
-    for (const observer of observers) observer.disconnect();
-    observers = [];
+    for (const dispose of disposers) dispose();
+    disposers = [];
   }
 
   root.addEventListener("submit", (event) => event.preventDefault());

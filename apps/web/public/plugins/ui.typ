@@ -63,7 +63,7 @@
   if disabled { attrs.insert("disabled", "disabled") }
   if style != none { attrs.insert("style", style) }
 
-  html.elem("button", attrs: attrs, (if body == none { label } else { body }))
+  html.elem("button", attrs: attrs, if body == none { label } else { body })
 }
 
 // Color chip. The plugin passes a color from `ctx.theme` (or its own value).
@@ -75,7 +75,9 @@
     title: label,
     "aria-label": label,
   )
-  if action != none { attrs += action-attrs(action, args: args) }
+  if action != none {
+    attrs += action-attrs(action, args: args)
+  }
 
   html.elem("button", attrs: attrs)
 }
@@ -83,7 +85,12 @@
 // Material Symbols ligature. The host loads the icon font.
 #let icon(name, size: none) = html.elem(
   "span",
-  attrs: (class: "tb-icon") + (if size != none { (style: "font-size:" + size) } else { (:) }),
+  attrs: (class: "tb-icon")
+    + (
+      if size != none {
+        (style: "font-size:" + size)
+      } else { (:) }
+    ),
   name,
 )
 
@@ -159,7 +166,7 @@
   "section",
   attrs: (class: "tb-panel"),
   [
-    #if title != none [#html.elem("h3", attrs: (class: "tb-panel__title"), title)]
+    #if title != none { html.elem("h3", attrs: (class: "tb-panel__title"), title) }
     #body
   ],
 )
@@ -232,15 +239,35 @@
 )
 
 // Paint surface. `strokes` round-trips to the canvas as
-// `((color:, width:, points: ()))`. Each point is `(x, y)`.
-#let canvas(action, strokes: (), color: "#1f2328", width: 3, height: 320) = html.elem(
+// `((id:, color:, width:, points: ()))`. Each point is `(x, y)`.
+//
+// `tool: "erase"` hit-tests the pointer path against the supplied strokes and
+// emits `erase-action` once with `args: (ids: (...))`. Strokes need an `id`
+// for the eraser to name them. `erase-width` is the eraser diameter in px.
+#let canvas(
+  action,
+  strokes: (),
+  color: "#1f2328",
+  width: 3,
+  height: 320,
+  tool: "draw",
+  erase-action: none,
+  erase-width: 18,
+) = html.elem(
   "div",
   attrs: (
     class: "tb-canvas-host",
     style: "height:" + str(height) + "px",
     "data-tb-component": "canvas",
     "data-tb-action": action,
-    "data-tb-props": json.encode((strokes: strokes, color: color, width: width)),
+    "data-tb-props": json.encode((
+      strokes: strokes,
+      color: color,
+      width: width,
+      tool: tool,
+      eraseAction: erase-action,
+      eraseWidth: erase-width,
+    )),
   ),
 )
 

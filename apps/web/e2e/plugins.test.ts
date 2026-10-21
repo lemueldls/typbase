@@ -227,6 +227,180 @@ describe("plugin system", async () => {
     await page.close();
   });
 
+  it("undoes, redoes, and erases strokes", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:drawing"));
+
+    const action = (name: string, args: Record<string, unknown> = {}) =>
+      page.evaluate(
+        ({ id, name: actionName, args: actionArgs }) =>
+          window.__typbase.pluginAction(id, "window", actionName, actionArgs),
+        { id: instanceId, name, args },
+      );
+    const records = () =>
+      page.evaluate(async (id) => {
+        const state = await window.__typbase.pluginState(id);
+
+        return (state.strokes ?? []) as Array<Record<string, unknown>>;
+      }, instanceId);
+    const stroke = (points: number[][]) => ({
+      stroke: { color: "#b42828", width: 3, points },
+    });
+
+    await action(
+      "stroke.add",
+      stroke([
+        [4, 4],
+        [12, 18],
+      ]),
+    );
+    await action(
+      "stroke.add",
+      stroke([
+        [20, 20],
+        [30, 30],
+      ]),
+    );
+
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(2);
+    // `seq` is the draw order. The collection itself comes back in map order,
+    // which is why the canvas and the embed sort by it.
+    expect((await records()).map((record) => Number(record.seq)).sort((a, b) => a - b)).toEqual([
+      1, 2,
+    ]);
+
+    await action("history.undo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(1);
+
+    await action("history.undo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(0);
+
+    // Undo past the start is a no-op.
+    await action("history.undo");
+    expect((await records()).length).toBe(0);
+
+    await action("history.redo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(1);
+    await action("history.redo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(2);
+    await action("history.redo");
+    expect((await records()).length).toBe(2);
+
+    // A new edit drops the redo branch.
+    await action("history.undo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(1);
+    await action(
+      "stroke.add",
+      stroke([
+        [40, 40],
+        [48, 48],
+      ]),
+    );
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(2);
+    await action("history.redo");
+    expect((await records()).length).toBe(2);
+
+    // The eraser removes records and undo puts the same ones back.
+    const ids = (await records()).map((record) => String(record.id));
+    await action("stroke.erase", { ids: [ids[0]] });
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(1);
+    await action("history.undo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(2);
+    await action("history.redo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(1);
+
+    // Clear is one entry, so one undo restores the whole board.
+    await action("stroke.clear");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(0);
+    await action("history.undo");
+    await expect.poll(async () => (await records()).length, { timeout: 30_000 }).toBe(1);
+
+    await page.close();
+  });
+
+  it("draws and erases on the canvas with a pointer", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:drawing"));
+    await page.evaluate((id) => window.__typbase.openPlugin(id), instanceId);
+    await page.waitForFunction((id) => window.__typbase.pluginWindowOpen(id), instanceId, {
+      timeout: 30_000,
+    });
+    await page.waitForSelector(".plugin-window canvas.tb-canvas", { timeout: 30_000 });
+
+    const count = () =>
+      page.evaluate(async (id) => {
+        const state = await window.__typbase.pluginState(id);
+
+        return (state.strokes ?? []).length;
+      }, instanceId);
+    const canvasBox = () =>
+      page.evaluate(() => {
+        const host = document.querySelector(".plugin-window .plugin-surface");
+        const canvas = host?.shadowRoot?.querySelector("canvas.tb-canvas");
+        canvas?.scrollIntoView({ block: "center" });
+        const rect = canvas?.getBoundingClientRect();
+
+        return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+      });
+    const clickButton = (label: string) =>
+      page.evaluate((buttonLabel) => {
+        const host = document.querySelector(".plugin-window .plugin-surface");
+        const button = [...(host?.shadowRoot?.querySelectorAll("button") ?? [])].find(
+          (candidate) => candidate.textContent?.trim() === buttonLabel,
+        );
+        (button as HTMLButtonElement | undefined)?.click();
+      }, label);
+
+    const first = await canvasBox();
+    expect(first).toBeTruthy();
+    if (!first) return;
+
+    await page.mouse.move(first.x + 20, first.y + 60);
+    await page.mouse.down();
+    await page.mouse.move(first.x + Math.min(160, first.width - 20), first.y + 60, { steps: 8 });
+    await page.mouse.up();
+
+    await expect.poll(count, { timeout: 30_000 }).toBe(1);
+
+    await clickButton("Eraser");
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector(".plugin-window .plugin-surface");
+        const element = host?.shadowRoot?.querySelector('[data-tb-component="canvas"]');
+        const raw = element?.getAttribute("data-tb-props");
+        if (!raw) return false;
+        try {
+          return (JSON.parse(raw) as { tool?: string }).tool === "erase";
+        } catch {
+          return false;
+        }
+      },
+      null,
+      { timeout: 30_000 },
+    );
+
+    const second = await canvasBox();
+    expect(second).toBeTruthy();
+    if (!second) return;
+
+    await page.mouse.move(second.x + 80, second.y + 20);
+    await page.mouse.down();
+    await page.mouse.move(second.x + 80, second.y + 110, { steps: 8 });
+    await page.mouse.up();
+
+    await expect.poll(count, { timeout: 30_000 }).toBe(0);
+
+    // The eraser patch is in the history, so the toolbar brings it back.
+    await clickButton("Undo");
+    await expect.poll(count, { timeout: 30_000 }).toBe(1);
+
+    await page.close();
+  });
+
   it("opens the plugin when an embed's link is clicked", async () => {
     const page = await createPage();
     await openApp(page);
