@@ -30,7 +30,7 @@ import {
   rectangularSelection,
   tooltips,
 } from "@codemirror/view";
-import { Vim, vim } from "@replit/codemirror-vim";
+import { Vim, getCM, vim } from "@replit/codemirror-vim";
 import {
   type TextRef,
   autocomplete,
@@ -44,6 +44,7 @@ import {
   typstStaticHighlighting,
   typstSyntaxHighlighting,
   typstSourceSync,
+  vimKeymapFacet,
 } from "@typbase/codemirror";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
@@ -122,6 +123,78 @@ const container = useTemplateRef("container");
 const view = shallowRef<EditorView>();
 const dragActive = ref(false);
 const dropTop = ref(0);
+
+/** Vim's mode line, mirrored from the plugin's facade. `null` when vim is off. */
+const vimMode = ref<string | null>(null);
+const vimKeys = ref("");
+const cursorLine = ref(1);
+const cursorColumn = ref(1);
+
+interface VimFacade {
+  state: { vim?: { mode?: string; status?: string } };
+  on(type: string, handler: () => void): void;
+  off(type: string, handler: () => void): void;
+}
+
+let vimFacade: VimFacade | undefined;
+let vimEvents: { mode: () => void; command: () => void; key: () => void } | undefined;
+
+function detachVim(): void {
+  if (vimFacade && vimEvents) {
+    vimFacade.off("vim-mode-change", vimEvents.mode);
+    vimFacade.off("vim-command-done", vimEvents.command);
+    vimFacade.off("vim-keypress", vimEvents.key);
+  }
+
+  vimFacade = undefined;
+  vimEvents = undefined;
+}
+
+/** Mirrors the vim mode and pending keys into the status bar. Reattached after
+ *  a reconfigure or a view rebuild because the facade belongs to one view. */
+function attachVim(): void {
+  detachVim();
+  vimKeys.value = "";
+
+  if (!props.editor?.vim) {
+    vimMode.value = null;
+
+    return;
+  }
+
+  const editor = view.value;
+  const cm = editor ? (getCM(editor) as VimFacade | null) : null;
+  if (!cm) {
+    vimMode.value = null;
+
+    return;
+  }
+
+  vimFacade = cm;
+  const mode = () => {
+    vimMode.value = cm.state.vim?.mode ?? "normal";
+    vimKeys.value = "";
+  };
+  const command = () => {
+    vimKeys.value = "";
+  };
+  const key = () => {
+    vimKeys.value = cm.state.vim?.status ?? "";
+  };
+  vimEvents = { mode, command, key };
+  cm.on("vim-mode-change", mode);
+  cm.on("vim-command-done", command);
+  cm.on("vim-keypress", key);
+
+  vimMode.value = cm.state.vim?.mode ?? "normal";
+}
+
+function updateCursorPosition(state: EditorState): void {
+  const head = state.selection.main.head;
+  const line = state.doc.lineAt(head);
+  cursorLine.value = line.number;
+  cursorColumn.value = head - line.from + 1;
+}
 
 function isAssetDrag(event: DragEvent): boolean {
   const types = event.dataTransfer?.types;
@@ -209,6 +282,8 @@ const createView = () => {
 
   testApi.view = view.value;
   testApi.fileId = props.fileId;
+  updateCursorPosition(view.value.state);
+  attachVim();
 };
 
 // typbase.page-link and plugin embeds render as typbase:// anchors inside
@@ -247,6 +322,7 @@ onBeforeUnmount(() => {
   element?.removeEventListener("dragover", onDragOver, true);
   element?.removeEventListener("dragleave", onDragLeave, true);
   element?.removeEventListener("drop", onDrop, true);
+  detachVim();
   view.value?.destroy();
   testApi.view = null;
   testApi.fileId = null;
@@ -316,10 +392,13 @@ watch(spellcheckSignature, () => {
 // view and picks the current props up from `createStateConfig`.
 /** Vim is a preference, so it swaps in place without dropping the doc. */
 function vimExtension(): Extension {
-  return props.editor?.vim ? vim() : [];
+  return props.editor?.vim ? [vim(), vimKeymapFacet.of(true)] : [];
 }
 
 const vimCompartment = new Compartment();
+/** Last vim setting applied, so a display-only change does not recreate the
+ *  vim plugin and reset its mode. */
+let vimEnabled = Boolean(props.editor?.vim);
 
 const editorDisplaySignature = computed(() =>
   JSON.stringify([
@@ -331,12 +410,15 @@ const editorDisplaySignature = computed(() =>
 );
 
 watch(editorDisplaySignature, () => {
-  view.value?.dispatch({
-    effects: [
-      editorDisplayCompartment.reconfigure(editorDisplayExtension(props.editor)),
-      vimCompartment.reconfigure(vimExtension()),
-    ],
-  });
+  const effects = [editorDisplayCompartment.reconfigure(editorDisplayExtension(props.editor))];
+  const enabled = Boolean(props.editor?.vim);
+  if (enabled !== vimEnabled) {
+    vimEnabled = enabled;
+    effects.push(vimCompartment.reconfigure(vimExtension()));
+  }
+
+  view.value?.dispatch({ effects });
+  attachVim();
 });
 
 function createStateConfig(): EditorStateConfig {
@@ -420,6 +502,9 @@ function createStateConfig(): EditorStateConfig {
     history(),
     vimCompartment.of(vimExtension()),
     drawSelection(),
+    EditorView.updateListener.of((update) => {
+      if (update.selectionSet || update.docChanged) updateCursorPosition(update.state);
+    }),
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),
     indentOnInput(),
@@ -488,18 +573,64 @@ defineExpose({ view, recompile, revealRange, insertAt });
         </span>
       </span>
     </div>
+
+    <div v-if="vimMode" class="editable-pane__status" role="status" aria-live="polite">
+      <span class="editable-pane__vim-mode">{{ vimMode.toUpperCase() }}</span>
+      <span v-if="vimKeys" class="editable-pane__vim-keys">{{ vimKeys }}</span>
+      <span class="editable-pane__vim-position">
+        {{ $t("pageView.lineColumn", { line: cursorLine, column: cursorColumn }) }}
+      </span>
+    </div>
   </section>
 </template>
 
 <style>
 .editable-pane {
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
 }
 
 .editable-pane .cm-editor {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  order: 0;
+}
+
+/* The mode line is a sibling of CodeMirror, which is appended to this section.
+   Ordering it after the editor keeps it at the bottom whatever the mount order. */
+.editable-pane__status {
+  flex: none;
+  order: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-sm);
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.editable-pane__vim-mode {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--color-accent);
+  letter-spacing: 0.04em;
+}
+
+.editable-pane__vim-keys {
+  font-family: var(--font-mono);
+  color: var(--color-warning);
+}
+
+.editable-pane__vim-position {
+  margin-left: auto;
+  font-family: var(--font-mono);
 }
 
 .editable-pane--dragging .cm-editor {
@@ -604,6 +735,44 @@ defineExpose({ view, recompile, revealRange, insertAt });
 .cm-scroller::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-text-secondary);
   background-clip: content-box;
+}
+
+/* Vim paints its block cursor with a hardcoded pink and keeps the character's
+   inline color. Use the palette accent, and the on-accent ink so the covered
+   character stays readable. */
+.cm-editor .cm-fat-cursor {
+  color: var(--color-on-accent) !important;
+  background: var(--color-accent);
+}
+
+body .cm-editor:not(.cm-focused) .cm-fat-cursor {
+  background: none;
+  outline: 1px solid var(--color-accent);
+}
+
+/* The mode line Under the editor while vim bindings are on. */
+.cm-editor .cm-vim-panel {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-sm);
+  padding: 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.cm-editor .cm-vim-panel span:first-child {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.cm-editor .cm-vim-panel input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  color: var(--color-text);
 }
 
 /* Keep the drawn selection over active-line and search backgrounds. */

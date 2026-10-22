@@ -2220,14 +2220,48 @@ describe("typbase app", async () => {
       view.dispatch({ selection: { anchor: 0 } });
       view.focus();
     });
+
     // Start in vim normal mode, then insert at the line start.
     await page.keyboard.press("Escape");
+    await expect
+      .poll(() => page.locator(".editable-pane__status").textContent())
+      .toContain("NORMAL");
     await page.keyboard.press("i");
+    await expect
+      .poll(() => page.locator(".editable-pane__status").textContent())
+      .toContain("INSERT");
     await page.keyboard.type("vim ");
+    // The first Escape dismisses the completion popup the typed word opened;
+    // the second leaves insert mode.
+    await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
     const text = await page.evaluate(() => window.__typbase.view?.state.doc.toString() ?? "");
     expect(text.startsWith("vim start")).toBe(true);
+
+    // Back in normal mode: the mode line names the active mode and carries the
+    // cursor position; the block cursor uses the workspace accent.
+    await expect
+      .poll(() => page.locator(".editable-pane__status").textContent())
+      .toContain("NORMAL");
+    await expect
+      .poll(() => page.locator(".editable-pane__vim-position").textContent())
+      .toMatch(/Ln 1, Col \d+/);
+
+    await page.waitForSelector(".cm-fat-cursor", { timeout: 10_000 });
+    const cursorColors = await page.evaluate(() => {
+      const cursor = document.querySelector<HTMLElement>(".cm-fat-cursor");
+      if (!cursor) return null;
+
+      const probe = document.createElement("span");
+      probe.style.background = "var(--color-accent)";
+      document.body.appendChild(probe);
+      const accent = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+
+      return { cursor: getComputedStyle(cursor).backgroundColor, accent };
+    });
+    expect(cursorColors?.cursor).toBe(cursorColors?.accent);
 
     // Restore the workspace setting so later tests use the normal keymap.
     await page.evaluate(() => {

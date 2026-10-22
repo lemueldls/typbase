@@ -108,6 +108,7 @@
     "source": "Quelle",
     "read": "Lesen",
     "viewMode": "Ansichtsmodus",
+    "lineColumn": "Z {line}, Sp {column}",
     "loadingEditor": "Editor wird geladen…",
     "moreActions": "Weitere Aktionen",
     "noWorkspace": "Kein Arbeitsbereich geöffnet.",

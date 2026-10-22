@@ -1,4 +1,9 @@
-import { acceptCompletion, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
+import {
+  acceptCompletion,
+  closeBracketsKeymap,
+  closeCompletion,
+  completionKeymap,
+} from "@codemirror/autocomplete";
 import {
   copyLineDown,
   copyLineUp,
@@ -25,6 +30,7 @@ import {
   selectNextOccurrence,
   selectSelectionMatches,
 } from "@codemirror/search";
+import { Facet } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 
 import {
@@ -35,8 +41,18 @@ import {
   toggleUnderline,
 } from "./commands";
 
+/**
+ * Whether the editor is running vim bindings. Vim handles keys from a DOM
+ * listener that CodeMirror's keymap runs before, so Escape has to be left
+ * unhandled or it never reaches the vim plugin. Set through the same
+ * compartment as the vim extension.
+ */
+export const vimKeymapFacet = Facet.define<boolean, boolean>({
+  combine: (values) => values.some(Boolean),
+});
+
 export const typstKeymap = keymap.of([
-  ...completionKeymap,
+  ...completionKeymap.filter((binding) => binding.key !== "Escape"),
   ...closeBracketsKeymap,
   {
     key: "Tab",
@@ -151,7 +167,16 @@ export const typstKeymap = keymap.of([
   },
   {
     key: "Escape",
-    run: simplifySelection,
+    run: (view) => {
+      if (view.state.facet(vimKeymapFacet)) {
+        // Dismiss a completion but leave Escape for vim to exit insert mode.
+        closeCompletion(view);
+
+        return false;
+      }
+
+      return closeCompletion(view) || simplifySelection(view);
+    },
   },
   {
     key: "Mod-Alt-ArrowUp",
@@ -187,5 +212,5 @@ export const typstKeymap = keymap.of([
     run: selectNextOccurrence,
     preventDefault: true,
   },
-  ...standardKeymap,
+  ...standardKeymap.filter((binding) => binding.key !== "Escape"),
 ]);
