@@ -80,6 +80,12 @@ const switchingName = computed(
   () => workspaces.value.find((entry) => entry.id === switching.value)?.name ?? null,
 );
 
+/** Desktop sidebar widths in px. The splitter is px-sized and persists its
+ *  layout, so the default is also what the expand button falls back to. */
+const SIDEBAR_WIDTH = 300;
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 480;
+
 /** Desktop sidebar collapse. Reka-ui persists the collapsed layout, so the
  *  initial state is read from the panel rather than assumed. */
 const navPanel = useTemplateRef<InstanceType<typeof SplitterPanel>>("navPanel");
@@ -88,6 +94,14 @@ const sidebarCollapsed = ref(false);
 function syncSidebarCollapsed() {
   const panel = navPanel.value;
   if (panel) sidebarCollapsed.value = (panel.getSize() ?? 0) === 0;
+}
+
+function expandSidebar() {
+  const panel = navPanel.value;
+  if (!panel) return;
+
+  panel.expand();
+  if ((panel.getSize() ?? 0) <= SIDEBAR_MIN_WIDTH) panel.resize(SIDEBAR_WIDTH);
 }
 
 onMounted(() => nextTick(syncSidebarCollapsed));
@@ -112,7 +126,7 @@ function toggleSidebar() {
 
   if (sidebarCollapsed.value) {
     sidebarCollapsed.value = false;
-    panel.expand();
+    expandSidebar();
   } else {
     sidebarCollapsed.value = true;
     panel.collapse();
@@ -135,7 +149,7 @@ function setZen(value: boolean): void {
     zenSidebarWasCollapsed = sidebarCollapsed.value;
     if (!sidebarCollapsed.value) navPanel.value?.collapse();
   } else if (!zenSidebarWasCollapsed) {
-    navPanel.value?.expand();
+    expandSidebar();
   }
 }
 
@@ -180,6 +194,16 @@ onCapturedKey(
   (event) => {
     event.preventDefault();
     toggleAppBar();
+  },
+);
+
+// Cmd-\ / Ctrl-\ toggles the sidebar on desktop and the drawer on mobile.
+onCapturedKey(
+  (event) => matchesShortcut(event, "sidebar"),
+  (event) => {
+    event.preventDefault();
+    if (isDesktop.value) toggleSidebar();
+    else navOpen.value = !navOpen.value;
   },
 );
 
@@ -1121,9 +1145,9 @@ definePageMeta({ ssr: false });
               ref="navPanel"
               class="app__nav-panel"
               size-unit="px"
-              :default-size="264"
-              :min-size="200"
-              :max-size="480"
+              :default-size="SIDEBAR_WIDTH"
+              :min-size="SIDEBAR_MIN_WIDTH"
+              :max-size="SIDEBAR_MAX_WIDTH"
               collapsible
               :collapsed-size="0"
               @collapse="sidebarCollapsed = true"

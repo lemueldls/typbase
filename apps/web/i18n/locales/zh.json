@@ -146,6 +146,7 @@
     "groupEditor": "编辑器",
     "savePage": "保存页面",
     "toggleAppBar": "显示或隐藏应用栏",
+    "toggleSidebar": "显示或隐藏侧边栏",
     "toggleFocus": "切换专注模式",
     "undo": "撤销",
     "redo": "重做",

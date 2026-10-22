@@ -41,6 +41,12 @@ export const APPLICATION_SHORTCUTS: KeyboardShortcut[] = [
     labelKey: "shortcuts.toggleAppBar",
   },
   {
+    id: "sidebar",
+    group: "application",
+    keys: { default: "Mod+\\" },
+    labelKey: "shortcuts.toggleSidebar",
+  },
+  {
     id: "focus",
     group: "application",
     keys: { default: "Mod+Alt+Z" },
@@ -192,6 +198,7 @@ function matchesKeys(event: KeyboardEvent, spec: string): boolean {
 function keyMatches(event: KeyboardEvent, key: string): boolean {
   if (key === "?") return event.key === "?";
   if (key === "/") return event.key === "/" || event.code === "Slash";
+  if (key === "\\") return event.key === "\\" || event.code === "Backslash";
   if (/^[A-Za-z]$/.test(key)) {
     return (
       event.code === `Key${key.toUpperCase()}` || event.key.toLowerCase() === key.toLowerCase()

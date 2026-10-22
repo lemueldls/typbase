@@ -146,6 +146,7 @@
     "groupEditor": "Éditeur",
     "savePage": "Enregistrer la page",
     "toggleAppBar": "Afficher ou masquer la barre de l'application",
+    "toggleSidebar": "Afficher ou masquer la barre latérale",
     "toggleFocus": "Basculer le mode concentration",
     "undo": "Annuler",
     "redo": "Rétablir",

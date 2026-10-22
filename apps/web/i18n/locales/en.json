@@ -146,6 +146,7 @@
     "groupEditor": "Editor",
     "savePage": "Save the page",
     "toggleAppBar": "Toggle the app bar",
+    "toggleSidebar": "Toggle the sidebar",
     "toggleFocus": "Toggle focus mode",
     "undo": "Undo",
     "redo": "Redo",
