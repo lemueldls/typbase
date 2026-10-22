@@ -33,7 +33,9 @@ const { backend, storageLocation, workspaces, activeWorkspaceId, workspace, dele
   useWorkspace();
 const { t, locale } = useI18n();
 
-const view = ref<"data" | "files" | "assets">("data");
+const props = defineProps<{ initialView?: "data" | "files" | "assets" }>();
+
+const view = ref<"data" | "files" | "assets">(props.initialView ?? "data");
 const loading = ref(false);
 const error = ref("");
 const assetBrowser = useTemplateRef<{ refresh: () => Promise<void> }>("assetBrowser");

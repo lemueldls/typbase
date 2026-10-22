@@ -10,6 +10,7 @@ defineProps<{
   pluginInstanceId?: string | null;
   chatThreadId?: string | null;
   graphOpen?: boolean;
+  filesOpen?: boolean;
   /** Desktop side dock: a thread shown beside the main pane. */
   dockChatId?: string | null;
   modelValue: ViewModeId;
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   (e: "expandDock"): void;
   (e: "openGraph"): void;
   (e: "closeGraph"): void;
+  (e: "closeFiles"): void;
 }>();
 
 /** The empty pane's actions need the workspace the chooser left behind. */
@@ -118,6 +120,12 @@ function onDockKeydown(event: KeyboardEvent): void {
           <slot name="nav-toggle" />
         </template>
       </GraphView>
+
+      <FilesView v-else-if="filesOpen" @close="emit('closeFiles')">
+        <template #nav-toggle>
+          <slot name="nav-toggle" />
+        </template>
+      </FilesView>
 
       <PageView
         v-else-if="pageId"
