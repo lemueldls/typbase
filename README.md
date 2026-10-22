@@ -11,7 +11,7 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 - **The workspace as data:** `#typbase.query` and `#typbase.page-link` read pages, categories, daily notes, and sections from inside a document.
 - **Plugin system in Typst:** Extend the app with sidebar widgets, panes, and floating windows written in the same language as your notes.
 - **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The exported project is plain `.typ` with the library, resolved data, and plugin modules it needs.
-- **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto Spaces. Publish a page as a public post, or publish the workspace as a website.
+- **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto. Publish a page as a public post, or publish the workspace as a website.
 
 ## Technologies
 
