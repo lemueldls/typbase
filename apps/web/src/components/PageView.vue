@@ -1067,6 +1067,15 @@ function syncFromPreview(view: EditorView, scroller: HTMLElement) {
 
 const splitLeft = ref(50);
 
+const tocOpen = ref(false);
+
+/** The outline jumps to the heading's source line; read mode switches to split
+ *  first, like a rendered-link jump. */
+function jumpToHeading(heading: { from: number; to: number }): void {
+  tocOpen.value = false;
+  onPreviewJump(heading);
+}
+
 function startSplitDrag(event: PointerEvent) {
   event.preventDefault();
 
@@ -1177,6 +1186,23 @@ function setCategory(categoryId: string | null): void {
           class="page-view__links-toggle"
           @click="linksOpen = !linksOpen"
         /> -->
+
+        <UiPopover
+          v-if="store && boundFileId"
+          v-model:open="tocOpen"
+          align="end"
+          class="menu toc-popover"
+        >
+          <template #trigger>
+            <UiIconButton icon="toc" :label="$t('toc.title')" :disabled="!ready" />
+          </template>
+          <TableOfContents
+            :file-id="boundFileId"
+            :text="sharedState.text"
+            :typst-state="boundState"
+            @jump="jumpToHeading"
+          />
+        </UiPopover>
 
         <PublishButton v-if="store" :page-id="pageId" :store="store" />
 
@@ -1472,6 +1498,14 @@ function setCategory(categoryId: string | null): void {
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
+}
+
+/* The outline popover has no surface of its own, like the other menu-shaped
+   popovers. */
+.menu.toc-popover {
+  width: min(20rem, calc(100vw - var(--space-4)));
+  padding: 0;
+  overflow: hidden;
 }
 
 .page-view__toolbar-main {

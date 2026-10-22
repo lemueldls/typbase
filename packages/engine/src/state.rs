@@ -22,7 +22,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     bindings::{TypstCompletion, TypstFileId, TypstHighlight, TypstJump},
-    flatten::{CellSpan, FlattenedBlock, SectionSpan},
+    flatten::{CellSpan, FlattenedBlock, HeadingSpan, SectionSpan},
     links::LinkSpan,
     source::{
         RenderTarget, Side as MapSide, SourceContext, SpaceContext, SynthResult, sync_source_state,
@@ -630,6 +630,21 @@ impl TypstState {
         Ok(crate::flatten::extract_sections_root(&root, text)
             .into_iter()
             .map(|span| span.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Extracts top-level headings as UTF-16 spans for the page outline.
+    /// Shares the note's parse tree, like the other syntax passes.
+    #[wasm_bindgen(js_name = "extractHeadings")]
+    pub fn extract_headings(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+    ) -> Result<Vec<Ts<HeadingSpan>>, JsError> {
+        let root = self.parse_shared(Some(id.clone()), text);
+        Ok(crate::flatten::extract_headings_root(&root, text)
+            .into_iter()
+            .map(|heading| heading.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
     }
 

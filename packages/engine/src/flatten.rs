@@ -37,6 +37,19 @@ pub struct SectionSpan {
     pub title: String,
 }
 
+/// A top-level heading for the page outline. Ranges are UTF-16 offsets into
+/// the raw source, so they are editor positions.
+#[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct HeadingSpan {
+    /// 1 through 6, from the number of `=` markers.
+    pub level: u8,
+    /// Heading text with markup markers removed.
+    pub title: String,
+    /// UTF-16 range of the whole heading line.
+    pub from: usize,
+    pub to: usize,
+}
+
 /// A notebook cell: one `//%` attribute line plus the content below it, up to
 /// the next boundary or the end of the document. Ranges are UTF-16 offsets into
 /// the raw source, so they can be used as editor positions directly.
@@ -223,6 +236,67 @@ pub fn extract_sections_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec
 
     sections.sort_by_key(|section| section.content_start);
     sections
+}
+
+/// Finds every top-level heading for the outline. Titles have markup markers
+/// stripped and labels skipped. One UTF-16 pass over the source converts every
+/// range together, so a long note does not rescan the text per heading.
+pub fn extract_headings(text: &str) -> Vec<HeadingSpan> {
+    let root = typst_syntax::parse(text);
+    extract_headings_root(&root, text)
+}
+
+/// `extract_headings` over a tree the caller already has.
+pub fn extract_headings_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<HeadingSpan> {
+    let linked = LinkedNode::new(root);
+    let mut found: Vec<(u8, String, std::ops::Range<usize>)> = Vec::new();
+
+    for node in linked.children() {
+        if node.kind() != SyntaxKind::Heading {
+            continue;
+        }
+
+        let range = node.range();
+        let level = text[range.clone()]
+            .bytes()
+            .take_while(|byte| *byte == b'=')
+            .count()
+            .clamp(1, 6) as u8;
+
+        let mut plain = String::new();
+        let mut map = Vec::new();
+        for child in node.children() {
+            // `<label>` is not part of the heading text.
+            if child.kind() == SyntaxKind::Label {
+                continue;
+            }
+            flatten_node(&child, text, &mut plain, &mut map);
+        }
+
+        let title = plain.trim().to_string();
+        if title.is_empty() {
+            continue;
+        }
+
+        found.push((level, title, range));
+    }
+
+    let bytes: Vec<usize> = found
+        .iter()
+        .flat_map(|(_, _, range)| [range.start, range.end])
+        .collect();
+    let utf16 = utf16_offsets(text, &bytes);
+
+    found
+        .into_iter()
+        .enumerate()
+        .map(|(index, (level, title, _))| HeadingSpan {
+            level,
+            title,
+            from: utf16[index * 2],
+            to: utf16[index * 2 + 1],
+        })
+        .collect()
 }
 
 fn is_section_call(call: &FuncCall) -> bool {
