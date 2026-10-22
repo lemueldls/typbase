@@ -58,7 +58,7 @@
     "deep-link": {
       "mobile": [
         {
-          "scheme": ["at.typbase.app", "typbase"],
+          "scheme": ["at.typbase"],
           "appLink": false
         },
         {
@@ -69,7 +69,7 @@
         }
       ],
       "desktop": {
-        "schemes": ["at.typbase.app", "typbase"]
+        "schemes": ["at.typbase"]
       }
     },
     "updater": {

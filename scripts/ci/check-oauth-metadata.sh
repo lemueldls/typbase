@@ -28,4 +28,21 @@ grep -qF "\"client_id\":\"$origin/oauth-client-metadata/native.json\"" \
     "$root/oauth-client-metadata/native.json" ||
     die "native client_id does not point at $origin"
 
+node - "$root/oauth-client-metadata/native.json" "$origin" <<'NODE'
+const fs = require("node:fs");
+
+const [file, origin] = process.argv.slice(2);
+const metadata = JSON.parse(fs.readFileSync(file, "utf8"));
+const scheme = new URL(origin).hostname.split(".").reverse().join(".");
+const expected = `${scheme}:/oauth`;
+const redirects = metadata.redirect_uris;
+
+if (redirects.length !== 1 || redirects[0] !== expected) {
+    console.error(
+        `native redirect_uris ${JSON.stringify(redirects)} do not match ${JSON.stringify([expected])} for ${origin}`,
+    );
+    process.exit(1);
+}
+NODE
+
 echo "OAuth metadata points at $origin"

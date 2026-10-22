@@ -7,7 +7,7 @@ import { NATIVE_OAUTH_REDIRECT_URI } from "@typbase/typing";
  * OAuth for native shells. Desktop and mobile builds cannot act as an
  * `http://127.0.0.1` loopback client and have no HTTPS origin to receive a
  * redirect, so sign-in always runs in the system browser and the response
- * comes back through the `at.typbase.app` deep link registered in
+ * comes back through the `at.typbase` deep link registered in
  * `tauri.conf.json`. The matching client metadata is served from the deployed
  * origin at `NATIVE_OAUTH_METADATA_PATH`. Tauri dev loads the Nuxt dev server
  * but still uses that document, so desktop dev needs `NUXT_PUBLIC_APP_URL` set

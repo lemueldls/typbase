@@ -1,7 +1,12 @@
 import { DEFAULT_HANDLE_RESOLVER, nativeClientOptions } from "@typbase/spaces";
+import { NATIVE_OAUTH_REDIRECT_URI } from "@typbase/typing";
 import { describe, expect, it } from "vitest";
 
 describe("native OAuth client options", () => {
+  it("uses the reverse client_id FQDN as the private-use scheme", () => {
+    expect(NATIVE_OAUTH_REDIRECT_URI).toBe("at.typbase:/oauth");
+  });
+
   // A packaged shell has no PDS configured, and without a resolver the client
   // throws before it can build an authorization URL, which surfaced as an
   // account-not-found error at sign-in.

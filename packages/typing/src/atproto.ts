@@ -56,9 +56,9 @@ export const OAUTH_METADATA_PATH = "/oauth-client-metadata.json";
 export const OAUTH_REDIRECT_PATH = "/";
 
 /**
- * Native (Tauri) client metadata document. atproto only accepts private-use
- * redirect schemes that contain a dot, so the deep-link scheme is
- * `at.typbase.app`, not `typbase`.
+ * Native (Tauri) client metadata document. A discoverable client's
+ * private-use redirect scheme has to be the client_id's FQDN in reverse, so
+ * the deployed `typbase.at` client uses `at.typbase`.
  */
 export const NATIVE_OAUTH_METADATA_PATH = "/oauth-client-metadata/native.json";
 
@@ -66,4 +66,4 @@ export const NATIVE_OAUTH_METADATA_PATH = "/oauth-client-metadata/native.json";
  * Redirect URI for the native shells (Tauri), registered in the document
  * above. The OS opens Typbase with the response instead of a page redirect.
  */
-export const NATIVE_OAUTH_REDIRECT_URI = "at.typbase.app:/oauth" as const;
+export const NATIVE_OAUTH_REDIRECT_URI = "at.typbase:/oauth" as const;
