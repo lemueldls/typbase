@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.1] - 2026-10-22
+
+### New
+
+- Split scroll sync options
+- Drawing history and eraser
+- Add copy page id
+- Zen mode
+- Initial vim mode
+- Initial storage explorer
+- Table of contents view
+- Vim mode status display
+- Keyboard shortcuts dialog
+- Render math and code in editor with monospaced font
+
+### Fixed
+
+- Empty state for icon picker
+- Locale handling in typst and publish prelude
+- Workspace export
+- Folder size display in storage
+
 ## [0.4.0] - 2026-10-21
 
 ### New
