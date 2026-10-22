@@ -1,6 +1,6 @@
 {
   "name": "@typbase/typing",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Shared workspace/page types for Typbase: app, storage, and future server.",
   "license": "Apache-2.0",
   "repository": {
