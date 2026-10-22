@@ -24,18 +24,39 @@ function buildDecorations(
   fileId: FileId,
   typstState: TypstState,
 ): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>();
   let tokens: ReturnType<TypstState["highlight"]>;
+  let equations: ReturnType<TypstState["extractEquations"]>;
   try {
     tokens = typstState.highlight(fileId, state.doc.toString());
+    // The highlight pass just parsed this text, so the equation walk reuses
+    // the cached tree. A mark over the whole equation lets math use the
+    // monospaced face while prose keeps the workspace text font.
+    equations = typstState.extractEquations(fileId, state.doc.toString());
   } catch (error) {
     console.error("[typst] highlight panicked:", error);
 
     return Decoration.none;
   }
 
-  for (const token of tokens)
+  const builder = new RangeSetBuilder<Decoration>();
+  const equationMark = Decoration.mark({ class: "typ-equation" });
+  let nextEquation = 0;
+
+  // Equations start at or before their tokens (the opening `$`). Emitting the
+  // outer mark first keeps the builder's start-offset ordering.
+  for (const token of tokens) {
+    while (nextEquation < equations.length && equations[nextEquation]!.from <= token.range.start) {
+      const equation = equations[nextEquation++]!;
+      builder.add(equation.from, equation.to, equationMark);
+    }
+
     builder.add(token.range.start, token.range.end, Decoration.mark({ class: token.tag }));
+  }
+
+  for (; nextEquation < equations.length; nextEquation++) {
+    const equation = equations[nextEquation]!;
+    builder.add(equation.from, equation.to, equationMark);
+  }
 
   return builder.finish();
 }

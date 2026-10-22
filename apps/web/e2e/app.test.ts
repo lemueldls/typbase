@@ -2295,6 +2295,60 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("sets math and raw source in the code font", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const previous = await page.evaluate(() => {
+      const settings = window.__typbase.store.getSettings();
+      const editor = settings.editor ?? {};
+
+      return {
+        font: settings.font,
+        codeFont: settings.codeFont ?? null,
+        editor,
+      };
+    });
+
+    const id = await createTestPage(page, {
+      title: "Source fonts",
+      content: "= Math\n\nInline $x + 1$ here.\n\n$ y = 2 $\n\n```typ\n#let x = 1\n```\n",
+    });
+    await showPage(page, id, "source");
+
+    await page.evaluate(() => {
+      window.__typbase.store.updateSettings({ font: "Arial", codeFont: "Courier New" });
+    });
+
+    await page.waitForSelector(".typ-equation", { timeout: 60_000 });
+    await expect.poll(() => page.locator(".typ-raw").count()).toBeGreaterThan(0);
+
+    const fonts = await page.evaluate(() => {
+      const fontOf = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector);
+
+        return element ? getComputedStyle(element).fontFamily : null;
+      };
+
+      return {
+        line: fontOf(".cm-line"),
+        equation: fontOf(".typ-equation"),
+        raw: fontOf(".typ-raw"),
+        mono: getComputedStyle(document.documentElement).getPropertyValue("--font-mono"),
+      };
+    });
+
+    expect(fonts.line).toContain("Arial");
+    expect(fonts.equation).toContain("Courier New");
+    expect(fonts.raw).toContain("Courier New");
+    expect(fonts.mono).toContain("Courier New");
+
+    await page.evaluate((restore) => {
+      window.__typbase.store.updateSettings(restore);
+    }, previous);
+    await page.close();
+  });
+
   it("opens the storage browser from the keyboard", async () => {
     const page = await createPage();
     await openApp(page);

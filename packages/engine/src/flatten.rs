@@ -50,6 +50,13 @@ pub struct HeadingSpan {
     pub to: usize,
 }
 
+/// One math equation, in UTF-16 offsets into the raw source.
+#[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct EquationSpan {
+    pub from: usize,
+    pub to: usize,
+}
+
 /// A notebook cell: one `//%` attribute line plus the content below it, up to
 /// the next boundary or the end of the document. Ranges are UTF-16 offsets into
 /// the raw source, so they can be used as editor positions directly.
@@ -301,6 +308,49 @@ pub fn extract_headings_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec
 
 fn is_section_call(call: &FuncCall) -> bool {
     call.callee().to_untyped().full_text().as_str() == "typbase.section"
+}
+
+/// Every equation in the source, nested ones folded into their outer equation.
+/// The editor uses these ranges to set math in a monospaced face. One UTF-16
+/// pass converts all ranges together.
+pub fn extract_equations(text: &str) -> Vec<EquationSpan> {
+    let root = typst_syntax::parse(text);
+    extract_equations_root(&root, text)
+}
+
+/// `extract_equations` over a tree the caller already has.
+pub fn extract_equations_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<EquationSpan> {
+    // Cheap out before walking: most notes have no math at all.
+    if !text.as_bytes().contains(&b'$') {
+        return Vec::new();
+    }
+
+    let mut ranges = Vec::new();
+    let mut stack = vec![LinkedNode::new(root)];
+
+    while let Some(node) = stack.pop() {
+        if node.kind() == SyntaxKind::Equation {
+            ranges.push(node.range());
+            continue;
+        }
+        stack.extend(node.children());
+    }
+
+    ranges.sort_by_key(|range| range.start);
+    let bytes: Vec<usize> = ranges
+        .iter()
+        .flat_map(|range| [range.start, range.end])
+        .collect();
+    let utf16 = utf16_offsets(text, &bytes);
+
+    ranges
+        .into_iter()
+        .enumerate()
+        .map(|(index, _)| EquationSpan {
+            from: utf16[index * 2],
+            to: utf16[index * 2 + 1],
+        })
+        .collect()
 }
 
 fn section_span(call: &FuncCall, node: &LinkedNode, text: &str) -> Option<SectionSpan> {

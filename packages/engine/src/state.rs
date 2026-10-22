@@ -22,7 +22,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     bindings::{TypstCompletion, TypstFileId, TypstHighlight, TypstJump},
-    flatten::{CellSpan, FlattenedBlock, HeadingSpan, SectionSpan},
+    flatten::{CellSpan, EquationSpan, FlattenedBlock, HeadingSpan, SectionSpan},
     links::LinkSpan,
     source::{
         RenderTarget, Side as MapSide, SourceContext, SpaceContext, SynthResult, sync_source_state,
@@ -645,6 +645,21 @@ impl TypstState {
         Ok(crate::flatten::extract_headings_root(&root, text)
             .into_iter()
             .map(|heading| heading.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Extracts math equation ranges as UTF-16 spans. The editor marks them
+    /// so math can use a monospaced face while prose keeps the text font.
+    #[wasm_bindgen(js_name = "extractEquations")]
+    pub fn extract_equations(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+    ) -> Result<Vec<Ts<EquationSpan>>, JsError> {
+        let root = self.parse_shared(Some(id.clone()), text);
+        Ok(crate::flatten::extract_equations_root(&root, text)
+            .into_iter()
+            .map(|range| range.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
     }
 
