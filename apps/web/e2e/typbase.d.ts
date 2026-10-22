@@ -87,6 +87,14 @@ declare global {
         pageId: string,
         options?: Record<string, unknown>,
       ): Promise<{ base: string; files: Array<{ name: string; text: string }> }>;
+      /** Build a workspace export bundle and return every file with its size. */
+      exportWorkspace(
+        pageIds: string[],
+        options?: Record<string, unknown>,
+      ): Promise<{
+        name: string;
+        files: Array<{ name: string; size: number; text?: string }>;
+      }>;
       /** Compile a bundle's entry against only the bundle's own files. */
       compileBundle(
         files: Array<{ name: string; text: string }>,

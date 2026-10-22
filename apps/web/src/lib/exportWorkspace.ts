@@ -9,6 +9,8 @@ import {
   fileBase,
   fontFiles,
   inlineBlobs,
+  renderFailure,
+  setsPageConfiguration,
   styleExportHtml,
   type ExportFile,
   type ExportOptions,
@@ -101,7 +103,6 @@ export async function buildWorkspaceExport(
     title?: string;
   }): Promise<void> => {
     const { source, pagePath, sourceName, stem, context, pageId, title } = input;
-    // Both targets scale: a page and a browser document are not the editor pane.
     const htmlPrelude = await publishPrelude(store.getSettings(), {
       ...themeOptions,
       paged: false,
@@ -112,6 +113,7 @@ export async function buildWorkspaceExport(
       ...themeOptions,
       paged: true,
       textScale: EXPORT_TEXT_SCALE,
+      scaleMode: setsPageConfiguration(source) ? "text" : "document",
       context,
     });
 
@@ -126,7 +128,7 @@ export async function buildWorkspaceExport(
         theme: palette,
       });
       if (!rendered.html) {
-        throw new Error(`The render produced no HTML for ${pagePath}.`);
+        throw renderFailure(`The render produced no HTML for ${pagePath}`, rendered.diagnostics);
       }
 
       collect(rendered);
@@ -148,7 +150,7 @@ export async function buildWorkspaceExport(
         theme: palette,
       });
       if (!rendered.pdf) {
-        throw new Error(`The render produced no PDF for ${pagePath}.`);
+        throw renderFailure(`The render produced no PDF for ${pagePath}`, rendered.diagnostics);
       }
 
       collect(rendered);
@@ -167,7 +169,10 @@ export async function buildWorkspaceExport(
         theme: palette,
       });
       if (!rendered.svg?.length) {
-        throw new Error(`The render produced no SVG pages for ${pagePath}.`);
+        throw renderFailure(
+          `The render produced no SVG pages for ${pagePath}`,
+          rendered.diagnostics,
+        );
       }
 
       collect(rendered);
@@ -215,25 +220,34 @@ export async function buildWorkspaceExport(
       paged: false,
       textScale: EXPORT_TEXT_SCALE,
     });
+    const scalePages = !sources.some(setsPageConfiguration);
     const pagedPrelude = await publishPrelude(store.getSettings(), {
       ...themeOptions,
       paged: true,
       textScale: EXPORT_TEXT_SCALE,
+      scaleMode: scalePages ? "none" : "text",
     });
 
     // A combined document is one compile, so each page carries its own
     // `note` in a scoped block instead of a shared binding.
-    const wrapped = sources.map((source, position) => {
+    const wrapper = (source: string, position: number, scale: boolean): string => {
       const page = pages[position];
       if (!page) return source;
 
-      return `#{\n  let note = ${typstContextValue(pageContext(pages, page))}\n  [\n${source}\n  ]\n}`;
-    });
+      const binding = `  let note = ${typstContextValue(pageContext(pages, page))}\n`;
+      const body = scale
+        ? `  scale(${EXPORT_TEXT_SCALE * 100}%, reflow: true)[\n${source}\n  ]`
+        : `  [\n${source}\n  ]`;
 
-    // Paged targets get real page breaks. HTML has no paging, so a rule
-    // separates the notes there. All daily notes make the document a diary.
-    const paged = `${wrapped.join("\n#pagebreak(weak: true)\n")}\n`;
-    const flowed = `${wrapped.join("\n\n#horizontalrule()\n\n")}\n`;
+      return `#{\n${binding}${body}\n}`;
+    };
+
+    const paged = `${sources
+      .map((source, position) => wrapper(source, position, scalePages))
+      .join("\n#context { pagebreak(weak: true) }\n")}\n`;
+    const flowed = `${sources
+      .map((source, position) => wrapper(source, position, false))
+      .join("\n\n#horizontalrule()\n\n")}\n`;
     const name = pages.every((page) => page.path.startsWith("daily/")) ? "daily" : "combined";
     const pagePath = `${name}.typ`;
     const stem = `artifacts/${name}`;
@@ -248,7 +262,9 @@ export async function buildWorkspaceExport(
         pageId: null,
         theme: palette,
       });
-      if (!rendered.html) throw new Error("The combined render produced no HTML.");
+      if (!rendered.html) {
+        throw renderFailure("The combined render produced no HTML", rendered.diagnostics);
+      }
 
       collect(rendered);
       addFile({
@@ -268,7 +284,9 @@ export async function buildWorkspaceExport(
         pageId: null,
         theme: palette,
       });
-      if (!rendered.pdf) throw new Error("The combined render produced no PDF.");
+      if (!rendered.pdf) {
+        throw renderFailure("The combined render produced no PDF", rendered.diagnostics);
+      }
 
       collect(rendered);
       addFile({ name: `${stem}.pdf`, bytes: rendered.pdf });
@@ -285,7 +303,9 @@ export async function buildWorkspaceExport(
         pageId: null,
         theme: palette,
       });
-      if (!rendered.svg?.length) throw new Error("The combined render produced no SVG pages.");
+      if (!rendered.svg?.length) {
+        throw renderFailure("The combined render produced no SVG pages", rendered.diagnostics);
+      }
 
       collect(rendered);
       const many = rendered.svg.length > 1;

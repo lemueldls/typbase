@@ -8,7 +8,8 @@ import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { resolveLightTheme, resolveTheme } from "~/lib/themes";
 
 /**
- * How much the body text shrinks when a document leaves the editor.
+ * How much a paged export shrinks. The whole document is scaled, so absolute
+ * units (diagrams, raw-block padding) shrink with the text.
  */
 export const EXPORT_TEXT_SCALE = 0.5;
 
@@ -29,11 +30,23 @@ export interface PublishPreludeOptions {
   /** Body text size in pt, before `textScale`. Defaults to the workspace's size. */
   textSize?: number;
   /**
-   * Multiplier on the body text size. Leave it at 1 for anything standing in
-   * for the editor pane (chat rendering, link resolution) and pass
+   * How much a paged export shrinks. `document` mode scales the whole
+   * document; `text` mode multiplies the font size. Leave it at 1 for anything
+   * standing in for the editor pane (chat rendering, link resolution) and pass
    * `EXPORT_TEXT_SCALE` for output that lands on a real page.
    */
   textScale?: number;
+  /**
+   * How `textScale` is applied. `document` scales the whole paged document
+   * with Typst's `scale(reflow: true)`, so absolute units (diagrams, raw-block
+   * padding) shrink along with the text. `text` scales only the font size,
+   * which is the fallback for a document that sets its own page configuration:
+   * `#set page` cannot live inside the scale container. `none` leaves scaling
+   * to the caller, which the combined workspace export uses to wrap each page.
+   * Defaults to `document` for paged output and `text` for HTML, whose renderer
+   * drops scaled content entirely.
+   */
+  scaleMode?: "document" | "text" | "none";
   /**
    * The `note` binding for the page being compiled, built by
    * `pageContextBinding`. Inlined per entry so a bundle stays self-contained.
@@ -72,14 +85,20 @@ export async function publishSyntaxTheme(
  * The document prelude for exports, publishing, and the project mirror. The
  * style block (theme, text, headings, fonts, code-block theme) comes from the
  * wasm engine's `stylePrelude`, so it is byte-for-byte the prelude the app
- * compiles with. Only the page geometry and the user's prelude are added here.
+ * compiles with. Page geometry, the export scale, and the user's prelude are
+ * added here.
  */
 export async function publishPrelude(
   settings: WorkspaceSettings,
   options: PublishPreludeOptions = {},
 ): Promise<string> {
   await useTypst();
-  const textSize = (options.textSize ?? settings.textSize) * (options.textScale ?? 1);
+  const scale = options.textScale ?? 1;
+  const bodySize = options.textSize ?? settings.textSize;
+  const scaleMode = options.scaleMode ?? (options.paged ? "document" : "text");
+  // Document scaling keeps the text size and scales everything; text scaling
+  // is the fallback for documents that set their own page configuration.
+  const textSize = scaleMode === "text" ? bodySize * scale : bodySize;
   const style = TypstState.stylePrelude(
     themeColorsFromPalette(publishThemePalette(settings, options)),
     textSize,
@@ -101,6 +120,15 @@ export async function publishPrelude(
     : [];
   // The context sits before the user prelude so custom Typst can read it.
   const context = options.context ? [options.context, ""] : [];
+  // Last, so page configuration in the user prelude stays outside the scale
+  // container. A `#set page` inside it is an error.
+  const percent = Number((scale * 100).toFixed(3));
+  const scaleRule =
+    scaleMode === "document" && scale !== 1
+      ? `#show: doc => scale(${percent}%, reflow: true, doc)`
+      : "";
 
-  return [style, ...page, ...context, settings.pagePrelude ?? ""].join("\n");
+  return [style, ...page, ...context, settings.pagePrelude ?? "", scaleRule]
+    .filter(Boolean)
+    .join("\n");
 }

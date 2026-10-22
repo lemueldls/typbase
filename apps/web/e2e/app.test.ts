@@ -2076,6 +2076,72 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("renders a combined workspace export with page breaks and scale", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const first = await createTestPage(page, {
+      title: "Combined one",
+      content: "= One\n\nAlpha paragraph.\n\n#rect(width: 2cm, height: 1cm)\n",
+    });
+    const second = await createTestPage(page, {
+      title: "Combined two",
+      content: "= Two\n\nBeta paragraph.\n",
+    });
+
+    const result = await page.evaluate(
+      (ids) =>
+        window.__typbase.exportWorkspace(ids, {
+          html: false,
+          pdf: true,
+          svg: true,
+          svgMerged: false,
+          project: true,
+          fonts: false,
+          separate: false,
+          combined: true,
+        }),
+      [first, second],
+    );
+
+    const byName = new Map(result.files.map((file) => [file.name, file]));
+    // The combined render used to fail with "no PDF": a top-level pagebreak
+    // landed inside the synth's block wrapper. It now rides a context, and each
+    // page is scaled separately so absolute units shrink with the text.
+    expect(byName.get("artifacts/combined.pdf")?.size ?? 0).toBeGreaterThan(0);
+    expect(byName.has("artifacts/combined-1.svg")).toBe(true);
+    expect(byName.has("artifacts/combined-2.svg")).toBe(true);
+
+    const project = byName.get("combined.typ")?.text ?? "";
+    expect(project).toContain("#context { pagebreak(weak: true) }");
+    expect(project.match(/scale\(50%, reflow: true\)\[/g)).toHaveLength(2);
+
+    // A single page keeps the document-wide rule, after the page geometry so
+    // the rule is not a page configuration inside a container.
+    const single = await page.evaluate(
+      (id) => window.__typbase.exportPage(id, { project: true }),
+      first,
+    );
+    const singleTyp = single.files.find((file) => file.name.endsWith(".typ"))?.text ?? "";
+    expect(singleTyp).toContain("#show: doc => scale(50%, reflow: true, doc)");
+    expect(singleTyp.indexOf("#set page")).toBeLessThan(singleTyp.indexOf("#show: doc => scale"));
+
+    // A note that sets its own page configuration cannot live inside the scale
+    // container, so it falls back to the font-size scale and still renders.
+    const configured = await createTestPage(page, {
+      title: "Page config",
+      content: "#set page(columns: 2)\n\nTwo columns.\n",
+    });
+    const configuredExport = await page.evaluate(
+      (id) => window.__typbase.exportPage(id, { pdf: true, project: true }),
+      configured,
+    );
+    const configuredTyp =
+      configuredExport.files.find((file) => file.name.endsWith(".typ"))?.text ?? "";
+    expect(configuredTyp).not.toContain("scale(50%");
+    await page.close();
+  });
+
   /**
    * Presses a row, drags to `ratio` of the way down the target row, and waits
    * for the gap the drop will land in. A ratio under a half puts the row above

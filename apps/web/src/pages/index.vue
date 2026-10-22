@@ -14,6 +14,7 @@ import { formatDocumentTitle } from "~/lib/documentTitle";
 import { engineAvailable } from "~/lib/engineHealth";
 import { sectionsOf } from "~/lib/engineSyntax";
 import { buildExport, type ExportOptions } from "~/lib/exportPage";
+import { buildWorkspaceExport, type WorkspaceExportOptions } from "~/lib/exportWorkspace";
 import { resolveOpenPageId } from "~/lib/openPage";
 import { isMac } from "~/lib/platform";
 import { requestReveal } from "~/lib/reveal";
@@ -390,6 +391,41 @@ function afterBoot(): void {
     });
 
     return { base, files: bundleTextFiles(files) };
+  };
+  testApi.exportWorkspace = async (pageIds, options) => {
+    if (!store) throw new Error("no workspace");
+
+    const typstState = await useTypst();
+    const { name, files } = await buildWorkspaceExport(
+      store,
+      pageIds,
+      {
+        html: false,
+        pdf: false,
+        svg: false,
+        svgMerged: true,
+        project: false,
+        stripMarkers: false,
+        fonts: false,
+        theme: "light",
+        pageSize: "a4",
+        separate: true,
+        combined: false,
+        ...options,
+      } as WorkspaceExportOptions,
+      typstState,
+    );
+
+    const readable = new Map(bundleTextFiles(files).map((file) => [file.name, file.text]));
+
+    return {
+      name,
+      files: files.map((file) => ({
+        name: file.name,
+        size: file.bytes.length,
+        text: readable.get(file.name),
+      })),
+    };
   };
   testApi.compileBundle = (files, entry) =>
     compileBundle(files, entry, workspace.value?.workspaceId ?? "bundle");

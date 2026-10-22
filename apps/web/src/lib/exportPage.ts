@@ -47,6 +47,21 @@ export function slug(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function setsPageConfiguration(source: string): boolean {
+  return /#set\s+page\b/.test(source);
+}
+
+export function renderFailure(action: string, diagnostics: unknown[] | undefined): Error {
+  for (const entry of diagnostics ?? []) {
+    const diagnostic = entry as { severity?: string; message?: string };
+    if (diagnostic.severity === "error" && diagnostic.message) {
+      return new Error(`${action}: ${diagnostic.message}`);
+    }
+  }
+
+  return new Error(`${action}; check the page diagnostics.`);
+}
+
 /** File stem from the page title, falling back to its path. */
 export function fileBase(title: string, path: string): string {
   const fromPath =
@@ -74,7 +89,6 @@ export async function buildExport(
     pageSize: options.pageSize,
   } as const;
   const context = pageContextBinding(store, pageId);
-  // Both targets scale: a page and a browser document are not the editor pane.
   const htmlPrelude = await publishPrelude(store.getSettings(), {
     ...themeOptions,
     paged: false,
@@ -85,6 +99,7 @@ export async function buildExport(
     ...themeOptions,
     paged: true,
     textScale: EXPORT_TEXT_SCALE,
+    scaleMode: setsPageConfiguration(source) ? "text" : "document",
     context,
   });
   const palette = publishThemePalette(store.getSettings(), themeOptions);
@@ -127,7 +142,7 @@ export async function buildExport(
       theme: palette,
     });
     if (!rendered.html) {
-      throw new Error("The render produced no HTML; check the page diagnostics.");
+      throw renderFailure("The render produced no HTML", rendered.diagnostics);
     }
 
     collect(rendered);
@@ -149,7 +164,7 @@ export async function buildExport(
       theme: palette,
     });
     if (!rendered.pdf) {
-      throw new Error("The render produced no PDF; check the page diagnostics.");
+      throw renderFailure("The render produced no PDF", rendered.diagnostics);
     }
 
     collect(rendered);
@@ -169,7 +184,7 @@ export async function buildExport(
       theme: palette,
     });
     if (!rendered.svg?.length) {
-      throw new Error("The render produced no SVG pages; check the page diagnostics.");
+      throw renderFailure("The render produced no SVG pages", rendered.diagnostics);
     }
 
     collect(rendered);

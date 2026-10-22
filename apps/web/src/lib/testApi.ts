@@ -6,11 +6,18 @@ import type { ChatMessage } from "@typbase/typing";
 import type { AiProvider } from "~/lib/ai/providers";
 import type { BundleCheckResult, BundleTextFile } from "~/lib/bundleCheck";
 import type { ExportOptions } from "~/lib/exportPage";
+import type { WorkspaceExportOptions } from "~/lib/exportWorkspace";
 
 /** A built export bundle, reduced to the files a test can read. */
 export interface ExportBundle {
   base: string;
   files: BundleTextFile[];
+}
+
+/** A workspace export bundle, every file kept, binary included. */
+export interface WorkspaceExportBundle {
+  name: string;
+  files: Array<{ name: string; size: number; text?: string }>;
 }
 
 /**
@@ -83,6 +90,13 @@ export interface TypbaseTestApi {
   writeWorkspaceFile: ((path: string, text: string) => Promise<void>) | null;
   /** Build a page export bundle and return its readable files. */
   exportPage: ((pageId: string, options: Partial<ExportOptions>) => Promise<ExportBundle>) | null;
+  /** Build a workspace export bundle and return every file with its size. */
+  exportWorkspace:
+    | ((
+        pageIds: string[],
+        options: Partial<WorkspaceExportOptions>,
+      ) => Promise<WorkspaceExportBundle>)
+    | null;
   /** Compile a bundle's entry against only the bundle's own files. */
   compileBundle: ((files: BundleTextFile[], entry: string) => Promise<BundleCheckResult>) | null;
   /** Reload the plugin catalog from storage. */
@@ -120,6 +134,7 @@ export const testApi: TypbaseTestApi = {
   pluginState: null,
   writeWorkspaceFile: null,
   exportPage: null,
+  exportWorkspace: null,
   compileBundle: null,
   refreshPlugins: null,
   pluginLogs: null,
