@@ -151,6 +151,8 @@ export interface EditorSettings {
   softWrap: boolean;
   /** Leave scroll room below the last line so the cursor is not pinned to the bottom. */
   scrollPastEnd: boolean;
+  /** Vim keybindings in the editor. Off leaves CodeMirror's normal bindings. */
+  vim: boolean;
   /** Follow scrolls between the editor and the rendered pane in split view. */
   splitScroll: SplitScrollMode;
 }
@@ -431,6 +433,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     lineNumbers: false,
     softWrap: true,
     scrollPastEnd: false,
+    vim: false,
     splitScroll: "both",
   },
   graph: {

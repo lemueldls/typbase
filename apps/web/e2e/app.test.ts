@@ -2068,7 +2068,7 @@ describe("typbase app", async () => {
     const row = page.locator(".sidebar__item", { hasText: "Copy me" });
     await row.hover();
     await row.locator(".sidebar__row-more").click();
-    await page.locator(".menu__item", { hasText: "Copy note id" }).click();
+    await page.locator(".menu__item", { hasText: "Copy note ID" }).click();
 
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { copiedId?: string }).copiedId ?? ""))
@@ -2139,6 +2139,118 @@ describe("typbase app", async () => {
     const configuredTyp =
       configuredExport.files.find((file) => file.name.endsWith(".typ"))?.text ?? "";
     expect(configuredTyp).not.toContain("scale(50%");
+    await page.close();
+  });
+
+  it("toggles focus mode from the keyboard", async () => {
+    const page = await createPage();
+    await openApp(page);
+    await enableAppBar(page);
+
+    await expect(page.locator(".app-bar").count()).resolves.toBe(1);
+    await page.keyboard.press("Control+Alt+z");
+
+    await expect(page.locator(".app-bar").count()).resolves.toBe(0);
+    await expect(page.locator(".app__zen-exit").count()).resolves.toBe(1);
+    await expect
+      .poll(() =>
+        page
+          .locator(".page-view__toolbar")
+          .evaluate((element) => getComputedStyle(element).display),
+      )
+      .toBe("none");
+
+    await page.keyboard.press("Control+Alt+z");
+    await expect(page.locator(".app-bar").count()).resolves.toBe(1);
+    await expect(page.locator(".app__zen-exit").count()).resolves.toBe(0);
+    await page.close();
+  });
+
+  it("opens the page outline and jumps to a heading", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Outline",
+      content: "= First\n\nText.\n\n== Second *part*\n\nMore.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.locator('button[aria-label="Contents"]').click();
+    await page.waitForSelector(".toc__row", { timeout: 30_000 });
+    expect(await page.locator(".toc__row-title").allTextContents()).toEqual([
+      "First",
+      "Second part",
+    ]);
+
+    const expected = await page.evaluate(() =>
+      window.__typbase.view!.state.doc.toString().indexOf("== Second"),
+    );
+    await page.locator(".toc__row", { hasText: "Second part" }).click();
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.view?.state.selection.main.from ?? -1))
+      .toBe(expected);
+
+    // The outline queries the engine with the same FileId the editor passes to
+    // resize. A binding that took the id by value moved it, and the next
+    // geometry change trapped with "Attempt to use a moved value".
+    await page.setViewportSize({ width: 1100, height: 820 });
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__typbase.engineStatus())).toBe("ok");
+    await page.close();
+  });
+
+  it("types in vim insert mode when the setting is on", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, { title: "Vim", content: "start\n" });
+    await showPage(page, id, "write");
+
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({
+        editor: { ...(store.getSettings().editor ?? {}), vim: true },
+      });
+    });
+    await page.waitForTimeout(300);
+
+    await page.evaluate(() => {
+      const view = window.__typbase.view!;
+      view.dispatch({ selection: { anchor: 0 } });
+      view.focus();
+    });
+    // Start in vim normal mode, then insert at the line start.
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("i");
+    await page.keyboard.type("vim ");
+    await page.keyboard.press("Escape");
+
+    const text = await page.evaluate(() => window.__typbase.view?.state.doc.toString() ?? "");
+    expect(text.startsWith("vim start")).toBe(true);
+
+    // Restore the workspace setting so later tests use the normal keymap.
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({
+        editor: { ...(store.getSettings().editor ?? {}), vim: false },
+      });
+    });
+    await page.close();
+  });
+
+  it("opens the storage browser from the keyboard", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.keyboard.press("Control+Shift+E");
+    await page.waitForSelector(".files-view .explorer", { timeout: 30_000 });
+
+    await page.locator(".explorer__tab", { hasText: "Files" }).click();
+    await page.waitForSelector(".explorer__node", { timeout: 30_000 });
+
+    await page.locator(".files-view__actions button").click();
+    await expect(page.locator(".files-view").count()).resolves.toBe(0);
     await page.close();
   });
 

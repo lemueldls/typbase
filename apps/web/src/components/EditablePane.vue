@@ -14,7 +14,12 @@ import {
 } from "@codemirror/language";
 import { lintGutter } from "@codemirror/lint";
 import { highlightSelectionMatches } from "@codemirror/search";
-import { EditorState, type EditorStateConfig, type Extension } from "@codemirror/state";
+import {
+  Compartment,
+  EditorState,
+  type EditorStateConfig,
+  type Extension,
+} from "@codemirror/state";
 import {
   EditorView,
   crosshairCursor,
@@ -25,6 +30,7 @@ import {
   rectangularSelection,
   tooltips,
 } from "@codemirror/view";
+import { Vim, vim } from "@replit/codemirror-vim";
 import {
   type TextRef,
   autocomplete,
@@ -43,6 +49,7 @@ import {
 import { typstEditorTheme } from "~/lib/cmTheme";
 import { editorDisplayCompartment, editorDisplayExtension } from "~/lib/editorDisplay";
 import { openExternal } from "~/lib/openExternal";
+import { requestSave } from "~/lib/saveRequest";
 import {
   spellcheckCompartment,
   spellcheckExtension,
@@ -106,6 +113,10 @@ const props = defineProps<{
 }>();
 
 const ASSET_MIME = "application/x-typbase-asset";
+
+// Vim's `:w` uses the app-level save handler, the same one Mod-S dispatches, so
+// it flushes the page and the snapshot. Defined once for every editor instance.
+Vim.defineEx("write", "w", () => void requestSave());
 
 const container = useTemplateRef("container");
 const view = shallowRef<EditorView>();
@@ -303,17 +314,28 @@ watch(spellcheckSignature, () => {
 
 // Display flags are swapped in place too. The mode watcher above rebuilds the
 // view and picks the current props up from `createStateConfig`.
+/** Vim is a preference, so it swaps in place without dropping the doc. */
+function vimExtension(): Extension {
+  return props.editor?.vim ? vim() : [];
+}
+
+const vimCompartment = new Compartment();
+
 const editorDisplaySignature = computed(() =>
   JSON.stringify([
     props.editor?.softWrap !== false,
     Boolean(props.editor?.lineNumbers),
     Boolean(props.editor?.scrollPastEnd),
+    Boolean(props.editor?.vim),
   ]),
 );
 
 watch(editorDisplaySignature, () => {
   view.value?.dispatch({
-    effects: editorDisplayCompartment.reconfigure(editorDisplayExtension(props.editor)),
+    effects: [
+      editorDisplayCompartment.reconfigure(editorDisplayExtension(props.editor)),
+      vimCompartment.reconfigure(vimExtension()),
+    ],
   });
 });
 
@@ -396,6 +418,7 @@ function createStateConfig(): EditorStateConfig {
     highlightSpecialChars(),
     lintGutter(),
     history(),
+    vimCompartment.of(vimExtension()),
     drawSelection(),
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),

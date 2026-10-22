@@ -298,6 +298,14 @@ const editorScrollPastEnd = computed({
     }),
 });
 
+const editorVim = computed({
+  get: () => settings.value.editor?.vim ?? false,
+  set: (value: boolean) =>
+    props.store.updateSettings({
+      editor: { ...settings.value.editor, vim: value },
+    }),
+});
+
 const editorSplitScrollOptions = computed<SelectOption[]>(() => [
   { value: "both", label: t("settings.editorSplitScrollBoth") },
   { value: "editor", label: t("settings.editorSplitScrollEditor") },
@@ -840,6 +848,14 @@ async function renameWorkspace(event: Event) {
                 :aria-label="$t('settings.editorScrollPastEnd')"
               />
               <span class="settings__hint">{{ $t("settings.editorScrollPastEndHint") }}</span>
+            </div>
+            <div class="settings__field">
+              <UiSwitch
+                v-model="editorVim"
+                :label="$t('settings.editorVim')"
+                :aria-label="$t('settings.editorVim')"
+              />
+              <span class="settings__hint">{{ $t("settings.editorVimHint") }}</span>
             </div>
             <div class="settings__field">
               <span>{{ $t("settings.editorSplitScroll") }}</span>
