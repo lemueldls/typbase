@@ -25,11 +25,15 @@ const props = defineProps<{
   forwardLabel: string;
   /** Whether the sidebar is showing, which the view menu names. */
   sidebarVisible: boolean;
+  /** Whether focus mode is on, so the view menu can offer the way out. */
+  zen: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "openPage", pageId: string): void;
   (e: "toggleSidebar"): void;
+  (e: "openFiles"): void;
+  (e: "toggleZen"): void;
 }>();
 
 const nav = useNavHistory();
@@ -84,6 +88,10 @@ async function openToday(): Promise<void> {
             {{ $t("exportWorkspace.title") }}
           </UiMenubarItem>
 
+          <UiMenubarItem icon="folder_open" @select="emit('openFiles')">
+            {{ $t("explorer.title") }}
+          </UiMenubarItem>
+
           <UiMenubarItem icon="settings" @select="settingsOpen = true">
             {{ $t("sidebar.workspaceSettings") }}
           </UiMenubarItem>
@@ -92,6 +100,12 @@ async function openToday(): Promise<void> {
         <UiMenubarMenu :label="$t('nav.menuView')" value="view">
           <UiMenubarItem :icon="sidebarIcon" @select="emit('toggleSidebar')">
             {{ $t(sidebarLabel) }}
+          </UiMenubarItem>
+
+          <UiMenubarSeparator />
+
+          <UiMenubarItem icon="fullscreen" @select="emit('toggleZen')">
+            {{ zen ? $t("zen.exit") : $t("zen.enter") }}
           </UiMenubarItem>
         </UiMenubarMenu>
       </UiMenubar>

@@ -43,6 +43,10 @@ const currentChatId = ref<string | null>(null);
 /** Desktop side dock: the chat sits beside the main pane instead of replacing it. */
 const dockChatId = ref<string | null>(null);
 const graphOpen = ref(false);
+const filesOpen = ref(false);
+/** Focus mode: the open page without window chrome. Transient, not persisted. */
+const zen = ref(false);
+let zenSidebarWasCollapsed = false;
 const requestedMode = ref<ViewModeId | null>(null);
 const mode = computed<ViewModeId>(() => requestedMode.value ?? "write");
 const plugins = usePlugins();
@@ -111,6 +115,26 @@ function toggleSidebar() {
   }
 }
 
+/**
+ * Focus mode hides the app bar, the sidebar, and the page's editor chrome.
+ * Entering collapses the sidebar through the splitter, remembering whether it
+ * was already collapsed so leaving can put it back. The app bar is only hidden
+ * by its `v-if`, so the device preference is untouched.
+ */
+function setZen(value: boolean): void {
+  if (value === zen.value) return;
+  zen.value = value;
+
+  if (!isDesktop.value) return;
+
+  if (value) {
+    zenSidebarWasCollapsed = sidebarCollapsed.value;
+    if (!sidebarCollapsed.value) navPanel.value?.collapse();
+  } else if (!zenSidebarWasCollapsed) {
+    navPanel.value?.expand();
+  }
+}
+
 const { ensure: ensureSearch } = useSearch();
 const chat = useChat();
 const appUpdates = useAppUpdates();
@@ -169,6 +193,26 @@ onCapturedKey(
   (event) => {
     event.preventDefault();
     toggleAppBar();
+  },
+);
+
+// Cmd-Alt-Z / Ctrl-Alt-Z toggles focus mode.
+onCapturedKey(
+  (event) =>
+    (event.metaKey || event.ctrlKey) && event.altKey && !event.shiftKey && event.code === "KeyZ",
+  (event) => {
+    event.preventDefault();
+    setZen(!zen.value);
+  },
+);
+
+// Cmd-Shift-E / Ctrl-Shift-E opens the storage browser.
+onCapturedKey(
+  (event) =>
+    (event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.code === "KeyE",
+  (event) => {
+    event.preventDefault();
+    openFiles();
   },
 );
 
@@ -326,9 +370,11 @@ function afterBoot(): void {
   // one. A link without one follows the page's kind.
   if (isViewMode(modeQuery.value)) requestedMode.value = modeQuery.value;
 
-  // A ?view=plugin:<instance>, ?view=chat:<thread>, or ?view=graph link reopens that pane.
+  // A ?view=plugin:<instance>, ?view=chat:<thread>, ?view=graph, or ?view=files
+  // link reopens that pane.
   const linkedView = queryString(viewQuery.value);
   if (linkedView === "graph") graphOpen.value = true;
+  if (linkedView === "files") filesOpen.value = true;
   const instanceId = linkedView.startsWith("plugin:") ? linkedView.slice("plugin:".length) : "";
   if (instanceId && store.getPluginInstance(instanceId)) openPlugin(instanceId);
   const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
@@ -499,11 +545,12 @@ watch(modeQuery, (value) => {
   requestedMode.value = isViewMode(value) ? value : null;
 });
 
-/** One `?view=` value, so only one of the graph/chat/plugin panes is open. */
+/** One `?view=` value, so only one of the graph/chat/plugin/files panes is open. */
 function paneViewValue(): string {
   if (currentChatId.value) return `chat:${currentChatId.value}`;
   if (currentPluginId.value) return `plugin:${currentPluginId.value}`;
   if (graphOpen.value) return "graph";
+  if (filesOpen.value) return "files";
 
   return "";
 }
@@ -612,7 +659,17 @@ watch(viewQuery, (raw) => {
   if (value === "graph") {
     currentChatId.value = null;
     currentPluginId.value = null;
+    filesOpen.value = false;
     graphOpen.value = true;
+
+    return;
+  }
+
+  if (value === "files") {
+    currentChatId.value = null;
+    currentPluginId.value = null;
+    graphOpen.value = false;
+    filesOpen.value = true;
 
     return;
   }
@@ -623,6 +680,7 @@ watch(viewQuery, (raw) => {
       currentChatId.value = id;
       currentPluginId.value = null;
       graphOpen.value = false;
+      filesOpen.value = false;
     } else if (queryString(viewQuery.value) === value) {
       viewQuery.value = "";
     }
@@ -634,6 +692,7 @@ watch(viewQuery, (raw) => {
     const id = value.slice("plugin:".length);
     currentChatId.value = null;
     graphOpen.value = false;
+    filesOpen.value = false;
     if (workspace.value?.getPluginInstance(id)) {
       if (plugins.surfaceOf(id, "pane")) currentPluginId.value = id;
       else if (plugins.surfaceOf(id, "window")) plugins.openWindow(id);
@@ -646,6 +705,7 @@ watch(viewQuery, (raw) => {
   currentChatId.value = null;
   currentPluginId.value = null;
   graphOpen.value = false;
+  filesOpen.value = false;
 });
 
 // Back/forward or a pasted link changes the dock under us.
@@ -702,6 +762,7 @@ function openPage(id: string) {
   currentPluginId.value = null; // opening a page leaves the other panes
   currentChatId.value = null;
   graphOpen.value = false;
+  filesOpen.value = false;
   // An empty id means the open page was deleted. Fall back to home/first.
   currentPageId.value = id || fallbackPageId();
   syncRoute(historyMode);
@@ -759,8 +820,10 @@ function openPlugin(instanceId: string) {
 
   if (kinds.includes("pane")) {
     const historyMode = takeLayerHistory();
+    setZen(false);
     currentChatId.value = null;
     graphOpen.value = false;
+    filesOpen.value = false;
     currentPluginId.value = instanceId;
     syncRoute(historyMode);
   } else if (kinds.includes("window")) {
@@ -786,8 +849,10 @@ watch(
 function openGraph(rootAtPage = false) {
   const historyMode = takeLayerHistory();
   navOpen.value = false;
+  setZen(false);
   currentPluginId.value = null;
   currentChatId.value = null;
+  filesOpen.value = false;
   graphOpen.value = true;
 
   // A graph opened from a page is about that page. Turn local mode on so the
@@ -806,6 +871,23 @@ function closeGraph() {
   syncRoute("replace");
 }
 
+/** The storage browser takes the main pane, like the graph. */
+function openFiles() {
+  const historyMode = takeLayerHistory();
+  navOpen.value = false;
+  setZen(false);
+  currentPluginId.value = null;
+  currentChatId.value = null;
+  graphOpen.value = false;
+  filesOpen.value = true;
+  syncRoute(historyMode);
+}
+
+function closeFiles() {
+  filesOpen.value = false;
+  syncRoute("replace");
+}
+
 function closePlugin() {
   currentPluginId.value = null;
   syncRoute("replace");
@@ -819,6 +901,7 @@ function closePlugin() {
 function openChat(threadId?: string | null) {
   const historyMode = takeLayerHistory();
   navOpen.value = false;
+  setZen(false);
 
   const open = (id: string) => {
     if (isDesktop.value) {
@@ -827,6 +910,7 @@ function openChat(threadId?: string | null) {
     } else {
       currentPluginId.value = null;
       graphOpen.value = false;
+      filesOpen.value = false;
       currentChatId.value = id;
       dockChatId.value = null;
     }
@@ -870,6 +954,7 @@ function expandDock() {
   dockChatId.value = null;
   currentPluginId.value = null;
   graphOpen.value = false;
+  filesOpen.value = false;
   currentChatId.value = id;
   syncRoute("replace");
 }
@@ -949,20 +1034,23 @@ definePageMeta({ ssr: false });
       <div
         :key="workspaceGeneration"
         class="app__content"
-        :class="{ 'app__content--switching': switching }"
+        :class="{ 'app__content--switching': switching, 'app__content--zen': zen }"
         :aria-busy="switching ? true : undefined"
         :inert="switching ? true : undefined"
       >
         <!-- Window-level chrome. Narrow windows keep the mobile layout whole,
              so the bar goes with them rather than eating the editor's height. -->
         <AppBar
-          v-if="isDesktop && appBarVisible"
+          v-if="isDesktop && appBarVisible && !zen"
           :store="workspace"
           :back-label="backLabel"
           :forward-label="forwardLabel"
           :sidebar-visible="!sidebarCollapsed"
+          :zen="zen"
           @open-page="openPage"
           @toggle-sidebar="toggleSidebar"
+          @open-files="openFiles"
+          @toggle-zen="setZen(!zen)"
         />
 
         <div class="app__body">
@@ -1010,6 +1098,7 @@ definePageMeta({ ssr: false });
                   :plugin-instance-id="currentPluginId"
                   :chat-thread-id="currentChatId"
                   :graph-open="graphOpen"
+                  :files-open="filesOpen"
                   :dock-chat-id="isDesktop ? dockChatId : null"
                   :model-value="mode"
                   @update:model-value="setMode"
@@ -1022,6 +1111,7 @@ definePageMeta({ ssr: false });
                   @expand-dock="expandDock"
                   @open-graph="openGraph(true)"
                   @close-graph="graphOpen = false"
+                  @close-files="closeFiles"
                 >
                   <template #nav-toggle>
                     <UiIconButton
@@ -1072,6 +1162,7 @@ definePageMeta({ ssr: false });
                 :plugin-instance-id="currentPluginId"
                 :chat-thread-id="currentChatId"
                 :graph-open="graphOpen"
+                :files-open="filesOpen"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
@@ -1081,6 +1172,7 @@ definePageMeta({ ssr: false });
                 @close-chat="closeChat"
                 @open-graph="openGraph(true)"
                 @close-graph="closeGraph"
+                @close-files="closeFiles"
               >
                 <template #nav-toggle>
                   <UiIconButton
@@ -1097,6 +1189,19 @@ definePageMeta({ ssr: false });
           </template>
 
           <PluginWindows />
+
+          <!-- The app bar is hidden in focus mode, so the way out floats over
+               the page instead. -->
+          <button
+            v-if="zen"
+            type="button"
+            class="app__zen-exit"
+            :aria-label="$t('zen.exit')"
+            :title="$t('zen.exit')"
+            @click="setZen(false)"
+          >
+            <MsIcon name="fullscreen_exit" :size="20" />
+          </button>
         </div>
 
         <SearchPalette
@@ -1139,6 +1244,46 @@ definePageMeta({ ssr: false });
   flex: 1;
   min-height: 0;
   display: flex;
+}
+
+/* Focus mode: the page keeps the window. The app bar and the sidebar are
+   already gone through their own state; this drops the pane toolbars, the
+   notebook toolbar, the format strip, and the links panel. */
+.app__content--zen .page-view__toolbar,
+.app__content--zen .page-view__format,
+.app__content--zen .page-view__handle,
+.app__content--zen .notebook-toolbar,
+.app__content--zen .links,
+.app__content--zen .app__nav-toggle {
+  display: none;
+}
+
+.app__zen-exit {
+  position: fixed;
+  top: calc(var(--space-2) + var(--safe-top));
+  right: calc(var(--space-2) + var(--safe-right));
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-md);
+  height: var(--control-md);
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+  opacity: 0.5;
+  transition:
+    opacity var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.app__zen-exit:hover,
+.app__zen-exit:focus-visible {
+  color: var(--color-text);
+  opacity: 1;
 }
 
 /* Workspace switch feedback: a floating status pill over the dimmed, inert
