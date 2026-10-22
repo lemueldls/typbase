@@ -178,6 +178,38 @@ async function reveal(relative: string): Promise<void> {
 /* Files view: a lazy tree over `list` + `stat`. */
 
 const nodes = ref<FileNode[]>([]);
+/** Recursive folder totals, keyed by path. Filled in as listings arrive. */
+const folderSizes = ref(new Map<string, number>());
+const measuring = new Set<string>();
+
+async function measureFolder(node: FileNode): Promise<void> {
+  if (node.kind !== "directory" || folderSizes.value.has(node.path) || measuring.has(node.path)) {
+    return;
+  }
+
+  measuring.add(node.path);
+  try {
+    const size = await directorySize(node.path);
+    const next = new Map(folderSizes.value);
+    next.set(node.path, size);
+    folderSizes.value = next;
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    measuring.delete(node.path);
+  }
+}
+
+/** A file's own size, or a folder's total once its walk finishes. */
+function nodeMeta(node: FileNode): string {
+  if (node.kind === "file") return formatBytes(node.size);
+
+  const size = folderSizes.value.get(node.path);
+
+  return size === undefined
+    ? t("explorer.directory")
+    : `${t("explorer.directory")} · ${formatBytes(size)}`;
+}
 
 async function readChildren(path: string): Promise<FileNode[]> {
   const active = backend.value;
@@ -197,11 +229,17 @@ async function readChildren(path: string): Promise<FileNode[]> {
     });
   }
 
+  for (const node of result) {
+    if (node.kind === "directory") void measureFolder(node);
+  }
+
   return result;
 }
 
 async function refreshFiles(): Promise<void> {
   error.value = "";
+  folderSizes.value = new Map();
+  measuring.clear();
   nodes.value = await readChildren("");
 }
 
@@ -217,7 +255,8 @@ async function toggleFolder(node: FileNode): Promise<void> {
   }
 }
 
-interface FlatNode extends FileNode {
+interface FlatNode {
+  node: FileNode;
   depth: number;
 }
 
@@ -225,7 +264,7 @@ const flatNodes = computed<FlatNode[]>(() => {
   const out: FlatNode[] = [];
   const walk = (list: FileNode[], depth: number) => {
     for (const node of list) {
-      out.push({ ...node, depth });
+      out.push({ node, depth });
       if (node.kind === "directory" && node.expanded && node.children) {
         walk(node.children, depth + 1);
       }
@@ -450,42 +489,53 @@ onBeforeUnmount(() => {
       </UiButton>
 
       <div
-        v-for="node in flatNodes"
-        :key="node.path"
+        v-for="entry in flatNodes"
+        :key="entry.node.path"
         class="explorer__node"
-        :style="{ paddingLeft: `calc(var(--space-1-5) + ${node.depth} * var(--space-4))` }"
+        :style="{ '--depth': entry.depth }"
       >
+        <span class="explorer__guides" aria-hidden="true">
+          <span v-for="level in entry.depth" :key="level" class="explorer__guide" />
+        </span>
         <UiTooltip
-          v-if="node.kind === 'directory'"
-          :text="node.expanded ? $t('explorer.collapse') : $t('explorer.expand')"
+          v-if="entry.node.kind === 'directory'"
+          :text="entry.node.expanded ? $t('explorer.collapse') : $t('explorer.expand')"
         >
-          <button type="button" class="explorer__expand" @click="toggleFolder(node)">
-            <MsIcon :name="node.expanded ? 'keyboard_arrow_down' : 'chevron_right'" :size="20" />
+          <button type="button" class="explorer__expand" @click="toggleFolder(entry.node)">
+            <MsIcon
+              :name="entry.node.expanded ? 'keyboard_arrow_down' : 'chevron_right'"
+              :size="20"
+            />
           </button>
         </UiTooltip>
         <span v-else class="explorer__expand explorer__expand--file">
-          <MsIcon name="draft" :size="14" />
+          <MsIcon name="draft" :size="18" />
         </span>
-        <span
-          class="explorer__node-name"
-          :class="{ 'explorer__node-name--dir': node.kind === 'directory' }"
+        <button
+          v-if="entry.node.kind === 'directory'"
+          type="button"
+          class="explorer__node-name explorer__node-name--dir explorer__node-name--toggle"
+          :aria-expanded="entry.node.expanded"
+          @click="toggleFolder(entry.node)"
         >
-          {{ node.name }}
-        </span>
+          {{ entry.node.name }}
+        </button>
+        <span v-else class="explorer__node-name">{{ entry.node.name }}</span>
         <span class="explorer__node-meta">
-          <template v-if="node.kind === 'file'">{{ formatBytes(node.size) }}</template>
-          <template v-else>{{ $t("explorer.directory") }}</template>
-          <template v-if="node.modifiedAt"> · {{ formatTime(node.modifiedAt) }}</template>
+          {{ nodeMeta(entry.node) }}
+          <template v-if="entry.node.modifiedAt">
+            · {{ formatTime(entry.node.modifiedAt) }}</template
+          >
         </span>
         <span class="explorer__actions">
           <UiIconButton
-            v-if="node.kind === 'file'"
+            v-if="entry.node.kind === 'file'"
             icon="download"
             :size="20"
             :label="$t('explorer.download')"
             variant="ghost"
             class="button--tiny"
-            @click="download(node)"
+            @click="download(entry.node)"
           />
           <UiIconButton
             v-if="isNative"
@@ -494,7 +544,7 @@ onBeforeUnmount(() => {
             :label="$t('explorer.reveal')"
             variant="ghost"
             class="button--tiny"
-            @click="reveal(node.path)"
+            @click="reveal(entry.node.path)"
           />
           <UiIconButton
             icon="delete"
@@ -503,7 +553,7 @@ onBeforeUnmount(() => {
             variant="ghost"
             danger
             class="button--tiny"
-            @click="deleteNode(node)"
+            @click="deleteNode(entry.node)"
           />
         </span>
       </div>
@@ -605,7 +655,41 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--space-1-5);
   min-width: 0;
+}
+
+.explorer__row {
   padding: var(--space-1) 0;
+}
+
+.explorer__node {
+  position: relative;
+  padding: var(--space-1) 0 var(--space-1) calc(var(--space-1-5) + var(--depth, 0) * var(--space-4));
+}
+
+/* One line per ancestor. Positioned over the row's indent, so the lines run
+   edge to edge down a folder's children. */
+.explorer__guides {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--space-1-5);
+  display: flex;
+  pointer-events: none;
+}
+
+.explorer__guide {
+  position: relative;
+  width: var(--space-4);
+}
+
+.explorer__guide::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--color-border);
 }
 
 .explorer__expand,
@@ -662,6 +746,20 @@ onBeforeUnmount(() => {
 
 .explorer__node-name--dir {
   font-weight: 600;
+}
+
+.explorer__node-name--toggle {
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.explorer__node-name--toggle:hover {
+  text-decoration: underline;
 }
 
 .explorer__node-meta {

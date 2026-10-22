@@ -2305,6 +2305,18 @@ describe("typbase app", async () => {
     await page.locator(".explorer__tab", { hasText: "Files" }).click();
     await page.waitForSelector(".explorer__node", { timeout: 30_000 });
 
+    // A folder expands from its name, opens its children, and reports a total
+    // size once the recursive walk finishes.
+    const folder = page.locator(".explorer__node-name--toggle").first();
+    const before = await page.locator(".explorer__node").count();
+    await folder.click();
+    await expect.poll(() => page.locator(".explorer__node").count()).toBeGreaterThan(before);
+    await expect.poll(() => folder.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(() => page.locator(".explorer__guide").count()).toBeGreaterThan(0);
+    await expect
+      .poll(() => page.locator(".explorer__node-meta", { hasText: "folder ·" }).count())
+      .toBeGreaterThan(0);
+
     await page.locator(".files-view__actions button").click();
     await expect(page.locator(".files-view").count()).resolves.toBe(0);
     await page.close();

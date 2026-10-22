@@ -33,7 +33,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
   align-items: center;
   gap: var(--space-2);
   min-height: var(--pane-header-height);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
