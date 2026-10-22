@@ -13,7 +13,7 @@
     "convertToDocument": "Convert to document",
     "close": "Close",
     "copied": "Copied",
-    "copyId": "Copy note id",
+    "copyId": "Copy note ID",
     "working": "Working…",
     "today": "Today",
     "none": "—"
@@ -123,6 +123,16 @@
     "publishWorking": "Working…",
     "dropMedia": "Drop to insert media"
   },
+  "toc": {
+    "title": "Contents",
+    "count": "{count} headings",
+    "empty": "No headings in this note.",
+    "unavailable": "The outline is unavailable while the engine is down."
+  },
+  "zen": {
+    "enter": "Focus mode",
+    "exit": "Exit focus mode"
+  },
   "settings": {
     "title": "Workspace settings",
     "tabGeneral": "General",
@@ -187,6 +197,8 @@
     "editorSoftWrapHint": "Wrap long lines instead of scrolling sideways.",
     "editorScrollPastEnd": "Scroll past the last line",
     "editorScrollPastEndHint": "Keep scroll room below the document.",
+    "editorVim": "Vim keybindings",
+    "editorVimHint": "Normal, insert, and visual modes. `:w` saves the page.",
     "editorSplitScroll": "Split view scroll sync",
     "editorSplitScrollHint": "Choose which pane follows the other in split view.",
     "editorSplitScrollBoth": "Both directions",

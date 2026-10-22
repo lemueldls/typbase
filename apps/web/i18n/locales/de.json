@@ -123,6 +123,16 @@
     "publishWorking": "Arbeite…",
     "dropMedia": "Zum Einfügen von Medien hier ablegen"
   },
+  "toc": {
+    "title": "Inhalt",
+    "count": "{count} Überschriften",
+    "empty": "Keine Überschriften in dieser Notiz.",
+    "unavailable": "Die Gliederung ist nicht verfügbar, solange die Engine nicht läuft."
+  },
+  "zen": {
+    "enter": "Fokusmodus",
+    "exit": "Fokusmodus beenden"
+  },
   "settings": {
     "title": "Arbeitsbereich-Einstellungen",
     "tabGeneral": "Allgemein",
@@ -187,6 +197,8 @@
     "editorSoftWrapHint": "Bricht lange Zeilen um, statt sie zu scrollen.",
     "editorScrollPastEnd": "Über die letzte Zeile hinaus scrollen",
     "editorScrollPastEndHint": "Lässt Scrollraum unter dem Dokument.",
+    "editorVim": "Vim-Tastenbelegung",
+    "editorVimHint": "Normal-, Einfüge- und Visuellmodus. `:w` speichert die Seite.",
     "editorSplitScroll": "Scroll-Synchronisierung der geteilten Ansicht",
     "editorSplitScrollHint": "Legt fest, welche Seite in der geteilten Ansicht der anderen folgt.",
     "editorSplitScrollBoth": "Beide Richtungen",

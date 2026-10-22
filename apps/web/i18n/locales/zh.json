@@ -123,6 +123,16 @@
     "publishWorking": "处理中…",
     "dropMedia": "拖放以插入素材"
   },
+  "toc": {
+    "title": "目录",
+    "count": "{count} 个标题",
+    "empty": "此笔记没有标题。",
+    "unavailable": "引擎停止时无法显示目录。"
+  },
+  "zen": {
+    "enter": "专注模式",
+    "exit": "退出专注模式"
+  },
   "settings": {
     "title": "工作区设置",
     "tabGeneral": "常规",
@@ -187,6 +197,8 @@
     "editorSoftWrapHint": "长行换行，不横向滚动。",
     "editorScrollPastEnd": "滚动到最后一行之后",
     "editorScrollPastEndHint": "文档末尾保留滚动空间。",
+    "editorVim": "Vim 快捷键",
+    "editorVimHint": "普通、插入和可视模式。`:w` 保存页面。",
     "editorSplitScroll": "分屏滚动同步",
     "editorSplitScrollHint": "选择分屏中哪一侧跟随另一侧滚动。",
     "editorSplitScrollBoth": "双向",

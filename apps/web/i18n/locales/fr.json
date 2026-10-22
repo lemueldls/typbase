@@ -123,6 +123,16 @@
     "publishWorking": "En cours…",
     "dropMedia": "Déposer pour insérer un média"
   },
+  "toc": {
+    "title": "Sommaire",
+    "count": "{count} titres",
+    "empty": "Aucun titre dans cette note.",
+    "unavailable": "Le sommaire est indisponible tant que le moteur est arrêté."
+  },
+  "zen": {
+    "enter": "Mode concentration",
+    "exit": "Quitter le mode concentration"
+  },
   "settings": {
     "title": "Paramètres de l'espace",
     "tabGeneral": "Général",
@@ -187,6 +197,8 @@
     "editorSoftWrapHint": "Coupe les lignes longues au lieu de les faire défiler.",
     "editorScrollPastEnd": "Défiler au-delà de la dernière ligne",
     "editorScrollPastEndHint": "Garde de l'espace de défilement sous le document.",
+    "editorVim": "Raccourcis Vim",
+    "editorVimHint": "Modes normal, insertion et visuel. `:w` enregistre la page.",
     "editorSplitScroll": "Synchronisation du défilement en vue partagée",
     "editorSplitScrollHint": "Choisit le volet qui suit l'autre en vue partagée.",
     "editorSplitScrollBoth": "Les deux sens",

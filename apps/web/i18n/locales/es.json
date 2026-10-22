@@ -13,7 +13,7 @@
     "convertToDocument": "Convertir en documento",
     "close": "Cerrar",
     "copied": "Copiado",
-    "copyId": "Copiar id de la nota",
+    "copyId": "Copiar ID de la nota",
     "working": "Trabajando…",
     "today": "Hoy",
     "none": "—"
@@ -123,6 +123,16 @@
     "publishWorking": "Trabajando…",
     "dropMedia": "Suelta para insertar medios"
   },
+  "toc": {
+    "title": "Contenido",
+    "count": "{count} encabezados",
+    "empty": "Esta nota no tiene encabezados.",
+    "unavailable": "El índice no está disponible mientras el motor esté detenido."
+  },
+  "zen": {
+    "enter": "Modo concentración",
+    "exit": "Salir del modo concentración"
+  },
   "settings": {
     "title": "Ajustes del espacio",
     "tabGeneral": "General",
@@ -187,6 +197,8 @@
     "editorSoftWrapHint": "Ajusta las líneas largas en vez de desplazarlas.",
     "editorScrollPastEnd": "Desplazar más allá de la última línea",
     "editorScrollPastEndHint": "Deja espacio de desplazamiento bajo el documento.",
+    "editorVim": "Atajos de Vim",
+    "editorVimHint": "Modos normal, inserción y visual. `:w` guarda la página.",
     "editorSplitScroll": "Sincronización de desplazamiento en vista dividida",
     "editorSplitScrollHint": "Elige qué panel sigue al otro en la vista dividida.",
     "editorSplitScrollBoth": "Ambas direcciones",
