@@ -19,24 +19,34 @@ import { typstSourceSync } from "./sync";
 import { tooltipStateField, tooltipViewPlugin } from "./tooltip";
 import { typstStateField, typstViewPlugin, tooltipsStateField } from "./widgets";
 
+const bracketPairs: Record<string, string> = { "(": ")", "[": "]", "{": "}", $: "$" };
+
 /**
  * Typing a space with the caret between `(` and `)`, `[` and `]`, `{` and `}`,
- * or two `$` inserts it before the closer. Returning true stops CodeMirror's
- * default insertion, which would otherwise land a second space at the caret.
+ * or two `$` pads the empty pair: two spaces go in before the closer and the
+ * caret lands between them, so typing `x` gives `( x )`. Returning true stops
+ * CodeMirror's default insertion, which would otherwise add a third space.
+ *
+ * The insertion point comes from the state selection, not from the DOM change.
+ * After an auto-closed bracket the DOM selection can still sit at the end of
+ * the pair while `drawSelection` already paints the caret between them, so the
+ * DOM position would put the space after the closer.
  */
 const addSpaceBeforeClosingBracket = EditorView.inputHandler.of((view, from, to, text) => {
   if (text !== " " || from !== to) return false;
 
   const { state } = view;
-  const pos = from;
-  const bracketPairs = { "(": ")", "[": "]", "{": "}", $: "$" };
-  const before = state.doc.sliceString(pos - 1, pos) as keyof typeof bracketPairs;
-  const after = state.doc.sliceString(pos, pos + 1) as keyof typeof bracketPairs;
+  const { main } = state.selection;
+  if (!main.empty) return false;
+
+  const pos = main.head;
+  const before = state.doc.sliceString(pos - 1, pos);
+  const after = state.doc.sliceString(pos, pos + 1);
 
   if (!bracketPairs[before] || after !== bracketPairs[before]) return false;
 
   view.dispatch({
-    changes: { from: pos, to: pos, insert: " " },
+    changes: { from: pos, to: pos, insert: "  " },
     selection: { anchor: pos + 1 },
   });
 
