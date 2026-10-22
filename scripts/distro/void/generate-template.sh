@@ -46,7 +46,6 @@ do_build() {
 
 do_install() {
 	vbin target/release/typbase
-	vlicense LICENSE
 
 	cd target/release/bundle/deb/Typbase_\${version}_amd64/data || exit 1
 	vmkdir usr/share/applications
@@ -57,7 +56,5 @@ do_install() {
 	vcopy usr/share/icons/hicolor/128x128/apps/typbase.png usr/share/icons/hicolor/128x128/apps
 	vmkdir usr/share/icons/hicolor/256x256@2/apps
 	vcopy usr/share/icons/hicolor/256x256@2/apps/typbase.png usr/share/icons/hicolor/256x256@2/apps
-	vmkdir usr/share/licenses/typbase
-	vcopy usr/share/licenses/typbase/LICENSE usr/share/licenses/typbase
 }
 EOF
