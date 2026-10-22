@@ -29,6 +29,7 @@ import {
   missingFontFamilies,
   removeCustomFont,
 } from "~/lib/customFonts";
+import { openExternal } from "~/lib/openExternal";
 import { normalizeDictionaryWords } from "~/lib/spellcheckSettings";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 import { CUSTOM_THEME_ID, resolveTheme, THEMES } from "~/lib/themes";
@@ -206,6 +207,13 @@ const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string }> = [
 const activeTab = ref<SettingsTab>("general");
 /** Bindable so another surface (the app bar's File menu) can open it too. */
 const open = defineModel<boolean>("open", { default: false });
+
+/** Project home, linked from the General tab. */
+const PROJECT_URL = "https://github.com/lemueldls/typbase";
+
+function openProject(): void {
+  openExternal(PROJECT_URL);
+}
 
 // Typst sources that drive page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
@@ -704,6 +712,18 @@ async function renameWorkspace(event: Event) {
                 @click="checkForUpdates()"
               >
                 {{ updateStatus === "checking" ? $t("updates.checking") : $t("updates.check") }}
+              </UiButton>
+            </div>
+          </div>
+
+          <div class="settings__field">
+            <span>{{ $t("settings.project") }}</span>
+            <div class="settings__storage">
+              <span class="settings__storage-info">
+                <span class="settings__storage-label">{{ $t("settings.projectHint") }}</span>
+              </span>
+              <UiButton @click="openProject">
+                {{ $t("settings.projectOpen") }}
               </UiButton>
             </div>
           </div>
