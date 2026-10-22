@@ -38,6 +38,7 @@ const emit = defineEmits<{
 
 const nav = useNavHistory();
 const { show: showSearch } = useSearchPalette();
+const shortcuts = useShortcutsDialog();
 const appUpdates = useAppUpdates();
 
 /** reka's menubar root holds the value of whichever menu is open. */
@@ -106,6 +107,12 @@ async function openToday(): Promise<void> {
 
           <UiMenubarItem icon="fullscreen" @select="emit('toggleZen')">
             {{ zen ? $t("zen.exit") : $t("zen.enter") }}
+          </UiMenubarItem>
+        </UiMenubarMenu>
+
+        <UiMenubarMenu :label="$t('shortcuts.menu')" value="help">
+          <UiMenubarItem icon="keyboard" @select="shortcuts.show()">
+            {{ $t("shortcuts.title") }}
           </UiMenubarItem>
         </UiMenubarMenu>
       </UiMenubar>

@@ -15,8 +15,8 @@ import { engineAvailable } from "~/lib/engineHealth";
 import { sectionsOf } from "~/lib/engineSyntax";
 import { buildExport, type ExportOptions } from "~/lib/exportPage";
 import { buildWorkspaceExport, type WorkspaceExportOptions } from "~/lib/exportWorkspace";
+import { isTypingTarget, matchesShortcut } from "~/lib/keybindings";
 import { resolveOpenPageId } from "~/lib/openPage";
-import { isMac } from "~/lib/platform";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
 import { testApi } from "~/lib/testApi";
@@ -56,6 +56,7 @@ const {
   hide: hidePalette,
   toggle: togglePalette,
 } = useSearchPalette();
+const { open: shortcutsOpen } = useShortcutsDialog();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
@@ -141,7 +142,7 @@ const appUpdates = useAppUpdates();
 
 // Cmd-K / Ctrl-K opens the search palette.
 onCapturedKey(
-  (event) => (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k",
+  (event) => matchesShortcut(event, "search"),
   (event) => {
     event.preventDefault();
     togglePalette();
@@ -151,25 +152,12 @@ onCapturedKey(
 /**
  * Back and forward, on the chords browsers and editors use. The desktop shell
  * has no browser to do it, and in a browser tab Alt-ArrowLeft is the browser's
- * own back, which would navigate twice.
+ * own back, which would navigate twice. The chord specs live in
+ * `lib/keybindings.ts`; the platform split is part of `matchesShortcut`.
  */
-function isNavChord(event: KeyboardEvent, direction: "back" | "forward"): boolean {
-  if (event.ctrlKey || event.shiftKey) return false;
-
-  if (event.altKey && !event.metaKey) {
-    return event.key === (direction === "back" ? "ArrowLeft" : "ArrowRight");
-  }
-
-  if (!isMac() || !event.metaKey || event.altKey) return false;
-
-  // `code` keeps the bracket chords working on layouts where the key is
-  // something else.
-  return event.code === (direction === "back" ? "BracketLeft" : "BracketRight");
-}
-
 for (const direction of ["back", "forward"] as const) {
   onCapturedKey(
-    (event) => isTauri() && isNavChord(event, direction),
+    (event) => isTauri() && matchesShortcut(event, direction),
     (event) => {
       // The settings fields and the plugin studio install CodeMirror's default
       // keymap, where these arrows walk the syntax tree and the brackets
@@ -185,11 +173,7 @@ for (const direction of ["back", "forward"] as const) {
 
 // Cmd-J / Ctrl-J hides the app bar for the editor's full height.
 onCapturedKey(
-  (event) =>
-    (event.metaKey || event.ctrlKey) &&
-    !event.altKey &&
-    !event.shiftKey &&
-    event.key.toLowerCase() === "j",
+  (event) => matchesShortcut(event, "appBar"),
   (event) => {
     event.preventDefault();
     toggleAppBar();
@@ -198,8 +182,7 @@ onCapturedKey(
 
 // Cmd-Alt-Z / Ctrl-Alt-Z toggles focus mode.
 onCapturedKey(
-  (event) =>
-    (event.metaKey || event.ctrlKey) && event.altKey && !event.shiftKey && event.code === "KeyZ",
+  (event) => matchesShortcut(event, "focus"),
   (event) => {
     event.preventDefault();
     setZen(!zen.value);
@@ -208,11 +191,19 @@ onCapturedKey(
 
 // Cmd-Shift-E / Ctrl-Shift-E opens the storage browser.
 onCapturedKey(
-  (event) =>
-    (event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.code === "KeyE",
+  (event) => matchesShortcut(event, "files"),
   (event) => {
     event.preventDefault();
     openFiles();
+  },
+);
+
+// `?` opens this list, but only when no text field or editor has focus.
+onCapturedKey(
+  (event) => matchesShortcut(event, "shortcuts") && !isTypingTarget(event.target),
+  (event) => {
+    event.preventDefault();
+    shortcutsOpen.value = true;
   },
 );
 
@@ -1210,6 +1201,8 @@ definePageMeta({ ssr: false });
           @open="openSearchResult"
           @close="hidePalette"
         />
+
+        <KeyboardShortcutsDialog v-model:open="shortcutsOpen" />
       </div>
     </template>
 

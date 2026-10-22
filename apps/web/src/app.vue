@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { pushToast } from "~/composables/toasts";
+import { matchesShortcut } from "~/lib/keybindings";
 import { requestSave } from "~/lib/saveRequest";
 
 const noHover = useMediaQuery("(hover: none) and (pointer: coarse)");
@@ -7,9 +8,7 @@ const noHover = useMediaQuery("(hover: none) and (pointer: coarse)");
 /** Ctrl/Cmd+S saves now and says so. Capture phase: CodeMirror's keymap gets
  *  first look otherwise, and the browser's own save dialog is never wanted. */
 function onKeydown(event: KeyboardEvent): void {
-  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-  // `code` keeps the shortcut working on non-Latin layouts.
-  if (event.code !== "KeyS" && event.key.toLowerCase() !== "s") return;
+  if (!matchesShortcut(event, "save")) return;
 
   event.preventDefault();
   if (event.repeat) return;

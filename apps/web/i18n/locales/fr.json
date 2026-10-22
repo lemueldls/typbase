@@ -134,6 +134,28 @@
     "enter": "Mode concentration",
     "exit": "Quitter le mode concentration"
   },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "menu": "Aide",
+    "hint": "Appuyez sur ? quand l'éditeur n'a pas le focus.",
+    "open": "Afficher cette liste",
+    "groupApp": "Application",
+    "groupEditor": "Éditeur",
+    "savePage": "Enregistrer la page",
+    "toggleAppBar": "Afficher ou masquer la barre de l'application",
+    "toggleFocus": "Basculer le mode concentration",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "comment": "Basculer le commentaire",
+    "find": "Rechercher dans la page",
+    "goto": "Aller à la ligne",
+    "nextMatch": "Correspondance suivante",
+    "selectNext": "Sélectionner l'occurrence suivante",
+    "moveLineUp": "Monter la ligne",
+    "moveLineDown": "Descendre la ligne",
+    "blankLine": "Insérer une ligne vide",
+    "nextDiagnostic": "Diagnostic suivant"
+  },
   "settings": {
     "title": "Paramètres de l'espace",
     "tabGeneral": "Général",

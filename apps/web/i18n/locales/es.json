@@ -134,6 +134,28 @@
     "enter": "Modo concentración",
     "exit": "Salir del modo concentración"
   },
+  "shortcuts": {
+    "title": "Atajos de teclado",
+    "menu": "Ayuda",
+    "hint": "Pulsa ? cuando el editor no tenga el foco.",
+    "open": "Mostrar esta lista",
+    "groupApp": "Aplicación",
+    "groupEditor": "Editor",
+    "savePage": "Guardar la página",
+    "toggleAppBar": "Mostrar u ocultar la barra de la app",
+    "toggleFocus": "Alternar el modo concentración",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "comment": "Alternar comentario",
+    "find": "Buscar en la página",
+    "goto": "Ir a la línea",
+    "nextMatch": "Siguiente coincidencia",
+    "selectNext": "Seleccionar la siguiente aparición",
+    "moveLineUp": "Subir la línea",
+    "moveLineDown": "Bajar la línea",
+    "blankLine": "Insertar línea en blanco",
+    "nextDiagnostic": "Siguiente diagnóstico"
+  },
   "settings": {
     "title": "Ajustes del espacio",
     "tabGeneral": "General",

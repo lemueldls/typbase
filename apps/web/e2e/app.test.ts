@@ -2273,6 +2273,28 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("lists keyboard shortcuts from the registry", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    // Focus the shell, not the editor, so `?` is not typed into the note.
+    await page.locator(".app").click({ position: { x: 4, y: 4 } });
+    await page.keyboard.type("?");
+
+    await page.waitForSelector(".shortcuts-dialog", { timeout: 10_000 });
+    await expect
+      .poll(() => page.locator(".shortcuts__row", { hasText: "Save the page" }).count())
+      .toBe(1);
+    await expect
+      .poll(() => page.locator(".shortcuts__row", { hasText: "Show this list" }).count())
+      .toBe(1);
+    expect(await page.locator(".shortcuts__key", { hasText: /^Ctrl\+S$/ }).count()).toBe(1);
+
+    await page.locator(".shortcuts__close").click();
+    await expect.poll(() => page.locator(".shortcuts-dialog").count()).toBe(0);
+    await page.close();
+  });
+
   it("opens the storage browser from the keyboard", async () => {
     const page = await createPage();
     await openApp(page);

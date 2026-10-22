@@ -62,6 +62,7 @@ const workspaceIcon = computed({
 });
 const { t, locale, setLocale } = useI18n();
 const appLocale = useAppLocale(locale, setLocale, () => props.store);
+const shortcuts = useShortcutsDialog();
 
 const {
   channel: updateChannel,
@@ -213,6 +214,12 @@ const PROJECT_URL = "https://github.com/lemueldls/typbase";
 
 function openProject(): void {
   openExternal(PROJECT_URL);
+}
+
+/** The shortcut list lives outside Settings; close this and show it. */
+function openShortcuts(): void {
+  open.value = false;
+  shortcuts.show();
 }
 
 // Typst sources that drive page structure: the daily template placeholders
@@ -732,6 +739,18 @@ async function renameWorkspace(event: Event) {
               </span>
               <UiButton @click="openProject">
                 {{ $t("settings.projectOpen") }}
+              </UiButton>
+            </div>
+          </div>
+
+          <div class="settings__field">
+            <span>{{ $t("shortcuts.title") }}</span>
+            <div class="settings__storage">
+              <span class="settings__storage-info">
+                <span class="settings__storage-label">{{ $t("shortcuts.hint") }}</span>
+              </span>
+              <UiButton @click="openShortcuts">
+                {{ $t("shortcuts.title") }}
               </UiButton>
             </div>
           </div>

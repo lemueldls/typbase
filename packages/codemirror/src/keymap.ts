@@ -51,6 +51,10 @@ export const vimKeymapFacet = Facet.define<boolean, boolean>({
   combine: (values) => values.some(Boolean),
 });
 
+/**
+ * The app's shortcuts dialog mirrors the common entries here. When a chord
+ * changes, update `EDITOR_SHORTCUTS` in `apps/web/src/lib/keybindings.ts` too.
+ */
 export const typstKeymap = keymap.of([
   ...completionKeymap.filter((binding) => binding.key !== "Escape"),
   ...closeBracketsKeymap,

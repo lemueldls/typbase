@@ -134,6 +134,28 @@
     "enter": "Focus mode",
     "exit": "Exit focus mode"
   },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "menu": "Help",
+    "hint": "Press ? when the editor is not focused.",
+    "open": "Show this list",
+    "groupApp": "Application",
+    "groupEditor": "Editor",
+    "savePage": "Save the page",
+    "toggleAppBar": "Toggle the app bar",
+    "toggleFocus": "Toggle focus mode",
+    "undo": "Undo",
+    "redo": "Redo",
+    "comment": "Toggle comment",
+    "find": "Find in page",
+    "goto": "Go to line",
+    "nextMatch": "Next match",
+    "selectNext": "Select next occurrence",
+    "moveLineUp": "Move line up",
+    "moveLineDown": "Move line down",
+    "blankLine": "Insert blank line",
+    "nextDiagnostic": "Next diagnostic"
+  },
   "settings": {
     "title": "Workspace settings",
     "tabGeneral": "General",

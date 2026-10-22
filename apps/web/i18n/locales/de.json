@@ -134,6 +134,28 @@
     "enter": "Fokusmodus",
     "exit": "Fokusmodus beenden"
   },
+  "shortcuts": {
+    "title": "Tastenkürzel",
+    "menu": "Hilfe",
+    "hint": "Drücke ?, wenn der Editor nicht fokussiert ist.",
+    "open": "Diese Liste anzeigen",
+    "groupApp": "Anwendung",
+    "groupEditor": "Editor",
+    "savePage": "Seite speichern",
+    "toggleAppBar": "App-Leiste umschalten",
+    "toggleFocus": "Fokusmodus umschalten",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "comment": "Kommentar umschalten",
+    "find": "Im Dokument suchen",
+    "goto": "Zu Zeile springen",
+    "nextMatch": "Nächster Treffer",
+    "selectNext": "Nächstes Vorkommen auswählen",
+    "moveLineUp": "Zeile nach oben",
+    "moveLineDown": "Zeile nach unten",
+    "blankLine": "Leerzeile einfügen",
+    "nextDiagnostic": "Nächste Diagnose"
+  },
   "settings": {
     "title": "Arbeitsbereich-Einstellungen",
     "tabGeneral": "Allgemein",

@@ -134,6 +134,28 @@
     "enter": "专注模式",
     "exit": "退出专注模式"
   },
+  "shortcuts": {
+    "title": "键盘快捷键",
+    "menu": "帮助",
+    "hint": "编辑器未聚焦时按 ?。",
+    "open": "显示此列表",
+    "groupApp": "应用",
+    "groupEditor": "编辑器",
+    "savePage": "保存页面",
+    "toggleAppBar": "显示或隐藏应用栏",
+    "toggleFocus": "切换专注模式",
+    "undo": "撤销",
+    "redo": "重做",
+    "comment": "切换注释",
+    "find": "在页面中查找",
+    "goto": "跳转到行",
+    "nextMatch": "下一个匹配",
+    "selectNext": "选择下一个匹配项",
+    "moveLineUp": "上移行",
+    "moveLineDown": "下移行",
+    "blankLine": "插入空行",
+    "nextDiagnostic": "下一个诊断"
+  },
   "settings": {
     "title": "工作区设置",
     "tabGeneral": "常规",

@@ -34,6 +34,7 @@ import {
   type EngineFailure,
 } from "~/lib/engineHealth";
 import { fontFamiliesInSource } from "~/lib/fonts";
+import { matchesShortcut } from "~/lib/keybindings";
 import {
   createNotebookController,
   createNotebookSession,
@@ -110,8 +111,7 @@ const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
 const coarsePointer = useMediaQuery("(hover: none) and (pointer: coarse)");
 
 function onKeydown(event: KeyboardEvent): void {
-  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-  if (event.code !== "KeyP" && event.key.toLowerCase() !== "p") return;
+  if (!matchesShortcut(event, "export")) return;
 
   event.preventDefault();
   if (event.repeat) return;
