@@ -717,7 +717,10 @@
     "retry": "重试",
     "failed": "更新失败。",
     "permissionDenied": "请允许 Typbase 安装未知应用，然后重试。",
-    "packageManaged": "更新由你的软件包管理器提供。"
+    "packageManaged": "更新由你的软件包管理器提供。",
+    "packageManagedBy": "更新由 {manager} 管理。",
+    "managedHint": "此安装由软件包管理器维护，应用无法自行更新。",
+    "copyCommand": "复制更新命令"
   },
   "empty": {
     "title": "还没有页面",

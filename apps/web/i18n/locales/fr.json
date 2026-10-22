@@ -717,7 +717,10 @@
     "retry": "Réessayer",
     "failed": "La mise à jour a échoué.",
     "permissionDenied": "Autorisez Typbase à installer des applications inconnues, puis réessayez.",
-    "packageManaged": "Les mises à jour viennent de votre gestionnaire de paquets."
+    "packageManaged": "Les mises à jour viennent de votre gestionnaire de paquets.",
+    "packageManagedBy": "Les mises à jour sont gérées par {manager}.",
+    "managedHint": "Cette installation est gérée par votre gestionnaire de paquets. L’application ne peut pas se mettre à jour elle-même.",
+    "copyCommand": "Copier la commande"
   },
   "empty": {
     "title": "Aucune page pour l'instant",

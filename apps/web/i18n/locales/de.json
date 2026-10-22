@@ -717,7 +717,10 @@
     "retry": "Erneut versuchen",
     "failed": "Das Update ist fehlgeschlagen.",
     "permissionDenied": "Erlaube Typbase, unbekannte Apps zu installieren, und versuche es erneut.",
-    "packageManaged": "Updates kommen von deiner Paketverwaltung."
+    "packageManaged": "Updates kommen von deiner Paketverwaltung.",
+    "packageManagedBy": "Updates werden von {manager} verwaltet.",
+    "managedHint": "Diese Installation wird von deiner Paketverwaltung betreut. Die App kann sich nicht selbst aktualisieren.",
+    "copyCommand": "Update-Befehl kopieren"
   },
   "empty": {
     "title": "Noch keine Seiten",

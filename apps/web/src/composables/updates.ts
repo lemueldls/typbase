@@ -1,9 +1,9 @@
-import type { AppUpdate, UpdateInfo, UpdateProgress } from "~/lib/updates";
+import type { AppUpdate, PackageManagerInfo, UpdateInfo, UpdateProgress } from "~/lib/updates";
 
 import {
   checkForUpdate,
   UPDATE_PERMISSION_DENIED,
-  updateChannel,
+  updateChannelInfo,
   type UpdateChannel,
 } from "~/lib/updates";
 
@@ -23,6 +23,8 @@ export type UpdateStatus =
  */
 export const useAppUpdates = createSharedComposable(() => {
   const channel = ref<UpdateChannel>("unsupported");
+  const manager = ref<PackageManagerInfo | null>(null);
+  const currentVersion = ref("");
   const status = ref<UpdateStatus>("idle");
   const info = ref<UpdateInfo | null>(null);
   const progress = ref<UpdateProgress | null>(null);
@@ -34,7 +36,10 @@ export const useAppUpdates = createSharedComposable(() => {
 
   async function detect(): Promise<UpdateChannel> {
     if (!detected) {
-      channel.value = await updateChannel();
+      const result = await updateChannelInfo();
+      channel.value = result.channel;
+      currentVersion.value = result.currentVersion;
+      manager.value = result.manager ?? null;
       detected = true;
     }
 
@@ -48,14 +53,20 @@ export const useAppUpdates = createSharedComposable(() => {
   /** `silent` skips the up-to-date toast and error dialog for the boot check. */
   async function check({ silent = false } = {}): Promise<void> {
     const active = await detect();
-    if (active === "unsupported" || active === "desktop-package-managed") return;
+    if (active === "unsupported") return;
+    // Package repositories lag the release feed, so a managed install only
+    // checks when the user asks from Settings.
+    if (active === "desktop-package-managed" && silent) return;
     if (status.value === "checking" || status.value === "downloading") return;
 
     status.value = "checking";
     error.value = null;
 
     try {
-      const update = await checkForUpdate(active);
+      const update = await checkForUpdate(active, {
+        manager: manager.value,
+        currentVersion: currentVersion.value,
+      });
       if (!update) {
         pending = null;
         info.value = null;
@@ -79,7 +90,7 @@ export const useAppUpdates = createSharedComposable(() => {
 
   async function start(): Promise<void> {
     const update = pending;
-    if (!update || status.value === "downloading" || status.value === "installing") return;
+    if (!update?.start || status.value === "downloading" || status.value === "installing") return;
 
     status.value = "downloading";
     error.value = null;
@@ -122,6 +133,8 @@ export const useAppUpdates = createSharedComposable(() => {
 
   return {
     channel,
+    manager,
+    currentVersion,
     status,
     info,
     progress,

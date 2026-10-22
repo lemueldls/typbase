@@ -767,7 +767,10 @@
     "retry": "Retry",
     "failed": "The update failed.",
     "permissionDenied": "Allow Typbase to install unknown apps, then try again.",
-    "packageManaged": "Updates come from your package manager."
+    "packageManaged": "Updates come from your package manager.",
+    "packageManagedBy": "Updates are managed by {manager}.",
+    "managedHint": "This build is managed by your package manager. The app cannot install it itself.",
+    "copyCommand": "Copy update command"
   },
   "empty": {
     "title": "No pages yet",

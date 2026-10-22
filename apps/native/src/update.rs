@@ -11,22 +11,28 @@
 //! so they need no capability entry (same pattern as `storage.rs`).
 
 #[cfg(target_os = "android")]
-use serde::{Deserialize, Serialize};
-#[cfg(target_os = "android")]
-use tauri::Manager;
-use tauri::{AppHandle, Runtime};
-
-#[cfg(target_os = "android")]
 use std::collections::BTreeMap;
+#[cfg(target_os = "linux")]
+use std::path::{Path, PathBuf};
+#[cfg(target_os = "linux")]
+use std::process::Command;
+#[cfg(desktop)]
+use std::sync::OnceLock;
 
 #[cfg(target_os = "android")]
 use futures_util::StreamExt;
 #[cfg(target_os = "android")]
+use serde::Deserialize;
+use serde::Serialize;
+#[cfg(target_os = "android")]
 use sha2::{Digest, Sha256};
+#[cfg(target_os = "android")]
+use tauri::Manager;
 #[cfg(target_os = "android")]
 use tauri::ipc::Channel;
 #[cfg(target_os = "android")]
 use tauri::plugin::{Builder as PluginBuilder, PluginHandle, TauriPlugin};
+use tauri::{AppHandle, Runtime};
 #[cfg(target_os = "android")]
 use tokio::io::AsyncWriteExt;
 
@@ -57,6 +63,27 @@ const CHANNEL_DESKTOP_PACKAGE_MANAGED: &str = "desktop-package-managed";
 #[cfg(not(any(target_os = "android", desktop)))]
 const CHANNEL_UNSUPPORTED: &str = "unsupported";
 
+/// The package manager that owns this installation, when it can be found from
+/// the executable's path. `command` is a copyable hint, not something the app
+/// runs itself.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackageManagerInfo {
+    id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    command: Option<String>,
+}
+
+/// The channel and the data the update UI needs without a second round trip.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateChannelInfo {
+    channel: String,
+    current_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    manager: Option<PackageManagerInfo>,
+}
+
 /// Registers the Kotlin `UpdaterPlugin` that owns the installer intent, the
 /// install-unknown-apps settings flow, and the Play Core update. Android only.
 /// There is no Kotlin half on other targets.
@@ -74,29 +101,46 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 
 /// Which updater the running install should use.
 #[tauri::command]
-pub async fn update_channel<R: Runtime>(app: AppHandle<R>) -> Result<String, String> {
+pub async fn update_channel<R: Runtime>(app: AppHandle<R>) -> Result<UpdateChannelInfo, String> {
+    let current_version = app.package_info().version.to_string();
+
     #[cfg(target_os = "android")]
     {
-        return android_channel(&app);
+        return Ok(UpdateChannelInfo {
+            channel: android_channel(&app)?,
+            current_version,
+            manager: None,
+        });
     }
 
     #[cfg(desktop)]
     {
-        return Ok(desktop_channel(&app));
+        let manager = package_manager();
+        Ok(UpdateChannelInfo {
+            channel: desktop_channel(&app, manager.is_some()),
+            current_version,
+            manager,
+        })
     }
 
     #[cfg(not(any(target_os = "android", desktop)))]
     {
         let _ = app;
 
-        Ok(CHANNEL_UNSUPPORTED.into())
+        Ok(UpdateChannelInfo {
+            channel: CHANNEL_UNSUPPORTED.into(),
+            current_version,
+            manager: None,
+        })
     }
 }
 
-/// Distro packages built from `tauri.package.conf.json` blank the updater
-/// endpoints, so they report as package-managed instead of self-updating.
+/// A distro build can blank the updater endpoints, but release `.deb` and
+/// `.rpm` files also get repackaged by distro maintainers. Probe the owning
+/// package database too, and treat anything it owns as package-managed even
+/// when the bundled updater has endpoints.
 #[cfg(desktop)]
-fn desktop_channel<R: Runtime>(app: &AppHandle<R>) -> String {
+fn desktop_channel<R: Runtime>(app: &AppHandle<R>, owned: bool) -> String {
     let has_endpoints = app
         .config()
         .plugins
@@ -106,11 +150,208 @@ fn desktop_channel<R: Runtime>(app: &AppHandle<R>) -> String {
         .and_then(|value| value.as_array())
         .is_some_and(|endpoints| !endpoints.is_empty());
 
-    if has_endpoints {
+    if has_endpoints && !owned {
         CHANNEL_DESKTOP.into()
     } else {
         CHANNEL_DESKTOP_PACKAGE_MANAGED.into()
     }
+}
+
+#[cfg(desktop)]
+static PACKAGE_MANAGER: OnceLock<Option<PackageManagerInfo>> = OnceLock::new();
+
+#[cfg(desktop)]
+fn package_manager() -> Option<PackageManagerInfo> {
+    PACKAGE_MANAGER.get_or_init(detect_package_manager).clone()
+}
+
+/// Checks the executable against the package databases that ship a query tool.
+/// A source build outside those paths reports no owner and keeps the bundled
+/// updater. Nix store paths and sandboxed package layouts are recognized
+/// without running a command because their paths are already distinctive.
+#[cfg(desktop)]
+fn detect_package_manager() -> Option<PackageManagerInfo> {
+    if std::env::var_os("APPIMAGE").is_some() {
+        return None;
+    }
+
+    if let Some(id) = std::env::var("FLATPAK_ID").ok().filter(|id| !id.is_empty()) {
+        return Some(PackageManagerInfo {
+            id: "flatpak".into(),
+            command: Some(format!("flatpak update {id}")),
+        });
+    }
+
+    if std::env::var_os("SNAP").is_some() {
+        let package = std::env::var("SNAP_NAME").unwrap_or_else(|_| "typbase".into());
+        return Some(PackageManagerInfo {
+            id: "snap".into(),
+            command: Some(format!("sudo snap refresh {package}")),
+        });
+    }
+
+    let exe = std::env::current_exe().ok()?;
+    let canonical = std::fs::canonicalize(&exe).unwrap_or_else(|_| exe.clone());
+    let path = exe.to_string_lossy();
+    let canonical_path = canonical.to_string_lossy();
+
+    if path.starts_with("/nix/store/") || canonical_path.starts_with("/nix/store/") {
+        return Some(PackageManagerInfo {
+            id: "nix".into(),
+            command: None,
+        });
+    }
+
+    if cfg!(target_os = "macos")
+        && (path.contains("/Caskroom/")
+            || canonical_path.contains("/Caskroom/")
+            || [
+                "/opt/homebrew/Caskroom/typbase",
+                "/usr/local/Caskroom/typbase",
+            ]
+            .iter()
+            .any(|cask| std::path::Path::new(cask).exists()))
+    {
+        return Some(PackageManagerInfo {
+            id: "homebrew".into(),
+            command: Some("brew upgrade --cask typbase".into()),
+        });
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        for candidate in [path.as_ref(), canonical_path.as_ref()] {
+            if let Some(manager) = linux_package_owner(candidate) {
+                return Some(manager);
+            }
+        }
+    }
+
+    None
+}
+
+/// The owner query order follows the common layouts. A missing tool just
+/// returns `None`, so the next database gets a chance.
+#[cfg(target_os = "linux")]
+fn linux_package_owner(path: &str) -> Option<PackageManagerInfo> {
+    if let Some(package) = command_output("pacman", &["-Qoq", path]) {
+        let official = command_output("pacman", &["-Si", package.as_str()]).is_some();
+        let helper = if official {
+            None
+        } else if command_exists("shelly") {
+            Some("shelly")
+        } else {
+            ["yay", "paru"]
+                .into_iter()
+                .find(|helper| command_exists(helper))
+        };
+
+        let (id, command) = match (official, helper) {
+            (true, _) => ("pacman", Some(format!("sudo pacman -Syu {package}"))),
+            (false, Some("shelly")) => ("shelly", Some(format!("shelly update aur {package}"))),
+            (false, Some(helper)) => (helper, Some(format!("{helper} -Syu {package}"))),
+            (false, None) => ("pacman", None),
+        };
+        return Some(PackageManagerInfo {
+            id: id.into(),
+            command,
+        });
+    }
+
+    if let Some(owner) = command_output("dpkg-query", &["-S", path]) {
+        let package = owner
+            .split(':')
+            .next()
+            .and_then(|names| names.split(',').next())
+            .map(str::trim)
+            .filter(|name| !name.is_empty());
+        let command = match package {
+            Some(package) => {
+                format!("sudo apt update && sudo apt install --only-upgrade {package}")
+            }
+            None => "sudo apt update && sudo apt upgrade".into(),
+        };
+        return Some(PackageManagerInfo {
+            id: "apt".into(),
+            command: Some(command),
+        });
+    }
+
+    if let Some(package) = command_output("rpm", &["-qf", "--qf", "%{NAME}", path]) {
+        let (id, command) = if Path::new("/usr/bin/dnf").exists() {
+            ("dnf", Some(format!("sudo dnf upgrade {package}")))
+        } else if Path::new("/usr/bin/zypper").exists() {
+            ("zypper", Some(format!("sudo zypper update {package}")))
+        } else if Path::new("/usr/bin/rpm-ostree").exists() {
+            ("rpm-ostree", Some("sudo rpm-ostree upgrade".into()))
+        } else {
+            ("rpm", None)
+        };
+        return Some(PackageManagerInfo {
+            id: id.into(),
+            command,
+        });
+    }
+
+    if command_output("xbps-query", &["-o", path]).is_some() {
+        return Some(PackageManagerInfo {
+            id: "xbps".into(),
+            command: Some("sudo xbps-install -Su".into()),
+        });
+    }
+
+    if command_output("apk", &["info", "--who-owns", path]).is_some() {
+        return Some(PackageManagerInfo {
+            id: "apk".into(),
+            command: Some("sudo apk upgrade".into()),
+        });
+    }
+
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn command_exists(program: &str) -> bool {
+    if ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        .iter()
+        .any(|directory| Path::new(directory).join(program).is_file())
+    {
+        return true;
+    }
+
+    std::env::var_os("PATH").is_some_and(|path| {
+        std::env::split_paths(&path).any(|directory| directory.join(program).is_file())
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn command_output(program: &str, args: &[&str]) -> Option<String> {
+    // A desktop session can have a shorter PATH than a login shell, and Alpine
+    // keeps apk in /sbin. Try the standard bin directories before PATH lookup.
+    let mut candidates: Vec<PathBuf> = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        .iter()
+        .map(|directory| Path::new(directory).join(program))
+        .filter(|path| path.exists())
+        .collect();
+    candidates.push(PathBuf::from(program));
+
+    for candidate in candidates {
+        let Ok(output) = Command::new(&candidate).args(args).output() else {
+            continue;
+        };
+        if !output.status.success() {
+            continue;
+        }
+
+        let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if text.is_empty() {
+            continue;
+        }
+
+        return Some(text.lines().next().unwrap_or_default().to_string());
+    }
+
+    None
 }
 
 /// Installs from Google Play get Play Core updates. Everything else (direct APK,

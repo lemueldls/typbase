@@ -7,6 +7,19 @@ export type UpdateChannel =
   | "android-sideload"
   | "unsupported";
 
+/** The package manager that owns the executable, when the shell finds one. */
+export interface PackageManagerInfo {
+  id: string;
+  /** Copyable update command. The app never runs it. */
+  command?: string;
+}
+
+export interface UpdateChannelInfo {
+  channel: UpdateChannel;
+  currentVersion: string;
+  manager?: PackageManagerInfo;
+}
+
 export interface UpdateInfo {
   /** New version when the channel reports a semver. Play reports a code only. */
   version?: string;
@@ -18,6 +31,9 @@ export interface UpdateInfo {
   size?: number;
   /** Play owns the download and install UI. */
   play?: boolean;
+  /** The package manager owns the install, so the app only shows instructions. */
+  managed?: boolean;
+  manager?: PackageManagerInfo;
 }
 
 export interface UpdateProgress {
@@ -30,8 +46,8 @@ export type UpdateOutcome = "installed" | "canceled";
 
 export interface AppUpdate {
   info: UpdateInfo;
-  /** Downloads and hands the update to the installer. */
-  start(handlers: { onProgress: (progress: UpdateProgress) => void }): Promise<UpdateOutcome>;
+  /** Downloads and hands the update to the installer. Absent for managed installs. */
+  start?(handlers: { onProgress: (progress: UpdateProgress) => void }): Promise<UpdateOutcome>;
 }
 
 /** Thrown when the user declined the "install unknown apps" grant. */
@@ -64,28 +80,43 @@ interface PlayResult {
   code: number;
 }
 
+/** The stable release feed. The updater plugin reads `latest.json`. This is
+ *  the API equivalent for installs the app is not allowed to update itself. */
+const RELEASE_API = "https://api.github.com/repos/lemueldls/typbase/releases/latest";
+
+interface GitHubRelease {
+  tag_name?: string;
+  body?: string | null;
+  published_at?: string | null;
+}
+
 async function tauriCore() {
   return import("@tauri-apps/api/core");
 }
 
-/** Which updater this install should use. */
-export async function updateChannel(): Promise<UpdateChannel> {
-  if (!isTauri()) return "unsupported";
+/** Which updater this install should use, plus the owning package manager. */
+export async function updateChannelInfo(): Promise<UpdateChannelInfo> {
+  if (!isTauri()) return { channel: "unsupported", currentVersion: "" };
 
   try {
     const { invoke } = await tauriCore();
-    return await invoke<UpdateChannel>("update_channel");
+    return await invoke<UpdateChannelInfo>("update_channel");
   } catch (cause) {
     console.warn("[updates] could not resolve the update channel:", cause);
-    return "unsupported";
+    return { channel: "unsupported", currentVersion: "" };
   }
 }
 
 /** Checks the channel for a newer build. `null` means the app is current. */
-export async function checkForUpdate(channel: UpdateChannel): Promise<AppUpdate | null> {
+export async function checkForUpdate(
+  channel: UpdateChannel,
+  { manager, currentVersion }: { manager: PackageManagerInfo | null; currentVersion: string },
+): Promise<AppUpdate | null> {
   switch (channel) {
     case "desktop":
       return checkDesktop();
+    case "desktop-package-managed":
+      return checkManaged(manager, currentVersion);
     case "android-sideload":
       return checkSideload();
     case "android-play":
@@ -130,6 +161,79 @@ async function checkDesktop(): Promise<AppUpdate | null> {
       await relaunch().catch(() => {});
       return "installed";
     },
+  };
+}
+
+async function checkManaged(
+  manager: PackageManagerInfo | null,
+  currentVersion: string,
+): Promise<AppUpdate | null> {
+  const response = await fetch(RELEASE_API, {
+    headers: { Accept: "application/vnd.github+json" },
+  });
+  if (!response.ok) throw new Error(`release check failed (${response.status})`);
+
+  const release = (await response.json()) as GitHubRelease;
+  const version = (release.tag_name ?? "")
+    .trim()
+    .replace(/^typbase-v/, "")
+    .replace(/^v/, "");
+  if (!version || !isNewerVersion(version, currentVersion)) return null;
+
+  return {
+    info: {
+      version,
+      currentVersion,
+      notes: release.body?.trim() || undefined,
+      date: release.published_at ?? undefined,
+      managed: true,
+      manager: manager ?? undefined,
+    },
+  };
+}
+
+/** Semver ordering for the release tag and the installed package version. */
+export function isNewerVersion(candidate: string, current: string): boolean {
+  const a = parseVersion(candidate);
+  const b = parseVersion(current);
+  const length = Math.max(a.numbers.length, b.numbers.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const difference = (a.numbers[index] ?? 0) - (b.numbers[index] ?? 0);
+    if (difference !== 0) return difference > 0;
+  }
+
+  if (a.prerelease.length === 0 && b.prerelease.length > 0) return true;
+  if (a.prerelease.length > 0 && b.prerelease.length === 0) return false;
+
+  for (let index = 0; index < Math.max(a.prerelease.length, b.prerelease.length); index += 1) {
+    const left = a.prerelease[index];
+    const right = b.prerelease[index];
+    if (left === undefined) return false;
+    if (right === undefined) return true;
+    if (left === right) continue;
+
+    const leftNumber = /^\d+$/.test(left);
+    const rightNumber = /^\d+$/.test(right);
+    if (leftNumber && rightNumber) return Number(left) > Number(right);
+    if (leftNumber !== rightNumber) return leftNumber;
+
+    return left > right;
+  }
+
+  return false;
+}
+
+function parseVersion(value: string): { numbers: number[]; prerelease: string[] } {
+  const clean = value
+    .trim()
+    .replace(/^typbase-v/, "")
+    .replace(/^v/, "");
+  const [core = "", ...rest] = clean.split("-");
+
+  return {
+    numbers: core.split(".").map((part) => Number.parseInt(part, 10) || 0),
+    prerelease: rest.join("-").split(".").filter(Boolean),
   };
 }
 

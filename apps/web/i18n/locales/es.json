@@ -717,7 +717,10 @@
     "retry": "Reintentar",
     "failed": "La actualización falló.",
     "permissionDenied": "Permite que Typbase instale aplicaciones desconocidas e inténtalo de nuevo.",
-    "packageManaged": "Tu gestor de paquetes instala las actualizaciones."
+    "packageManaged": "Tu gestor de paquetes instala las actualizaciones.",
+    "packageManagedBy": "Las actualizaciones las gestiona {manager}.",
+    "managedHint": "Esta instalación la gestiona tu gestor de paquetes. La aplicación no puede actualizarla por sí sola.",
+    "copyCommand": "Copiar comando"
   },
   "empty": {
     "title": "Todavía no hay páginas",

@@ -1,9 +1,25 @@
 <script setup lang="ts">
+import { pushToast } from "~/composables/toasts";
 import { downloadFraction, formatBytes } from "~/lib/updates";
 
 const { t } = useI18n();
 const { open, status, info, progress, error, start, retry, dismiss, isPermissionError } =
   useAppUpdates();
+
+const manager = computed(() => info.value?.manager);
+const managed = computed(() => info.value?.managed === true);
+const command = computed(() => manager.value?.command ?? "");
+
+async function copyCommand(): Promise<void> {
+  if (!command.value) return;
+
+  try {
+    await navigator.clipboard.writeText(command.value);
+    pushToast({ titleKey: "common.copied", duration: 1800 });
+  } catch (cause) {
+    console.error("[updates] copy failed:", cause);
+  }
+}
 
 const fraction = computed(() => downloadFraction(progress.value));
 const percent = computed(() => (fraction.value === null ? null : Math.round(fraction.value * 100)));
@@ -60,6 +76,18 @@ const busy = computed(() => status.value === "downloading" || status.value === "
         <p v-if="sizeLine" class="update__meta">{{ sizeLine }}</p>
         <p v-if="info?.play" class="update__meta">{{ $t("updates.playHint") }}</p>
 
+        <template v-if="managed">
+          <p class="update__meta">
+            {{
+              manager
+                ? $t("updates.packageManagedBy", { manager: manager.id })
+                : $t("updates.packageManaged")
+            }}
+          </p>
+          <p class="update__meta">{{ $t("updates.managedHint") }}</p>
+          <code v-if="command" class="update__command">{{ command }}</code>
+        </template>
+
         <template v-if="info?.notes">
           <h4 class="update__notes-title">{{ $t("updates.notes") }}</h4>
           <p class="update__notes">{{ info.notes }}</p>
@@ -94,9 +122,17 @@ const busy = computed(() => status.value === "downloading" || status.value === "
 
       <div class="dialog__actions">
         <UiButton v-if="!busy" variant="ghost" @click="dismiss">
-          {{ status === "available" ? $t("updates.later") : $t("common.close") }}
+          {{ status === "available" && !managed ? $t("updates.later") : $t("common.close") }}
         </UiButton>
-        <UiButton v-if="status === 'available'" variant="primary" @click="start">
+        <UiButton
+          v-if="status === 'available' && managed && command"
+          variant="primary"
+          icon="content_copy"
+          @click="copyCommand"
+        >
+          {{ $t("updates.copyCommand") }}
+        </UiButton>
+        <UiButton v-else-if="status === 'available' && !managed" variant="primary" @click="start">
           {{ info?.play ? $t("updates.playInstall") : $t("updates.install") }}
         </UiButton>
         <UiButton v-else-if="status === 'error'" variant="primary" @click="retry">
@@ -137,6 +173,19 @@ const busy = computed(() => status.value === "downloading" || status.value === "
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   white-space: pre-wrap;
+}
+
+.update__command {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: pre;
 }
 
 .update__bar {

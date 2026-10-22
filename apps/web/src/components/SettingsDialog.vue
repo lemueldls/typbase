@@ -66,6 +66,7 @@ const shortcuts = useShortcutsDialog();
 
 const {
   channel: updateChannel,
+  manager: updateManager,
   status: updateStatus,
   info: updateInfo,
   check: checkForUpdates,
@@ -75,7 +76,11 @@ const { visible: appBarVisible } = useAppBar();
 
 const updateHint = computed(() => {
   if (updateChannel.value === "android-play") return t("updates.playHint");
-  if (updateChannel.value === "desktop-package-managed") return t("updates.packageManaged");
+  if (updateChannel.value === "desktop-package-managed") {
+    return updateManager.value
+      ? t("updates.packageManagedBy", { manager: updateManager.value.id })
+      : t("updates.packageManaged");
+  }
   return t("updates.checkHint");
 });
 
@@ -718,12 +723,14 @@ async function renameWorkspace(event: Event) {
                       : updateHint
                   }}
                 </span>
+                <code
+                  v-if="updateChannel === 'desktop-package-managed' && updateManager?.command"
+                  class="settings__update-command"
+                >
+                  {{ updateManager.command }}
+                </code>
               </span>
-              <UiButton
-                v-if="updateChannel !== 'desktop-package-managed'"
-                :disabled="updateStatus === 'checking'"
-                @click="checkForUpdates()"
-              >
+              <UiButton :disabled="updateStatus === 'checking'" @click="checkForUpdates()">
                 {{ updateStatus === "checking" ? $t("updates.checking") : $t("updates.check") }}
               </UiButton>
             </div>
@@ -1659,6 +1666,16 @@ async function renameWorkspace(event: Event) {
   max-width: 14rem;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+.settings__update-command {
+  max-width: 20rem;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 48rem) {
