@@ -660,6 +660,21 @@ export class WorkspaceStore {
       ...DEFAULT_SETTINGS.publish,
       ...decodeSetting<Partial<WorkspaceSettings["publish"]>>(map.get("publish")),
     };
+    const site = decodeSetting<Partial<WorkspaceSettings["site"]>>(map.get("site"));
+    settings.site = {
+      ...DEFAULT_SETTINGS.site,
+      ...site,
+      pages: { ...DEFAULT_SETTINGS.site.pages, ...(site.pages ?? {}) },
+      wisp: { ...DEFAULT_SETTINGS.site.wisp, ...(site.wisp ?? {}) },
+      standard: {
+        ...DEFAULT_SETTINGS.site.standard,
+        ...(site.standard ?? {}),
+        documentRkeys: {
+          ...DEFAULT_SETTINGS.site.standard.documentRkeys,
+          ...(site.standard?.documentRkeys ?? {}),
+        },
+      },
+    };
     settings.ai = {
       ...DEFAULT_SETTINGS.ai,
       ...decodeSetting<Partial<WorkspaceSettings["ai"]>>(map.get("ai")),
@@ -724,6 +739,7 @@ export class WorkspaceStore {
     for (const [key, value] of Object.entries(patch)) {
       if (value === undefined) continue;
       if (key === "publish") map.set("publish", encodeSetting(value));
+      else if (key === "site") map.set("site", encodeSetting(value));
       else if (key === "ai") map.set("ai", encodeSetting(value));
       else if (key === "search") map.set("search", encodeSetting(value));
       else if (key === "editor") map.set("editor", encodeSetting(value));
@@ -744,6 +760,10 @@ export class WorkspaceStore {
 
   getPublishSettings() {
     return this.getSettings().publish;
+  }
+
+  getSiteSettings() {
+    return this.getSettings().site;
   }
 
   getAiSettings() {

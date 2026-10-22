@@ -5,6 +5,15 @@ import { openExternal } from "~/lib/openExternal";
 const { t, locale } = useI18n();
 const { atproto, atprotoStatus, atprotoReady } = useWorkspace();
 
+const emit = defineEmits<{
+  (e: "open-profile", did: string): void;
+}>();
+
+const profile = computed(() => atprotoStatus.value.profile);
+const profileName = computed(
+  () => profile.value?.displayName || profile.value?.handle || shortDid(atprotoStatus.value.did),
+);
+
 /**
  * Sign-in runs through the PDS's OAuth flow, which has no account creation
  * step, so people who arrive without an account get pointed at one. Bluesky
@@ -164,10 +173,32 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
       </template>
 
       <template v-else>
-        <p class="sync__ok">
-          <MsIcon name="check_circle" :size="18" />
-          {{ $t("settings.signedInAs", { did: shortDid(atprotoStatus.did) }) }}
-        </p>
+        <div class="sync__account">
+          <img v-if="profile?.avatar" class="sync__avatar" :src="profile.avatar" alt="" />
+          <MsIcon
+            v-else
+            class="sync__avatar sync__avatar--placeholder"
+            name="account_circle"
+            :size="44"
+          />
+          <div class="sync__account-info">
+            <span class="sync__account-name">{{ profileName }}</span>
+            <span v-if="profile?.handle" class="sync__handle">@{{ profile.handle }}</span>
+            <span class="sync__did">{{ atprotoStatus.did }}</span>
+          </div>
+        </div>
+
+        <p v-if="profile?.description" class="sync__bio">{{ profile.description }}</p>
+
+        <UiButton
+          v-if="atprotoStatus.did"
+          class="sync__profile"
+          size="small"
+          icon="open_in_new"
+          @click="emit('open-profile', atprotoStatus.did)"
+        >
+          {{ $t("settings.viewProfile") }}
+        </UiButton>
 
         <template v-if="atprotoStatus.syncing">
           <p class="sync__hint">
@@ -238,6 +269,65 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
   margin: 0;
   font-size: var(--text-md);
   font-weight: 600;
+}
+
+.sync__account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.sync__avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sync__avatar--placeholder {
+  color: var(--color-text-secondary);
+}
+
+.sync__account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sync__account-name {
+  overflow: hidden;
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync__handle {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+}
+
+.sync__did {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.sync__bio {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.sync__profile {
+  align-self: flex-start;
 }
 
 .sync__hint {

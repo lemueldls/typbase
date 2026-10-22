@@ -1,0 +1,285 @@
+import type { LocalState, WorkspaceStore } from "@typbase/storage";
+import type { SiteDeployState, SiteSettings } from "@typbase/typing";
+
+import {
+  createPublicRepo,
+  createWispDomains,
+  deleteWispSite,
+  publishStandardSite,
+  publishWispSite,
+  wispSiteUrl,
+  type OAuthSession,
+} from "@typbase/spaces";
+
+import type { AtprotoService } from "~/lib/atproto";
+import type { SiteBuild } from "~/lib/site/build";
+
+import { applyStandardRecords, buildSite, siteRkey } from "~/lib/site/build";
+
+export type SitePublishStage = "build" | "standard" | "upload" | "manifest" | "done" | "unpublish";
+
+export interface SitePublishProgress {
+  stage: SitePublishStage;
+  message: string;
+  done?: number;
+  total?: number;
+}
+
+export interface PublishSiteResult {
+  deploy: SiteDeployState;
+  build: SiteBuild;
+  reused: number;
+  uploaded: number;
+  standardSkipped: string | null;
+}
+
+const hashKey = (did: string, key: string): string => `site:hashes:${did}:${key}`;
+
+/**
+ * Builds the site from the workspace and publishes it to the signing account's
+ * public repo. Wisp owns the hosting records; Standard.site owns discovery.
+ * The Wisp manifest is written last, so a failure before that leaves the
+ * previous site serving.
+ */
+export async function publishSite(
+  store: WorkspaceStore,
+  atproto: AtprotoService,
+  options: {
+    local?: LocalState;
+    onProgress?: (progress: SitePublishProgress) => void;
+  } = {},
+): Promise<PublishSiteResult> {
+  const progress = options.onProgress ?? (() => undefined);
+  const session = atproto.requireSession();
+  const did = session.did;
+  const settings = store.getSettings();
+  const site = settings.site;
+  const key = siteRkey(site, settings.name || "site");
+
+  if (site.wisp.publisherDid && site.wisp.publisherDid !== did) {
+    throw new Error(
+      `This site belongs to ${site.wisp.publisherDid}. Sign in as that account or fork the site.`,
+    );
+  }
+
+  const nextSite: SiteSettings = {
+    ...site,
+    wisp: { ...site.wisp, siteRkey: key },
+  };
+  const baseUrl =
+    nextSite.wisp.domainStatus === "verified" && nextSite.wisp.customDomain
+      ? `https://${nextSite.wisp.customDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
+      : nextSite.wisp.domainStatus === "verified" && nextSite.wisp.subdomain
+        ? `https://${nextSite.wisp.subdomain}.wisp.place`
+        : wispSiteUrl(did, key, nextSite.wisp.serviceUrl);
+  if (!baseUrl) throw new Error("The site has no public URL yet.");
+
+  progress({ stage: "build", message: "Rendering pages" });
+  const build = await buildSite(store, nextSite, {
+    baseUrl,
+    did,
+    onProgress: (done, total) =>
+      progress({
+        stage: "build",
+        message: `Rendering pages (${done}/${total})`,
+        done,
+        total,
+      }),
+  });
+
+  const repo = createPublicRepo(session, did);
+  let standardSkipped: string | null = null;
+  let standard: {
+    publicationUri: string;
+    publicationRkey: string;
+    documentRkeys: Record<string, string>;
+  } | null = null;
+
+  if (nextSite.standard.enabled) {
+    if (
+      nextSite.wisp.domainStatus !== "verified" ||
+      (!nextSite.wisp.customDomain && !nextSite.wisp.subdomain)
+    ) {
+      standardSkipped =
+        "Standard.site records need a claimed subdomain or custom domain, so the shared Wisp URL was published without them.";
+    } else {
+      progress({ stage: "standard", message: "Writing publication records" });
+      standard = await publishStandardSite(repo, {
+        publication: {
+          ...build.standard.publication,
+          showInDiscover: nextSite.standard.showInDiscover,
+        },
+        documents: build.standard.documents,
+        publicationRkey: nextSite.standard.publicationRkey,
+        publicationUri: nextSite.standard.publicationUri,
+        documentRkeys: nextSite.standard.documentRkeys,
+      });
+    }
+  }
+
+  if (!standard && nextSite.standard.publicationUri) {
+    // Discovery is off, or the site moved back to the shared URL. Remove the
+    // records so readers do not keep resolving an address that no longer
+    // publishes Standard.site metadata.
+    if (nextSite.standard.publicationRkey) {
+      await repo
+        .deleteRecord("site.standard.publication", nextSite.standard.publicationRkey)
+        .catch(() => undefined);
+    }
+    for (const rkey of Object.values(nextSite.standard.documentRkeys)) {
+      await repo.deleteRecord("site.standard.document", rkey).catch(() => undefined);
+    }
+  }
+
+  const finalBuild = standard
+    ? applyStandardRecords(
+        build,
+        standard.publicationUri,
+        new Map(Object.entries(standard.documentRkeys)),
+      )
+    : build;
+
+  if (standard) {
+    // Persist the new record keys before the Wisp write. If the manifest write
+    // fails, a retry updates the same records instead of creating duplicates.
+    store.updateSettings({
+      site: {
+        ...nextSite,
+        standard: {
+          ...nextSite.standard,
+          publicationRkey: standard.publicationRkey,
+          publicationUri: standard.publicationUri,
+          documentRkeys: standard.documentRkeys,
+        },
+      },
+    });
+  }
+
+  progress({ stage: "upload", message: "Uploading files" });
+  const previousHashes =
+    (await options.local?.get<Record<string, string>>(hashKey(did, key))) ?? {};
+  progress({ stage: "upload", message: "Writing Wisp manifest" });
+  const published = await publishWispSite(repo, {
+    siteRkey: key,
+    files: finalBuild.files.map((file) => ({
+      name: file.name,
+      bytes: file.bytes,
+      mimeType: file.mimeType,
+    })),
+    fileHashes: previousHashes,
+    settings: {
+      cleanUrls: true,
+      custom404: "404.html",
+      indexFiles: ["index.html"],
+      headers: [
+        {
+          name: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+          path: "/assets/*",
+        },
+        { name: "Cache-Control", value: "no-cache", path: "/assets/site.css" },
+        { name: "Cache-Control", value: "no-cache", path: "/assets/site.js" },
+        {
+          name: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+          path: "/fonts/*",
+        },
+      ],
+    },
+  });
+
+  if (options.local) await options.local.set(hashKey(did, key), published.hashes);
+
+  const deploy: SiteDeployState = {
+    url: baseUrl,
+    wispUri: published.uri,
+    manifestCid: published.cid,
+    deployedAt: Date.now(),
+    buildHash: finalBuild.hash,
+    pageCount: finalBuild.pages.length,
+    fileCount: published.fileCount,
+    totalBytes: published.totalBytes,
+    standardPublicationUri: standard?.publicationUri ?? null,
+  };
+  const updated: SiteSettings = {
+    ...nextSite,
+    wisp: {
+      ...nextSite.wisp,
+      siteRkey: key,
+      publisherDid: did,
+      lastDeploy: deploy,
+    },
+    standard: standard
+      ? {
+          ...nextSite.standard,
+          publicationRkey: standard.publicationRkey,
+          publicationUri: standard.publicationUri,
+          documentRkeys: standard.documentRkeys,
+        }
+      : {
+          ...nextSite.standard,
+          publicationRkey: null,
+          publicationUri: null,
+          documentRkeys: {},
+        },
+  };
+  store.updateSettings({ site: updated });
+  progress({ stage: "done", message: "Published" });
+
+  return {
+    deploy,
+    build: finalBuild,
+    reused: published.reused,
+    uploaded: published.uploaded,
+    standardSkipped,
+  };
+}
+
+/** Takes the site offline. The domain claim and the local configuration stay. */
+export async function unpublishSite(store: WorkspaceStore, atproto: AtprotoService): Promise<void> {
+  const session = atproto.requireSession();
+  const site = store.getSiteSettings();
+  const key = siteRkey(site, store.getSettings().name || "site");
+  const repo = createPublicRepo(session, session.did);
+
+  if (site.wisp.publisherDid && site.wisp.publisherDid !== session.did) {
+    throw new Error(
+      `This site belongs to ${site.wisp.publisherDid}. Sign in as that account to take it offline.`,
+    );
+  }
+
+  const domains = createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid);
+  await domains.deleteSite(key).catch(() => undefined);
+  await deleteWispSite(repo, key);
+
+  const publicationRkey = site.standard.publicationRkey;
+  if (publicationRkey) {
+    await repo.deleteRecord("site.standard.publication", publicationRkey).catch(() => undefined);
+  }
+  for (const rkey of Object.values(site.standard.documentRkeys)) {
+    await repo.deleteRecord("site.standard.document", rkey).catch(() => undefined);
+  }
+
+  store.updateSettings({
+    site: {
+      ...site,
+      wisp: { ...site.wisp, siteRkey: key, lastDeploy: null },
+      standard: {
+        ...site.standard,
+        publicationRkey: null,
+        publicationUri: null,
+        documentRkeys: {},
+      },
+    },
+  });
+}
+
+export function wispClient(site: SiteSettings, session: OAuthSession) {
+  const repo = createPublicRepo(session, session.did);
+
+  return {
+    repo,
+    domains: createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid),
+    sharedUrl: (key: string) => wispSiteUrl(session.did, key, site.wisp.serviceUrl),
+  };
+}

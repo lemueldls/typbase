@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PageMeta } from "@typbase/typing";
+import type { PageMeta, SiteVisibility } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
 import { renamePagePathFor, type WorkspaceStore } from "@typbase/storage";
@@ -141,6 +141,23 @@ async function setHome(page: PageMeta) {
 /** Moves a page into a category, or out of one, from its row menu. */
 function setCategory(page: PageMeta, categoryId: string | null): void {
   void props.store.updatePageCategory(page.id, categoryId);
+}
+
+/** The page's visibility in the workspace site. */
+function siteVisibility(page: PageMeta): SiteVisibility {
+  return settings.value.site.pages[page.id]?.visibility ?? settings.value.site.defaultVisibility;
+}
+
+function setSiteVisibility(page: PageMeta, visibility: SiteVisibility): void {
+  props.store.updateSettings({
+    site: {
+      ...settings.value.site,
+      pages: {
+        ...settings.value.site.pages,
+        [page.id]: { ...settings.value.site.pages[page.id], visibility },
+      },
+    },
+  });
 }
 
 /** Flips a page between document and notebook. The source is untouched. */
@@ -333,10 +350,12 @@ function onCreated(page: PageMeta) {
                 :first="pageIndex === 0"
                 :last="pageIndex === pagesForCategory(null).length - 1"
                 :dragging="draggingPage === page.id"
+                :site-visibility="siteVisibility(page)"
                 @select="selectPage(page)"
                 @rename="askRename(page)"
                 @set-home="setHome(page)"
                 @set-category="(id) => setCategory(page, id)"
+                @set-site-visibility="(value) => setSiteVisibility(page, value)"
                 @convert="(kind) => convertPage(page, kind)"
                 @remove="askRemove(page)"
                 @move="(delta) => movePage(page, delta)"
@@ -391,10 +410,12 @@ function onCreated(page: PageMeta) {
                   :first="pageIndex === 0"
                   :last="pageIndex === pagesForCategory(category.id).length - 1"
                   :dragging="draggingPage === page.id"
+                  :site-visibility="siteVisibility(page)"
                   @select="selectPage(page)"
                   @rename="askRename(page)"
                   @set-home="setHome(page)"
                   @set-category="(id) => setCategory(page, id)"
+                  @set-site-visibility="(value) => setSiteVisibility(page, value)"
                   @convert="(kind) => convertPage(page, kind)"
                   @remove="askRemove(page)"
                   @move="(delta) => movePage(page, delta)"

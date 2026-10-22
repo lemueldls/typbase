@@ -2,6 +2,24 @@
 const { atprotoStatus, atprotoReady } = useWorkspace();
 
 const { t } = useI18n();
+const open = ref(false);
+
+const profile = computed(() => atprotoStatus.value.profile);
+const avatarFailed = ref(false);
+watch(
+  () => profile.value?.avatar,
+  () => {
+    avatarFailed.value = false;
+  },
+);
+const accountName = computed(
+  () => profile.value?.displayName || profile.value?.handle || atprotoStatus.value.did || "",
+);
+
+function openProfile(did: string): void {
+  open.value = false;
+  void navigateTo(`/u/${did}`);
+}
 
 const icon = computed<"account_circle" | "cloud_done" | "sync" | "sync_disabled">(() => {
   if (!atprotoReady.value) return "account_circle";
@@ -25,21 +43,30 @@ const label = computed(() => {
   if (!atprotoStatus.value.signedIn) return t("nav.accountSignedOut");
   if (atprotoStatus.value.syncing) return t("nav.accountSyncing");
 
-  return t("nav.accountSignedIn");
+  return accountName.value
+    ? t("nav.accountSignedInAs", { name: accountName.value })
+    : t("nav.accountSignedIn");
 });
 </script>
 
 <template>
-  <UiPopover align="end" :side-offset="6" class="app-bar-account">
+  <UiPopover v-model:open="open" align="end" :side-offset="6" class="app-bar-account">
     <template #trigger>
       <UiTooltip :text="label">
         <button type="button" class="app-bar-account__trigger" :class="tone">
-          <MsIcon :name="icon" :size="18" />
+          <img
+            v-if="profile?.avatar && !avatarFailed"
+            class="app-bar-account__avatar"
+            :src="profile.avatar"
+            alt=""
+            @error="avatarFailed = true"
+          />
+          <MsIcon v-else :name="icon" :size="18" />
         </button>
       </UiTooltip>
     </template>
 
-    <SyncPanel />
+    <SyncPanel @open-profile="openProfile" />
   </UiPopover>
 </template>
 
@@ -86,5 +113,12 @@ const label = computed(() => {
 
 .app-bar-account--error {
   color: var(--color-danger);
+}
+
+.app-bar-account__avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 </style>

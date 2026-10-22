@@ -5,8 +5,22 @@ import type { ThemePaletteTokens } from "@typbase/typing";
 import { pushToast } from "~/composables/toasts";
 import { customFontPayloads, type FontPayload } from "~/lib/customFonts";
 import { isWasmTrap } from "~/lib/typstRecovery";
-import { resolveRequestPayloads, type RequestPayload } from "~/lib/typstRequests";
+import {
+  resolveRequestPayloads,
+  type RequestPayload,
+  type RequestScope,
+} from "~/lib/typstRequests";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
+
+/** Request scope that must survive the worker message boundary. */
+export interface RenderScope {
+  /** Site builds: page ids that exist in the public projection. */
+  pageIds?: string[];
+  /** Site builds: disable plugin data and treat missing pages as errors. */
+  site?: boolean;
+  /** Page being compiled, for self-embed detection. */
+  currentPage?: string | null;
+}
 
 export interface RenderWorkerRequest {
   id: number;
@@ -22,6 +36,8 @@ export interface RenderWorkerRequest {
   pageId?: string | null;
   /** Export palette. The worker installs it so the code-block theme exists. */
   theme?: ThemePaletteTokens;
+  /** Site builds: restrict resolved workspace data to the page allowlist. */
+  scope?: RenderScope;
 }
 
 export interface RenderWorkerResponse {
@@ -90,6 +106,7 @@ interface PendingRender {
   reject: (reason: unknown) => void;
   payloads: RequestPayload[];
   timer: ReturnType<typeof setTimeout>;
+  scope?: RenderScope;
 }
 
 const pending = new Map<number, PendingRender>();
@@ -186,8 +203,20 @@ async function answerRequests(id: number, requests: TypstRequest[]): Promise<voi
 
   let inserted = 0;
   try {
-    const payloads = await resolveRequestPayloads(requests, requestStore, null);
     const entry = pending.get(id);
+    const rawScope = entry?.scope;
+    const scope: RequestScope | undefined = rawScope
+      ? {
+          site: rawScope.site,
+          pageIds: rawScope.pageIds ? new Set(rawScope.pageIds) : undefined,
+        }
+      : undefined;
+    const payloads = await resolveRequestPayloads(
+      requests,
+      requestStore,
+      rawScope?.currentPage ?? null,
+      scope,
+    );
     for (const payload of payloads) {
       entry?.payloads.push(payload);
       instance.postMessage({ id, type: "insert", payload } satisfies RenderWorkerResponse);
@@ -216,6 +245,7 @@ export function renderInWorker(input: {
   spaceId: string;
   pageId?: string | null;
   theme?: ThemePaletteTokens;
+  scope?: RenderScope;
 }): Promise<RenderOutcome> {
   // Every render syncs the workspace's uploaded faces first, so a caller cannot
   // forget and get a document that falls back on a bundled font. The call is
@@ -239,6 +269,7 @@ async function renderOnce(input: {
   spaceId: string;
   pageId?: string | null;
   theme?: ThemePaletteTokens;
+  scope?: RenderScope;
 }): Promise<RenderOutcome> {
   const instance = ensureWorker();
   const id = nextId++;
@@ -249,6 +280,7 @@ async function renderOnce(input: {
       reject,
       payloads: [],
       timer: undefined as unknown as ReturnType<typeof setTimeout>,
+      scope: input.scope,
     };
     pending.set(id, entry);
     keepAlive(entry, id);

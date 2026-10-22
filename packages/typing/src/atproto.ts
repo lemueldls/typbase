@@ -22,6 +22,19 @@ export const OAUTH_SCOPES: readonly string[] = [
   "space:at.typbase.workspace?authority=*&collection=*",
   "space:at.typbase.workspace?authority=*&manage=create",
   "repo:at.typbase.post",
+  // Site publishing writes the public Wisp manifest and Standard.site
+  // discovery records. Domain management goes through Wisp's service XRPC.
+  "repo:place.wisp.fs",
+  "repo:place.wisp.settings",
+  "repo:place.wisp.subfs",
+  "repo:site.standard.publication",
+  "repo:site.standard.document",
+  "rpc:place.wisp.v2.domain.claimSubdomain?aud=*",
+  "rpc:place.wisp.v2.domain.claim?aud=*",
+  "rpc:place.wisp.v2.domain.addSite?aud=*",
+  "rpc:place.wisp.v2.domain.delete?aud=*",
+  "rpc:place.wisp.v2.domain.getList?aud=*",
+  "rpc:place.wisp.v2.site.delete?aud=*",
 ];
 
 /** `client_name` in both OAuth client metadata documents. */

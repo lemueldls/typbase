@@ -11,6 +11,7 @@ defineProps<{
   chatThreadId?: string | null;
   graphOpen?: boolean;
   filesOpen?: boolean;
+  siteOpen?: boolean;
   /** Desktop side dock: a thread shown beside the main pane. */
   dockChatId?: string | null;
   modelValue: ViewModeId;
@@ -26,8 +27,11 @@ const emit = defineEmits<{
   (e: "closeDock"): void;
   (e: "expandDock"): void;
   (e: "openGraph"): void;
+  (e: "openSite"): void;
   (e: "closeGraph"): void;
+  (e: "openFiles"): void;
   (e: "closeFiles"): void;
+  (e: "closeSite"): void;
 }>();
 
 /** The empty pane's actions need the workspace the chooser left behind. */
@@ -127,6 +131,17 @@ function onDockKeydown(event: KeyboardEvent): void {
         </template>
       </FilesView>
 
+      <SiteView
+        v-else-if="siteOpen && store"
+        :store="store"
+        @close="emit('closeSite')"
+        @open-page="emit('openPage', $event)"
+      >
+        <template #nav-toggle>
+          <slot name="nav-toggle" />
+        </template>
+      </SiteView>
+
       <PageView
         v-else-if="pageId"
         :key="pageId"
@@ -136,6 +151,7 @@ function onDockKeydown(event: KeyboardEvent): void {
         @open-page="emit('openPage', $event)"
         @open-plugin="emit('openPlugin', $event)"
         @open-graph="emit('openGraph')"
+        @open-site="emit('openSite')"
       >
         <template #nav-toggle>
           <slot name="nav-toggle" />

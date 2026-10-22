@@ -19,6 +19,7 @@ import { isTypingTarget, matchesShortcut } from "~/lib/keybindings";
 import { resolveOpenPageId } from "~/lib/openPage";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
+import { buildSite, siteBaseUrl } from "~/lib/site/build";
 import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
@@ -34,6 +35,7 @@ const {
   workspaceGeneration,
   switching,
   storageSetup,
+  atprotoStatus,
 } = useWorkspace();
 
 const loaded = ref(false);
@@ -44,6 +46,7 @@ const currentChatId = ref<string | null>(null);
 const dockChatId = ref<string | null>(null);
 const graphOpen = ref(false);
 const filesOpen = ref(false);
+const siteOpen = ref(false);
 /** Focus mode: the open page without window chrome. Transient, not persisted. */
 const zen = ref(false);
 let zenSidebarWasCollapsed = false;
@@ -225,6 +228,7 @@ function destinationTitle(query: NavQuery | undefined): string | undefined {
 
   const view = typeof query.view === "string" ? query.view : "";
   if (view === "graph") return t("graph.title");
+  if (view === "site") return t("site.title");
   if (view.startsWith("chat:")) return t("chat.title");
   if (view.startsWith("plugin:")) return t("plugins.title");
 
@@ -366,6 +370,7 @@ function afterBoot(): void {
   const linkedView = queryString(viewQuery.value);
   if (linkedView === "graph") graphOpen.value = true;
   if (linkedView === "files") filesOpen.value = true;
+  if (linkedView === "site") siteOpen.value = true;
   const instanceId = linkedView.startsWith("plugin:") ? linkedView.slice("plugin:".length) : "";
   if (instanceId && store.getPluginInstance(instanceId)) openPlugin(instanceId);
   const threadId = linkedView.startsWith("chat:") ? linkedView.slice("chat:".length) : "";
@@ -392,6 +397,26 @@ function afterBoot(): void {
 
   // Dev-only handles for the e2e suite. Production builds drop them.
   testApi.openPlugin = openPlugin;
+  testApi.openSite = openSite;
+  testApi.siteState = () => store.getSiteSettings();
+  testApi.siteBuild = async (options = {}) => {
+    const site = store.getSiteSettings();
+    const build = await buildSite(store, site, {
+      baseUrl: options.baseUrl ?? siteBaseUrl(site, atprotoStatus.value.did),
+      did: atprotoStatus.value.did,
+    });
+    const readable = new Map(bundleTextFiles(build.files).map((file) => [file.name, file.text]));
+
+    return {
+      hash: build.hash,
+      files: build.files.map((file) => ({
+        name: file.name,
+        size: file.bytes.length,
+        text: readable.get(file.name),
+      })),
+      pages: build.pages.map((page) => ({ id: page.id, title: page.title, url: page.url })),
+    };
+  };
   testApi.installPlugin = async (pluginId) => {
     await plugins.install(pluginId);
 
@@ -542,6 +567,7 @@ function paneViewValue(): string {
   if (currentPluginId.value) return `plugin:${currentPluginId.value}`;
   if (graphOpen.value) return "graph";
   if (filesOpen.value) return "files";
+  if (siteOpen.value) return "site";
 
   return "";
 }
@@ -651,6 +677,7 @@ watch(viewQuery, (raw) => {
     currentChatId.value = null;
     currentPluginId.value = null;
     filesOpen.value = false;
+    siteOpen.value = false;
     graphOpen.value = true;
 
     return;
@@ -660,7 +687,18 @@ watch(viewQuery, (raw) => {
     currentChatId.value = null;
     currentPluginId.value = null;
     graphOpen.value = false;
+    siteOpen.value = false;
     filesOpen.value = true;
+
+    return;
+  }
+
+  if (value === "site") {
+    currentChatId.value = null;
+    currentPluginId.value = null;
+    graphOpen.value = false;
+    filesOpen.value = false;
+    siteOpen.value = true;
 
     return;
   }
@@ -672,6 +710,7 @@ watch(viewQuery, (raw) => {
       currentPluginId.value = null;
       graphOpen.value = false;
       filesOpen.value = false;
+      siteOpen.value = false;
     } else if (queryString(viewQuery.value) === value) {
       viewQuery.value = "";
     }
@@ -684,6 +723,7 @@ watch(viewQuery, (raw) => {
     currentChatId.value = null;
     graphOpen.value = false;
     filesOpen.value = false;
+    siteOpen.value = false;
     if (workspace.value?.getPluginInstance(id)) {
       if (plugins.surfaceOf(id, "pane")) currentPluginId.value = id;
       else if (plugins.surfaceOf(id, "window")) plugins.openWindow(id);
@@ -697,6 +737,7 @@ watch(viewQuery, (raw) => {
   currentPluginId.value = null;
   graphOpen.value = false;
   filesOpen.value = false;
+  siteOpen.value = false;
 });
 
 // Back/forward or a pasted link changes the dock under us.
@@ -754,6 +795,7 @@ function openPage(id: string) {
   currentChatId.value = null;
   graphOpen.value = false;
   filesOpen.value = false;
+  siteOpen.value = false;
   // An empty id means the open page was deleted. Fall back to home/first.
   currentPageId.value = id || fallbackPageId();
   syncRoute(historyMode);
@@ -815,6 +857,7 @@ function openPlugin(instanceId: string) {
     currentChatId.value = null;
     graphOpen.value = false;
     filesOpen.value = false;
+    siteOpen.value = false;
     currentPluginId.value = instanceId;
     syncRoute(historyMode);
   } else if (kinds.includes("window")) {
@@ -844,6 +887,7 @@ function openGraph(rootAtPage = false) {
   currentPluginId.value = null;
   currentChatId.value = null;
   filesOpen.value = false;
+  siteOpen.value = false;
   graphOpen.value = true;
 
   // A graph opened from a page is about that page. Turn local mode on so the
@@ -870,12 +914,31 @@ function openFiles() {
   currentPluginId.value = null;
   currentChatId.value = null;
   graphOpen.value = false;
+  siteOpen.value = false;
   filesOpen.value = true;
   syncRoute(historyMode);
 }
 
 function closeFiles() {
   filesOpen.value = false;
+  syncRoute("replace");
+}
+
+/** The website builder dashboard. */
+function openSite() {
+  const historyMode = takeLayerHistory();
+  navOpen.value = false;
+  setZen(false);
+  currentPluginId.value = null;
+  currentChatId.value = null;
+  graphOpen.value = false;
+  filesOpen.value = false;
+  siteOpen.value = true;
+  syncRoute(historyMode);
+}
+
+function closeSite() {
+  siteOpen.value = false;
   syncRoute("replace");
 }
 
@@ -902,6 +965,7 @@ function openChat(threadId?: string | null) {
       currentPluginId.value = null;
       graphOpen.value = false;
       filesOpen.value = false;
+      siteOpen.value = false;
       currentChatId.value = id;
       dockChatId.value = null;
     }
@@ -946,6 +1010,7 @@ function expandDock() {
   currentPluginId.value = null;
   graphOpen.value = false;
   filesOpen.value = false;
+  siteOpen.value = false;
   currentChatId.value = id;
   syncRoute("replace");
 }
@@ -1041,6 +1106,7 @@ definePageMeta({ ssr: false });
           @open-page="openPage"
           @toggle-sidebar="toggleSidebar"
           @open-files="openFiles"
+          @open-site="openSite"
           @toggle-zen="setZen(!zen)"
         />
 
@@ -1090,6 +1156,7 @@ definePageMeta({ ssr: false });
                   :chat-thread-id="currentChatId"
                   :graph-open="graphOpen"
                   :files-open="filesOpen"
+                  :site-open="siteOpen"
                   :dock-chat-id="isDesktop ? dockChatId : null"
                   :model-value="mode"
                   @update:model-value="setMode"
@@ -1101,8 +1168,10 @@ definePageMeta({ ssr: false });
                   @close-dock="closeDock"
                   @expand-dock="expandDock"
                   @open-graph="openGraph(true)"
+                  @open-site="openSite"
                   @close-graph="graphOpen = false"
                   @close-files="closeFiles"
+                  @close-site="closeSite"
                 >
                   <template #nav-toggle>
                     <UiIconButton
@@ -1154,6 +1223,7 @@ definePageMeta({ ssr: false });
                 :chat-thread-id="currentChatId"
                 :graph-open="graphOpen"
                 :files-open="filesOpen"
+                :site-open="siteOpen"
                 :model-value="mode"
                 @update:model-value="setMode"
                 @open-page="openPage"
@@ -1162,8 +1232,10 @@ definePageMeta({ ssr: false });
                 @open-thread="openChat"
                 @close-chat="closeChat"
                 @open-graph="openGraph(true)"
+                @open-site="openSite"
                 @close-graph="closeGraph"
                 @close-files="closeFiles"
+                @close-site="closeSite"
               >
                 <template #nav-toggle>
                   <UiIconButton

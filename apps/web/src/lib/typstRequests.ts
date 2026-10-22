@@ -14,11 +14,19 @@ interface TypstRequestHandler {
   (requests: TypstRequest[], spaceId: string): Promise<boolean> | boolean;
 }
 
-/** Plugin surfaces only see their own plugin data. Notes see everything. */
+/** Plugin surfaces only see their own plugin data. Sites see a page allowlist. */
 export interface RequestScope {
-  pluginId: string;
+  pluginId?: string;
   /** False strips page content from the channel (no `pages.read`). */
   allowPages?: boolean;
+  /**
+   * Site builds: the pages that exist in the public projection. Queries,
+   * embeds, sections, daily notes, and backlinks are limited to this set so a
+   * public page cannot pull private workspace text into its output.
+   */
+  pageIds?: ReadonlySet<string>;
+  /** Site builds: plugin data is app state, not published content. */
+  site?: boolean;
 }
 
 // Included pages are raw sources: the `#import "/typbase/lib.typ" as typbase`
@@ -90,6 +98,16 @@ export async function resolveRequestPayloads(
       if (path.startsWith("typbase/src/")) {
         if (scope && scope.allowPages === false) continue;
         const id = path.slice("typbase/src/".length, -".typ".length);
+        if (scope?.pageIds && !scope.pageIds.has(id)) {
+          // The page is private in this projection. A comment would silently
+          // publish an empty block, so surface it as a compile error.
+          payloads.push({
+            type: "source",
+            path,
+            text: `#panic("Page ${id} is not part of this site")\n`,
+          });
+          continue;
+        }
         // Self-embeds would recurse forever. A comment keeps the include quiet.
         const text =
           id === currentPage
@@ -234,7 +252,7 @@ export async function buildQueryJson(
   const query = parseQueryPath(path);
   if (!query) return null;
 
-  const pages = store.listPages();
+  const pages = store.listPages().filter((page) => !scope?.pageIds || scope.pageIds.has(page.id));
   const daily = pages.filter((page) => page.path.startsWith("daily/"));
   // Single-segment filters carry the value in filterName (e.g. sections/<id>).
   const filterValue = query.filterValue ?? query.filterName;
@@ -242,10 +260,14 @@ export async function buildQueryJson(
   switch (query.kind) {
     case "config": {
       const settings = store.getSettings();
+      const homePageId =
+        scope?.pageIds && settings.homePageId && !scope.pageIds.has(settings.homePageId)
+          ? null
+          : settings.homePageId;
 
       return JSON.stringify({
         name: settings.name,
-        homePageId: settings.homePageId,
+        homePageId,
         font: settings.font,
       });
     }
@@ -265,7 +287,13 @@ export async function buildQueryJson(
       return JSON.stringify(list);
     }
     case "categories":
-      return JSON.stringify(store.listCategories());
+      return JSON.stringify(
+        store
+          .listCategories()
+          .filter(
+            (category) => !scope?.pageIds || pages.some((page) => page.categoryId === category.id),
+          ),
+      );
     case "daily": {
       const list =
         query.filterName === "by-month" && query.filterValue
@@ -303,11 +331,11 @@ export async function buildQueryJson(
       });
     }
     case "plugin-data": {
-      if (!filterValue) return "null";
+      if (!filterValue || scope?.site) return "null";
       const instance = store.getPluginInstance(filterValue);
       if (!instance) return "null";
       // Plugin surfaces read their own data only. Note content reads all.
-      if (scope && instance.pluginId !== scope.pluginId) return "null";
+      if (scope?.pluginId && instance.pluginId !== scope.pluginId) return "null";
 
       return JSON.stringify(await store.readPluginState(filterValue));
     }

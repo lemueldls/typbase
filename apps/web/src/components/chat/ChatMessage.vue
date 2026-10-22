@@ -87,16 +87,21 @@ async function copySource(): Promise<void> {
 
     <pre v-else-if="hasSource" class="chat-message__raw">{{ message.source }}</pre>
 
-    <details v-if="tools.length" class="chat-message__tools" :open="toolsOpen">
-      <summary @click.prevent="toolsOpen = !toolsOpen">
+    <UiCollapsible
+      v-if="tools.length"
+      v-model:open="toolsOpen"
+      class="chat-message__tools"
+      :chevron="false"
+    >
+      <template #trigger>
         {{ $t("chat.toolsUsed", { count: tools.length }) }}
         <span v-if="toolNames"> · {{ toolNames }}</span>
-      </summary>
+      </template>
       <div v-for="tool in tools" :key="tool.id" class="chat-message__tool">
         <code>{{ tool.name }}</code>
         <pre>{{ tool.output }}</pre>
       </div>
-    </details>
+    </UiCollapsible>
 
     <div v-if="message.error" class="chat-message__error" role="alert">
       {{ message.error }}
@@ -250,10 +255,6 @@ async function copySource(): Promise<void> {
 .chat-message__tools {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-}
-
-.chat-message__tools summary {
-  cursor: pointer;
 }
 
 .chat-message__tool {

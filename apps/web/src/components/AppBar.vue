@@ -4,20 +4,6 @@ import type { WorkspaceStore } from "@typbase/storage";
 import { todayISO } from "~/lib/format";
 import { isMac } from "~/lib/platform";
 
-/**
- * The app bar: a slim strip of window-level chrome above the panes. It owns the
- * window's menus (file, view), where you can go (back, forward), how you find
- * things (search), and how this window is doing (updates, engine, sync).
- * Page-level controls stay in the pane toolbars, and the workspace switcher stays
- * in the sidebar header, so nothing here competes with a row of the page tree.
- *
- * The menus sit left and navigation and search sit in the center, the way an
- * editor's command bar does, so the controls that matter do not drift toward the
- * window's edges as the items on either side change.
- *
- * Its state comes from the shared composables: the navigation mirror, the
- * palette, the update channel, and the engine's health.
- */
 const props = defineProps<{
   store: WorkspaceStore;
   /** "Back to Linear algebra" when the mirror knows the destination. */
@@ -33,6 +19,7 @@ const emit = defineEmits<{
   (e: "openPage", pageId: string): void;
   (e: "toggleSidebar"): void;
   (e: "openFiles"): void;
+  (e: "openSite"): void;
   (e: "toggleZen"): void;
 }>();
 
@@ -87,6 +74,10 @@ async function openToday(): Promise<void> {
 
           <UiMenubarItem icon="folder_zip" @select="workspaceExportOpen = true">
             {{ $t("exportWorkspace.title") }}
+          </UiMenubarItem>
+
+          <UiMenubarItem icon="public" @select="emit('openSite')">
+            {{ $t("site.title") }}
           </UiMenubarItem>
 
           <UiMenubarItem icon="folder_open" @select="emit('openFiles')">

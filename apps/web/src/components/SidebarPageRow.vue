@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import type { Category, PageMeta } from "@typbase/typing";
+import type { Category, PageMeta, SiteVisibility } from "@typbase/typing";
 
 import { pushToast } from "~/composables/toasts";
 import { PAGE_KIND_ICONS } from "~/lib/view";
 
-/**
- * One page row in the sidebar: kind icon, title, home badge, and the row menu.
- * Drag state comes from the sidebar's list drag, which owns the container and
- * the drop index.
- */
 const props = defineProps<{
   page: PageMeta;
   categories: Category[];
@@ -19,6 +14,8 @@ const props = defineProps<{
   last: boolean;
   /** This row is the one being dragged. */
   dragging: boolean;
+  /** How the page appears in the workspace site. */
+  siteVisibility: SiteVisibility;
 }>();
 
 const emit = defineEmits<{
@@ -26,6 +23,7 @@ const emit = defineEmits<{
   (e: "rename"): void;
   (e: "setHome"): void;
   (e: "setCategory", categoryId: string | null): void;
+  (e: "setSiteVisibility", visibility: SiteVisibility): void;
   (e: "convert", kind: PageMeta["kind"]): void;
   (e: "remove"): void;
   (e: "move", delta: -1 | 1): void;
@@ -110,6 +108,26 @@ async function copyId(): Promise<void> {
       <UiMenuItem v-else icon="view_agenda" @select="emit('convert', 'notebook')">
         {{ $t("common.convertToNotebook") }}
       </UiMenuItem>
+      <UiMenuSub icon="public" :label="$t('site.menu')">
+        <UiMenuItem
+          :checked="siteVisibility === 'public'"
+          @select="emit('setSiteVisibility', 'public')"
+        >
+          {{ $t("site.visibilityPublic") }}
+        </UiMenuItem>
+        <UiMenuItem
+          :checked="siteVisibility === 'unlisted'"
+          @select="emit('setSiteVisibility', 'unlisted')"
+        >
+          {{ $t("site.visibilityUnlisted") }}
+        </UiMenuItem>
+        <UiMenuItem
+          :checked="siteVisibility === 'private'"
+          @select="emit('setSiteVisibility', 'private')"
+        >
+          {{ $t("site.visibilityPrivate") }}
+        </UiMenuItem>
+      </UiMenuSub>
       <UiMenuSeparator />
       <UiMenuItem danger icon="delete" @select="emit('remove')">
         {{ $t("sidebar.delete") }}

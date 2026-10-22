@@ -62,6 +62,7 @@ const emit = defineEmits<{
   (e: "openPage", id: string): void;
   (e: "openPlugin", instanceId: string): void;
   (e: "openGraph"): void;
+  (e: "openSite"): void;
 }>();
 
 const { workspace, workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
@@ -1356,6 +1357,10 @@ function setCategory(categoryId: string | null): void {
 
           <UiMenuItem icon="download" @select="exportOpen = true">
             {{ $t("exportPage.title") }}
+          </UiMenuItem>
+
+          <UiMenuItem icon="public" @select="emit('openSite')">
+            {{ $t("site.title") }}
           </UiMenuItem>
         </UiMenu>
       </div>

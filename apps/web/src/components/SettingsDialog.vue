@@ -92,28 +92,22 @@ const publishDefaults = useWorkspaceValue(
   (store) => store.getPublishSettings(),
 );
 const publishLangs = computed({
-  get: () => publishDefaults.value.langs.join(", "),
-  set: (value: string) =>
+  get: () => publishDefaults.value.langs,
+  set: (langs: string[]) =>
     props.store.updateSettings({
       publish: {
         ...publishDefaults.value,
-        langs: value
-          .split(",")
-          .map((lang) => lang.trim())
-          .filter(Boolean),
+        langs,
       },
     }),
 });
 const publishTags = computed({
-  get: () => publishDefaults.value.tags.join(", "),
-  set: (value: string) =>
+  get: () => publishDefaults.value.tags,
+  set: (tags: string[]) =>
     props.store.updateSettings({
       publish: {
         ...publishDefaults.value,
-        tags: value
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        tags,
       },
     }),
 });
@@ -192,7 +186,7 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
 }
 
 /** Settings tab ids. Each one maps to a panel below. */
-type SettingsTab = "general" | "content" | "appearance" | "publish" | "ai" | "sync" | "export";
+type SettingsTab = "general" | "content" | "appearance" | "ai" | "sync" | "export";
 
 /** Section rail. Icons carry the scan on phones, where labels can truncate. */
 const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string }> = [
@@ -200,7 +194,6 @@ const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string }> = [
   { id: "content", icon: "description", label: "settings.tabContent" },
   { id: "appearance", icon: "palette", label: "settings.tabAppearance" },
   // { id: "ai", icon: "psychology", label: "settings.tabAi" },
-  { id: "publish", icon: "public", label: "settings.tabPublish" },
   { id: "export", icon: "folder_zip", label: "settings.tabExport" },
   { id: "sync", icon: "sync", label: "settings.tabSync" },
 ];
@@ -214,6 +207,11 @@ const PROJECT_URL = "https://github.com/lemueldls/typbase";
 
 function openProject(): void {
   openExternal(PROJECT_URL);
+}
+
+function openProfile(did: string): void {
+  open.value = false;
+  void navigateTo(`/u/${did}`);
 }
 
 /** The shortcut list lives outside Settings; close this and show it. */
@@ -886,6 +884,32 @@ async function renameWorkspace(event: Event) {
               <span class="settings__hint">{{ $t("settings.editorSplitScrollHint") }}</span>
             </div>
           </section>
+
+          <section class="settings__section">
+            <h4 class="settings__heading">{{ $t("settings.publishDefaults") }}</h4>
+            <Label class="settings__field">
+              <span>{{ $t("settings.langs") }}</span>
+              <UiTagsInput
+                v-model="publishLangs"
+                :label="$t('settings.langs')"
+                :placeholder="'en, de'"
+              />
+            </Label>
+            <Label class="settings__field">
+              <span>{{ $t("settings.tags") }}</span>
+              <UiTagsInput
+                v-model="publishTags"
+                :label="$t('settings.tags')"
+                :placeholder="$t('settings.tags')"
+              />
+            </Label>
+            <UiCheckbox
+              :model-value="publishDefaults.includePdf"
+              :label="$t('settings.includePdf')"
+              @update:model-value="togglePdf"
+            />
+            <span class="settings__hint">{{ $t("settings.publishDefaultsHint") }}</span>
+          </section>
         </section>
 
         <section v-show="activeTab === 'appearance'" class="settings__tabpanel">
@@ -1135,32 +1159,6 @@ async function renameWorkspace(event: Event) {
           </div>
         </section>
 
-        <section v-show="activeTab === 'publish'" class="settings__tabpanel">
-          <section class="settings__section">
-            <h4 class="settings__heading">Publish defaults</h4>
-            <Label class="settings__field">
-              <span>{{ $t("settings.langs") }}</span>
-              <UiTextField
-                :value="publishLangs"
-                placeholder="en, de"
-                @change="publishLangs = ($event.target as HTMLInputElement).value"
-              />
-            </Label>
-            <Label class="settings__field">
-              <span>{{ $t("settings.tags") }}</span>
-              <UiTextField
-                :value="publishTags"
-                :placeholder="$t('settings.tags')"
-                @change="publishTags = ($event.target as HTMLInputElement).value"
-              />
-            </Label>
-            <UiCheckbox
-              :model-value="publishDefaults.includePdf"
-              :label="$t('settings.includePdf')"
-              @update:model-value="togglePdf"
-            />
-          </section>
-        </section>
         <section v-show="activeTab === 'ai'" class="settings__tabpanel">
           <section class="settings__section">
             <h4 class="settings__heading">{{ $t("settings.tabAi") }}</h4>
@@ -1302,7 +1300,7 @@ async function renameWorkspace(event: Event) {
           </section>
         </section>
         <section v-show="activeTab === 'sync'" class="settings__tabpanel">
-          <SyncPanel />
+          <SyncPanel @open-profile="openProfile" />
         </section>
 
         <section v-show="activeTab === 'export'" class="settings__tabpanel">

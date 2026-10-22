@@ -50,6 +50,18 @@ export interface TypbaseTestApi {
   openChat: ((threadId?: string | null) => void) | null;
   /** Open the graph pane. */
   openGraph: (() => void) | null;
+  /** Open the website builder. */
+  openSite: (() => void) | null;
+  /** The active workspace's site settings. */
+  siteState: (() => import("@typbase/typing").SiteSettings) | null;
+  /** Build the site bundle in memory. */
+  siteBuild:
+    | ((options?: { baseUrl?: string }) => Promise<{
+        hash: string;
+        files: Array<{ name: string; size: number; text?: string }>;
+        pages: Array<{ id: string; title: string; url: string }>;
+      }>)
+    | null;
   /** Node and edge counts of the open graph, or null when it is closed. */
   graphStats: (() => { nodes: number; edges: number } | null) | null;
   /** Screen point of a graph node in page coordinates, or null. */
@@ -118,6 +130,9 @@ export const testApi: TypbaseTestApi = {
   crashEngine: null,
   openChat: null,
   openGraph: null,
+  openSite: null,
+  siteState: null,
+  siteBuild: null,
   graphStats: null,
   graphNodePoint: null,
   backlinksFor: null,

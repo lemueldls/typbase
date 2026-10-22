@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 
+import { pushToast } from "~/composables/toasts";
 import { publishPage, unpublishPage } from "~/lib/publish";
 
 const props = defineProps<{
@@ -23,6 +24,17 @@ const meta = useWorkspaceValue(
 );
 
 const menuOpen = ref(false);
+const langs = ref<string[]>([]);
+const tags = ref<string[]>([]);
+const includePdf = ref(false);
+
+/** Popover options start from the workspace defaults each time it opens. */
+function syncOptions(): void {
+  const defaults = props.store.getPublishSettings();
+  langs.value = [...defaults.langs];
+  tags.value = [...defaults.tags];
+  includePdf.value = defaults.includePdf;
+}
 
 function formatPublished(timestamp: number): string {
   return new Intl.DateTimeFormat(locale.value).format(new Date(timestamp));
@@ -47,7 +59,11 @@ async function onPublish() {
   busy.value = true;
   error.value = "";
   try {
-    await publishPage(props.store, atproto.value, props.pageId);
+    await publishPage(props.store, atproto.value, props.pageId, {
+      langs: langs.value,
+      tags: tags.value,
+      includePdf: includePdf.value,
+    });
     menuOpen.value = false;
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -98,8 +114,24 @@ async function onUnpublish() {
   }
 }
 
+function saveDefaults(): void {
+  props.store.updateSettings({
+    publish: {
+      langs: langs.value,
+      tags: tags.value,
+      includePdf: includePdf.value,
+    },
+  });
+  pushToast({ titleKey: "common.saved", duration: 1800 });
+}
+
 watch(menuOpen, (open) => {
-  if (!open) copied.value = false;
+  if (!open) {
+    copied.value = false;
+
+    return;
+  }
+  syncOptions();
 });
 
 watch(
@@ -107,6 +139,7 @@ watch(
   () => {
     error.value = "";
     copied.value = false;
+    syncOptions();
   },
 );
 </script>
@@ -132,6 +165,41 @@ watch(
         </div>
         <div class="menu__separator" />
       </template>
+
+      <div class="publish__options">
+        <p class="publish__section-title">{{ t("pageView.publishOptions") }}</p>
+        <label class="publish__field">
+          <span>{{ t("settings.langs") }}</span>
+          <UiTagsInput
+            v-model="langs"
+            :label="t('settings.langs')"
+            placeholder="en, de"
+            :disabled="busy"
+          />
+        </label>
+        <label class="publish__field">
+          <span>{{ t("settings.tags") }}</span>
+          <UiTagsInput
+            v-model="tags"
+            :label="t('settings.tags')"
+            :placeholder="t('settings.tags')"
+            :disabled="busy"
+          />
+        </label>
+        <div class="publish__options-footer">
+          <UiCheckbox
+            :model-value="includePdf"
+            :label="t('settings.includePdf')"
+            :disabled="busy"
+            @update:model-value="includePdf = $event"
+          />
+          <UiButton size="tiny" variant="ghost" :disabled="busy" @click="saveDefaults">
+            {{ t("pageView.saveDefaults") }}
+          </UiButton>
+        </div>
+      </div>
+
+      <div class="menu__separator" />
 
       <button type="button" class="menu__item" :disabled="busy || !atproto" @click="onPublish">
         <MsIcon name="cloud_upload" :size="20" />
@@ -183,7 +251,37 @@ watch(
 /* Qualified with `.menu`: the surface styles come from Menu.vue and either
    file can land first in the bundle. */
 .menu.publish__menu {
-  min-width: 15rem;
+  width: min(22rem, calc(100vw - var(--space-8)));
+}
+
+.publish__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.publish__section-title {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.publish__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.publish__options-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
 /* Published state, above the actions. */

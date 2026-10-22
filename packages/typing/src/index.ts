@@ -8,6 +8,8 @@
  * that consume `#typbase.query`.
  */
 
+import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "./site";
+
 /** A page in a workspace. Mirrors an entry of the workspace doc's `pages` map. */
 export interface PageMeta {
   id: string;
@@ -335,6 +337,8 @@ export interface WorkspaceSettings {
    */
   installedPackages: InstalledPackage[];
   publish: PublishSettings;
+  /** Public website built from this workspace. */
+  site: SiteSettings;
   ai: AiSettings;
   search: SearchSettings;
   notebook: NotebookSettings;
@@ -405,6 +409,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     tags: [],
     includePdf: false,
   },
+  site: DEFAULT_SITE_SETTINGS,
   ai: {
     enabled: false,
     providers: [
@@ -493,6 +498,7 @@ export {
 } from "./atproto";
 export * from "./chat";
 export * from "./plugins";
+export * from "./site";
 
 /** Kinds `#typbase.query` supports. */
 export type QueryKind =

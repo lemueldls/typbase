@@ -3,15 +3,23 @@ import type { PostValue } from "@typbase/spaces";
 
 import { createPublicPostsClient } from "@typbase/spaces";
 
+import type { PublicProfile } from "~/lib/actor";
+
+import { fetchPublicProfile } from "~/lib/actor";
 import { APP_NAME, formatDocumentTitle } from "~/lib/documentTitle";
+import { openExternal } from "~/lib/openExternal";
 
 const routeDid = useRouteParams<string>("did");
 
 const loading = ref(true);
 const error = ref("");
-const author = ref<{ did: string; handle: string | null }>({
+const author = ref<PublicProfile>({
   did: "",
   handle: null,
+  displayName: null,
+  description: null,
+  avatar: null,
+  banner: null,
 });
 const posts = ref<
   Array<{
@@ -30,11 +38,19 @@ watchImmediate(routeDid, async (input) => {
   }
 
   try {
-    // Read-only airspace over one account's public posts. Identity resolution
-    // (handle -> DID -> PDS) happens inside.
+    // The posts client resolves handle -> DID -> PDS. The AppView profile is
+    // optional and adds the display name, avatar, and bio when the account has
+    // one; the PDS identity still supplies the canonical DID and handle.
     const client = createPublicPostsClient(input);
-    const identity = await client.identity();
-    author.value = { did: identity.did, handle: identity.handle ?? null };
+    const [identity, rich] = await Promise.all([client.identity(), fetchPublicProfile(input)]);
+    author.value = {
+      did: identity.did,
+      handle: rich?.handle ?? identity.handle ?? null,
+      displayName: rich?.displayName ?? null,
+      description: rich?.description ?? null,
+      avatar: rich?.avatar ?? null,
+      banner: rich?.banner ?? null,
+    };
 
     const records = await Promise.all(
       (await client.post.list()).map(async (record) => {
@@ -75,14 +91,24 @@ function tagList(value: unknown): string[] {
 
 const { t } = useI18n();
 
-/** Author name once identity resolves. The DID is the fallback. */
-const profileName = computed(() => author.value.handle ?? author.value.did);
+/** Display name, then handle, then DID as the identity fallback. */
+const profileName = computed(
+  () => author.value.displayName || author.value.handle || author.value.did,
+);
 
 /** Public profile title: "Author · Typbase". */
 const profileTitle = computed(() => formatDocumentTitle(profileName.value, APP_NAME));
 
-const profileDescription = computed(() =>
-  profileName.value ? t("profile.description", { name: profileName.value }) : undefined,
+const profileDescription = computed(
+  () =>
+    author.value.description ||
+    (profileName.value ? t("profile.description", { name: profileName.value }) : undefined),
+);
+
+const blueskyUrl = computed(() =>
+  author.value.handle || author.value.did
+    ? `https://bsky.app/profile/${author.value.handle ?? author.value.did}`
+    : "",
 );
 
 useSeoMeta({
@@ -98,12 +124,44 @@ definePageMeta({ ssr: false });
 
 <template>
   <main class="profile">
-    <header class="profile__header">
-      <h1>{{ author.handle ?? author.did }}</h1>
-      <p class="profile__sub">{{ author.did }}</p>
-      <p v-if="posts.length" class="profile__count">
-        {{ $t("profile.publishedCount", { count: posts.length }, posts.length) }}
-      </p>
+    <header class="profile__topbar">
+      <NuxtLink to="/" class="profile__brand">
+        <MsIcon name="arrow_back" :size="16" />
+        Typbase
+      </NuxtLink>
+    </header>
+
+    <header class="profile__card">
+      <img v-if="author.banner" class="profile__banner" :src="author.banner" alt="" />
+      <div class="profile__body">
+        <img v-if="author.avatar" class="profile__avatar" :src="author.avatar" alt="" />
+        <MsIcon
+          v-else
+          class="profile__avatar profile__avatar--placeholder"
+          name="account_circle"
+          :size="88"
+        />
+        <div class="profile__identity">
+          <h1>{{ profileName }}</h1>
+          <p v-if="author.handle" class="profile__handle">@{{ author.handle }}</p>
+          <p class="profile__sub">{{ author.did }}</p>
+          <p v-if="author.description" class="profile__bio">{{ author.description }}</p>
+          <div class="profile__actions">
+            <!-- <a
+              v-if="blueskyUrl"
+              class="profile__link"
+              :href="blueskyUrl"
+              rel="noopener noreferrer"
+              @click.prevent="openExternal(blueskyUrl)"
+            >
+              {{ $t("profile.viewBluesky") }}
+            </a> -->
+            <span v-if="posts.length" class="profile__count">
+              {{ $t("profile.publishedCount", { count: posts.length }, posts.length) }}
+            </span>
+          </div>
+        </div>
+      </div>
     </header>
 
     <p v-if="loading" class="profile__status">Loading...</p>
@@ -151,48 +209,154 @@ definePageMeta({ ssr: false });
 
 <style>
 .profile {
-  max-width: 760px;
+  max-width: 780px;
   margin: 0 auto;
-  padding: calc(var(--space-8) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))
-    calc(var(--space-16) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
+  padding: calc(var(--space-4) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))
+    calc(var(--space-12) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
 }
 
-.profile__header h1 {
+.profile__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.profile__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.profile__open:hover {
+  text-decoration: underline;
+}
+
+.profile__card {
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.profile__banner {
+  display: block;
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+  background: var(--color-surface-2);
+}
+
+.profile__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.profile__avatar {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-2);
+}
+
+.profile__avatar--placeholder {
+  color: var(--color-text-secondary);
+}
+
+.profile__identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.profile__identity h1 {
+  margin: 0;
   font-size: var(--text-3xl);
   font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.profile__handle {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--text-md);
 }
 
 .profile__sub {
-  margin: var(--space-0-5) 0 0;
+  margin: 0;
   color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.profile__bio {
+  max-width: 42rem;
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+}
+
+.profile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.profile__link {
+  color: var(--color-accent);
   font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.profile__link:hover {
+  text-decoration: underline;
 }
 
 .profile__count {
   color: var(--color-text-secondary);
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
 }
 
 .profile__status {
+  margin: var(--space-6) 0 0;
   color: var(--color-text-secondary);
+  font-size: var(--text-md);
+  text-align: center;
 }
 
 .profile__error {
+  margin: var(--space-6) 0 0;
   color: var(--color-danger);
+  text-align: center;
 }
 
 .profile__posts {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  margin-top: var(--space-6);
+  gap: var(--space-4);
+  margin-top: var(--space-5);
 }
 
 .profile__post {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
   padding: var(--space-4);
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .profile__post-head {
@@ -234,6 +398,31 @@ definePageMeta({ ssr: false });
 .profile__tag {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+@media (max-width: 48rem) {
+  .profile {
+    padding-top: calc(var(--space-3) + var(--safe-top));
+  }
+
+  .profile__banner {
+    height: 104px;
+  }
+
+  .profile__body {
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .profile__avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .profile__identity h1 {
+    font-size: var(--text-2xl);
+  }
 }
 
 .profile__frame {

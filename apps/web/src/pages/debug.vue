@@ -315,8 +315,11 @@ definePageMeta({ ssr: false });
           <code>{{ mismatch }}</code>
         </li>
       </ul>
-      <details v-if="indexCheck.segments.length" class="lab__segments">
-        <summary>{{ indexCheck.segments.length }} segments</summary>
+      <UiCollapsible
+        v-if="indexCheck.segments.length"
+        class="lab__segments"
+        :label="`${indexCheck.segments.length} segments`"
+      >
         <table class="lab__table">
           <thead>
             <tr>
@@ -341,7 +344,7 @@ definePageMeta({ ssr: false });
             </tr>
           </tbody>
         </table>
-      </details>
+      </UiCollapsible>
     </section>
 
     <section class="lab__battery">

@@ -13,6 +13,9 @@ import {
 } from "@typbase/spaces";
 import { NATIVE_OAUTH_METADATA_PATH } from "@typbase/typing";
 
+import type { PublicProfile } from "~/lib/actor";
+
+import { fetchPublicProfile } from "~/lib/actor";
 import { createNativeAuth } from "~/lib/nativeAuth";
 import { createSyncHost } from "~/lib/syncHost";
 import { withTimeout } from "~/lib/timeout";
@@ -41,6 +44,8 @@ export interface AtprotoStatus {
    */
   syncing: boolean;
   did: string | null;
+  /** Public identity and profile fields once the session resolves them. */
+  profile: PublicProfile | null;
   spaceUri: string | null;
   pendingUpdates: number;
   lastExportAt: number;
@@ -62,6 +67,7 @@ export class AtprotoService {
   private listeners = new Set<() => void>();
   private relayVersions = new Map<string, string>();
   private statusDid: string | null = null;
+  private statusProfile: PublicProfile | null = null;
   private statusError: string | null = null;
   private members: Array<{ did: string; handle: string | null }> = [];
   private disposed = false;
@@ -105,6 +111,7 @@ export class AtprotoService {
       (session) => {
         if (!session) {
           this.statusDid = null;
+          this.statusProfile = null;
           this.detach();
         }
         this.emit();
@@ -139,6 +146,7 @@ export class AtprotoService {
     } catch (error) {
       this.setError(`Space setup failed: ${String(error)}`);
     }
+    void this.refreshProfile();
   }
 
   get status(): AtprotoStatus {
@@ -148,6 +156,7 @@ export class AtprotoService {
       signedIn: this.statusDid !== null,
       syncing: this.sync !== null,
       did: this.statusDid,
+      profile: this.statusProfile,
       spaceUri:
         this.sync && this.statusDid
           ? workspaceSpaceUri(this.statusDid, this.store.workspaceId)
@@ -185,12 +194,14 @@ export class AtprotoService {
       this.setError(`Space setup failed: ${String(error)}`);
     }
     this.emit();
+    void this.refreshProfile();
   }
 
   async signOut(): Promise<void> {
     await this.sessions.signOut();
     this.sessionRef = null;
     this.statusDid = null;
+    this.statusProfile = null;
     this.detach();
     this.setError(null);
     this.emit();
@@ -233,6 +244,43 @@ export class AtprotoService {
 
     await this.startSync(airspace);
     void this.refreshMembers();
+  }
+
+  /**
+   * Resolve the account's public handle from its PDS, then any richer profile
+   * fields the AppView has. The PDS call is authoritative for the handle; the
+   * AppView is optional and may not index a self-hosted account.
+   */
+  private async refreshProfile(): Promise<void> {
+    const session = this.sessionRef;
+    if (!session) return;
+    const did = session.did;
+
+    let handle: string | null = null;
+    try {
+      const params = new URLSearchParams({ repo: did });
+      const response = await session.fetchHandler(
+        `/xrpc/com.atproto.repo.describeRepo?${params.toString()}`,
+      );
+      if (response.ok) {
+        const body = (await response.json()) as { handle?: string };
+        handle = body.handle ?? null;
+      }
+    } catch {
+      // A profile is a convenience. Sync still works without one.
+    }
+
+    const rich = await fetchPublicProfile(did);
+    if (this.sessionRef?.did !== did) return;
+    this.statusProfile = {
+      did,
+      handle: rich?.handle ?? handle,
+      displayName: rich?.displayName ?? null,
+      description: rich?.description ?? null,
+      avatar: rich?.avatar ?? null,
+      banner: rich?.banner ?? null,
+    };
+    this.emit();
   }
 
   private async startSync(airspace: WorkspaceClient): Promise<void> {
@@ -326,6 +374,37 @@ export class AtprotoService {
     if (!this.airspace) throw new Error("Not signed in");
 
     return this.airspace;
+  }
+
+  /** The signed-in OAuth session, for public repo writes outside a space. */
+  requireSession(): OAuthSession {
+    if (!this.sessionRef) throw new Error("Not signed in");
+
+    return this.sessionRef;
+  }
+
+  get session(): OAuthSession | null {
+    return this.sessionRef;
+  }
+
+  /** True when the session can write the site collections. Older sign-ins cannot. */
+  async hasSitePublishingScope(): Promise<boolean> {
+    if (!this.sessionRef) return false;
+    try {
+      const info = await this.sessionRef.getTokenInfo();
+      const scope = String(info.scope);
+
+      return scope.includes("repo:place.wisp.fs") && scope.includes("repo:site.standard.document");
+    } catch {
+      return false;
+    }
+  }
+
+  /** Re-runs OAuth so an older session picks up the site scopes. */
+  async reauthorize(): Promise<void> {
+    const identifier = this.statusDid;
+    if (!identifier) throw new Error("Not signed in");
+    await this.signIn(identifier);
   }
 
   async refreshMembers(): Promise<void> {
