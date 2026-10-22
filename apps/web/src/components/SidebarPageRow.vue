@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Category, PageMeta } from "@typbase/typing";
 
+import { pushToast } from "~/composables/toasts";
 import { PAGE_KIND_ICONS } from "~/lib/view";
 
 /**
@@ -8,7 +9,7 @@ import { PAGE_KIND_ICONS } from "~/lib/view";
  * Drag state comes from the sidebar's list drag, which owns the container and
  * the drop index.
  */
-defineProps<{
+const props = defineProps<{
   page: PageMeta;
   categories: Category[];
   current: boolean;
@@ -32,6 +33,16 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+/** The page id is opaque, so the row menu is where a user gets at it. */
+async function copyId(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(props.page.id);
+    pushToast({ titleKey: "common.copied", duration: 1800 });
+  } catch (cause) {
+    console.error("[sidebar] copy id failed:", cause);
+  }
+}
 </script>
 
 <template>
@@ -68,6 +79,7 @@ const { t } = useI18n();
       </template>
 
       <UiMenuItem icon="edit" @select="emit('rename')">{{ $t("common.rename") }}</UiMenuItem>
+      <UiMenuItem icon="content_copy" @select="copyId">{{ $t("common.copyId") }}</UiMenuItem>
       <UiMenuItem icon="keyboard_double_arrow_up" :disabled="first" @select="emit('move', -1)">
         {{ $t("common.moveUp") }}
       </UiMenuItem>

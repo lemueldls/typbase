@@ -20,6 +20,7 @@ import {
 } from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
 
+import { pushToast } from "~/composables/toasts";
 import {
   beginRecovery,
   canAutoRebuild,
@@ -847,6 +848,16 @@ watch(
   { immediate: true },
 );
 
+/** The page id is opaque, so the menu is the only way to get at it. */
+async function copyPageId(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(props.pageId);
+    pushToast({ titleKey: "common.copied", duration: 1800 });
+  } catch (cause) {
+    console.error("[page] copy id failed:", cause);
+  }
+}
+
 function getSelection(): { from: number; to: number; text: string } | null {
   const view = editorPane.value?.view;
   if (!view) return null;
@@ -1311,6 +1322,10 @@ function setCategory(categoryId: string | null): void {
 
           <UiMenuItem icon="link" @select="linksOpen = true">
             {{ $t("links.title") }}
+          </UiMenuItem>
+
+          <UiMenuItem icon="content_copy" :disabled="!ready" @select="copyPageId">
+            {{ $t("common.copyId") }}
           </UiMenuItem>
 
           <UiMenuItem icon="download" @select="exportOpen = true">

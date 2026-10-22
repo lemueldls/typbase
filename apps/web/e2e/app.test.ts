@@ -2045,6 +2045,37 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("copies a page id from its row menu", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, { title: "Copy me", content: "= Copy me\n" });
+    await showPage(page, id, "write");
+
+    // Playwright has no clipboard grant here, so stub the write and read it back.
+    await page.evaluate(() => {
+      (window as unknown as { copiedId?: string }).copiedId = undefined;
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            (window as unknown as { copiedId?: string }).copiedId = text;
+          },
+        },
+      });
+    });
+
+    const row = page.locator(".sidebar__item", { hasText: "Copy me" });
+    await row.hover();
+    await row.locator(".sidebar__row-more").click();
+    await page.locator(".menu__item", { hasText: "Copy note id" }).click();
+
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { copiedId?: string }).copiedId ?? ""))
+      .toBe(id);
+    await page.close();
+  });
+
   /**
    * Presses a row, drags to `ratio` of the way down the target row, and waits
    * for the gap the drop will land in. A ratio under a half puts the row above
