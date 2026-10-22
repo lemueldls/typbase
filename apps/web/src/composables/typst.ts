@@ -4,6 +4,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import init, { TypstState } from "@typbase/engine";
 import { isTauri } from "@typbase/storage";
 
+import { effectiveLocale } from "~/composables/appLocale";
 import { currentThemeColors } from "~/composables/theme";
 import { EDITOR_LINE_HEIGHT } from "~/lib/cmTheme";
 import { installCustomFonts } from "~/lib/customFonts";
@@ -325,6 +326,8 @@ export function applyWorkspaceStyle(
     /** Ligatures and kerning, applied to every compile of this workspace. */
     ligatures: boolean;
     kerning: boolean;
+    /** App locale, which becomes the document's `text(lang:)`. */
+    locale: string;
     /** Renderer palette for the current workspace theme. */
     themeColors: ThemeColors;
   },
@@ -334,6 +337,7 @@ export function applyWorkspaceStyle(
   typstState.setCodeFont(configId, settings.codeFont);
   typstState.setTextSize(configId, settings.textSize);
   typstState.setTypography(configId, settings.ligatures, settings.kerning);
+  typstState.setLocale(configId, settings.locale);
   // Frame crops start at the editor's line box, so a rendered block and the
   // source text it replaces share a baseline.
   typstState.setLineHeightRatio(configId, EDITOR_LINE_HEIGHT);
@@ -409,6 +413,7 @@ export async function applyWorkspaceStyleToTypst(
     textSize: settings.textSize,
     ligatures: settings.typography.ligatures,
     kerning: settings.typography.kerning,
+    locale: effectiveLocale(settings),
     themeColors: currentThemeColors(settings),
   });
 }

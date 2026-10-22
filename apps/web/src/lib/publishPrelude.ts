@@ -2,6 +2,7 @@ import type { ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
 import { TypstState } from "@typbase/engine";
 
+import { effectiveLocale } from "~/composables/appLocale";
 import { useTypst } from "~/composables/typst";
 import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { resolveLightTheme, resolveTheme } from "~/lib/themes";
@@ -85,7 +86,7 @@ export async function publishPrelude(
     settings.font,
     settings.mathFont,
     settings.codeFont,
-    settings.locale && settings.locale !== "auto" ? settings.locale : "en",
+    effectiveLocale(settings),
     settings.typography.ligatures,
     settings.typography.kerning,
   );
