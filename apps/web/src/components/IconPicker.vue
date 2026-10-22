@@ -46,7 +46,7 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
       </template>
     </UiTextField>
 
-    <div ref="grid" class="icon-picker__grid">
+    <div v-if="result.entries.length" ref="grid" class="icon-picker__grid">
       <UiTooltip v-for="entry in result.entries" :key="entry.id" :text="entry.title">
         <button
           type="button"
@@ -61,9 +61,20 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
       </UiTooltip>
     </div>
 
-    <p v-if="result.total > result.entries.length" class="icon-picker__hint">
+    <div v-else class="icon-picker__empty" role="status">
+      <MsIcon name="search_off" :size="22" />
+      <span>
+        {{
+          query.trim()
+            ? $t("switcher.iconEmpty", { query: query.trim() })
+            : $t("switcher.iconEmptyAll")
+        }}
+      </span>
+    </div>
+
+    <!-- <p v-if="result.total > result.entries.length" class="icon-picker__hint">
       {{ $t("switcher.iconMore", { shown: result.entries.length, total: result.total }) }}
-    </p>
+    </p> -->
   </div>
 </template>
 
@@ -83,7 +94,9 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(2.4rem, 1fr));
   gap: var(--space-1);
-  max-height: 14rem;
+  height: 14rem;
+  align-content: start;
+  align-items: start;
   overflow-y: auto;
   padding: var(--space-1);
   border: 1px solid var(--color-border);
@@ -115,5 +128,21 @@ const selected = computed(() => props.modelValue as MaterialSymbol);
   margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+/* Search came back empty: same box as the grid so the dialog does not resize. */
+.icon-picker__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 14rem;
+  padding: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 </style>
