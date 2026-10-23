@@ -2,7 +2,7 @@
 import type { WorkspaceStore } from "@typbase/storage";
 
 import { todayISO } from "~/lib/format";
-import { isMac } from "~/lib/platform";
+import { shortcutLabel } from "~/lib/keybindings";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -26,15 +26,23 @@ const emit = defineEmits<{
 const nav = useNavHistory();
 const { show: showSearch } = useSearchPalette();
 const shortcuts = useShortcutsDialog();
+const settings = useSettingsDialog();
 const appUpdates = useAppUpdates();
 
 /** reka's menubar root holds the value of whichever menu is open. */
 const openMenu = ref("");
 const newPageOpen = ref(false);
-const settingsOpen = ref(false);
 const workspaceExportOpen = ref(false);
 
-const searchHint = computed(() => (isMac() ? "⌘K" : "Ctrl K"));
+const searchHint = computed(() => shortcutLabel("search") ?? "");
+const backTitle = computed(() => {
+  const chord = shortcutLabel("back");
+  return chord ? `${props.backLabel} (${chord})` : props.backLabel;
+});
+const forwardTitle = computed(() => {
+  const chord = shortcutLabel("forward");
+  return chord ? `${props.forwardLabel} (${chord})` : props.forwardLabel;
+});
 const updateReady = computed(() => appUpdates.status.value === "available");
 const sidebarLabel = computed(() =>
   props.sidebarVisible ? "sidebar.hideSidebar" : "sidebar.showSidebar",
@@ -62,12 +70,14 @@ async function openToday(): Promise<void> {
           </UiMenubarItem>
           <UiMenubarItem icon="calendar_today" @select="openToday">
             {{ $t("nav.menuToday") }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("today") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarSeparator />
 
           <UiMenubarItem icon="search" @select="showSearch()">
             {{ $t("nav.search") }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("search") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarSeparator />
@@ -82,10 +92,12 @@ async function openToday(): Promise<void> {
 
           <UiMenubarItem icon="folder_open" @select="emit('openFiles')">
             {{ $t("explorer.title") }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("files") }}</UiKbd>
           </UiMenubarItem>
 
-          <UiMenubarItem icon="settings" @select="settingsOpen = true">
+          <UiMenubarItem icon="settings" @select="settings.show()">
             {{ $t("sidebar.workspaceSettings") }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
           </UiMenubarItem>
         </UiMenubarMenu>
 
@@ -98,12 +110,14 @@ async function openToday(): Promise<void> {
 
           <UiMenubarItem icon="fullscreen" @select="emit('toggleZen')">
             {{ zen ? $t("zen.exit") : $t("zen.enter") }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("focus") }}</UiKbd>
           </UiMenubarItem>
         </UiMenubarMenu>
 
         <UiMenubarMenu :label="$t('shortcuts.menu')" value="help">
           <UiMenubarItem icon="keyboard" @select="shortcuts.show()">
             {{ $t("shortcuts.title") }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("shortcuts") }}</UiKbd>
           </UiMenubarItem>
         </UiMenubarMenu>
       </UiMenubar>
@@ -112,7 +126,7 @@ async function openToday(): Promise<void> {
     <div class="app-bar__center">
       <UiIconButton
         icon="arrow_back"
-        :label="backLabel"
+        :label="backTitle"
         :disabled="!nav.canBack.value"
         variant="ghost"
         class="app-bar__nav button--tiny"
@@ -120,7 +134,7 @@ async function openToday(): Promise<void> {
       />
       <UiIconButton
         icon="arrow_forward"
-        :label="forwardLabel"
+        :label="forwardTitle"
         :disabled="!nav.canForward.value"
         variant="ghost"
         class="app-bar__nav button--tiny"
@@ -131,7 +145,7 @@ async function openToday(): Promise<void> {
         <button type="button" class="app-bar__search" @click="showSearch()">
           <MsIcon name="search" :size="18" class="app-bar__search-icon" />
           <span class="app-bar__search-label">{{ $t("nav.search") }}</span>
-          <kbd class="app-bar__search-hint">{{ searchHint }}</kbd>
+          <!-- <UiKbd class="app-bar__search-hint">{{ searchHint }}</UiKbd> -->
         </button>
       </UiTooltip>
     </div>
@@ -153,7 +167,6 @@ async function openToday(): Promise<void> {
 
     <NewPageDialog v-model:open="newPageOpen" :store="store" @created="onCreated" />
     <WorkspaceExportDialog v-model:open="workspaceExportOpen" :store="store" />
-    <SettingsDialog v-model:open="settingsOpen" :store="store" />
   </div>
 </template>
 
@@ -246,12 +259,9 @@ async function openToday(): Promise<void> {
 .app-bar__search-hint {
   flex: none;
   margin-left: auto;
-  padding: 0 var(--space-1);
-  font-family: inherit;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
+}
+
+.app-bar__menu-key {
+  margin-left: auto;
 }
 </style>

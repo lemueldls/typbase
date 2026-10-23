@@ -43,7 +43,7 @@ function close(): void {
           <div v-for="item in group.items" :key="item.id" class="shortcuts__row">
             <dt class="shortcuts__label">{{ t(item.labelKey) }}</dt>
             <dd class="shortcuts__keys">
-              <kbd class="shortcuts__key">{{ formatShortcut(item) }}</kbd>
+              <UiKbd class="shortcuts__key">{{ formatShortcut(item) }}</UiKbd>
             </dd>
           </div>
         </dl>
@@ -115,18 +115,5 @@ function close(): void {
 .shortcuts__keys {
   flex: none;
   margin: 0;
-}
-
-.shortcuts__key {
-  display: inline-block;
-  padding: 2px var(--space-1-5);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--color-text);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
-  box-shadow: 0 1px 0 var(--color-border-strong);
-  white-space: nowrap;
 }
 </style>

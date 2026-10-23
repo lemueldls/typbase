@@ -15,6 +15,7 @@ import { engineAvailable } from "~/lib/engineHealth";
 import { sectionsOf } from "~/lib/engineSyntax";
 import { buildExport, type ExportOptions } from "~/lib/exportPage";
 import { buildWorkspaceExport, type WorkspaceExportOptions } from "~/lib/exportWorkspace";
+import { todayISO } from "~/lib/format";
 import { isTypingTarget, matchesShortcut } from "~/lib/keybindings";
 import { resolveOpenPageId } from "~/lib/openPage";
 import { requestReveal } from "~/lib/reveal";
@@ -60,6 +61,7 @@ const {
   toggle: togglePalette,
 } = useSearchPalette();
 const { open: shortcutsOpen } = useShortcutsDialog();
+const { open: settingsOpen } = useSettingsDialog();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
@@ -231,6 +233,24 @@ onCapturedKey(
   (event) => {
     event.preventDefault();
     shortcutsOpen.value = true;
+  },
+);
+
+// Cmd-, / Ctrl-, opens workspace settings.
+onCapturedKey(
+  (event) => matchesShortcut(event, "settings"),
+  (event) => {
+    event.preventDefault();
+    settingsOpen.value = true;
+  },
+);
+
+// Cmd-Alt-T / Ctrl-Alt-T opens (or creates) today's daily note.
+onCapturedKey(
+  (event) => matchesShortcut(event, "today"),
+  (event) => {
+    event.preventDefault();
+    void openToday();
   },
 );
 
@@ -825,6 +845,15 @@ function openPage(id: string) {
   syncRoute(historyMode);
 }
 
+/** The daily note for today, creating it when it is missing. */
+async function openToday(): Promise<void> {
+  const store = workspace.value;
+  if (!store) return;
+
+  const page = await store.createDailyNote(todayISO());
+  openPage(page.id);
+}
+
 /** Sidebar and toolbar search buttons: close the drawer, open the palette. */
 function openSearch() {
   navOpen.value = false;
@@ -1299,6 +1328,7 @@ definePageMeta({ ssr: false });
         />
 
         <KeyboardShortcutsDialog v-model:open="shortcutsOpen" />
+        <SettingsDialog v-if="workspace" v-model:open="settingsOpen" :store="workspace" />
       </div>
     </template>
 

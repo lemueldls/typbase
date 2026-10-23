@@ -26,6 +26,7 @@ const emit = defineEmits<{
 
 const { workspaces, activeWorkspaceId } = useWorkspace();
 const { t, locale } = useI18n();
+const settingsDialog = useSettingsDialog();
 
 /** The active workspace's registry icon. Falls back to the default folder. */
 const workspaceIcon = computed<MaterialSymbol>(() => {
@@ -290,9 +291,11 @@ function onCreated(page: PageMeta) {
         <!-- <UiIconButton icon="hub" :label="$t('graph.title')" @click="emit('graph')" /> -->
         <!-- <UiIconButton icon="forum" :label="$t('chat.title')" @click="emit('chat')" /> -->
         <!-- <UiIconButton icon="search" :label="$t('palette.title')" @click="emit('search')" /> -->
-        <SettingsDialog :store="store">
-          <UiIconButton icon="settings" :label="$t('sidebar.workspaceSettings')" />
-        </SettingsDialog>
+        <UiIconButton
+          icon="settings"
+          :label="$t('sidebar.workspaceSettings')"
+          @click="settingsDialog.show()"
+        />
         <!-- <UiIconButton
           icon="chevron_left"
           :label="$t('sidebar.hideSidebar')"

@@ -59,6 +59,30 @@ export const APPLICATION_SHORTCUTS: KeyboardShortcut[] = [
     labelKey: "explorer.title",
   },
   {
+    id: "settings",
+    group: "application",
+    keys: { default: "Mod+," },
+    labelKey: "sidebar.workspaceSettings",
+  },
+  {
+    id: "today",
+    group: "application",
+    keys: { default: "Mod+Alt+T" },
+    labelKey: "nav.menuToday",
+  },
+  {
+    id: "links",
+    group: "application",
+    keys: { default: "Mod+Alt+L" },
+    labelKey: "links.title",
+  },
+  {
+    id: "outline",
+    group: "application",
+    keys: { default: "Mod+Alt+O" },
+    labelKey: "toc.title",
+  },
+  {
     id: "back",
     group: "application",
     keys: { default: "Alt+ArrowLeft", mac: "Mod+BracketLeft" },
@@ -176,6 +200,12 @@ export function matchesShortcut(event: KeyboardEvent, id: string): boolean {
   const spec = isMac() ? (shortcut.keys.mac ?? shortcut.keys.default) : shortcut.keys.default;
 
   return matchesKeys(event, spec);
+}
+
+/** The formatted chord for `id`, for a tooltip or a hint. */
+export function shortcutLabel(id: string): string | undefined {
+  const shortcut = byId.get(id);
+  return shortcut ? formatShortcut(shortcut) : undefined;
 }
 
 function matchesKeys(event: KeyboardEvent, spec: string): boolean {

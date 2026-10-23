@@ -2348,10 +2348,38 @@ describe("typbase app", async () => {
     await expect
       .poll(() => page.locator(".shortcuts__row", { hasText: "Show this list" }).count())
       .toBe(1);
+    await expect
+      .poll(() => page.locator(".shortcuts__row", { hasText: "Workspace settings" }).count())
+      .toBe(1);
     expect(await page.locator(".shortcuts__key", { hasText: /^Ctrl\+S$/ }).count()).toBe(1);
 
     await page.locator(".shortcuts__close").click();
     await expect.poll(() => page.locator(".shortcuts-dialog").count()).toBe(0);
+    await page.close();
+  });
+
+  it("opens settings and page panels from their shortcuts", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.keyboard.press("Control+,");
+    await page.waitForSelector(".settings", { timeout: 30_000 });
+    await page.keyboard.press("Escape");
+    await expect.poll(() => page.locator(".settings").count()).toBe(0);
+
+    const id = await createTestPage(page, {
+      title: "Shortcut panels",
+      content: "= One\n\nBody.\n\n== Two\n",
+    });
+    await showPage(page, id, "write");
+
+    const tocBefore = await page.locator(".toc").count();
+    await page.keyboard.press("Control+Alt+O");
+    await expect.poll(() => page.locator(".toc").count()).not.toBe(tocBefore);
+
+    const linksBefore = await page.locator(".links").count();
+    await page.keyboard.press("Control+Alt+L");
+    await expect.poll(() => page.locator(".links").count()).not.toBe(linksBefore);
     await page.close();
   });
 

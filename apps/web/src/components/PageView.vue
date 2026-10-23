@@ -34,7 +34,7 @@ import {
   type EngineFailure,
 } from "~/lib/engineHealth";
 import { fontFamiliesInSource } from "~/lib/fonts";
-import { matchesShortcut } from "~/lib/keybindings";
+import { matchesShortcut, shortcutLabel } from "~/lib/keybindings";
 import {
   createNotebookController,
   createNotebookSession,
@@ -1077,6 +1077,23 @@ function jumpToHeading(heading: { from: number; to: number }): void {
   onPreviewJump(heading);
 }
 
+// Page-toolbar actions that are worth a chord. The app-level registry owns the
+// key specs; the handlers live here because both panels are PageView state.
+onCapturedKey(
+  (event) => matchesShortcut(event, "links"),
+  (event) => {
+    event.preventDefault();
+    linksOpen.value = !linksOpen.value;
+  },
+);
+onCapturedKey(
+  (event) => matchesShortcut(event, "outline"),
+  (event) => {
+    event.preventDefault();
+    tocOpen.value = !tocOpen.value;
+  },
+);
+
 function startSplitDrag(event: PointerEvent) {
   event.preventDefault();
 
@@ -1349,6 +1366,7 @@ function setCategory(categoryId: string | null): void {
 
           <UiMenuItem icon="link" @select="linksOpen = true">
             {{ $t("links.title") }}
+            <UiKbd class="page-view__menu-key">{{ shortcutLabel("links") }}</UiKbd>
           </UiMenuItem>
 
           <UiMenuItem icon="content_copy" :disabled="!ready" @select="copyPageId">
@@ -1357,6 +1375,7 @@ function setCategory(categoryId: string | null): void {
 
           <UiMenuItem icon="download" @select="exportOpen = true">
             {{ $t("exportPage.title") }}
+            <UiKbd class="page-view__menu-key">{{ shortcutLabel("export") }}</UiKbd>
           </UiMenuItem>
 
           <UiMenuItem icon="public" @select="emit('openSite')">
@@ -1666,6 +1685,10 @@ function setCategory(categoryId: string | null): void {
 .page-view__menu-check {
   margin-left: auto;
   color: var(--color-accent);
+}
+
+.page-view__menu-key {
+  margin-left: auto;
 }
 
 .page-view__error {
