@@ -78,7 +78,7 @@ describe("typbase app", async () => {
     await page.locator(".sidebar__header-actions button").first().click();
     await page.waitForSelector(".settings", { timeout: 30_000 });
     await page.locator(".settings__tab", { hasText: "Appearance" }).click();
-    await page.locator(".ui-switch", { hasText: "App bar" }).locator("button").click();
+    await page.getByRole("switch", { name: "App bar" }).click();
     await page.keyboard.press("Escape");
     await page.waitForSelector(".app-bar", { timeout: 30_000 });
   }
@@ -1640,7 +1640,7 @@ describe("typbase app", async () => {
     await expect(page.locator(".source-field .typ-key").first().innerText()).resolves.toBe("#let");
 
     // Blur commits, like the text fields beside it.
-    await page.locator(".settings__heading").first().click();
+    await page.locator('[data-settings-tab="content"] .settings-section__title').first().click();
     await expect
       .poll(() => page.evaluate(() => window.__typbase.store.getSettings().dailyNoteTemplate), {
         timeout: 30_000,
@@ -1652,7 +1652,7 @@ describe("typbase app", async () => {
     await prelude.click();
     await page.keyboard.press("Control+a");
     await page.keyboard.type("#set text(size: 12pt)");
-    await page.locator(".settings__heading").first().click();
+    await page.locator('[data-settings-tab="content"] .settings-section__title').first().click();
     await expect
       .poll(() => page.evaluate(() => window.__typbase.store.getSettings().pagePrelude), {
         timeout: 30_000,
@@ -1666,6 +1666,32 @@ describe("typbase app", async () => {
     await expect(prelude.innerText()).resolves.toBe("#f()");
 
     await page.evaluate((previous) => window.__typbase.store.updateSettings(previous), before);
+    await page.close();
+  });
+
+  it("finds a setting from the search field", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    await page.locator('[aria-label="Workspace settings"]').click();
+    await page.waitForSelector(".settings", { timeout: 30_000 });
+
+    const search = page.getByRole("searchbox", { name: "Search settings" });
+    await search.fill("font");
+    await expect.poll(() => page.locator(".settings__search-hit").count()).toBeGreaterThan(3);
+
+    await page.locator(".settings__search-hit", { hasText: "Text font" }).click();
+    await expect
+      .poll(() => page.locator('[data-tab="appearance"]').getAttribute("class"))
+      .toContain("settings__tab--active");
+    await expect.poll(() => page.locator("#setting-text-font").isVisible()).toBe(true);
+
+    // Sections are searchable too, so a broad word lands on the group.
+    await search.click();
+    await search.fill("typography");
+    await page.locator(".settings__search-hit", { hasText: "Typography" }).click();
+    await expect.poll(() => page.locator("#section-typography").isVisible()).toBe(true);
+
     await page.close();
   });
 

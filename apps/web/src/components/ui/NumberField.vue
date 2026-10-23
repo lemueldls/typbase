@@ -28,10 +28,10 @@ const model = defineModel<number | null>({ required: true });
     <NumberFieldInput class="ui-number__input" :aria-label="label" />
     <div class="ui-number__steps">
       <NumberFieldIncrement class="ui-number__step">
-        <MsIcon name="keyboard_arrow_up" :size="16" />
+        <MsIcon name="add" :size="16" />
       </NumberFieldIncrement>
       <NumberFieldDecrement class="ui-number__step">
-        <MsIcon name="keyboard_arrow_down" :size="16" />
+        <MsIcon name="remove" :size="16" />
       </NumberFieldDecrement>
     </div>
   </NumberFieldRoot>

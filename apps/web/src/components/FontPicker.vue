@@ -59,7 +59,7 @@ function pick(next: string): void {
       <template #trigger>
         <UiButton type="button" class="font-picker__trigger" :disabled="disabled">
           <span class="font-picker__value">{{ current?.label ?? value ?? fallback }}</span>
-          <MsIcon name="unfold_more" :size="18" />
+          <MsIcon name="keyboard_arrow_down" :size="18" />
         </UiButton>
       </template>
     </UiCombobox>
