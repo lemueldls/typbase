@@ -400,6 +400,10 @@ const vimCompartment = new Compartment();
  *  vim plugin and reset its mode. */
 let vimEnabled = Boolean(props.editor?.vim);
 
+/** A capped, centered writing column instead of the full pane. The class
+ *  drives the CSS; the engine reads the resulting width from the scroller. */
+const measureColumn = computed(() => props.editor?.contentWidth !== "full");
+
 const editorDisplaySignature = computed(() =>
   JSON.stringify([
     props.editor?.softWrap !== false,
@@ -564,7 +568,11 @@ defineExpose({ view, recompile, revealRange, insertAt });
 </script>
 
 <template>
-  <section ref="container" class="editable-pane" :class="{ 'editable-pane--dragging': dragActive }">
+  <section
+    ref="container"
+    class="editable-pane"
+    :class="{ 'editable-pane--dragging': dragActive, 'editable-pane--measure': measureColumn }"
+  >
     <div v-if="dragActive" class="editable-pane__drop" aria-hidden="true">
       <span class="editable-pane__drop-line" :style="{ top: `${dropTop}px` }">
         <span class="editable-pane__drop-label">
@@ -598,6 +606,24 @@ defineExpose({ view, recompile, revealRange, insertAt });
   min-height: 0;
   height: auto;
   order: 0;
+}
+
+/* The scroller keeps the full pane, so the wheel scrolls anywhere in it, and
+   insets its contents to one centered column. The gutter shares the inset, so
+   line numbers stay attached to the text. The engine subtracts this padding
+   when it reads the render width. */
+.editable-pane--measure {
+  --editor-measure-inset: max(0px, calc((100% - var(--doc-measure)) / 2));
+}
+
+.editable-pane--measure .cm-editor .cm-scroller {
+  padding-inline: var(--editor-measure-inset);
+}
+
+/* Keep the drop hint on the column instead of running past it. */
+.editable-pane--measure .editable-pane__drop-line {
+  left: calc(var(--space-2-5) + var(--editor-measure-inset));
+  right: calc(var(--space-2-5) + var(--editor-measure-inset));
 }
 
 /* The mode line is a sibling of CodeMirror, which is appended to this section.

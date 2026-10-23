@@ -52,14 +52,17 @@ const SCROLLBAR_ALLOWANCE = 12;
 function editorRenderWidth(scrollDOM: HTMLElement, contentDOM: HTMLElement): number {
   const pane = scrollDOM.getBoundingClientRect();
   const gutters = scrollDOM.querySelector<HTMLElement>(".cm-gutters");
-  const style = getComputedStyle(contentDOM);
+  const contentStyle = getComputedStyle(contentDOM);
+  const scrollStyle = getComputedStyle(scrollDOM);
 
   return Math.max(
     0,
     pane.width -
       (gutters?.getBoundingClientRect().width ?? 0) -
-      parseFloat(style.paddingLeft) -
-      parseFloat(style.paddingRight) -
+      parseFloat(contentStyle.paddingLeft) -
+      parseFloat(contentStyle.paddingRight) -
+      parseFloat(scrollStyle.paddingLeft) -
+      parseFloat(scrollStyle.paddingRight) -
       SCROLLBAR_ALLOWANCE,
   );
 }

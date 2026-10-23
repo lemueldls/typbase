@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TextRef } from "@typbase/codemirror";
 import type { FileId, SvgRangedFrame, TypstState } from "@typbase/engine";
+import type { EditorContentWidth } from "@typbase/typing";
 
 import { installSharedDefs } from "@typbase/codemirror";
 
@@ -16,6 +17,8 @@ const props = defineProps<{
   dataRevision: number;
   /** Bumped when rendering state changed (e.g. system fonts installed). */
   renderRevision: number;
+  /** Match the editor: one centered column, or the full pane width. */
+  contentWidth?: EditorContentWidth;
   onRequests?: (requests: unknown[], spaceId: string) => Promise<boolean> | boolean;
   /** Fired when a compile call trapped. The parent rebuilds the wasm state. */
   onPanic?: () => void;
@@ -119,6 +122,11 @@ const rendering = ref(false);
 const renderNow = async () => {
   if (!props.typstState || !scroller.value || scroller.value.offsetParent === null) return;
 
+  // The width cap and a text-size change move the column without changing
+  // the scroller, which is all the observer watches. Sync before compiling so
+  // the frames lay out at the width they draw at.
+  syncWidth();
+
   rendering.value = true;
   try {
     let result;
@@ -156,48 +164,47 @@ watch(
   () => scheduleRender(),
 );
 
-/** Platform scrollbars vary, so erring low keeps frames inside the pane. */
-const SCROLLBAR_ALLOWANCE = 12;
-
 function measureWidth(): number {
   const scrollerEl = scroller.value;
   if (!scrollerEl) return 0;
 
-  const inner = scrollerEl.querySelector<HTMLElement>(".paged-preview__inner");
-  const style = getComputedStyle(inner ?? scrollerEl);
+  // The inner column carries the padding and the optional max width, so its
+  // border box is exactly the space a frame draws in. The scroller reserves
+  // its scrollbar, so this width does not toggle with the content and set off
+  // another compile.
+  const inner = scrollerEl.querySelector<HTMLElement>(".paged-preview__inner") ?? scrollerEl;
+  const style = getComputedStyle(inner);
 
-  // The scroller's border box includes any scrollbar and does not depend on
-  // the rendered frames, so a reflow cannot change this width and set off
-  // another compile. Content-box measurements crept as the scrollbar toggled.
   return Math.max(
     0,
-    scrollerEl.getBoundingClientRect().width -
+    inner.getBoundingClientRect().width -
       parseFloat(style.paddingLeft) -
-      parseFloat(style.paddingRight) -
-      SCROLLBAR_ALLOWANCE,
+      parseFloat(style.paddingRight),
   );
 }
 
-useResizeObserver(scroller, () => {
+/** Push the current column width into the engine. */
+function syncWidth(): boolean {
   const width = measureWidth();
-  if (width <= 0) return;
+  if (width <= 0) return false;
 
-  // resize() reports whether the width actually changed. Height-only
-  // observer ticks must not schedule another compile, or the pane keeps
-  // reflowing after it has settled.
-  let changed = false;
   try {
-    changed = props.typstState.resize(props.fileId, width);
+    return props.typstState.resize(props.fileId, width);
   } catch (error) {
     // The engine is dead. The parent is already handling it. Do not let the
     // trap escape the observer callback.
     console.error("[typst] preview resize panicked:", error);
     props.onPanic?.();
 
-    return;
+    return false;
   }
+}
 
-  if (changed) scheduleRender();
+useResizeObserver(scroller, () => {
+  // resize() reports whether the width actually changed. Height-only
+  // observer ticks must not schedule another compile, or the pane keeps
+  // reflowing after it has settled.
+  if (syncWidth()) scheduleRender();
 });
 
 onMounted(() => {
@@ -214,6 +221,10 @@ watch(
 );
 watch(
   () => props.renderRevision,
+  () => scheduleRender(),
+);
+watch(
+  () => props.contentWidth,
   () => scheduleRender(),
 );
 
@@ -343,7 +354,12 @@ defineExpose({ scroller, getFrameLayout });
 </script>
 
 <template>
-  <div ref="scroller" class="paged-preview" @click="onPreviewClick">
+  <div
+    ref="scroller"
+    class="paged-preview"
+    :class="{ 'paged-preview--measure': contentWidth !== 'full' }"
+    @click="onPreviewClick"
+  >
     <div v-if="rendering" class="paged-preview__status">rendering...</div>
     <div class="paged-preview__inner">
       <div class="paged-preview__flow" :style="{ height: `${layout.height}px` }">
@@ -412,6 +428,13 @@ defineExpose({ scroller, getFrameLayout });
 
 .paged-preview__inner {
   padding: var(--space-4) var(--space-5) var(--space-12);
+}
+
+/* Same column as the editor, so switching modes does not move the text. The
+   scroller keeps the full pane and its scrollbar; only the content narrows. */
+.paged-preview--measure .paged-preview__inner {
+  max-width: var(--doc-measure);
+  margin-inline: auto;
 }
 
 .paged-preview__flow {

@@ -145,11 +145,17 @@ export interface NotebookSettings {
 /** Which pane follows the other in split-view scroll sync. */
 export type SplitScrollMode = "both" | "editor" | "preview" | "off";
 
+/**
+ * Width of the writing column. "measure" caps it at a readable line length and
+ * centers it in the pane; "full" uses the whole width.
+ */
+export type EditorContentWidth = "measure" | "full";
+
 /** Editor display options, synced with the workspace like the theme. */
 export interface EditorSettings {
   /** Show source line numbers in the gutter. */
   lineNumbers: boolean;
-  /** Wrap long lines at the pane width. Off scrolls them horizontally. */
+  /** Wrap long lines at the column width. Off scrolls them horizontally. */
   softWrap: boolean;
   /** Leave scroll room below the last line so the cursor is not pinned to the bottom. */
   scrollPastEnd: boolean;
@@ -157,6 +163,8 @@ export interface EditorSettings {
   vim: boolean;
   /** Follow scrolls between the editor and the rendered pane in split view. */
   splitScroll: SplitScrollMode;
+  /** Cap the text column at a readable measure, or fill the pane. */
+  contentWidth: EditorContentWidth;
 }
 
 export type ThemeMode = "auto" | "light" | "dark";
@@ -440,6 +448,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     scrollPastEnd: false,
     vim: false,
     splitScroll: "both",
+    contentWidth: "measure",
   },
   graph: {
     local: false,

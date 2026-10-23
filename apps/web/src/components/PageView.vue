@@ -1461,6 +1461,7 @@ function setCategory(categoryId: string | null): void {
         :typst-state="boundState"
         :data-revision="dataRevision + pluginsRevision"
         :render-revision="renderRevision"
+        :content-width="editorDisplay?.contentWidth ?? 'measure'"
         :on-requests="onRequests"
         :on-panic="() => handlePanic()"
         :on-compile="onEngineCompile"

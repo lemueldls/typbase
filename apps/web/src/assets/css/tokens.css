@@ -13,9 +13,8 @@
   --ui-density: 1;
   --ui-radius: 1;
 
-  /* Document text size, written from the workspace's textSize setting. The
-     editor source and its rendered headings both scale from it. */
   --doc-text-size: 16px;
+  --doc-measure: calc(var(--doc-text-size) * 70);
 
   /* Spacing: quarter-rem steps on a 2px grid. --space-1 is 4px, --space-4
      is 16px. Density scales padding and gaps only. */

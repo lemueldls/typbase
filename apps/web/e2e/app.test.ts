@@ -2200,6 +2200,40 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("caps the writing column and can fill the pane instead", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, { title: "Measure", content: "A line of prose.\n" });
+    await showPage(page, id, "write");
+
+    const inset = () =>
+      page
+        .locator(".editable-pane .cm-scroller")
+        .evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+
+    // The default keeps a readable column on a wide window.
+    await expect.poll(inset, { timeout: 10_000 }).toBeGreaterThan(0);
+
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({
+        editor: { ...(store.getSettings().editor ?? {}), contentWidth: "full" },
+      });
+    });
+    await expect.poll(inset, { timeout: 10_000 }).toBe(0);
+
+    // Restore the workspace setting so later tests open a capped column.
+    await page.evaluate(() => {
+      const store = window.__typbase.store;
+      store.updateSettings({
+        editor: { ...(store.getSettings().editor ?? {}), contentWidth: "measure" },
+      });
+    });
+    await expect.poll(inset, { timeout: 10_000 }).toBeGreaterThan(0);
+    await page.close();
+  });
+
   it("types in vim insert mode when the setting is on", async () => {
     const page = await createPage();
     await openApp(page);

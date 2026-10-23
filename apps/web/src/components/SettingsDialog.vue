@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type {
   AiProviderSettings,
   AiSettings,
+  EditorContentWidth,
   SpellcheckMode,
   SplitScrollMode,
   ThemeMode,
@@ -328,6 +329,19 @@ const editorSplitScroll = computed({
   set: (value: string) =>
     props.store.updateSettings({
       editor: { ...settings.value.editor, splitScroll: value as SplitScrollMode },
+    }),
+});
+
+const editorContentWidthOptions = computed<SelectOption[]>(() => [
+  { value: "measure", label: t("settings.editorContentWidthMeasure") },
+  { value: "full", label: t("settings.editorContentWidthFull") },
+]);
+
+const editorContentWidth = computed({
+  get: () => settings.value.editor?.contentWidth ?? "measure",
+  set: (value: string) =>
+    props.store.updateSettings({
+      editor: { ...settings.value.editor, contentWidth: value as EditorContentWidth },
     }),
 });
 
@@ -864,6 +878,15 @@ async function renameWorkspace(event: Event) {
                 :aria-label="$t('settings.editorSoftWrap')"
               />
               <span class="settings__hint">{{ $t("settings.editorSoftWrapHint") }}</span>
+            </div>
+            <div class="settings__field">
+              <span>{{ $t("settings.editorContentWidth") }}</span>
+              <UiSelect
+                v-model="editorContentWidth"
+                :options="editorContentWidthOptions"
+                :label="$t('settings.editorContentWidth')"
+              />
+              <span class="settings__hint">{{ $t("settings.editorContentWidthHint") }}</span>
             </div>
             <div class="settings__field">
               <UiSwitch
