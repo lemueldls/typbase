@@ -9,6 +9,7 @@ import {
 } from "@typbase/spaces";
 import { describe, expect, it } from "vitest";
 
+import { isSiteEmbedAllowed } from "../src/lib/site/embeds";
 import { siteSlug } from "../src/lib/site/slug";
 
 class FakeRepo implements PublicRepo {
@@ -231,6 +232,15 @@ describe("TID", () => {
     const second = nextTid(1_700_000_000_000);
     expect(first).toMatch(/^[234567abcdefghijklmnopqrstuvwxyz]{13}$/);
     expect(second > first).toBe(true);
+  });
+});
+
+describe("site embeds", () => {
+  it("allows a page to embed itself", () => {
+    const allowed = new Set(["welcome"]);
+
+    expect(isSiteEmbedAllowed("welcome", "welcome", allowed)).toBe(true);
+    expect(isSiteEmbedAllowed("welcome", "private-page", allowed)).toBe(false);
   });
 });
 

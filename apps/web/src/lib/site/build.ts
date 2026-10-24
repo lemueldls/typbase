@@ -6,6 +6,7 @@ import { pageContext, typstContextBinding } from "~/lib/pageContext";
 import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
 
+import { isSiteEmbedAllowed } from "./embeds";
 import { siteRkey, siteSlug } from "./slug";
 
 export { siteRkey, siteSlug } from "./slug";
@@ -591,7 +592,12 @@ function preflightSource(
 ): void {
   for (const match of source.matchAll(/#typbase\.embed\(\s*"([^"]+)"/g)) {
     const id = match[1]!;
-    if (!allowed.has(id)) {
+    if (id === page.id) {
+      warnings.push(`${page.title} embeds itself, so the embed is skipped.`);
+
+      continue;
+    }
+    if (!isSiteEmbedAllowed(page.id, id, allowed)) {
       throw new Error(
         `${page.title} embeds ${id}, which is private in this site. Include that page or remove the embed.`,
       );
