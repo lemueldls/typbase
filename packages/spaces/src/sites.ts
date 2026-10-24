@@ -241,6 +241,9 @@ interface WispTreeSubfs {
 
 type WispTreeEntry = WispTreeFile | WispTreeDirectory | WispTreeSubfs;
 
+/** The lexicon namespace a serialized tree belongs to. */
+type WispNamespace = "place.wisp.fs" | "place.wisp.subfs";
+
 /**
  * Writes one site to Wisp: upload the changed blobs, make the manifest
  * (splitting it when it grows past Wisp's record limits), then write the
@@ -316,7 +319,7 @@ export async function publishWispSite(
   const manifest = {
     $type: WISP_FS,
     site: options.siteRkey,
-    root: directoryRecord(plan.directory, "place.wisp.fs#directory"),
+    root: directoryRecord(plan.directory, "place.wisp.fs"),
     fileCount: countFiles(root),
     createdAt,
   };
@@ -446,7 +449,7 @@ function splitWispTree(
       rkey,
       record: {
         $type: WISP_SUBFS,
-        root: directoryRecord(directory, "place.wisp.subfs#directory"),
+        root: directoryRecord(directory, "place.wisp.subfs"),
         fileCount: countFiles(directory),
         createdAt: new Date().toISOString(),
       },
@@ -473,7 +476,7 @@ function splitWispTree(
 
     if (fits(next)) return next;
 
-    const chunks = chunkEntries(next.entries);
+    const chunks = chunkEntries(next.entries, "place.wisp.subfs");
     return {
       kind: "directory",
       name: directory.name,
@@ -485,7 +488,7 @@ function splitWispTree(
   const manifestSize = jsonSize({
     $type: WISP_FS,
     site: siteRkey,
-    root: directoryRecord(planRoot, "place.wisp.fs#directory"),
+    root: directoryRecord(planRoot, "place.wisp.fs"),
     fileCount: countFiles(root),
     createdAt: new Date().toISOString(),
   });
@@ -503,12 +506,12 @@ function splitWispTree(
 
 function fits(directory: WispTreeDirectory): boolean {
   const files = countFiles(directory);
-  const size = jsonSize(directoryRecord(directory, "place.wisp.subfs#directory"));
+  const size = jsonSize(directoryRecord(directory, "place.wisp.subfs"));
 
   return files <= TARGET_FILES && size <= MAX_SUBFS_SIZE && directory.entries.length <= 500;
 }
 
-function chunkEntries(entries: WispTreeEntry[]): WispTreeEntry[][] {
+function chunkEntries(entries: WispTreeEntry[], namespace: WispNamespace): WispTreeEntry[][] {
   const chunks: WispTreeEntry[][] = [];
   let current: WispTreeEntry[] = [];
   let files = 0;
@@ -524,7 +527,7 @@ function chunkEntries(entries: WispTreeEntry[]): WispTreeEntry[][] {
   for (const entry of entries) {
     const entryFiles =
       entry.kind === "file" ? 1 : entry.kind === "directory" ? countFiles(entry) : 0;
-    const entrySize = jsonSize(entryRecord(entry));
+    const entrySize = jsonSize(entryRecord(entry, namespace));
     if (current.length && files + entryFiles > TARGET_FILES) flush();
     if (current.length && size + entrySize > MAX_SUBFS_SIZE) flush();
     current.push(entry);
@@ -538,20 +541,21 @@ function chunkEntries(entries: WispTreeEntry[]): WispTreeEntry[][] {
 
 function directoryRecord(
   directory: WispTreeDirectory,
-  type: "place.wisp.fs#directory" | "place.wisp.subfs#directory",
+  namespace: WispNamespace,
 ): Record<string, unknown> {
   return {
-    $type: type,
+    $type: `${namespace}#directory`,
     type: "directory",
-    entries: directory.entries.map(entryRecord),
+    entries: directory.entries.map((entry) => entryRecord(entry, namespace)),
   };
 }
 
-function entryRecord(entry: WispTreeEntry): Record<string, unknown> {
+function entryRecord(entry: WispTreeEntry, namespace: WispNamespace): Record<string, unknown> {
   if (entry.kind === "file") {
     return {
       name: entry.name,
       node: {
+        $type: `${namespace}#file`,
         type: "file",
         blob: entry.blob,
         mimeType: entry.mimeType,
@@ -563,15 +567,21 @@ function entryRecord(entry: WispTreeEntry): Record<string, unknown> {
   if (entry.kind === "subfs") {
     return {
       name: entry.name,
-      node: { type: "subfs", subject: entry.subject, flat: entry.flat },
+      node: {
+        $type: `${namespace}#subfs`,
+        type: "subfs",
+        subject: entry.subject,
+        ...(namespace === "place.wisp.fs" ? { flat: entry.flat } : {}),
+      },
     };
   }
 
   return {
     name: entry.name,
     node: {
+      $type: `${namespace}#directory`,
       type: "directory",
-      entries: entry.entries.map(entryRecord),
+      entries: entry.entries.map((child) => entryRecord(child, namespace)),
     },
   };
 }

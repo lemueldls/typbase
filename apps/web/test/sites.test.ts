@@ -46,6 +46,20 @@ function file(name: string, text = name) {
   return { name, bytes: new TextEncoder().encode(text), mimeType: "text/html" };
 }
 
+interface WispTestNode {
+  $type?: string;
+  type?: string;
+  entries?: Array<{ node: WispTestNode }>;
+}
+
+/** Every node `$type` in a manifest tree, including nested directories. */
+function nodeTypes(entries: Array<{ node: WispTestNode }>): string[] {
+  return entries.flatMap((entry) => [
+    entry.node.$type ?? "",
+    ...(entry.node.entries ? nodeTypes(entry.node.entries) : []),
+  ]);
+}
+
 describe("Wisp publisher", () => {
   it("writes settings before the manifest", async () => {
     const repo = new FakeRepo();
@@ -56,9 +70,18 @@ describe("Wisp publisher", () => {
     });
 
     expect(repo.order).toEqual(["place.wisp.settings", "place.wisp.fs"]);
-    const manifest = repo.records.get("place.wisp.fs/notes");
+    const manifest = repo.records.get("place.wisp.fs/notes") as
+      | { site: string; fileCount: number; root: { entries: Array<{ node: WispTestNode }> } }
+      | undefined;
     expect(manifest?.site).toBe("notes");
     expect(manifest?.fileCount).toBe(2);
+    // Wisp validates the node union by `$type`; without it the record is
+    // rejected and the host fences the site after repeated fetch failures.
+    expect(nodeTypes(manifest?.root.entries ?? [])).toEqual([
+      "place.wisp.fs#directory",
+      "place.wisp.fs#file",
+      "place.wisp.fs#file",
+    ]);
   });
 
   it("splits a large site into subfs records", async () => {
@@ -68,9 +91,22 @@ describe("Wisp publisher", () => {
 
     const subfs = [...repo.records.keys()].filter((key) => key.startsWith("place.wisp.subfs/"));
     expect(subfs.length).toBeGreaterThan(0);
-    const manifest = repo.records.get("place.wisp.fs/large");
+    const manifest = repo.records.get("place.wisp.fs/large") as
+      | { fileCount: number; root: { entries: Array<{ node: WispTestNode }> } }
+      | undefined;
     expect(JSON.stringify(manifest).length).toBeLessThan(140 * 1024);
-    expect(repo.records.get("place.wisp.fs/large")?.fileCount).toBe(300);
+    expect(manifest?.fileCount).toBe(300);
+    expect(nodeTypes(manifest?.root.entries ?? [])).toContain("place.wisp.fs#subfs");
+
+    const subfsRecord = repo.records.get(subfs[0]) as
+      | { root: { $type?: string; entries: Array<{ node: WispTestNode }> } }
+      | undefined;
+    expect(subfsRecord?.root.$type).toBe("place.wisp.subfs#directory");
+    expect(
+      nodeTypes(subfsRecord?.root.entries ?? []).every((type) =>
+        type.startsWith("place.wisp.subfs#"),
+      ),
+    ).toBe(true);
   });
 
   it("reuses unchanged blobs when the hash matches", async () => {
