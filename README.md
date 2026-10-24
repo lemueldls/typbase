@@ -11,7 +11,7 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 - **The workspace as data:** `#typbase.query` and `#typbase.page-link` read pages, categories, daily notes, and sections from inside a document.
 - **Plugin system in Typst:** Extend the app with sidebar widgets, panes, and floating windows written in the same language as your notes.
 - **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The exported project is plain `.typ` with the library, resolved data, and plugin modules it needs.
-- **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through atproto. Publish a page as a public post, or publish the workspace as a website.
+- **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through the Atmosphere. Publish a page as a public post, or publish the entire workspace as a website.
 
 ## Technologies
 
@@ -19,7 +19,7 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 - [CodeMirror](https://codemirror.net) 6 for the editor with [Harper](https://writewithharper.com) integration.
 - [Typst](https://typst.app) 0.15 compiled to WebAssembly for the engine.
 - [Loro](https://loro.dev) CRDTs for collaborative editing.
-- [atproto](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
+- [the Atmosphere](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
 - [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) for search.
 - [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile builds.
 - [pnpm](https://pnpm.io) and [moonrepo](https://moonrepo.dev) for workspace management.

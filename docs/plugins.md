@@ -53,9 +53,9 @@ plugins/my-plugin/
 ```
 
 - `api` is exactly `typbase.host.v2`. v1 manifests are rejected.
-- `id` is `local:<name>` or an atproto URI. The `<slug>` a note imports from is
+- `id` is `local:<name>` or an Atmosphere URI. The `<slug>` a note imports from is
   the id without the `local:` scheme, so `local:my-plugin` is
-  `/typbase/plugin/my-plugin/`. An atproto id keeps its whole form, because two
+  `/typbase/plugin/my-plugin/`. An Atmosphere id keeps its whole form, because two
   authors can both publish the same plugin name.
 - `version` is compared against the installed record on every catalog refresh.
   Editing a plugin updates the sidebar and the studio without reopening the
@@ -76,7 +76,7 @@ plugins/my-plugin/
   never listed.
 
 Installing a plugin creates one instance. A second instance is an independent
-copy with its own data doc; both sync to atproto like pages. The plugin
+copy with its own data doc; both sync to the Atmosphere like pages. The plugin
 manager renames instances; the new name shows in the sidebar, the window
 title, and `ctx.instance.title`. A `window` instance also gets a host-chrome
 close and drag; a `pane` instance opens from the sidebar row.

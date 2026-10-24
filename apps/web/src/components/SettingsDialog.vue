@@ -230,7 +230,7 @@ const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string; keywor
     id: "sync",
     icon: "sync",
     label: "settings.tabSync",
-    keywords: "account atproto sign in login publish",
+    keywords: "account Atmosphere sign in login publish",
   },
   {
     id: "export",

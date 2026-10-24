@@ -10,7 +10,7 @@
  * - navigations are network-first, falling back to the cached document.
  * - hashed assets and fonts are cache-first.
  * - everything else same-origin is stale-while-revalidate.
- * - atproto, the relay, and the OAuth metadata documents are never cached.
+ * - Atmosphere requests, the relay, and the OAuth metadata documents are never cached.
  *
  * The cache name carries the build id from `_nuxt/builds/latest.json`. Install
  * writes the resolved name to IndexedDB, activate publishes it and drops the
