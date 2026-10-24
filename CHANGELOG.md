@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.3] - 2026-10-24
+
+### Fixed
+
+- Wisp domain request handling
+
 ## [0.4.2] - 2026-10-23
 
 ### New
