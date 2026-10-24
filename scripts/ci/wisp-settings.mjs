@@ -46,13 +46,10 @@ const headers = [
   { name: "Cache-Control", value: "no-cache", path: "/site.webmanifest" },
 ];
 
-// `spaMode` serves index.html for client routes that were never prerendered,
-// which is the only way `/u/<did>` resolves on a static host. `cleanUrls`
-// matches what wispctl writes when it creates the record itself.
 const record = {
   $type: "place.wisp.settings",
   cleanUrls: true,
-  spaMode: "index.html",
+  spaMode: "200.html",
   headers,
 };
 

@@ -71,6 +71,10 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         run: node scripts/ci/check-wasm-size.mjs apps/web/.output/public
 
+      - name: 🧭 Check the SPA fallback
+        if: steps.gate.outputs.deploy == 'true'
+        run: test -f apps/web/.output/public/200.html
+
       - name: 🧰 Prepare the Wrangler action
         if: steps.gate.outputs.deploy == 'true'
         shell: bash
