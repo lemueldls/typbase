@@ -23,10 +23,12 @@
 }:
 
 let
+  # wasm-pack runs the CLI that matches the wasm-bindgen crate in Cargo.lock, so
+  # this pin has to move with it. Bump the version and both hashes together.
   wasmBindgenSrc = fetchCrate {
     pname = "wasm-bindgen-cli";
-    version = "0.2.127";
-    hash = "sha256-di+qBAdd7pENLiIB9CoZoab+W5xeDoByMREcCGTSzWo=";
+    version = "0.2.129";
+    hash = "sha256-pcecKQd7E8Opw6bkFoE569epUi7gh5qpQF1e5PJY6V8=";
   };
 
   wasm-bindgen-cli = buildWasmBindgenCli {
@@ -34,7 +36,7 @@ let
     cargoDeps = rustPlatform.fetchCargoVendor {
       inherit (wasmBindgenSrc) pname version;
       src = wasmBindgenSrc;
-      hash = "sha256-FTv2GZIAQs0ePdIZXIXil7JbZ6kIT05VG6vqC1qNFxQ=";
+      hash = "sha256-vmUrWVU7kPJJxO5qIVeAkwQyWDELO1Z4Z5gitz2kco8=";
     };
   };
 in
@@ -91,7 +93,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   preBuild = ''
     (cd packages/engine && printf '{}' > pkg/package.json \
-      && wasm-pack build --release --target web --scope typbase --no-opt .)
+      && wasm-pack build --mode no-install --release --target web --scope typbase --no-opt .)
     wasm-opt -O4 -all packages/engine/pkg/engine_bg.wasm \
       -o packages/engine/pkg/engine_bg.opt.wasm
     mv packages/engine/pkg/engine_bg.opt.wasm packages/engine/pkg/engine_bg.wasm
