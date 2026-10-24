@@ -1428,7 +1428,6 @@ function copy(value: string): Promise<void> {
   justify-content: space-between;
   gap: var(--space-3);
   width: 100%;
-  max-width: 64rem;
   padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right)) 0
     calc(var(--space-2) + var(--safe-left));
 }
@@ -1489,7 +1488,6 @@ function copy(value: string): Promise<void> {
   display: flex;
   gap: var(--space-1);
   width: 100%;
-  max-width: 64rem;
   padding: 0 var(--space-2) var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
@@ -1534,7 +1532,6 @@ function copy(value: string): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  max-width: 64rem;
   margin: 0 auto;
 }
 
@@ -1551,7 +1548,6 @@ function copy(value: string): Promise<void> {
 
 .site-view__note,
 .site-view__error {
-  max-width: 64rem;
   margin: 0 auto var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
@@ -1574,8 +1570,8 @@ function copy(value: string): Promise<void> {
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-4);
-  max-width: 64rem;
   padding: var(--space-3);
+  margin: 0 auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1772,7 +1768,6 @@ function copy(value: string): Promise<void> {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
-  max-width: 64rem;
   margin: 0 auto;
 }
 
