@@ -1,6 +1,7 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
@@ -53,6 +54,22 @@ export default defineNuxtConfig({
   },
   vite: {
     plugins: [
+      {
+        name: "typbase:site-css",
+        enforce: "pre",
+        resolveId(id) {
+          if (id === "virtual:typbase-site-css") return "\0virtual:typbase-site-css";
+
+          return null;
+        },
+        async load(id) {
+          if (id !== "\0virtual:typbase-site-css") return null;
+          const file = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
+          this.addWatchFile(file);
+
+          return `export default ${JSON.stringify(await readFile(file, "utf8"))};`;
+        },
+      },
       {
         name: "typbase:dev-coep",
         apply: "serve",

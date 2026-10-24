@@ -1,5 +1,6 @@
 import type { SiteSettings, ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
+import siteCss from "virtual:typbase-site-css";
 import { createSSRApp } from "vue";
 import { renderToString } from "vue/server-renderer";
 
@@ -7,7 +8,6 @@ import type { SiteBuildNavigationGroup, SiteBuildPage } from "./build";
 
 import SiteDocument from "../../components/site/SiteDocument.vue";
 import { siteSlug } from "./slug";
-import siteCss from "./templates/site.css?raw";
 import searchScript from "./templates/site.js?raw";
 import { absoluteUrl, relativeUrl } from "./urls";
 

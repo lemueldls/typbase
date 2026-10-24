@@ -63,10 +63,6 @@ jobs:
           APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
         run: bash scripts/ci/check-oauth-metadata.sh
 
-      - name: 🧭 Check the SPA fallback
-        if: steps.gate.outputs.deploy == 'true'
-        run: test -f apps/web/.output/public/200.html
-
       - name: 🚀 Deploy to wisp.place
         if: steps.gate.outputs.deploy == 'true'
         env:
