@@ -15,11 +15,11 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "typbase";
-  version = "0.4.1";
+  version = "0.4.2";
 
   src = fetchurl {
     url = "https://github.com/lemueldls/typbase/releases/download/typbase-v${finalAttrs.version}/Typbase_${finalAttrs.version}_amd64.deb";
-    sha256 = "sha256-W9h4GBTigeA68K951rguC5jG/hFHaAIC+s6nEGW9Zq4=";
+    sha256 = "sha256-qH8ZSmqFMthtRKRB7LpzSwSMlWqsX+6hdTaoQ64UUy0=";
   };
 
   dontConfigure = true;

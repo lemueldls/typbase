@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.2] - 2026-10-23
+
+### New
+
+- Site publishing
+- Sidebar toggle
+- Adjustable writing column width
+- More keyboard shortcuts
+
+### Fixed
+
+- Update deep link scheme
+- Update handling
+- Space handling before closing brackets
+
 ## [0.4.1] - 2026-10-22
 
 ### New
