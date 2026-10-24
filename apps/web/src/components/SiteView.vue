@@ -614,10 +614,10 @@ function copy(value: string): Promise<void> {
       <div class="site-view__heading">
         <slot name="nav-toggle" />
         <div class="site-view__title-group">
-          <MsIcon name="public" :size="24" />
+          <!-- <MsIcon name="public" :size="24" /> -->
           <div class="site-view__title-copy">
             <h1 class="site-view__title">{{ $t("site.title") }}</h1>
-            <p class="site-view__sub">{{ headerSub }}</p>
+            <!-- <p class="site-view__sub">{{ headerSub }}</p> -->
           </div>
         </div>
       </div>
@@ -633,13 +633,13 @@ function copy(value: string): Promise<void> {
         >
           {{ $t("site.openSite") }}
         </UiButton>
-        <UiIconButton
-          class="site-view__close"
-          icon="close"
-          :label="$t('common.close')"
-          @click="emit('close')"
-        />
       </div>
+      <UiIconButton
+        class="site-view__close"
+        icon="close"
+        :label="$t('common.close')"
+        @click="emit('close')"
+      />
     </header>
 
     <div class="site-view__tabs" role="tablist">
@@ -1406,15 +1406,19 @@ function copy(value: string): Promise<void> {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: calc(var(--space-4) + var(--safe-top)) calc(var(--space-4) + var(--safe-right)) 0
-    calc(var(--space-4) + var(--safe-left));
+  /* padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right)) 0
+    calc(var(--space-2) + var(--safe-left)); */
 }
 
 .site-view__body {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   min-height: 0;
   overflow: auto;
-  padding-bottom: calc(var(--space-10) + var(--safe-bottom));
+  /* padding-bottom: calc(var(--space-10) + var(--safe-bottom)); */
+  padding: var(--space-2);
 }
 
 .site-view__header {
@@ -1425,7 +1429,8 @@ function copy(value: string): Promise<void> {
   gap: var(--space-3);
   width: 100%;
   max-width: 64rem;
-  margin: 0 auto var(--space-4);
+  padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right)) 0
+    calc(var(--space-2) + var(--safe-left));
 }
 
 .site-view__heading {
@@ -1438,21 +1443,24 @@ function copy(value: string): Promise<void> {
 
 .site-view__title-group {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
 }
 
 .site-view__title-copy {
+  flex: 1;
   min-width: 0;
 }
 
 .site-view__title {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
 }
 
 .site-view__sub {
+  max-width: 100%;
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -1482,7 +1490,7 @@ function copy(value: string): Promise<void> {
   gap: var(--space-1);
   width: 100%;
   max-width: 64rem;
-  margin: 0 auto var(--space-4);
+  padding: 0 var(--space-2) var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -1525,7 +1533,7 @@ function copy(value: string): Promise<void> {
 .site-view__panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-2);
   max-width: 64rem;
   margin: 0 auto;
 }
@@ -1567,7 +1575,6 @@ function copy(value: string): Promise<void> {
   justify-content: space-between;
   gap: var(--space-4);
   max-width: 64rem;
-  margin: 0 auto var(--space-4);
   padding: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1728,7 +1735,7 @@ function copy(value: string): Promise<void> {
   justify-content: space-between;
   gap: var(--space-2);
   flex-wrap: wrap;
-  padding-bottom: var(--space-2);
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -1753,8 +1760,6 @@ function copy(value: string): Promise<void> {
 
 .site-pages__footer {
   flex: none;
-  margin-right: calc((var(--space-4) + var(--safe-right)) * -1);
-  margin-left: calc((var(--space-4) + var(--safe-left)) * -1);
   padding: var(--space-2) calc(var(--space-4) + var(--safe-right))
     calc(var(--space-2) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
   background: var(--color-surface-2);
@@ -1798,7 +1803,7 @@ function copy(value: string): Promise<void> {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .site-page {
@@ -2214,19 +2219,24 @@ function copy(value: string): Promise<void> {
 
 @media (max-width: 48rem) {
   .site-view__header {
+    align-items: flex-start;
     flex-wrap: wrap;
   }
 
   .site-view__heading {
-    flex: 1 1 100%;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .site-view__actions {
+    order: 3;
     width: 100%;
     justify-content: flex-start;
   }
 
   .site-view__close {
+    order: 2;
+    flex: none;
     margin-left: auto;
   }
 

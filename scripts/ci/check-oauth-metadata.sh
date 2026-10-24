@@ -12,6 +12,8 @@ source "$script_dir/lib.sh"
 require APP_URL
 
 origin=${APP_URL%/}
+native_origin=${NATIVE_APP_URL:-$origin}
+native_origin=${native_origin%/}
 root=${1:-apps/web/.output/public}
 
 for file in "$root/oauth-client-metadata.json" "$root/oauth-client-metadata/native.json"; do
@@ -24,11 +26,11 @@ grep -qF "\"client_id\":\"$origin/oauth-client-metadata.json\"" \
 grep -qF "\"redirect_uris\":[\"$origin/\"]" \
     "$root/oauth-client-metadata.json" ||
     die "web redirect_uris do not point at $origin"
-grep -qF "\"client_id\":\"$origin/oauth-client-metadata/native.json\"" \
+grep -qF "\"client_id\":\"$native_origin/oauth-client-metadata/native.json\"" \
     "$root/oauth-client-metadata/native.json" ||
-    die "native client_id does not point at $origin"
+    die "native client_id does not point at $native_origin"
 
-node - "$root/oauth-client-metadata/native.json" "$origin" <<'NODE'
+node - "$root/oauth-client-metadata/native.json" "$native_origin" <<'NODE'
 const fs = require("node:fs");
 
 const [file, origin] = process.argv.slice(2);

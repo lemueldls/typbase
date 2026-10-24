@@ -122,6 +122,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       appUrl: "http://localhost:3000",
+      nativeAppUrl: "",
       pdsUrl: "",
       relayUrl: "",
     },

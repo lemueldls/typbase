@@ -283,8 +283,8 @@ importers:
         specifier: ^14.4.0
         version: 14.4.0(vue-router@5.3.1(@vue/compiler-sfc@3.5.43)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.0)(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))
       airspace:
-        specifier: ^0.1.7
-        version: 0.1.7(@atproto/oauth-client-browser@0.0.0-spaces-alpha-20260913191958)
+        specifier: ^0.1.8
+        version: 0.1.8
       d3-force:
         specifier: ^3.0.0
         version: 3.0.0
@@ -487,8 +487,20 @@ packages:
     resolution: {integrity: sha512-mvrAd0lbyuecIHjyld8QN6MN6CBf4j0GCxLzegsvLh0SvDf+GbYWklkcQqmITL44yFQOwmA/QNIQj0Uvh7+R/g==}
     engines: {node: '>=22'}
 
+  '@atproto/lex-json@0.1.7':
+    resolution: {integrity: sha512-4ABSfAkv+zLiPHvexZ7n/xR8wCLShbpEqcGxvniejZGsFrms980nl+BOaWPuU+OgLRNzpicMwSVOYDF6X62IHg==}
+    engines: {node: '>=22'}
+
   '@atproto/lex-password-session@0.2.3':
     resolution: {integrity: sha512-vwYHenReDfr+i1z92q7Luvjgl1x+rTWJ+L4UqnOjbDiHMLgF3ZAybFMSRCJP7gTSGJDuV8OV6IgE4oL8HVRSAA==}
+    engines: {node: '>=22'}
+
+  '@atproto/lex-password-session@0.3.0':
+    resolution: {integrity: sha512-oGB2acwjwEemXyCQiXuq1l4yIkyEYDNp4Wxp2zBKrA0NAJLY2tyD5ywypXLB/l+1fy+JnpXlT8D3G/tkOnnqwg==}
+    engines: {node: '>=22'}
+
+  '@atproto/lex-rpc@0.0.1':
+    resolution: {integrity: sha512-Dzzg+MuOv0P2FdnVOHDteaF8mdE+unTQev9uVe38AOiSrNTNlxAApiX6bHR1mItquVgTK9tSwGzjnCFZJcRmxA==}
     engines: {node: '>=22'}
 
   '@atproto/lex-schema@0.0.0-spaces-alpha-20260913191958':
@@ -2940,6 +2952,22 @@ packages:
       comark:
         optional: true
 
+  airspace@0.1.8:
+    resolution: {integrity: sha512-5qJ9kj6qlv/pkE/Xk0LD0MHT7ryxrvOy+obbEzQKqaFgYqauD4DJDf7qrzXvJG0a89DmyliXDt7P3FuDa5oBGA==}
+    engines: {node: '>=22.0.0'}
+    hasBin: true
+    peerDependencies:
+      '@atproto/oauth-client-browser': ^0.5.0
+      '@atproto/oauth-client-node': ^0.5.0
+      comark: ^0.6.0 || ^0.7.0
+    peerDependenciesMeta:
+      '@atproto/oauth-client-browser':
+        optional: true
+      '@atproto/oauth-client-node':
+        optional: true
+      comark:
+        optional: true
+
   ajv@6.15.0:
     resolution: {integrity: sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==}
 
@@ -4888,9 +4916,27 @@ snapshots:
       '@atproto/lex-data': 0.0.0-spaces-alpha-20260913191958
       tslib: 2.8.1
 
+  '@atproto/lex-json@0.1.7':
+    dependencies:
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20260913191958
+      tslib: 2.8.1
+
   '@atproto/lex-password-session@0.2.3':
     dependencies:
       '@atproto/lex-client': 0.0.0-spaces-alpha-20260913191958
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20260913191958
+      tslib: 2.8.1
+
+  '@atproto/lex-password-session@0.3.0':
+    dependencies:
+      '@atproto/lex-rpc': 0.0.1
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20260913191958
+      tslib: 2.8.1
+
+  '@atproto/lex-rpc@0.0.1':
+    dependencies:
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20260913191958
+      '@atproto/lex-json': 0.1.7
       '@atproto/lex-schema': 0.0.0-spaces-alpha-20260913191958
       tslib: 2.8.1
 
@@ -7154,6 +7200,15 @@ snapshots:
       image-meta: 0.3.0
     optionalDependencies:
       '@atproto/oauth-client-browser': 0.0.0-spaces-alpha-20260913191958
+
+  airspace@0.1.8:
+    dependencies:
+      '@atproto/lex-client': 0.0.0-spaces-alpha-20260913191958
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20260913191958
+      '@atproto/lex-json': 0.1.6
+      '@atproto/lex-password-session': 0.3.0
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20260913191958
+      image-meta: 0.3.0
 
   ajv@6.15.0:
     dependencies:

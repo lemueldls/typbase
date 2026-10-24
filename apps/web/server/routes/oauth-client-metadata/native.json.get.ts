@@ -22,7 +22,7 @@ import { useRuntimeConfig } from "nitro/runtime-config";
  */
 export default defineEventHandler(() => {
   const config = useRuntimeConfig();
-  const origin = config.public.appUrl.replace(/\/$/, "");
+  const origin = String(config.public.nativeAppUrl || config.public.appUrl).replace(/\/$/, "");
 
   return {
     client_id: `${origin}${NATIVE_OAUTH_METADATA_PATH}`,

@@ -1119,7 +1119,7 @@ definePageMeta({ ssr: false });
               </svg>
             </span>
             <span class="app__splash-step-label">{{ step.label }}</span>
-            <span v-if="step.detail" class="app__splash-step-detail">{{ step.detail }}</span>
+            <!-- <span v-if="step.detail" class="app__splash-step-detail">{{ step.detail }}</span> -->
           </li>
         </ol>
 
