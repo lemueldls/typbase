@@ -1,9 +1,11 @@
 import {
+  createWispDomains,
   nextTid,
   publishStandardSite,
   publishWispSite,
   wispSiteUrl,
   type PublicRepo,
+  type WispRequest,
 } from "@typbase/spaces";
 import { describe, expect, it } from "vitest";
 
@@ -87,6 +89,63 @@ describe("Wisp publisher", () => {
     expect(second.reused).toBe(1);
     expect(second.uploaded).toBe(0);
     expect(repo.uploads).toBe(before);
+  });
+});
+
+describe("Wisp domains", () => {
+  it("sends claims through the injected transport with service auth", async () => {
+    const repo = new FakeRepo();
+    const calls: WispRequest[] = [];
+    const domains = createWispDomains(
+      repo,
+      "https://wisp.place",
+      "did:web:wisp.place",
+      async (request) => {
+        calls.push(request);
+
+        return {
+          status: 200,
+          body: JSON.stringify({
+            domain: "notes.wisp.place",
+            kind: "wisp",
+            status: "verified",
+          }),
+        };
+      },
+    );
+
+    const claim = await domains.claimSubdomain("notes", "notes");
+    expect(claim.status).toBe("verified");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      url: "https://wisp.place/xrpc/place.wisp.v2.domain.claimSubdomain",
+      method: "POST",
+      headers: {
+        authorization: "Bearer token",
+        "content-type": "application/json",
+      },
+    });
+    expect(JSON.parse(calls[0]?.body ?? "{}")).toEqual({
+      handle: "notes",
+      siteRkey: "notes",
+    });
+  });
+
+  it("surfaces the Wisp error body when a claim is rejected", async () => {
+    const repo = new FakeRepo();
+    const domains = createWispDomains(
+      repo,
+      "https://wisp.place",
+      "did:web:wisp.place",
+      async () => ({
+        status: 409,
+        body: JSON.stringify({ message: "that label is already taken" }),
+      }),
+    );
+
+    await expect(domains.claimSubdomain("notes", "notes")).rejects.toThrow(
+      "that label is already taken",
+    );
   });
 });
 

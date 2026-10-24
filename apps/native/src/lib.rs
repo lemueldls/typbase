@@ -2,9 +2,11 @@
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, webview::PageLoadEvent, window::Color};
 
 mod fonts;
+mod http;
 mod storage;
 mod system_bars;
 mod update;
+mod wisp;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,6 +29,7 @@ pub fn run() {
             storage::export_save_file,
             fonts::system_font_index,
             fonts::system_font_file,
+            wisp::wisp_request,
             update::update_channel,
             #[cfg(target_os = "android")]
             update::android_update_check,

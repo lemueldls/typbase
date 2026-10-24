@@ -52,6 +52,38 @@ export interface WispDomainClaim {
   cnameTarget?: string;
 }
 
+export type WispHttpMethod = "GET" | "POST";
+
+/** One raw HTTP exchange with the Wisp service. */
+export interface WispRequest {
+  readonly url: string;
+  readonly method: WispHttpMethod;
+  readonly headers?: Record<string, string>;
+  readonly body?: string;
+}
+
+export interface WispResponse {
+  readonly status: number;
+  readonly body: string;
+}
+
+/**
+ * The browser cannot reach Wisp's domain XRPC from a Tauri origin because the
+ * service's CORS policy rejects `tauri://localhost`. The app injects a native
+ * transport there; everything else uses `fetch`.
+ */
+export type WispRequestTransport = (request: WispRequest) => Promise<WispResponse>;
+
+const browserWispRequest: WispRequestTransport = async (request) => {
+  const response = await fetch(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: request.body,
+  });
+
+  return { status: response.status, body: await response.text() };
+};
+
 export interface StandardPublicationInput {
   url: string;
   name: string;
@@ -613,12 +645,27 @@ async function readWispSite(
 /* Wisp domains                                                               */
 /* -------------------------------------------------------------------------- */
 
-export function createWispDomains(repo: PublicRepo, serviceUrl: string, serviceDid: string) {
+function parseWispBody<T>(body: string): (T & { message?: string; error?: string }) | null {
+  if (!body) return null;
+  try {
+    return JSON.parse(body) as T & { message?: string; error?: string };
+  } catch {
+    return null;
+  }
+}
+
+export function createWispDomains(
+  repo: PublicRepo,
+  serviceUrl: string,
+  serviceDid: string,
+  request: WispRequestTransport = browserWispRequest,
+) {
   const base = serviceUrl.replace(/\/+$/, "");
 
   async function call<T>(nsid: string, input: Record<string, unknown>): Promise<T> {
     const token = await repo.serviceAuth(nsid, serviceDid);
-    const response = await fetch(`${base}/xrpc/${nsid}`, {
+    const result = await request({
+      url: `${base}/xrpc/${nsid}`,
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
@@ -626,12 +673,10 @@ export function createWispDomains(repo: PublicRepo, serviceUrl: string, serviceD
       },
       body: JSON.stringify(input),
     });
-    const body = (await response.json().catch(() => null)) as
-      | (T & { message?: string; error?: string })
-      | null;
-    if (!response.ok) {
+    const body = parseWispBody<T>(result.body);
+    if (result.status < 200 || result.status >= 300) {
       throw new Error(
-        `${nsid} failed (${response.status}): ${body?.message ?? body?.error ?? response.statusText}`,
+        `${nsid} failed (${result.status}): ${body?.message ?? body?.error ?? result.body.slice(0, 200)}`,
       );
     }
 
@@ -640,12 +685,18 @@ export function createWispDomains(repo: PublicRepo, serviceUrl: string, serviceD
 
   return {
     async status(domain: string): Promise<WispDomainStatus> {
-      const response = await fetch(
-        `${base}/xrpc/place.wisp.v2.domain.getStatus?domain=${encodeURIComponent(domain)}`,
-      );
-      if (!response.ok) throw new Error(`Domain status failed (${response.status})`);
+      const result = await request({
+        url: `${base}/xrpc/place.wisp.v2.domain.getStatus?domain=${encodeURIComponent(domain)}`,
+        method: "GET",
+      });
+      if (result.status < 200 || result.status >= 300) {
+        const body = parseWispBody<WispDomainStatus>(result.body);
+        throw new Error(
+          `Domain status failed (${result.status}): ${body?.message ?? body?.error ?? result.body.slice(0, 200)}`,
+        );
+      }
 
-      return (await response.json()) as WispDomainStatus;
+      return parseWispBody<WispDomainStatus>(result.body) as WispDomainStatus;
     },
     claimSubdomain(handle: string, siteRkey: string): Promise<WispDomainClaim> {
       return call("place.wisp.v2.domain.claimSubdomain", { handle, siteRkey });
@@ -664,13 +715,17 @@ export function createWispDomains(repo: PublicRepo, serviceUrl: string, serviceD
     },
     async list(): Promise<Array<WispDomainStatus & { siteRkey?: string }>> {
       const token = await repo.serviceAuth("place.wisp.v2.domain.getList", serviceDid);
-      const response = await fetch(`${base}/xrpc/place.wisp.v2.domain.getList`, {
+      const result = await request({
+        url: `${base}/xrpc/place.wisp.v2.domain.getList`,
+        method: "GET",
         headers: { authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error(`Domain list failed (${response.status})`);
-      const body = (await response.json()) as { domains?: Array<WispDomainStatus> };
+      if (result.status < 200 || result.status >= 300) {
+        throw new Error(`Domain list failed (${result.status})`);
+      }
+      const body = parseWispBody<{ domains?: Array<WispDomainStatus> }>(result.body);
 
-      return body.domains ?? [];
+      return body?.domains ?? [];
     },
   };
 }

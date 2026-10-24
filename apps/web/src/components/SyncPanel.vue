@@ -2,6 +2,10 @@
 import { formatAgo } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
 
+/**
+ * Sign-in and account details. The sign-in form is shared with the website
+ * dashboard so both surfaces use the same handle normalization and errors.
+ */
 const { t, locale } = useI18n();
 const { atproto, atprotoStatus, atprotoReady } = useWorkspace();
 
@@ -14,71 +18,7 @@ const profileName = computed(
   () => profile.value?.displayName || profile.value?.handle || shortDid(atprotoStatus.value.did),
 );
 
-/**
- * Sign-in runs through the PDS's OAuth flow, which has no account creation
- * step, so people who arrive without an account get pointed at one. Bluesky
- * is the account most atproto newcomers already have. The protocol itself
- * works with any PDS.
- */
-const CREATE_ACCOUNT_URL = "https://bsky.app/";
 const SPACES_ALPHA_URL = "https://atproto.com/blog/atproto-spaces-alpha";
-
-const identifier = ref("");
-const busy = ref(false);
-const error = ref("");
-/** The last failure was an unresolvable handle, so offer account creation. */
-const unknownHandle = ref(false);
-
-// Web sign-in redirects the page away, so the promise never settles. Native
-// opens the system browser and waits on a deep link. Clear the busy flag
-// either way so someone who comes back without a session can retry.
-const { start: resetBusy } = useTimeoutFn(
-  () => {
-    busy.value = false;
-  },
-  10_000,
-  { immediate: false },
-);
-
-/** Handles are written "name.host". The OAuth client takes the bare handle or a DID. */
-function normalizeIdentifier(raw: string): string {
-  const value = raw.trim();
-  if (value.startsWith("did:")) return value;
-
-  const handle = value.replace(/^@/, "");
-  const at = handle.indexOf("@");
-
-  return at > 0 ? `${handle.slice(0, at)}.${handle.slice(at + 1)}` : handle;
-}
-
-async function onSignIn() {
-  if (busy.value || !atproto.value) return;
-
-  const handle = normalizeIdentifier(identifier.value);
-  if (!handle) return;
-
-  busy.value = true;
-  error.value = "";
-  unknownHandle.value = false;
-  resetBusy();
-  try {
-    await atproto.value.signIn(handle);
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    // Only the resolution failures get the friendly account-not-found copy.
-    // Anything else (a missing resolver, a network or CORS failure) shows the
-    // real message so the cause is not hidden.
-    unknownHandle.value =
-      /does not resolve to a DID|does not include the handle|Invalid handle|Unable to resolve handle/i.test(
-        message,
-      );
-    error.value = unknownHandle.value
-      ? t("settings.syncUnknownHandle", { identifier: handle })
-      : message;
-  } finally {
-    busy.value = false;
-  }
-}
 
 async function onSignOut() {
   await atproto.value?.signOut();
@@ -107,54 +47,7 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
       <template v-if="!atprotoStatus.signedIn">
         <p class="sync__hint">{{ $t("settings.syncSignInHint") }}</p>
 
-        <form class="sync__signin" @submit.prevent="onSignIn">
-          <label class="sync__label" for="sync-identifier">{{ $t("settings.syncAccount") }}</label>
-          <div class="sync__row">
-            <UiTextField
-              id="sync-identifier"
-              v-model="identifier"
-              class="sync__input"
-              :placeholder="$t('settings.syncSignInPlaceholder')"
-              autocomplete="username"
-              autocapitalize="none"
-              spellcheck="false"
-              :disabled="busy"
-            />
-            <UiButton type="submit" variant="primary" :disabled="busy || !identifier.trim()">
-              <span v-if="busy" class="sync__spinner" aria-hidden="true" />
-              {{ busy ? $t("settings.syncSignInBusy") : $t("settings.syncSignIn") }}
-            </UiButton>
-          </div>
-        </form>
-
-        <div v-if="error" class="sync__error" role="alert">
-          <MsIcon name="error" :size="18" />
-          <span class="sync__error-body">
-            <span>{{ error }}</span>
-            <a
-              v-if="unknownHandle"
-              class="sync__link"
-              :href="CREATE_ACCOUNT_URL"
-              rel="noopener noreferrer"
-              @click.prevent="openExternal(CREATE_ACCOUNT_URL)"
-            >
-              {{ $t("settings.syncCreateAccount") }}
-            </a>
-          </span>
-        </div>
-
-        <p class="sync__hint">
-          {{ $t("settings.syncNewHere") }}
-          <a
-            class="sync__link"
-            :href="CREATE_ACCOUNT_URL"
-            rel="noopener noreferrer"
-            @click.prevent="openExternal(CREATE_ACCOUNT_URL)"
-          >
-            {{ $t("settings.syncCreateAccount") }}
-          </a>
-        </p>
-        <!-- <p class="sync__hint">{{ $t("settings.syncNewHereHint") }}</p> -->
+        <AtprotoSignIn />
 
         <p class="sync__note">
           <MsIcon name="info" :size="18" />
@@ -339,67 +232,6 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
 
 .sync__hint--error {
   color: var(--color-danger);
-}
-
-.sync__signin {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.sync__label {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.sync__row {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.sync__input {
-  flex: 1;
-  min-width: 0;
-}
-
-.sync__spinner {
-  width: 0.85rem;
-  height: 0.85rem;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: sync-spin 0.7s linear infinite;
-}
-
-@keyframes sync-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Failures carry the message plus a way forward (account creation). */
-.sync__error {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  margin: 0;
-  padding: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-radius: var(--radius-sm);
-  overflow-wrap: anywhere;
-}
-
-.sync__error .ms-icon {
-  flex: none;
-  margin-top: 0.1rem;
-}
-
-.sync__error-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
 }
 
 .sync__warning {

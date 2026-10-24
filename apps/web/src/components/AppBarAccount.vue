@@ -116,8 +116,8 @@ const label = computed(() => {
 }
 
 .app-bar-account__avatar {
-  width: 100%;
-  height: 100%;
+  width: 75%;
+  height: 75%;
   object-fit: cover;
   border-radius: 50%;
 }

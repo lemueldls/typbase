@@ -9,7 +9,10 @@ import {
   publishWispSite,
   wispSiteUrl,
   type OAuthSession,
+  type WispRequestTransport,
+  type WispResponse,
 } from "@typbase/spaces";
+import { isTauri } from "@typbase/storage";
 
 import type { AtprotoService } from "~/lib/atproto";
 import type { SiteBuild } from "~/lib/site/build";
@@ -34,6 +37,32 @@ export interface PublishSiteResult {
 }
 
 const hashKey = (did: string, key: string): string => `site:hashes:${did}:${key}`;
+
+/**
+ * Wisp's domain XRPC does not allow the Tauri webview origin through CORS.
+ * The native command sends the same request through Rust. The browser build
+ * keeps the ordinary fetch path so web and desktop behave the same.
+ */
+export const wispDomainRequest: WispRequestTransport = async (request) => {
+  if (isTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+
+    return invoke<WispResponse>("wisp_request", {
+      url: request.url,
+      method: request.method,
+      headers: request.headers ?? null,
+      body: request.body ?? null,
+    });
+  }
+
+  const response = await fetch(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: request.body,
+  });
+
+  return { status: response.status, body: await response.text() };
+};
 
 /**
  * Builds the site from the workspace and publishes it to the signing account's
@@ -248,7 +277,12 @@ export async function unpublishSite(store: WorkspaceStore, atproto: AtprotoServi
     );
   }
 
-  const domains = createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid);
+  const domains = createWispDomains(
+    repo,
+    site.wisp.serviceUrl,
+    site.wisp.serviceDid,
+    wispDomainRequest,
+  );
   await domains.deleteSite(key).catch(() => undefined);
   await deleteWispSite(repo, key);
 
@@ -279,7 +313,7 @@ export function wispClient(site: SiteSettings, session: OAuthSession) {
 
   return {
     repo,
-    domains: createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid),
+    domains: createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid, wispDomainRequest),
     sharedUrl: (key: string) => wispSiteUrl(session.did, key, site.wisp.serviceUrl),
   };
 }

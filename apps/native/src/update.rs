@@ -44,9 +44,6 @@ const ANDROID_MANIFEST_URL: &str =
 #[cfg(target_os = "android")]
 const GOOGLE_PLAY_INSTALLER: &str = "com.android.vending";
 
-#[cfg(target_os = "android")]
-const USER_AGENT: &str = concat!("Typbase/", env!("CARGO_PKG_VERSION"));
-
 /// The Kotlin plugin handle. Registered in [`init`] and read by the commands.
 #[cfg(target_os = "android")]
 pub struct AndroidUpdater<R: Runtime>(PluginHandle<R>);
@@ -460,7 +457,7 @@ async fn check_sideload_update<R: Runtime>(
             .abis
     };
 
-    let manifest: AndroidManifest = http_client()?
+    let manifest: AndroidManifest = crate::http::client()?
         .get(ANDROID_MANIFEST_URL)
         .timeout(std::time::Duration::from_secs(30))
         .send()
@@ -523,7 +520,7 @@ pub async fn android_update_download<R: Runtime>(
         .map_err(|cause| format!("could not create the cache directory: {cause}"))?;
     let path = directory.join("typbase-update.apk");
 
-    let response = http_client()?
+    let response = crate::http::client()?
         .get(&url)
         .timeout(std::time::Duration::from_secs(900))
         .send()
@@ -676,30 +673,4 @@ pub struct PlayResult {
 #[cfg(target_os = "android")]
 fn plugin_error(cause: tauri::plugin::mobile::PluginInvokeError) -> String {
     cause.to_string()
-}
-
-/// reqwest's rustls backend has no bundled provider. Tauri and the updater
-/// plugin install `ring` on first use, so do the same before the first request.
-///
-/// The Android platform verifier needs a JNI context that is only set up by the
-/// hosting runtime, and panics without one. Use Mozilla's compiled-in roots
-/// instead: the only hosts this client talks to are GitHub release URLs.
-#[cfg(target_os = "android")]
-fn http_client() -> Result<reqwest::Client, String> {
-    if rustls::crypto::CryptoProvider::get_default().is_none() {
-        let _ = rustls::crypto::ring::default_provider().install_default();
-    }
-
-    let mut roots = rustls::RootCertStore::empty();
-    roots.add_parsable_certificates(webpki_root_certs::TLS_SERVER_ROOT_CERTS.iter().cloned());
-    let tls = rustls::ClientConfig::builder()
-        .with_root_certificates(roots)
-        .with_no_client_auth();
-
-    reqwest::Client::builder()
-        .user_agent(USER_AGENT)
-        .connect_timeout(std::time::Duration::from_secs(15))
-        .tls_backend_preconfigured(tls)
-        .build()
-        .map_err(|cause| format!("could not build the HTTP client: {cause}"))
 }
