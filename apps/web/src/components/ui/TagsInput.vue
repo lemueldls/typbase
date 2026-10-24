@@ -1,12 +1,4 @@
 <script setup lang="ts">
-import {
-  TagsInputInput,
-  TagsInputItem,
-  TagsInputItemDelete,
-  TagsInputItemText,
-  TagsInputRoot,
-} from "reka-ui";
-
 defineOptions({ inheritAttrs: false });
 
 withDefaults(

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from "reka-ui";
-
 defineOptions({ inheritAttrs: false });
 
 withDefaults(

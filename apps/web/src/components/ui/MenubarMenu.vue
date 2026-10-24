@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { MenubarContent, MenubarMenu, MenubarPortal, MenubarTrigger } from "reka-ui";
+import { MenubarMenu } from "reka-ui";
 
-/**
- * One menu of the bar: a text trigger and its portaled dropdown, styled as a
- * menu. Put `UiMenubarItem`s (and `UiMenubarSeparator`s) in the default slot.
- */
 withDefaults(
   defineProps<{
     /** The trigger's text, the way a menu bar labels a menu. */

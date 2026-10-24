@@ -104,6 +104,7 @@ async function openToday(): Promise<void> {
         <UiMenubarMenu :label="$t('nav.menuView')" value="view">
           <UiMenubarItem :icon="sidebarIcon" @select="emit('toggleSidebar')">
             {{ $t(sidebarLabel) }}
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("sidebar") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarSeparator />

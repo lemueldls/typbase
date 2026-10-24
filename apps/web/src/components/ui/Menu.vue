@@ -15,7 +15,6 @@ withDefaults(
 /** Optional so menus that close themselves on select can be driven too. */
 const open = defineModel<boolean>("open", { default: false });
 
-// Back closes the menu before it navigates.
 useBackLayer(open);
 </script>
 

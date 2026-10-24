@@ -9,18 +9,6 @@ export interface ComboboxOption {
 </script>
 
 <script setup lang="ts">
-import {
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxPortal,
-  ComboboxRoot,
-  ComboboxTrigger,
-  ComboboxViewport,
-} from "reka-ui";
-
 defineOptions({ inheritAttrs: false });
 
 withDefaults(
