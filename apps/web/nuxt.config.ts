@@ -8,6 +8,7 @@ import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
 const appDescription = "Local-first knowledge base made for Typst and the Atmosphere.";
+const siteCssFile = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
 
 /** Minify one of the inline head scripts from its readable source. */
 function inlineScript(name: string): string {
@@ -78,11 +79,23 @@ export default defineNuxtConfig({
 
           return null;
         },
+        buildStart() {
+          this.addWatchFile(siteCssFile);
+        },
         async load(id) {
           if (id !== "\0virtual:typbase-site-css") return null;
-          const file = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
-          this.addWatchFile(file);
-          return `export default ${JSON.stringify(await readFile(file, "utf8"))};`;
+
+          return `export default ${JSON.stringify(await readFile(siteCssFile, "utf8"))};`;
+        },
+        configureServer(server) {
+          server.watcher.add(siteCssFile);
+          server.watcher.on("change", (file) => {
+            if (file !== siteCssFile) return;
+
+            const mod = server.moduleGraph.getModuleById("\0virtual:typbase-site-css");
+            if (mod) server.moduleGraph.invalidateModule(mod);
+            server.ws.send({ type: "full-reload" });
+          });
         },
       },
       {

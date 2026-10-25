@@ -1598,9 +1598,6 @@ definePageMeta({ ssr: false });
   letter-spacing: 0.01em;
 }
 
-/* Fixed, not a minimum: the splash centres its children, so a block that grows
-   to fit the longest label drags its left edge inward and the labels appear to
-   shift as the steps change. A fixed width holds the start still. */
 .app__splash-steps {
   display: flex;
   flex-direction: column;
@@ -1608,11 +1605,9 @@ definePageMeta({ ssr: false });
   margin: 0;
   padding: 0;
   list-style: none;
-  width: min(20rem, 80vw);
+  /* width: min(20rem, 80vw); */
 }
 
-/* A step's detail arrives after the step starts ("12 page(s)", "in background"),
-   so the row has to fit the longest label plus a detail without wrapping. */
 .app__splash-step-label {
   min-width: 0;
   overflow: hidden;
@@ -1628,7 +1623,6 @@ definePageMeta({ ssr: false });
   color: var(--color-text-secondary);
 }
 
-/* Pending recedes, the running step reads as current, done stays quiet. */
 .app__splash-step--pending {
   opacity: 0.5;
 }
@@ -1641,8 +1635,6 @@ definePageMeta({ ssr: false });
   color: var(--color-danger);
 }
 
-/* State is carried by the shape, not by a glyph: a hollow ring, a spinning
-   ring, a filled one. Nothing here waits on a font. */
 .app__splash-step-mark {
   display: grid;
   place-content: center;

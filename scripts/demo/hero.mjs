@@ -242,8 +242,11 @@ async function main() {
     // await page.mouse.wheel(0, 500);
     // await pause(page, 1100);
 
-    // Theme switch: Catppuccin, then dark mode.
-    await clickWithCursor(page, page.locator('[aria-label="Workspace settings"]').first());
+    // Theme switch: Catppuccin, then dark mode. The settings entry lives in
+    // the sidebar's workspace actions menu, so the clip shows that menu first.
+    await clickWithCursor(page, page.locator('[aria-label="Workspace actions"]').first());
+    await pause(page, 900);
+    await clickWithCursor(page, page.getByRole("menuitem", { name: "Workspace settings" }));
     await pause(page, 700);
     await clickWithCursor(
       page,
@@ -259,8 +262,8 @@ async function main() {
     await page.keyboard.press("Escape");
     await pause(page, 700);
 
-    // Page links and backlinks: follow the daily note's Previous link, show
-    // the backlinks panel, then open the workspace graph.
+    // Backlinks: follow the daily note's Previous link, show the panel, then
+    // open the backlink graph.
     await clickSidebar(page, "Today");
     await pause(page, 900);
 
@@ -272,13 +275,13 @@ async function main() {
 
     await clickWithCursor(page, page.locator('[aria-label="More actions"]').first());
     await pause(page, 400);
-    await clickWithCursor(page, page.getByRole("menuitem", { name: "Links" }));
+    await clickWithCursor(page, page.getByRole("menuitem", { name: "Backlinks" }));
     await page.waitForSelector(".links", { timeout: 15_000 }).catch(() => {});
     await pause(page, 1900);
 
     // The panel's hub button opens the graph rooted at the open page, which
     // flips local mode on. Uncheck it so the clip ends on the whole workspace.
-    await clickWithCursor(page, page.locator('[aria-label="Open graph"]').first());
+    await clickWithCursor(page, page.locator('[aria-label="Open backlink graph"]').first());
     await page.waitForSelector(".graph", { timeout: 15_000 }).catch(() => {});
     await moveCursor(page, VIEWPORT.width / 2, VIEWPORT.height / 2, { duration: 700 });
     await pause(page, 2200);
