@@ -226,10 +226,10 @@ async function onSignIn(): Promise<void> {
   text-underline-offset: 2px;
 }
 
-@media (max-width: 30rem) {
+/* @media (max-width: 30rem) {
   .atproto-signin__row {
     align-items: stretch;
     flex-direction: column;
   }
-}
+} */
 </style>

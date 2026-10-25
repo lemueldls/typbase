@@ -45,7 +45,7 @@ withDefaults(
   display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);
-  padding: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
   font-size: var(--text-md);
   font-family: inherit;
   white-space: nowrap;

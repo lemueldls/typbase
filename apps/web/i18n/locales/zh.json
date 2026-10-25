@@ -943,6 +943,14 @@
     "visibilityUnlisted": "不列出",
     "wispSubdomain": "Wisp 子域名",
     "wispSubdomainHint": "认领类似 notes 的标签。Wisp 每个账号允许三个子域名。",
-    "dashboard": "网站设置"
+    "dashboard": "网站设置",
+    "tabPagesHint": "选择要发布的页面。",
+    "tabDesignHint": "名称、版式与导航。",
+    "tabDomainHint": "托管地址与自定义域名。",
+    "tabPublishHint": "构建、预览并发布。",
+    "live": "已上线",
+    "liveAt": "访问地址",
+    "urlPreview": "将发布到",
+    "publishedUrl": "访问地址：{url}"
   }
 }

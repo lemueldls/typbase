@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PageMeta, SitePageSettings, SiteSettings, SiteVisibility } from "@typbase/typing";
+import type { MaterialSymbol } from "material-symbols";
 
 import { wispSiteUrl } from "@typbase/spaces";
 
@@ -40,6 +41,34 @@ const site = computed(() => settings.value.site);
 type SiteTab = "pages" | "design" | "domain" | "publish";
 
 const tab = ref<SiteTab>("pages");
+const siteTabs = computed<
+  Array<{ id: SiteTab; icon: MaterialSymbol; label: string; hint: string }>
+>(() => [
+  {
+    id: "pages",
+    icon: "description",
+    label: t("site.tab_pages"),
+    hint: t("site.tabPagesHint"),
+  },
+  {
+    id: "design",
+    icon: "palette",
+    label: t("site.tab_design"),
+    hint: t("site.tabDesignHint"),
+  },
+  {
+    id: "domain",
+    icon: "language",
+    label: t("site.tab_domain"),
+    hint: t("site.tabDomainHint"),
+  },
+  {
+    id: "publish",
+    icon: "cloud_upload",
+    label: t("site.tab_publish"),
+    hint: t("site.tabPublishHint"),
+  },
+]);
 const siteView = useTemplateRef<HTMLElement>("siteView");
 const busy = ref(false);
 const error = ref("");
@@ -77,19 +106,10 @@ const sharedUrl = computed(() => {
 
   return wispSiteUrl(did, key, site.value.wisp.serviceUrl);
 });
-const displayUrl = computed(() => {
-  if (site.value.wisp.domainStatus === "verified") {
-    return siteBaseUrl(site.value, atprotoStatus.value.did) || sharedUrl.value;
-  }
-  if (site.value.wisp.lastDeploy?.url) return site.value.wisp.lastDeploy.url;
-
-  return sharedUrl.value;
-});
-const openSiteUrl = computed(() => (site.value.wisp.lastDeploy ? displayUrl.value : ""));
-const headerSub = computed(() =>
-  site.value.wisp.lastDeploy
-    ? displayUrl.value
-    : [t("site.notPublished"), displayUrl.value].filter(Boolean).join(" · "),
+/** The last deployed address, which is the only one that is actually live. */
+const openSiteUrl = computed(() => site.value.wisp.lastDeploy?.url ?? "");
+const displayUrl = computed(
+  () => openSiteUrl.value || siteBaseUrl(site.value, atprotoStatus.value.did) || sharedUrl.value,
 );
 
 const visibilityOptions = computed(() => [
@@ -285,7 +305,12 @@ async function onPublish(): Promise<void> {
     if (result.build.warnings.length) {
       resultNote.value += ` ${result.build.warnings.slice(0, 3).join(" ")}`;
     }
-    pushToast({ titleKey: "site.published", duration: 4000 });
+    pushToast({
+      titleKey: "site.published",
+      descriptionKey: "site.publishedUrl",
+      params: { url: result.deploy.url },
+      duration: 5000,
+    });
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -611,758 +636,840 @@ function copy(value: string): Promise<void> {
 <template>
   <section class="site-view">
     <header class="site-view__header">
-      <div class="site-view__heading">
-        <slot name="nav-toggle" />
-        <div class="site-view__title-group">
-          <!-- <MsIcon name="public" :size="24" /> -->
-          <div class="site-view__title-copy">
-            <h1 class="site-view__title">{{ $t("site.title") }}</h1>
-            <!-- <p class="site-view__sub">{{ headerSub }}</p> -->
+      <div class="site-view__header-inner">
+        <div class="site-view__heading">
+          <slot name="nav-toggle" />
+          <div class="site-view__title-group">
+            <!-- <MsIcon name="public" :size="24" /> -->
+            <div class="site-view__title-copy">
+              <h1 class="site-view__title">{{ $t("site.title") }}</h1>
+            </div>
           </div>
         </div>
+        <UiIconButton
+          class="site-view__close"
+          icon="close"
+          :label="$t('common.close')"
+          @click="emit('close')"
+        />
       </div>
-      <div class="site-view__actions">
-        <UiButton v-if="displayUrl" variant="plain" icon="content_copy" @click="copy(displayUrl)">
-          {{ $t("site.copyUrl") }}
-        </UiButton>
-        <UiButton
-          v-if="openSiteUrl"
-          variant="plain"
-          icon="open_in_new"
-          @click="openExternal(openSiteUrl)"
-        >
-          {{ $t("site.openSite") }}
-        </UiButton>
-      </div>
-      <UiIconButton
-        class="site-view__close"
-        icon="close"
-        :label="$t('common.close')"
-        @click="emit('close')"
-      />
     </header>
 
-    <div class="site-view__tabs" role="tablist">
-      <button
-        v-for="entry in ['pages', 'design', 'domain', 'publish'] as const"
-        :key="entry"
-        type="button"
-        class="site-view__tab"
-        :class="{ 'site-view__tab--active': tab === entry }"
-        role="tab"
-        :aria-selected="tab === entry"
-        @click="selectTab(entry)"
-      >
-        {{ $t(`site.tab_${entry}`) }}
-        <span v-if="entry === 'publish' && includedCount" class="site-view__tab-count">
-          {{ includedCount }}
-        </span>
-      </button>
-    </div>
-
     <div ref="siteView" class="site-view__body">
-      <section v-if="!atprotoStatus.signedIn" class="site-signin">
-        <div class="site-signin__intro">
-          <span class="site-signin__icon"><MsIcon name="account_circle" :size="24" /></span>
-          <div>
-            <h2>{{ $t("site.signInTitle") }}</h2>
-            <p>{{ $t("site.signInBody") }}</p>
+      <div class="site-view__content">
+        <div v-if="displayUrl" class="site-view__address">
+          <span v-if="site.wisp.lastDeploy" class="site-view__live-dot" aria-hidden="true" />
+          <span class="site-view__address-label">
+            {{ site.wisp.lastDeploy ? $t("site.liveAt") : $t("site.urlPreview") }}
+          </span>
+          <code class="site-view__address-url" :title="displayUrl">{{ displayUrl }}</code>
+          <div class="site-view__address-actions">
+            <UiIconButton
+              icon="content_copy"
+              :label="$t('site.copyUrl')"
+              :size="20"
+              @click="copy(displayUrl)"
+            />
+            <UiIconButton
+              v-if="openSiteUrl"
+              icon="open_in_new"
+              :label="$t('site.openSite')"
+              :size="20"
+              @click="openExternal(openSiteUrl)"
+            />
           </div>
         </div>
-        <AtprotoSignIn compact />
-      </section>
 
-      <p v-if="atprotoStatus.signedIn && !publishingReady" class="site-view__note">
-        {{ $t("site.scopeHint") }}
-        <UiButton variant="plain" :disabled="busy" @click="reconnectForPublishing">
-          {{ $t("site.reconnect") }}
-        </UiButton>
-      </p>
-
-      <div v-if="tab === 'pages'" class="site-view__panel">
-        <div class="site-pages__toolbar">
-          <UiTextField
-            ref="pageSearch"
-            v-model="pageQuery"
-            class="site-pages__search"
-            :label="$t('site.searchPages')"
-            :placeholder="$t('site.searchPages')"
-          >
-            <template #leading><MsIcon name="search" :size="20" /></template>
-          </UiTextField>
-          <div class="site-pages__filters" role="group" :aria-label="$t('site.filterPages')">
+        <div class="site-view__layout">
+          <div class="site-view__tabs" role="tablist" :aria-label="$t('site.title')">
             <button
-              v-for="filter in pageFilters"
-              :key="filter.value"
+              v-for="entry in siteTabs"
+              :key="entry.id"
               type="button"
-              class="site-pages__filter"
-              :class="{ 'site-pages__filter--active': pageFilter === filter.value }"
-              :aria-pressed="pageFilter === filter.value"
-              @click="pageFilter = filter.value as PageFilter"
+              class="site-view__tab"
+              :class="{ 'site-view__tab--active': tab === entry.id }"
+              role="tab"
+              :aria-selected="tab === entry.id"
+              @click="selectTab(entry.id)"
             >
-              {{ filter.label }}
-              <span>{{ filter.count }}</span>
+              <span class="site-view__tab-icon">
+                <MsIcon :name="entry.icon" :size="20" />
+              </span>
+              <span class="site-view__tab-copy">
+                <span class="site-view__tab-label">{{ entry.label }}</span>
+                <!-- <span class="site-view__tab-hint">{{ entry.hint }}</span> -->
+              </span>
+              <span v-if="entry.id === 'pages' && includedCount" class="site-view__tab-count">
+                {{ includedCount }}
+              </span>
+              <span
+                v-else-if="entry.id === 'publish' && site.wisp.lastDeploy"
+                class="site-view__tab-status"
+              >
+                {{ $t("site.live") }}
+              </span>
+              <span
+                v-else-if="entry.id === 'publish' && includedCount"
+                class="site-view__tab-count"
+              >
+                {{ includedCount }}
+              </span>
             </button>
           </div>
-        </div>
 
-        <div class="site-pages__bulk">
-          <span class="site-view__count">
-            {{
-              $t("site.showingPages", {
-                shown: filteredPages.length,
-                total: pages.length,
-              })
-            }}
-          </span>
-          <div class="site-view__toolbar-actions">
-            <UiButton
-              variant="plain"
-              icon="visibility"
-              :disabled="!filteredPages.length"
-              @click="setVisibilityShown('included')"
-            >
-              {{ $t("site.includeShown") }}
-            </UiButton>
-            <UiButton
-              variant="plain"
-              icon="visibility_off"
-              :disabled="!filteredPages.length"
-              @click="setVisibilityShown('private')"
-            >
-              {{ $t("site.excludeShown") }}
-            </UiButton>
-          </div>
-        </div>
-
-        <div class="site-pages__defaults">
-          <label class="site-view__field site-view__field--inline">
-            <span>{{ $t("site.defaultVisibility") }}</span>
-            <UiSelect
-              :model-value="site.defaultVisibility"
-              :options="visibilityOptions"
-              :label="$t('site.defaultVisibility')"
-              @update:model-value="updateSite({ defaultVisibility: $event as SiteVisibility })"
-            />
-          </label>
-          <p class="site-view__hint">{{ $t("site.defaultVisibilityHint") }}</p>
-        </div>
-
-        <ul v-if="filteredPages.length" class="site-pages">
-          <li
-            v-for="page in filteredPages"
-            :key="page.id"
-            class="site-page"
-            :class="{ 'site-page--included': visibilityOf(page) !== 'private' }"
-          >
-            <div class="site-page__main">
-              <UiCheckbox
-                class="site-page__include"
-                :model-value="visibilityOf(page) !== 'private'"
-                @update:model-value="toggleIncluded(page, $event)"
-              >
-                <span class="site-page__identity">
-                  <span class="site-page__title">{{ pageSettings(page).title || page.title }}</span>
-                  <span class="site-page__path">{{ page.path }}</span>
-                </span>
-              </UiCheckbox>
-              <div class="site-page__controls">
-                <UiSelect
-                  :model-value="visibilityOf(page)"
-                  :options="visibilityOptions"
-                  :label="$t('site.pageVisibility', { title: page.title })"
-                  @update:model-value="setVisibility(page, $event as SiteVisibility)"
-                />
-                <UiIconButton
-                  icon="open_in_new"
-                  :label="$t('site.openPage')"
-                  :size="20"
-                  @click="emit('openPage', page.id)"
-                />
+          <div class="site-view__main">
+            <section v-if="!atprotoStatus.signedIn" class="site-signin">
+              <div class="site-signin__intro">
+                <span class="site-signin__icon"><MsIcon name="account_circle" :size="24" /></span>
+                <div>
+                  <h2>{{ $t("site.signInTitle") }}</h2>
+                  <p>{{ $t("site.signInBody") }}</p>
+                </div>
               </div>
+              <AtprotoSignIn compact />
+            </section>
+
+            <p v-if="atprotoStatus.signedIn && !publishingReady" class="site-view__note">
+              {{ $t("site.scopeHint") }}
+              <UiButton variant="plain" :disabled="busy" @click="reconnectForPublishing">
+                {{ $t("site.reconnect") }}
+              </UiButton>
+            </p>
+
+            <div v-if="tab === 'pages'" class="site-view__panel">
+              <div class="site-pages__toolbar">
+                <UiTextField
+                  ref="pageSearch"
+                  v-model="pageQuery"
+                  class="site-pages__search"
+                  :label="$t('site.searchPages')"
+                  :placeholder="$t('site.searchPages')"
+                >
+                  <template #leading><MsIcon name="search" :size="20" /></template>
+                </UiTextField>
+                <div class="site-pages__filters" role="group" :aria-label="$t('site.filterPages')">
+                  <button
+                    v-for="filter in pageFilters"
+                    :key="filter.value"
+                    type="button"
+                    class="site-pages__filter"
+                    :class="{ 'site-pages__filter--active': pageFilter === filter.value }"
+                    :aria-pressed="pageFilter === filter.value"
+                    @click="pageFilter = filter.value as PageFilter"
+                  >
+                    {{ filter.label }}
+                    <span>{{ filter.count }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="site-pages__bulk">
+                <span class="site-view__count">
+                  {{
+                    $t("site.showingPages", {
+                      shown: filteredPages.length,
+                      total: pages.length,
+                    })
+                  }}
+                </span>
+                <div class="site-view__toolbar-actions">
+                  <UiButton
+                    variant="plain"
+                    icon="visibility"
+                    :disabled="!filteredPages.length"
+                    @click="setVisibilityShown('included')"
+                  >
+                    {{ $t("site.includeShown") }}
+                  </UiButton>
+                  <UiButton
+                    variant="plain"
+                    icon="visibility_off"
+                    :disabled="!filteredPages.length"
+                    @click="setVisibilityShown('private')"
+                  >
+                    {{ $t("site.excludeShown") }}
+                  </UiButton>
+                </div>
+              </div>
+
+              <div class="site-pages__defaults">
+                <label class="site-view__field site-view__field--inline">
+                  <span>{{ $t("site.defaultVisibility") }}</span>
+                  <UiSelect
+                    :model-value="site.defaultVisibility"
+                    :options="visibilityOptions"
+                    :label="$t('site.defaultVisibility')"
+                    @update:model-value="
+                      updateSite({ defaultVisibility: $event as SiteVisibility })
+                    "
+                  />
+                </label>
+                <p class="site-view__hint">{{ $t("site.defaultVisibilityHint") }}</p>
+              </div>
+
+              <ul v-if="filteredPages.length" class="site-pages">
+                <li
+                  v-for="page in filteredPages"
+                  :key="page.id"
+                  class="site-page"
+                  :class="{ 'site-page--included': visibilityOf(page) !== 'private' }"
+                >
+                  <div class="site-page__main">
+                    <UiCheckbox
+                      class="site-page__include"
+                      :model-value="visibilityOf(page) !== 'private'"
+                      @update:model-value="toggleIncluded(page, $event)"
+                    >
+                      <span class="site-page__identity">
+                        <span class="site-page__title">{{
+                          pageSettings(page).title || page.title
+                        }}</span>
+                        <span class="site-page__path">{{ page.path }}</span>
+                      </span>
+                    </UiCheckbox>
+                    <div class="site-page__controls">
+                      <UiSelect
+                        :model-value="visibilityOf(page)"
+                        :options="visibilityOptions"
+                        :label="$t('site.pageVisibility', { title: page.title })"
+                        @update:model-value="setVisibility(page, $event as SiteVisibility)"
+                      />
+                      <UiIconButton
+                        icon="open_in_new"
+                        :label="$t('site.openPage')"
+                        :size="20"
+                        @click="emit('openPage', page.id)"
+                      />
+                    </div>
+                  </div>
+                  <UiCollapsible
+                    v-if="visibilityOf(page) !== 'private'"
+                    class="site-page__advanced"
+                    :label="$t('site.pageOptions')"
+                  >
+                    <div class="site-page__grid">
+                      <label class="site-view__field">
+                        <span>{{ $t("site.customPath") }}</span>
+                        <UiTextField
+                          :value="pageSettings(page).slug ?? ''"
+                          :placeholder="page.path.replace(/\.typ$/, '')"
+                          @change="
+                            updatePage(page, { slug: ($event.target as HTMLInputElement).value })
+                          "
+                        />
+                      </label>
+                      <label class="site-view__field">
+                        <span>{{ $t("site.description") }}</span>
+                        <UiTextField
+                          :value="pageSettings(page).description ?? ''"
+                          @change="
+                            updatePage(page, {
+                              description: ($event.target as HTMLInputElement).value,
+                            })
+                          "
+                        />
+                      </label>
+                      <label class="site-view__field">
+                        <span>{{ $t("site.pageTitle") }}</span>
+                        <UiTextField
+                          :value="pageSettings(page).title ?? ''"
+                          :placeholder="page.title"
+                          @change="
+                            updatePage(page, { title: ($event.target as HTMLInputElement).value })
+                          "
+                        />
+                      </label>
+                      <label class="site-view__field">
+                        <span>{{ $t("site.pageTags") }}</span>
+                        <UiTagsInput
+                          :model-value="pageSettings(page).tags ?? page.tags"
+                          :label="$t('site.pageTags')"
+                          @update:model-value="updatePage(page, { tags: $event })"
+                        />
+                      </label>
+                    </div>
+                    <div class="site-page__checks">
+                      <UiCheckbox
+                        class="site-page__check"
+                        :model-value="pageSettings(page).hiddenFromNav ?? false"
+                        :label="$t('site.hideFromNav')"
+                        @update:model-value="updatePage(page, { hiddenFromNav: $event })"
+                      />
+                      <UiCheckbox
+                        class="site-page__check"
+                        :model-value="pageSettings(page).includeInSearch ?? true"
+                        :label="$t('site.includeInSearch')"
+                        @update:model-value="updatePage(page, { includeInSearch: $event })"
+                      />
+                      <UiCheckbox
+                        class="site-page__check"
+                        :model-value="pageSettings(page).includeInFeed ?? true"
+                        :label="$t('site.includeInFeed')"
+                        @update:model-value="updatePage(page, { includeInFeed: $event })"
+                      />
+                    </div>
+                  </UiCollapsible>
+                </li>
+              </ul>
+              <p v-else class="site-pages__empty">{{ $t("site.noPagesMatch") }}</p>
             </div>
-            <UiCollapsible
-              v-if="visibilityOf(page) !== 'private'"
-              class="site-page__advanced"
-              :label="$t('site.pageOptions')"
-            >
-              <div class="site-page__grid">
+
+            <div v-else-if="tab === 'design'" class="site-view__panel">
+              <div class="site-view__grid">
                 <label class="site-view__field">
-                  <span>{{ $t("site.customPath") }}</span>
+                  <span>{{ $t("site.name") }}</span>
                   <UiTextField
-                    :value="pageSettings(page).slug ?? ''"
-                    :placeholder="page.path.replace(/\.typ$/, '')"
-                    @change="updatePage(page, { slug: ($event.target as HTMLInputElement).value })"
+                    :value="site.name"
+                    :placeholder="settings.name"
+                    @change="updateSite({ name: ($event.target as HTMLInputElement).value })"
                   />
                 </label>
                 <label class="site-view__field">
+                  <span>{{ $t("site.slug") }}</span>
+                  <UiTextField
+                    :value="site.slug"
+                    :disabled="Boolean(site.wisp.lastDeploy)"
+                    :placeholder="$t('site.slugPlaceholder')"
+                    @change="updateSite({ slug: ($event.target as HTMLInputElement).value })"
+                  />
+                </label>
+                <label class="site-view__field site-view__field--wide">
                   <span>{{ $t("site.description") }}</span>
                   <UiTextField
-                    :value="pageSettings(page).description ?? ''"
-                    @change="
-                      updatePage(page, { description: ($event.target as HTMLInputElement).value })
+                    :value="site.description"
+                    :placeholder="$t('site.descriptionPlaceholder')"
+                    @change="updateSite({ description: ($event.target as HTMLInputElement).value })"
+                  />
+                </label>
+                <label class="site-view__field">
+                  <span>{{ $t("site.homePage") }}</span>
+                  <UiSelect
+                    :model-value="site.homePageId ?? GENERATED_HOME"
+                    :options="homeOptions"
+                    :label="$t('site.homePage')"
+                    @update:model-value="
+                      updateSite({ homePageId: $event === GENERATED_HOME ? null : $event })
                     "
                   />
                 </label>
                 <label class="site-view__field">
-                  <span>{{ $t("site.pageTitle") }}</span>
-                  <UiTextField
-                    :value="pageSettings(page).title ?? ''"
-                    :placeholder="page.title"
-                    @change="updatePage(page, { title: ($event.target as HTMLInputElement).value })"
+                  <span>{{ $t("site.theme") }}</span>
+                  <UiSelect
+                    :model-value="site.theme"
+                    :options="themeOptions"
+                    :label="$t('site.theme')"
+                    @update:model-value="updateSite({ theme: $event as SiteSettings['theme'] })"
                   />
                 </label>
                 <label class="site-view__field">
-                  <span>{{ $t("site.pageTags") }}</span>
-                  <UiTagsInput
-                    :model-value="pageSettings(page).tags ?? page.tags"
-                    :label="$t('site.pageTags')"
-                    @update:model-value="updatePage(page, { tags: $event })"
+                  <span>{{ $t("site.navigation") }}</span>
+                  <UiSelect
+                    :model-value="site.navigation"
+                    :options="navigationOptions"
+                    :label="$t('site.navigation')"
+                    @update:model-value="
+                      updateSite({ navigation: $event as SiteSettings['navigation'] })
+                    "
                   />
                 </label>
               </div>
-              <div class="site-page__checks">
-                <UiCheckbox
-                  class="site-page__check"
-                  :model-value="pageSettings(page).hiddenFromNav ?? false"
-                  :label="$t('site.hideFromNav')"
-                  @update:model-value="updatePage(page, { hiddenFromNav: $event })"
-                />
-                <UiCheckbox
-                  class="site-page__check"
-                  :model-value="pageSettings(page).includeInSearch ?? true"
-                  :label="$t('site.includeInSearch')"
-                  @update:model-value="updatePage(page, { includeInSearch: $event })"
-                />
-                <UiCheckbox
-                  class="site-page__check"
-                  :model-value="pageSettings(page).includeInFeed ?? true"
-                  :label="$t('site.includeInFeed')"
-                  @update:model-value="updatePage(page, { includeInFeed: $event })"
-                />
-              </div>
-            </UiCollapsible>
-          </li>
-        </ul>
-        <p v-else class="site-pages__empty">{{ $t("site.noPagesMatch") }}</p>
-      </div>
+              <p v-if="site.wisp.lastDeploy" class="site-view__hint">
+                {{ $t("site.slugChangeHint") }}
+              </p>
 
-      <div v-else-if="tab === 'design'" class="site-view__panel">
-        <div class="site-view__grid">
-          <label class="site-view__field">
-            <span>{{ $t("site.name") }}</span>
-            <UiTextField
-              :value="site.name"
-              :placeholder="settings.name"
-              @change="updateSite({ name: ($event.target as HTMLInputElement).value })"
-            />
-          </label>
-          <label class="site-view__field">
-            <span>{{ $t("site.slug") }}</span>
-            <UiTextField
-              :value="site.slug"
-              :disabled="Boolean(site.wisp.lastDeploy)"
-              :placeholder="$t('site.slugPlaceholder')"
-              @change="updateSite({ slug: ($event.target as HTMLInputElement).value })"
-            />
-          </label>
-          <label class="site-view__field site-view__field--wide">
-            <span>{{ $t("site.description") }}</span>
-            <UiTextField
-              :value="site.description"
-              :placeholder="$t('site.descriptionPlaceholder')"
-              @change="updateSite({ description: ($event.target as HTMLInputElement).value })"
-            />
-          </label>
-          <label class="site-view__field">
-            <span>{{ $t("site.homePage") }}</span>
-            <UiSelect
-              :model-value="site.homePageId ?? GENERATED_HOME"
-              :options="homeOptions"
-              :label="$t('site.homePage')"
-              @update:model-value="
-                updateSite({ homePageId: $event === GENERATED_HOME ? null : $event })
-              "
-            />
-          </label>
-          <label class="site-view__field">
-            <span>{{ $t("site.theme") }}</span>
-            <UiSelect
-              :model-value="site.theme"
-              :options="themeOptions"
-              :label="$t('site.theme')"
-              @update:model-value="updateSite({ theme: $event as SiteSettings['theme'] })"
-            />
-          </label>
-          <label class="site-view__field">
-            <span>{{ $t("site.navigation") }}</span>
-            <UiSelect
-              :model-value="site.navigation"
-              :options="navigationOptions"
-              :label="$t('site.navigation')"
-              @update:model-value="updateSite({ navigation: $event as SiteSettings['navigation'] })"
-            />
-          </label>
+              <div class="site-view__switches">
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showSearch") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showSearchHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showSearch"
+                    :aria-label="$t('site.showSearch')"
+                    @update:model-value="updateSite({ showSearch: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showToc") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showTocHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showToc"
+                    :aria-label="$t('site.showToc')"
+                    @update:model-value="updateSite({ showToc: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showDates") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showDatesHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showDates"
+                    :aria-label="$t('site.showDates')"
+                    @update:model-value="updateSite({ showDates: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.includeSitemap") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.includeSitemapHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.includeSitemap"
+                    :aria-label="$t('site.includeSitemap')"
+                    @update:model-value="updateSite({ includeSitemap: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.includeFeed") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.includeFeedHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.includeFeed"
+                    :aria-label="$t('site.includeFeed')"
+                    @update:model-value="updateSite({ includeFeed: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.standardEnabled") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.standardEnabledHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.standard.enabled"
+                    :aria-label="$t('site.standardEnabled')"
+                    @update:model-value="updateStandard({ enabled: $event })"
+                  />
+                </div>
+                <div v-if="site.standard.enabled" class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showInDiscover") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showInDiscoverHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.standard.showInDiscover"
+                    :aria-label="$t('site.showInDiscover')"
+                    @update:model-value="updateStandard({ showInDiscover: $event })"
+                  />
+                </div>
+              </div>
+
+              <UiCollapsible class="site-view__advanced" :label="$t('site.advanced')">
+                <div class="site-view__grid">
+                  <label class="site-view__field">
+                    <span>{{ $t("site.serviceUrl") }}</span>
+                    <UiTextField
+                      :value="site.wisp.serviceUrl"
+                      placeholder="https://wisp.place"
+                      @change="
+                        updateWisp({ serviceUrl: ($event.target as HTMLInputElement).value })
+                      "
+                    />
+                  </label>
+                  <label class="site-view__field">
+                    <span>{{ $t("site.serviceDid") }}</span>
+                    <UiTextField
+                      :value="site.wisp.serviceDid"
+                      placeholder="did:web:wisp.place"
+                      @change="
+                        updateWisp({ serviceDid: ($event.target as HTMLInputElement).value })
+                      "
+                    />
+                  </label>
+                </div>
+              </UiCollapsible>
+            </div>
+
+            <div v-else-if="tab === 'domain'" class="site-view__panel">
+              <section class="site-domain-card site-domain-card--address">
+                <div class="site-domain-card__head">
+                  <span class="site-domain-card__icon"><MsIcon name="link" :size="22" /></span>
+                  <div class="site-domain-card__copy">
+                    <h2>{{ $t("site.sharedUrl") }}</h2>
+                    <p class="site-view__hint">{{ $t("site.sharedUrlHint") }}</p>
+                  </div>
+                </div>
+                <div class="site-view__copy-row">
+                  <code>{{ sharedUrl || $t("site.notPublished") }}</code>
+                  <UiButton
+                    v-if="sharedUrl"
+                    variant="plain"
+                    icon="content_copy"
+                    @click="copy(sharedUrl)"
+                  >
+                    {{ $t("site.copy") }}
+                  </UiButton>
+                  <UiButton
+                    v-if="openSiteUrl"
+                    variant="plain"
+                    icon="open_in_new"
+                    @click="openExternal(openSiteUrl)"
+                  >
+                    {{ $t("site.openSite") }}
+                  </UiButton>
+                </div>
+              </section>
+
+              <section class="site-domain-card">
+                <div class="site-domain-card__head">
+                  <span class="site-domain-card__icon"><MsIcon name="dns" :size="22" /></span>
+                  <div class="site-domain-card__copy">
+                    <h2>{{ $t("site.wispSubdomain") }}</h2>
+                    <p class="site-view__hint">{{ $t("site.wispSubdomainHint") }}</p>
+                  </div>
+                  <span
+                    v-if="site.wisp.subdomain && !site.wisp.customDomain"
+                    class="site-domain__status"
+                    :class="`site-domain__status--${site.wisp.domainStatus}`"
+                  >
+                    {{ domainStatusLabel }}
+                  </span>
+                </div>
+                <div v-if="site.wisp.subdomain" class="site-domain__record">
+                  <div class="site-view__copy-row">
+                    <code>{{ site.wisp.subdomain }}.wisp.place</code>
+                    <UiIconButton
+                      icon="content_copy"
+                      :label="$t('site.copy')"
+                      :size="20"
+                      @click="copy(`${site.wisp.subdomain}.wisp.place`)"
+                    />
+                    <UiButton
+                      v-if="!site.wisp.customDomain"
+                      variant="plain"
+                      icon="refresh"
+                      :disabled="domainBusy"
+                      @click="refreshDomain"
+                    >
+                      {{ $t("site.checkDomain") }}
+                    </UiButton>
+                    <UiButton
+                      variant="plain"
+                      icon="link_off"
+                      :disabled="domainBusy"
+                      @click="askRelease('subdomain')"
+                    >
+                      {{ $t("site.release") }}
+                    </UiButton>
+                  </div>
+                </div>
+                <div v-else class="site-view__inline-form">
+                  <UiTextField
+                    v-model="subdomainInput"
+                    :label="$t('site.wispSubdomain')"
+                    placeholder="notes"
+                    autocapitalize="none"
+                    spellcheck="false"
+                  />
+                  <span class="site-domain__suffix">.wisp.place</span>
+                  <UiButton
+                    variant="primary"
+                    :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
+                    @click="claimSubdomain"
+                  >
+                    {{ $t("site.claimSubdomain") }}
+                  </UiButton>
+                </div>
+              </section>
+
+              <section class="site-domain-card">
+                <div class="site-domain-card__head">
+                  <span class="site-domain-card__icon"><MsIcon name="language" :size="22" /></span>
+                  <div class="site-domain-card__copy">
+                    <h2>{{ $t("site.customDomain") }}</h2>
+                    <p class="site-view__hint">{{ $t("site.customDomainHint") }}</p>
+                  </div>
+                  <span
+                    v-if="site.wisp.customDomain"
+                    class="site-domain__status"
+                    :class="`site-domain__status--${site.wisp.domainStatus}`"
+                  >
+                    {{ domainStatusLabel }}
+                  </span>
+                </div>
+
+                <div v-if="!site.wisp.customDomain" class="site-domain__claim">
+                  <div class="site-view__inline-form">
+                    <UiTextField
+                      v-model="customDomainInput"
+                      :label="$t('site.customDomain')"
+                      placeholder="notes.example.com"
+                      autocapitalize="none"
+                      spellcheck="false"
+                    />
+                    <UiButton
+                      variant="primary"
+                      :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
+                      @click="claimCustomDomain"
+                    >
+                      {{ $t("site.claimCustomDomain") }}
+                    </UiButton>
+                  </div>
+                  <p class="site-view__hint">{{ $t("site.customDomainSteps") }}</p>
+                </div>
+
+                <template v-else>
+                  <div class="site-domain__steps">
+                    <div
+                      v-for="(step, index) in customDomainSteps"
+                      :key="step.label"
+                      class="site-domain__step"
+                      :class="`site-domain__step--${step.state}`"
+                    >
+                      <span class="site-domain__step-mark">
+                        <MsIcon v-if="step.state === 'done'" name="check" :size="16" />
+                        <template v-else>{{ index + 1 }}</template>
+                      </span>
+                      <span>{{ step.label }}</span>
+                    </div>
+                  </div>
+
+                  <div class="site-view__copy-row">
+                    <code>{{ site.wisp.customDomain }}</code>
+                    <UiIconButton
+                      icon="content_copy"
+                      :label="$t('site.copy')"
+                      :size="20"
+                      @click="copy(site.wisp.customDomain)"
+                    />
+                    <UiButton
+                      v-if="deployedOnDomain"
+                      variant="plain"
+                      icon="open_in_new"
+                      @click="openExternal(`https://${site.wisp.customDomain}`)"
+                    >
+                      {{ $t("site.openSite") }}
+                    </UiButton>
+                  </div>
+
+                  <div
+                    v-if="domainInfo && site.wisp.domainStatus !== 'verified'"
+                    class="site-domain__dns"
+                  >
+                    <div class="site-domain__dns-head">
+                      <h3>{{ $t("site.dnsRecords") }}</h3>
+                      <p>{{ $t("site.dnsInstructions") }}</p>
+                    </div>
+                    <div class="site-domain__dns-row">
+                      <span>TXT</span>
+                      <code>{{ domainInfo.txtName }}</code>
+                      <UiIconButton
+                        icon="content_copy"
+                        :label="$t('site.copy')"
+                        :size="20"
+                        @click="copy(domainInfo.txtName)"
+                      />
+                    </div>
+                    <div class="site-domain__dns-row">
+                      <span>TXT</span>
+                      <code>{{ domainInfo.txtValue }}</code>
+                      <UiIconButton
+                        icon="content_copy"
+                        :label="$t('site.copy')"
+                        :size="20"
+                        @click="copy(domainInfo.txtValue)"
+                      />
+                    </div>
+                    <div v-if="domainInfo.cnameTarget" class="site-domain__dns-row">
+                      <span>CNAME</span>
+                      <code>{{ domainInfo.cnameTarget }}</code>
+                      <UiIconButton
+                        icon="content_copy"
+                        :label="$t('site.copy')"
+                        :size="20"
+                        @click="copy(domainInfo.cnameTarget)"
+                      />
+                    </div>
+                  </div>
+
+                  <p v-if="site.wisp.domainStatus === 'pending'" class="site-view__hint">
+                    {{ $t("site.domainPendingHint") }}
+                  </p>
+                  <p
+                    v-if="site.wisp.domainStatus === 'verified' && !deployedOnDomain"
+                    class="site-view__hint"
+                  >
+                    {{ $t("site.domainVerifiedHint") }}
+                  </p>
+                  <p
+                    v-if="site.wisp.domainStatus === 'verified' && publishBlockReason"
+                    class="site-view__hint"
+                  >
+                    {{ publishBlockReason }}
+                  </p>
+
+                  <div class="site-view__toolbar-actions">
+                    <UiButton
+                      variant="plain"
+                      icon="refresh"
+                      :disabled="domainBusy"
+                      @click="refreshDomain"
+                    >
+                      {{ $t("site.checkDomain") }}
+                    </UiButton>
+                    <UiButton
+                      v-if="site.wisp.domainStatus === 'verified'"
+                      variant="primary"
+                      icon="cloud_upload"
+                      :disabled="publishDisabled"
+                      @click="publishWithDomain"
+                    >
+                      {{ deployedOnDomain ? $t("site.republish") : $t("site.publishWithDomain") }}
+                    </UiButton>
+                    <UiButton
+                      variant="plain"
+                      icon="link_off"
+                      :disabled="domainBusy"
+                      @click="askRelease('custom')"
+                    >
+                      {{ $t("site.release") }}
+                    </UiButton>
+                  </div>
+                </template>
+              </section>
+              <p v-if="domainError" class="site-view__error" role="alert">{{ domainError }}</p>
+            </div>
+
+            <div v-else class="site-view__panel">
+              <section
+                class="site-selection-card"
+                :class="{ 'site-selection-card--empty': !includedCount }"
+              >
+                <div class="site-selection-card__copy">
+                  <h2>{{ $t("site.selectedPages") }}</h2>
+                  <p v-if="includedCount" class="site-view__hint">
+                    {{ $t("site.publishSummary", { pages: includedCount, public: publicCount }) }}
+                  </p>
+                  <p v-else class="site-view__hint">{{ $t("site.selectPagesHint") }}</p>
+                  <div v-if="includedPages.length" class="site-selection-card__chips">
+                    <span
+                      v-for="page in includedPages.slice(0, 8)"
+                      :key="page.id"
+                      class="site-selection-chip"
+                    >
+                      {{ pageSettings(page).title || page.title }}
+                    </span>
+                    <span v-if="includedPages.length > 8" class="site-selection-chip">
+                      +{{ includedPages.length - 8 }}
+                    </span>
+                  </div>
+                </div>
+                <UiButton
+                  :variant="includedCount ? 'plain' : 'primary'"
+                  :icon="includedCount ? 'edit' : 'checklist'"
+                  @click="editSelection"
+                >
+                  {{ includedCount ? $t("site.editSelection") : $t("site.choosePages") }}
+                </UiButton>
+              </section>
+
+              <section
+                class="site-publish-card site-publish-card--hero"
+                :class="{ 'site-publish-card--blocked': publishDisabled }"
+              >
+                <div class="site-publish__hero">
+                  <div class="site-publish__hero-copy">
+                    <span class="site-publish__hero-icon"
+                      ><MsIcon name="cloud_upload" :size="28"
+                    /></span>
+                    <div>
+                      <h2>{{ $t("site.publishTitle") }}</h2>
+                      <p class="site-view__hint">{{ $t("site.publishHeroHint") }}</p>
+                    </div>
+                  </div>
+                  <UiButton
+                    class="site-publish__cta"
+                    variant="primary"
+                    icon="cloud_upload"
+                    :icon-size="22"
+                    :disabled="publishDisabled"
+                    @click="onPublish"
+                  >
+                    {{ site.wisp.lastDeploy ? $t("site.republish") : $t("site.publish") }}
+                  </UiButton>
+                </div>
+
+                <p v-if="publishBlockReason" class="site-publish__blocked">
+                  {{ publishBlockReason }}
+                </p>
+                <p v-if="site.wisp.lastDeploy" class="site-view__hint">
+                  {{
+                    $t("site.lastPublished", {
+                      date: new Date(site.wisp.lastDeploy.deployedAt).toLocaleString(),
+                      files: site.wisp.lastDeploy.fileCount,
+                    })
+                  }}
+                </p>
+
+                <div v-if="openSiteUrl" class="site-publish__live">
+                  <span class="site-publish__live-dot" aria-hidden="true" />
+                  <div class="site-publish__live-copy">
+                    <span class="site-publish__live-label">{{ $t("site.liveAt") }}</span>
+                    <code>{{ openSiteUrl }}</code>
+                  </div>
+                  <UiIconButton
+                    icon="content_copy"
+                    :label="$t('site.copy')"
+                    :size="20"
+                    @click="copy(openSiteUrl)"
+                  />
+                  <UiIconButton
+                    icon="open_in_new"
+                    :label="$t('site.openSite')"
+                    :size="20"
+                    @click="openExternal(openSiteUrl)"
+                  />
+                </div>
+
+                <div v-if="progress" class="site-publish__progress">
+                  <span>{{ progress.message }}</span>
+                  <span v-if="progress.total">{{ progress.done }}/{{ progress.total }}</span>
+                  <div v-if="progressPercent !== null" class="site-publish__bar">
+                    <span :style="{ width: `${progressPercent}%` }" />
+                  </div>
+                </div>
+
+                <p v-if="resultNote" class="site-view__note">{{ resultNote }}</p>
+                <p v-if="error" class="site-view__error">{{ error }}</p>
+
+                <div class="site-publish__actions">
+                  <UiButton variant="plain" icon="preview" :disabled="busy" @click="openPreview">
+                    {{ $t("site.preview") }}
+                  </UiButton>
+                  <UiButton variant="plain" icon="download" :disabled="busy" @click="downloadSite">
+                    {{ $t("site.download") }}
+                  </UiButton>
+                  <UiButton
+                    v-if="site.wisp.lastDeploy"
+                    variant="danger"
+                    icon="cloud_off"
+                    :disabled="busy"
+                    @click="confirmUnpublish = true"
+                  >
+                    {{ $t("site.unpublish") }}
+                  </UiButton>
+                </div>
+              </section>
+
+              <section class="site-publish-card">
+                <h2>{{ $t("site.standardTitle") }}</h2>
+                <p class="site-view__hint">{{ $t("site.standardHint") }}</p>
+                <p v-if="site.standard.publicationUri" class="site-view__copy-row">
+                  <code>{{ site.standard.publicationUri }}</code>
+                  <UiIconButton
+                    icon="content_copy"
+                    :label="$t('site.copy')"
+                    :size="20"
+                    @click="copy(site.standard.publicationUri)"
+                  />
+                </p>
+              </section>
+            </div>
+          </div>
         </div>
-        <p v-if="site.wisp.lastDeploy" class="site-view__hint">{{ $t("site.slugChangeHint") }}</p>
-
-        <div class="site-view__switches">
-          <div class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.showSearch") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.showSearchHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.showSearch"
-              :aria-label="$t('site.showSearch')"
-              @update:model-value="updateSite({ showSearch: $event })"
-            />
-          </div>
-          <div class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.showToc") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.showTocHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.showToc"
-              :aria-label="$t('site.showToc')"
-              @update:model-value="updateSite({ showToc: $event })"
-            />
-          </div>
-          <div class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.showDates") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.showDatesHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.showDates"
-              :aria-label="$t('site.showDates')"
-              @update:model-value="updateSite({ showDates: $event })"
-            />
-          </div>
-          <div class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.includeSitemap") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.includeSitemapHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.includeSitemap"
-              :aria-label="$t('site.includeSitemap')"
-              @update:model-value="updateSite({ includeSitemap: $event })"
-            />
-          </div>
-          <div class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.includeFeed") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.includeFeedHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.includeFeed"
-              :aria-label="$t('site.includeFeed')"
-              @update:model-value="updateSite({ includeFeed: $event })"
-            />
-          </div>
-          <div class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.standardEnabled") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.standardEnabledHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.standard.enabled"
-              :aria-label="$t('site.standardEnabled')"
-              @update:model-value="updateStandard({ enabled: $event })"
-            />
-          </div>
-          <div v-if="site.standard.enabled" class="site-switch-card">
-            <div class="site-switch-card__copy">
-              <span class="site-switch-card__label">{{ $t("site.showInDiscover") }}</span>
-              <span class="site-switch-card__hint">{{ $t("site.showInDiscoverHint") }}</span>
-            </div>
-            <UiSwitch
-              :model-value="site.standard.showInDiscover"
-              :aria-label="$t('site.showInDiscover')"
-              @update:model-value="updateStandard({ showInDiscover: $event })"
-            />
-          </div>
-        </div>
-
-        <UiCollapsible class="site-view__advanced" :label="$t('site.advanced')">
-          <div class="site-view__grid">
-            <label class="site-view__field">
-              <span>{{ $t("site.serviceUrl") }}</span>
-              <UiTextField
-                :value="site.wisp.serviceUrl"
-                placeholder="https://wisp.place"
-                @change="updateWisp({ serviceUrl: ($event.target as HTMLInputElement).value })"
-              />
-            </label>
-            <label class="site-view__field">
-              <span>{{ $t("site.serviceDid") }}</span>
-              <UiTextField
-                :value="site.wisp.serviceDid"
-                placeholder="did:web:wisp.place"
-                @change="updateWisp({ serviceDid: ($event.target as HTMLInputElement).value })"
-              />
-            </label>
-          </div>
-        </UiCollapsible>
-      </div>
-
-      <div v-else-if="tab === 'domain'" class="site-view__panel">
-        <section class="site-domain-card site-domain-card--address">
-          <div class="site-domain-card__head">
-            <span class="site-domain-card__icon"><MsIcon name="link" :size="22" /></span>
-            <div class="site-domain-card__copy">
-              <h2>{{ $t("site.sharedUrl") }}</h2>
-              <p class="site-view__hint">{{ $t("site.sharedUrlHint") }}</p>
-            </div>
-          </div>
-          <div class="site-view__copy-row">
-            <code>{{ sharedUrl || $t("site.notPublished") }}</code>
-            <UiButton v-if="sharedUrl" variant="plain" icon="content_copy" @click="copy(sharedUrl)">
-              {{ $t("site.copy") }}
-            </UiButton>
-            <UiButton
-              v-if="openSiteUrl"
-              variant="plain"
-              icon="open_in_new"
-              @click="openExternal(openSiteUrl)"
-            >
-              {{ $t("site.openSite") }}
-            </UiButton>
-          </div>
-        </section>
-
-        <section class="site-domain-card">
-          <div class="site-domain-card__head">
-            <span class="site-domain-card__icon"><MsIcon name="dns" :size="22" /></span>
-            <div class="site-domain-card__copy">
-              <h2>{{ $t("site.wispSubdomain") }}</h2>
-              <p class="site-view__hint">{{ $t("site.wispSubdomainHint") }}</p>
-            </div>
-            <span
-              v-if="site.wisp.subdomain && !site.wisp.customDomain"
-              class="site-domain__status"
-              :class="`site-domain__status--${site.wisp.domainStatus}`"
-            >
-              {{ domainStatusLabel }}
-            </span>
-          </div>
-          <div v-if="site.wisp.subdomain" class="site-domain__record">
-            <div class="site-view__copy-row">
-              <code>{{ site.wisp.subdomain }}.wisp.place</code>
-              <UiIconButton
-                icon="content_copy"
-                :label="$t('site.copy')"
-                :size="20"
-                @click="copy(`${site.wisp.subdomain}.wisp.place`)"
-              />
-              <UiButton
-                v-if="!site.wisp.customDomain"
-                variant="plain"
-                icon="refresh"
-                :disabled="domainBusy"
-                @click="refreshDomain"
-              >
-                {{ $t("site.checkDomain") }}
-              </UiButton>
-              <UiButton
-                variant="plain"
-                icon="link_off"
-                :disabled="domainBusy"
-                @click="askRelease('subdomain')"
-              >
-                {{ $t("site.release") }}
-              </UiButton>
-            </div>
-          </div>
-          <div v-else class="site-view__inline-form">
-            <UiTextField
-              v-model="subdomainInput"
-              :label="$t('site.wispSubdomain')"
-              placeholder="notes"
-              autocapitalize="none"
-              spellcheck="false"
-            />
-            <span class="site-domain__suffix">.wisp.place</span>
-            <UiButton
-              variant="primary"
-              :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
-              @click="claimSubdomain"
-            >
-              {{ $t("site.claimSubdomain") }}
-            </UiButton>
-          </div>
-        </section>
-
-        <section class="site-domain-card">
-          <div class="site-domain-card__head">
-            <span class="site-domain-card__icon"><MsIcon name="language" :size="22" /></span>
-            <div class="site-domain-card__copy">
-              <h2>{{ $t("site.customDomain") }}</h2>
-              <p class="site-view__hint">{{ $t("site.customDomainHint") }}</p>
-            </div>
-            <span
-              v-if="site.wisp.customDomain"
-              class="site-domain__status"
-              :class="`site-domain__status--${site.wisp.domainStatus}`"
-            >
-              {{ domainStatusLabel }}
-            </span>
-          </div>
-
-          <div v-if="!site.wisp.customDomain" class="site-domain__claim">
-            <div class="site-view__inline-form">
-              <UiTextField
-                v-model="customDomainInput"
-                :label="$t('site.customDomain')"
-                placeholder="notes.example.com"
-                autocapitalize="none"
-                spellcheck="false"
-              />
-              <UiButton
-                variant="primary"
-                :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
-                @click="claimCustomDomain"
-              >
-                {{ $t("site.claimCustomDomain") }}
-              </UiButton>
-            </div>
-            <p class="site-view__hint">{{ $t("site.customDomainSteps") }}</p>
-          </div>
-
-          <template v-else>
-            <div class="site-domain__steps">
-              <div
-                v-for="(step, index) in customDomainSteps"
-                :key="step.label"
-                class="site-domain__step"
-                :class="`site-domain__step--${step.state}`"
-              >
-                <span class="site-domain__step-mark">
-                  <MsIcon v-if="step.state === 'done'" name="check" :size="16" />
-                  <template v-else>{{ index + 1 }}</template>
-                </span>
-                <span>{{ step.label }}</span>
-              </div>
-            </div>
-
-            <div class="site-view__copy-row">
-              <code>{{ site.wisp.customDomain }}</code>
-              <UiIconButton
-                icon="content_copy"
-                :label="$t('site.copy')"
-                :size="20"
-                @click="copy(site.wisp.customDomain)"
-              />
-              <UiButton
-                v-if="deployedOnDomain"
-                variant="plain"
-                icon="open_in_new"
-                @click="openExternal(`https://${site.wisp.customDomain}`)"
-              >
-                {{ $t("site.openSite") }}
-              </UiButton>
-            </div>
-
-            <div
-              v-if="domainInfo && site.wisp.domainStatus !== 'verified'"
-              class="site-domain__dns"
-            >
-              <div class="site-domain__dns-head">
-                <h3>{{ $t("site.dnsRecords") }}</h3>
-                <p>{{ $t("site.dnsInstructions") }}</p>
-              </div>
-              <div class="site-domain__dns-row">
-                <span>TXT</span>
-                <code>{{ domainInfo.txtName }}</code>
-                <UiIconButton
-                  icon="content_copy"
-                  :label="$t('site.copy')"
-                  :size="20"
-                  @click="copy(domainInfo.txtName)"
-                />
-              </div>
-              <div class="site-domain__dns-row">
-                <span>TXT</span>
-                <code>{{ domainInfo.txtValue }}</code>
-                <UiIconButton
-                  icon="content_copy"
-                  :label="$t('site.copy')"
-                  :size="20"
-                  @click="copy(domainInfo.txtValue)"
-                />
-              </div>
-              <div v-if="domainInfo.cnameTarget" class="site-domain__dns-row">
-                <span>CNAME</span>
-                <code>{{ domainInfo.cnameTarget }}</code>
-                <UiIconButton
-                  icon="content_copy"
-                  :label="$t('site.copy')"
-                  :size="20"
-                  @click="copy(domainInfo.cnameTarget)"
-                />
-              </div>
-            </div>
-
-            <p v-if="site.wisp.domainStatus === 'pending'" class="site-view__hint">
-              {{ $t("site.domainPendingHint") }}
-            </p>
-            <p
-              v-if="site.wisp.domainStatus === 'verified' && !deployedOnDomain"
-              class="site-view__hint"
-            >
-              {{ $t("site.domainVerifiedHint") }}
-            </p>
-            <p
-              v-if="site.wisp.domainStatus === 'verified' && publishBlockReason"
-              class="site-view__hint"
-            >
-              {{ publishBlockReason }}
-            </p>
-
-            <div class="site-view__toolbar-actions">
-              <UiButton
-                variant="plain"
-                icon="refresh"
-                :disabled="domainBusy"
-                @click="refreshDomain"
-              >
-                {{ $t("site.checkDomain") }}
-              </UiButton>
-              <UiButton
-                v-if="site.wisp.domainStatus === 'verified'"
-                variant="primary"
-                icon="cloud_upload"
-                :disabled="publishDisabled"
-                @click="publishWithDomain"
-              >
-                {{ deployedOnDomain ? $t("site.republish") : $t("site.publishWithDomain") }}
-              </UiButton>
-              <UiButton
-                variant="plain"
-                icon="link_off"
-                :disabled="domainBusy"
-                @click="askRelease('custom')"
-              >
-                {{ $t("site.release") }}
-              </UiButton>
-            </div>
-          </template>
-        </section>
-        <p v-if="domainError" class="site-view__error" role="alert">{{ domainError }}</p>
-      </div>
-
-      <div v-else class="site-view__panel">
-        <section
-          class="site-selection-card"
-          :class="{ 'site-selection-card--empty': !includedCount }"
-        >
-          <div class="site-selection-card__copy">
-            <h2>{{ $t("site.selectedPages") }}</h2>
-            <p v-if="includedCount" class="site-view__hint">
-              {{ $t("site.publishSummary", { pages: includedCount, public: publicCount }) }}
-            </p>
-            <p v-else class="site-view__hint">{{ $t("site.selectPagesHint") }}</p>
-            <div v-if="includedPages.length" class="site-selection-card__chips">
-              <span
-                v-for="page in includedPages.slice(0, 8)"
-                :key="page.id"
-                class="site-selection-chip"
-              >
-                {{ pageSettings(page).title || page.title }}
-              </span>
-              <span v-if="includedPages.length > 8" class="site-selection-chip">
-                +{{ includedPages.length - 8 }}
-              </span>
-            </div>
-          </div>
-          <UiButton
-            :variant="includedCount ? 'plain' : 'primary'"
-            :icon="includedCount ? 'edit' : 'checklist'"
-            @click="editSelection"
-          >
-            {{ includedCount ? $t("site.editSelection") : $t("site.choosePages") }}
-          </UiButton>
-        </section>
-
-        <section
-          class="site-publish-card site-publish-card--hero"
-          :class="{ 'site-publish-card--blocked': publishDisabled }"
-        >
-          <div class="site-publish__hero">
-            <div class="site-publish__hero-copy">
-              <span class="site-publish__hero-icon"><MsIcon name="cloud_upload" :size="28" /></span>
-              <div>
-                <h2>{{ $t("site.publishTitle") }}</h2>
-                <p class="site-view__hint">{{ $t("site.publishHeroHint") }}</p>
-              </div>
-            </div>
-            <UiButton
-              class="site-publish__cta"
-              variant="primary"
-              icon="cloud_upload"
-              :icon-size="22"
-              :disabled="publishDisabled"
-              @click="onPublish"
-            >
-              {{ site.wisp.lastDeploy ? $t("site.republish") : $t("site.publish") }}
-            </UiButton>
-          </div>
-
-          <p v-if="publishBlockReason" class="site-publish__blocked">{{ publishBlockReason }}</p>
-          <p v-if="site.wisp.lastDeploy" class="site-view__hint">
-            {{
-              $t("site.lastPublished", {
-                date: new Date(site.wisp.lastDeploy.deployedAt).toLocaleString(),
-                files: site.wisp.lastDeploy.fileCount,
-              })
-            }}
-          </p>
-
-          <div v-if="progress" class="site-publish__progress">
-            <span>{{ progress.message }}</span>
-            <span v-if="progress.total">{{ progress.done }}/{{ progress.total }}</span>
-            <div v-if="progressPercent !== null" class="site-publish__bar">
-              <span :style="{ width: `${progressPercent}%` }" />
-            </div>
-          </div>
-
-          <p v-if="resultNote" class="site-view__note">{{ resultNote }}</p>
-          <p v-if="error" class="site-view__error">{{ error }}</p>
-
-          <div class="site-publish__actions">
-            <UiButton variant="plain" icon="preview" :disabled="busy" @click="openPreview">
-              {{ $t("site.preview") }}
-            </UiButton>
-            <UiButton variant="plain" icon="download" :disabled="busy" @click="downloadSite">
-              {{ $t("site.download") }}
-            </UiButton>
-            <UiButton
-              v-if="site.wisp.lastDeploy"
-              variant="danger"
-              icon="cloud_off"
-              :disabled="busy"
-              @click="confirmUnpublish = true"
-            >
-              {{ $t("site.unpublish") }}
-            </UiButton>
-          </div>
-        </section>
-
-        <section class="site-publish-card">
-          <h2>{{ $t("site.standardTitle") }}</h2>
-          <p class="site-view__hint">{{ $t("site.standardHint") }}</p>
-          <p v-if="site.standard.publicationUri" class="site-view__copy-row">
-            <code>{{ site.standard.publicationUri }}</code>
-            <UiIconButton
-              icon="content_copy"
-              :label="$t('site.copy')"
-              :size="20"
-              @click="copy(site.standard.publicationUri)"
-            />
-          </p>
-        </section>
       </div>
     </div>
 
@@ -1401,35 +1508,52 @@ function copy(value: string): Promise<void> {
 
 <style>
 .site-view {
+  --site-content-width: 72rem;
+
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  /* padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right)) 0
-    calc(var(--space-2) + var(--safe-left)); */
+  container-type: inline-size;
+  container-name: site-view;
 }
 
 .site-view__body {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
   min-height: 0;
   overflow: auto;
-  /* padding-bottom: calc(var(--space-10) + var(--safe-bottom)); */
-  padding: var(--space-2);
+  padding: var(--space-2) calc(var(--space-2) + var(--safe-right))
+    calc(var(--space-2) + var(--safe-bottom)) calc(var(--space-2) + var(--safe-left));
+}
+
+.site-view__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: var(--site-content-width);
+  margin-inline: auto;
 }
 
 .site-view__header {
+  width: 100%;
+  min-height: var(--pane-header-height);
+  padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right))
+    var(--space-2) calc(var(--space-2) + var(--safe-left));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-view__header-inner {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   width: 100%;
-  padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right)) 0
-    calc(var(--space-2) + var(--safe-left));
+  max-width: var(--site-content-width);
+  margin-inline: auto;
 }
 
 .site-view__heading {
@@ -1454,22 +1578,53 @@ function copy(value: string): Promise<void> {
 }
 
 .site-view__title {
-  margin: 0;
+  margin: 0 0 0 var(--space-2);
   font-size: var(--text-2xl);
-  margin-left: var(--space-2);
+  line-height: var(--leading-tight);
 }
 
-.site-view__sub {
-  max-width: 100%;
-  margin: 0;
+.site-view__live-dot,
+.site-publish__live-dot {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--color-ok);
+  border-radius: 50%;
+}
+
+.site-view__address {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1-5) var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.site-view__address-label {
+  flex: none;
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
+}
+
+.site-view__address-url {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.site-view__actions,
+.site-view__address-actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-0-5);
+}
+
 .site-view__toolbar,
 .site-view__toolbar-actions,
 .site-view__copy-row,
@@ -1481,47 +1636,112 @@ function copy(value: string): Promise<void> {
   flex-wrap: wrap;
 }
 
-.site-view__actions {
-  flex: none;
+.site-view__layout {
+  display: grid;
+  grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.site-view__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
 }
 
 .site-view__tabs {
+  position: sticky;
+  top: 0;
   display: flex;
+  flex-direction: column;
   gap: var(--space-1);
   width: 100%;
-  padding: 0 var(--space-2) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .site-view__tab {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--space-1-5);
-  border: 0;
-  background: transparent;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3);
   color: var(--color-text-secondary);
-  padding: var(--space-2) var(--space-3);
   font: inherit;
-  font-size: var(--text-sm);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
 }
 
-.site-view__tab-count {
+.site-view__tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border-color: var(--color-border-strong);
+}
+
+.site-view__tab--active {
+  color: var(--color-text);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
+.site-view__tab-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--color-text-secondary);
+  /* background: var(--color-surface-2); */
+}
+
+.site-view__tab--active .site-view__tab-icon {
+  color: var(--color-accent);
+  /* background: var(--color-surface); */
+}
+
+.site-view__tab-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.site-view__tab-label {
+  color: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.site-view__tab-hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.site-view__tab-count,
+.site-view__tab-status {
+  flex: none;
+  /* align-self: flex-start; */
   min-width: 1.25rem;
   padding: 0 var(--space-1);
   color: var(--color-text-secondary);
   font-size: var(--text-2xs);
+  font-weight: 500;
   line-height: 1.25rem;
   text-align: center;
   background: var(--color-surface-2);
   border-radius: 999px;
 }
 
-.site-view__tab--active {
-  color: var(--color-text);
-  border-bottom-color: var(--color-accent);
+.site-view__tab-status {
+  color: var(--color-ok);
+  background: var(--color-ok-soft);
 }
 
 .site-view__tab--active .site-view__tab-count {
@@ -1532,8 +1752,9 @@ function copy(value: string): Promise<void> {
 .site-view__panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin: 0 auto;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
 }
 
 .site-view__toolbar {
@@ -1549,7 +1770,7 @@ function copy(value: string): Promise<void> {
 
 .site-view__note,
 .site-view__error {
-  margin: 0 auto var(--space-3);
+  margin: 0;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
@@ -1568,11 +1789,11 @@ function copy(value: string): Promise<void> {
 
 .site-signin {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-3);
-  margin: 0 auto;
+  width: 100%;
+  padding: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1580,6 +1801,7 @@ function copy(value: string): Promise<void> {
 
 .site-signin__intro {
   display: flex;
+  flex: 1 1 22rem;
   align-items: flex-start;
   gap: var(--space-2);
   min-width: 0;
@@ -1604,7 +1826,8 @@ function copy(value: string): Promise<void> {
 }
 
 .site-signin .atproto-signin {
-  flex: 0 1 26rem;
+  flex: 1 1 20rem;
+  min-width: 0;
 }
 
 .site-view__field {
@@ -1769,7 +1992,9 @@ function copy(value: string): Promise<void> {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
-  margin: 0 auto;
+  width: 100%;
+  max-width: var(--site-content-width);
+  margin-inline: auto;
 }
 
 .site-view__advanced,
@@ -2162,6 +2387,35 @@ function copy(value: string): Promise<void> {
   font-size: var(--text-sm);
 }
 
+.site-publish__live {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.site-publish__live-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.site-publish__live-label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.site-publish__live code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
 .site-publish__cta {
   flex: none;
   justify-content: center;
@@ -2213,8 +2467,8 @@ function copy(value: string): Promise<void> {
   background: #fff;
 }
 
-@media (max-width: 48rem) {
-  .site-view__header {
+@container site-view (max-width: 52rem) {
+  .site-view__header-inner {
     align-items: flex-start;
     flex-wrap: wrap;
   }
@@ -2224,16 +2478,52 @@ function copy(value: string): Promise<void> {
     min-width: 0;
   }
 
-  .site-view__actions {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
-  }
-
   .site-view__close {
     order: 2;
     flex: none;
     margin-left: auto;
+  }
+
+  .site-view__address {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .site-view__address-url {
+    flex-basis: 100%;
+    order: 3;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .site-view__address-actions {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .site-view__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .site-view__tabs {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .site-view__tab {
+    padding: var(--space-2);
+  }
+
+  .site-view__tab-icon {
+    width: var(--control-sm);
+    height: var(--control-sm);
+  }
+
+  .site-view__tab-hint {
+    display: none;
   }
 
   .site-signin {
@@ -2241,8 +2531,9 @@ function copy(value: string): Promise<void> {
     flex-direction: column;
   }
 
+  .site-signin__intro,
   .site-signin .atproto-signin {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
   }
 
   .site-page__main {

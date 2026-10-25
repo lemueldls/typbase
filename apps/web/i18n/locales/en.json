@@ -943,6 +943,14 @@
     "visibilityUnlisted": "Unlisted",
     "wispSubdomain": "Wisp subdomain",
     "wispSubdomainHint": "Claim a label like notes. Wisp allows three subdomains per account.",
-    "dashboard": "Website settings"
+    "dashboard": "Website settings",
+    "tabPagesHint": "Choose which pages go live.",
+    "tabDesignHint": "Name, layout, and navigation.",
+    "tabDomainHint": "Hosting address and custom domains.",
+    "tabPublishHint": "Build, preview, and publish.",
+    "live": "Live",
+    "liveAt": "Live at",
+    "urlPreview": "Publishes to",
+    "publishedUrl": "Live at {url}"
   }
 }

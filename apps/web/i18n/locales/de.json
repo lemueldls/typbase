@@ -943,6 +943,14 @@
     "visibilityUnlisted": "Nicht gelistet",
     "wispSubdomain": "Wisp-Subdomain",
     "wispSubdomainHint": "Beanspruche eine Bezeichnung wie notes. Wisp erlaubt drei Subdomains pro Konto.",
-    "dashboard": "Website-Einstellungen"
+    "dashboard": "Website-Einstellungen",
+    "tabPagesHint": "Wähle die Seiten, die online gehen.",
+    "tabDesignHint": "Name, Layout und Navigation.",
+    "tabDomainHint": "Hosting-Adresse und eigene Domains.",
+    "tabPublishHint": "Erstellen, Vorschau und veröffentlichen.",
+    "live": "Live",
+    "liveAt": "Live unter",
+    "urlPreview": "Wird veröffentlicht unter",
+    "publishedUrl": "Live unter {url}"
   }
 }

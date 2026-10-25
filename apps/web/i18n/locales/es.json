@@ -943,6 +943,14 @@
     "visibilityUnlisted": "No listada",
     "wispSubdomain": "Subdominio de Wisp",
     "wispSubdomainHint": "Reclama una etiqueta como notes. Wisp permite tres subdominios por cuenta.",
-    "dashboard": "Ajustes del sitio web"
+    "dashboard": "Ajustes del sitio web",
+    "tabPagesHint": "Elige qué páginas se publican.",
+    "tabDesignHint": "Nombre, diseño y navegación.",
+    "tabDomainHint": "Dirección de alojamiento y dominios personalizados.",
+    "tabPublishHint": "Compila, previsualiza y publica.",
+    "live": "En línea",
+    "liveAt": "En línea en",
+    "urlPreview": "Se publicará en",
+    "publishedUrl": "En línea en {url}"
   }
 }

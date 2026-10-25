@@ -943,6 +943,14 @@
     "visibilityUnlisted": "Non répertoriée",
     "wispSubdomain": "Sous-domaine Wisp",
     "wispSubdomainHint": "Réclamez un libellé comme notes. Wisp autorise trois sous-domaines par compte.",
-    "dashboard": "Réglages du site web"
+    "dashboard": "Réglages du site web",
+    "tabPagesHint": "Choisissez les pages à publier.",
+    "tabDesignHint": "Nom, mise en page et navigation.",
+    "tabDomainHint": "Adresse d’hébergement et domaines personnalisés.",
+    "tabPublishHint": "Compiler, prévisualiser et publier.",
+    "live": "En ligne",
+    "liveAt": "En ligne sur",
+    "urlPreview": "Sera publié sur",
+    "publishedUrl": "En ligne sur {url}"
   }
 }
