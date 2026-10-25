@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.4] - 2026-10-25
+
+### Fixed
+
+- Pin nix wasm-bindgen-cli to 0.2.129
+- Wisp site namespace for directory records
+- Update spa fallback
+- Virtualize site css
+- Oauth metadata checks
+- Width constraints from site view
+- Self-referring site pages
+- Oauth callback and session restoration
+- Static site preview nav
+
 ## [0.4.3] - 2026-10-24
 
 ### Fixed
