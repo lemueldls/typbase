@@ -1,7 +1,6 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
 import { transformSync } from "esbuild";
-import { transform as transformCss } from "lightningcss";
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -83,10 +82,7 @@ export default defineNuxtConfig({
           if (id !== "\0virtual:typbase-site-css") return null;
           const file = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
           this.addWatchFile(file);
-          const source = await readFile(file);
-          const { code } = transformCss({ filename: file, code: source, minify: true });
-
-          return `export default ${JSON.stringify(code.toString())};`;
+          return `export default ${JSON.stringify(await readFile(file, "utf8"))};`;
         },
       },
       {
