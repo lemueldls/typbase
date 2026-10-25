@@ -405,9 +405,21 @@ function inlinePreview(files: Array<{ name: string; bytes: Uint8Array }>, html: 
     const bytes = byName.get(path);
     return bytes ? `src="data:${mimeFor(path)};base64,${base64(bytes)}"` : `src="${path}"`;
   });
-  output = output.replace(/href="(?:\.\/|\.\.\/)+[^"]*"/g, 'href="#"');
 
-  return output;
+  // The preview has no server behind it, so a link can only fail or replace the
+  // document. Remove every target and make the anchors read as disabled.
+  const doc = new DOMParser().parseFromString(output, "text/html");
+  for (const anchor of doc.querySelectorAll("a")) {
+    anchor.removeAttribute("href");
+    anchor.removeAttribute("target");
+    anchor.setAttribute("aria-disabled", "true");
+    anchor.setAttribute("tabindex", "-1");
+  }
+  const style = doc.createElement("style");
+  style.textContent = 'a[aria-disabled="true"] { pointer-events: none; cursor: default; }';
+  doc.head.append(style);
+
+  return `<!doctype html>\n${doc.documentElement.outerHTML}`;
 }
 
 function mimeFor(path: string): string {
@@ -1501,6 +1513,7 @@ function copy(value: string): Promise<void> {
     />
 
     <UiDialog v-model:open="previewOpen" class="site-preview-dialog" :title="$t('site.preview')">
+      <p class="site-preview-note">{{ $t("site.previewStatic") }}</p>
       <iframe class="site-preview-frame" :srcdoc="previewHtml" sandbox="" title="Site preview" />
     </UiDialog>
   </section>
@@ -2457,6 +2470,12 @@ function copy(value: string): Promise<void> {
 
 .dialog.site-preview-dialog {
   width: min(980px, calc(100vw - var(--space-8)));
+}
+
+.site-preview-note {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 .site-preview-frame {

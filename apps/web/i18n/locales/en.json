@@ -951,6 +951,7 @@
     "live": "Live",
     "liveAt": "Live at",
     "urlPreview": "Publishes to",
-    "publishedUrl": "Live at {url}"
+    "publishedUrl": "Live at {url}",
+    "previewStatic": "Static preview. Links are disabled."
   }
 }

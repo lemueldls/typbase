@@ -951,6 +951,7 @@
     "live": "Live",
     "liveAt": "Live unter",
     "urlPreview": "Wird veröffentlicht unter",
-    "publishedUrl": "Live unter {url}"
+    "publishedUrl": "Live unter {url}",
+    "previewStatic": "Statische Vorschau. Links sind deaktiviert."
   }
 }

@@ -951,6 +951,7 @@
     "live": "En ligne",
     "liveAt": "En ligne sur",
     "urlPreview": "Sera publié sur",
-    "publishedUrl": "En ligne sur {url}"
+    "publishedUrl": "En ligne sur {url}",
+    "previewStatic": "Aperçu statique. Les liens sont désactivés."
   }
 }

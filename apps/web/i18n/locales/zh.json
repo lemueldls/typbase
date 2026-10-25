@@ -951,6 +951,7 @@
     "live": "已上线",
     "liveAt": "访问地址",
     "urlPreview": "将发布到",
-    "publishedUrl": "访问地址：{url}"
+    "publishedUrl": "访问地址：{url}",
+    "previewStatic": "静态预览。链接已禁用。"
   }
 }
