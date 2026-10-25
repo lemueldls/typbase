@@ -1,15 +1,25 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
+import { transformSync } from "esbuild";
+import { transform as transformCss } from "lightningcss";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
 const appDescription = "Local-first knowledge base made for Typst and the Atmosphere.";
-// The Nuxt router normalizes the URL before Atproto boots and drops the OAuth
-// response fragment. Capture it while the document is parsing, then let the
-// session manager consume it before any router write can remove it.
-const oauthCallbackScript = `(function(){try{if(location.pathname!=="/")return;var params=new URLSearchParams(location.hash.slice(1));if(!params.has("state")||!(params.has("code")||params.has("error"))){params=new URLSearchParams(location.search);if(!params.has("state")||!(params.has("code")||params.has("error")))return;}window.__typbaseOauthCallback=params.toString();}catch(e){}})();`;
+
+/** Minify one of the inline head scripts from its readable source. */
+function inlineScript(name: string): string {
+  const file = fileURLToPath(new URL(`./scripts/${name}`, import.meta.url));
+  const source = readFileSync(file, "utf8");
+
+  return transformSync(source, { minify: true, target: "es2020" }).code.trim();
+}
+
+const oauthCallbackScript = inlineScript("oauth-callback.js");
+const themeCacheScript = inlineScript("theme-cache.js");
 const locales: LocaleObject[] = [
   { code: "en", dir: "ltr", language: "en-US", file: "en.json" },
   { code: "es", dir: "ltr", language: "es-ES", file: "es.json" },
@@ -53,8 +63,7 @@ export default defineNuxtConfig({
           tagPosition: "head",
         },
         {
-          innerHTML:
-            '(function(){var root=document.documentElement;try{var raw=localStorage.getItem("typbase:themeCache");if(raw){var cached=JSON.parse(raw);var vars=cached.vars;if(vars){for(var key in vars)root.style.setProperty(key,vars[key]);if(vars["--color-surface"])root.style.backgroundColor=vars["--color-surface"];}if(cached.mode){root.dataset.theme=cached.mode;root.style.colorScheme=cached.mode;}return;}}catch(e){}try{if(!window.matchMedia||!window.matchMedia("(prefers-color-scheme: dark)").matches)return;root.dataset.theme="dark";root.style.colorScheme="dark";root.style.backgroundColor="#1b1d21";}catch(e){}})();',
+          innerHTML: themeCacheScript,
           tagPosition: "head",
         },
       ],
@@ -74,8 +83,10 @@ export default defineNuxtConfig({
           if (id !== "\0virtual:typbase-site-css") return null;
           const file = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
           this.addWatchFile(file);
+          const source = await readFile(file);
+          const { code } = transformCss({ filename: file, code: source, minify: true });
 
-          return `export default ${JSON.stringify(await readFile(file, "utf8"))};`;
+          return `export default ${JSON.stringify(code.toString())};`;
         },
       },
       {
