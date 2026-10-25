@@ -75,7 +75,8 @@
     "deleteTitle": "Supprimer la page",
     "deleteConfirm": "Supprimer « {title} » ? Cette action est irréversible.",
     "renameFile": "Renommer aussi le fichier",
-    "renameFileHint": "{from} devient {to}."
+    "renameFileHint": "{from} devient {to}.",
+    "workspaceActions": "Actions de l'espace de travail"
   },
   "nav": {
     "back": "Précédent",
@@ -101,7 +102,8 @@
     "menuFile": "Fichier",
     "menuView": "Affichage",
     "menuToday": "Note du jour",
-    "accountSignedInAs": "Connecté en tant que {name}"
+    "accountSignedInAs": "Connecté en tant que {name}",
+    "sourceCode": "Code source"
   },
   "pageView": {
     "write": "Écrire",
@@ -665,26 +667,26 @@
     "appended": "Ajouté à {title}"
   },
   "links": {
-    "title": "Liens",
+    "title": "Rétroliens",
     "outgoing": "Liens sortants",
     "backlinks": "Liens entrants",
     "countOutgoing": "{count} sortants",
     "countBacklinks": "{count} entrants",
     "mentions": "{count}",
-    "noOutgoing": "Aucun lien pour l’instant. Liez une note avec le bouton de lien ou #typbase.page-link.",
-    "noBacklinks": "Aucune page ne pointe ici pour l’instant.",
+    "noOutgoing": "Aucun lien sortant pour l’instant. Liez une note avec le bouton de lien ou #typbase.page-link.",
+    "noBacklinks": "Aucun lien entrant pour l’instant.",
     "dangling": "Pas une page",
-    "openGraph": "Ouvrir le graphe",
-    "collapse": "Réduire les liens",
+    "openGraph": "Ouvrir le graphe de rétroliens",
+    "collapse": "Réduire le panneau",
     "searchPages": "Rechercher des pages",
     "noPages": "Aucune page correspondante.",
-    "degraded": "Les liens sont indisponibles tant que le moteur Typst est arrêté.",
-    "resolving": "Résolution des liens de requête… {count} restants",
+    "degraded": "Les liens sortants et entrants sont indisponibles tant que le moteur Typst est arrêté.",
+    "resolving": "Résolution des liens dynamiques… {count} restants",
     "stale": "Vérification…"
   },
   "graph": {
-    "title": "Graphe",
-    "close": "Fermer le graphe",
+    "title": "Graphe de rétroliens",
+    "close": "Fermer le graphe de rétroliens",
     "search": "Filtrer par titre",
     "local": "Graphe local",
     "depth": "Profondeur",
@@ -698,12 +700,12 @@
     "labelsAlways": "Toujours",
     "labelsNever": "Au survol",
     "all": "Toutes",
-    "stats": "{pages} pages · {links} liens",
+    "stats": "{pages} pages · {backlinks} rétroliens",
     "empty": "Aucune page à afficher pour l’instant.",
     "noMatches": "Aucune page correspondante",
     "fit": "Ajuster à la vue",
     "hint": "Glissez pour déplacer, molette pour zoomer, cliquez pour ouvrir.",
-    "resolving": "Résolution des liens de requête… {count} restants",
+    "resolving": "Résolution des liens dynamiques… {count} restants",
     "aroundPage": "Autour de {title}",
     "openContextPage": "Ouvrir la page sur laquelle ce graphe est centré",
     "filters": "Filtres"
@@ -863,7 +865,7 @@
     "includeSitemap": "Plan du site et robots.txt",
     "includeSitemapHint": "Génère sitemap.xml et robots.txt pour les moteurs de recherche.",
     "lastPublished": "Dernière publication : {date}, {files} fichiers.",
-    "menu": "Site web",
+    "menu": "Visibilité sur le site web",
     "name": "Nom du site",
     "navBoth": "Barre latérale et barre supérieure",
     "navNone": "Aucune",
@@ -940,6 +942,7 @@
     "visibilityPublic": "Publique",
     "visibilityUnlisted": "Non répertoriée",
     "wispSubdomain": "Sous-domaine Wisp",
-    "wispSubdomainHint": "Réclamez un libellé comme notes. Wisp autorise trois sous-domaines par compte."
+    "wispSubdomainHint": "Réclamez un libellé comme notes. Wisp autorise trois sous-domaines par compte.",
+    "dashboard": "Réglages du site web"
   }
 }

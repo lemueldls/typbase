@@ -3,6 +3,8 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 import { todayISO } from "~/lib/format";
 import { shortcutLabel } from "~/lib/keybindings";
+import { openExternal } from "~/lib/openExternal";
+import { PROJECT_URL } from "~/lib/projectLinks";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -33,6 +35,7 @@ const appUpdates = useAppUpdates();
 const openMenu = ref("");
 const newPageOpen = ref(false);
 const workspaceExportOpen = ref(false);
+const packagesOpen = ref(false);
 
 const searchHint = computed(() => shortcutLabel("search") ?? "");
 const backTitle = computed(() => {
@@ -66,59 +69,69 @@ async function openToday(): Promise<void> {
       <UiMenubar v-model:open="openMenu">
         <UiMenubarMenu :label="$t('nav.menuFile')" value="file">
           <UiMenubarItem icon="note_add" @select="newPageOpen = true">
-            {{ $t("sidebar.newPage") }}
+            <span class="app-bar__menu-label">{{ $t("sidebar.newPage") }}</span>
           </UiMenubarItem>
           <UiMenubarItem icon="calendar_today" @select="openToday">
-            {{ $t("nav.menuToday") }}
+            <span class="app-bar__menu-label">{{ $t("nav.menuToday") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("today") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarSeparator />
 
           <UiMenubarItem icon="search" @select="showSearch()">
-            {{ $t("nav.search") }}
+            <span class="app-bar__menu-label">{{ $t("nav.search") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("search") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarSeparator />
 
           <UiMenubarItem icon="folder_zip" @select="workspaceExportOpen = true">
-            {{ $t("exportWorkspace.title") }}
+            <span class="app-bar__menu-label">{{ $t("exportWorkspace.title") }}</span>
+          </UiMenubarItem>
+
+          <UiMenubarItem icon="package_2" @select="packagesOpen = true">
+            <span class="app-bar__menu-label">{{ $t("packages.title") }}</span>
           </UiMenubarItem>
 
           <UiMenubarItem icon="public" @select="emit('openSite')">
-            {{ $t("site.title") }}
+            <span class="app-bar__menu-label">{{ $t("site.dashboard") }}</span>
           </UiMenubarItem>
 
           <UiMenubarItem icon="folder_open" @select="emit('openFiles')">
-            {{ $t("explorer.title") }}
+            <span class="app-bar__menu-label">{{ $t("explorer.title") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("files") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarItem icon="settings" @select="settings.show()">
-            {{ $t("sidebar.workspaceSettings") }}
+            <span class="app-bar__menu-label">{{ $t("sidebar.workspaceSettings") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
           </UiMenubarItem>
         </UiMenubarMenu>
 
         <UiMenubarMenu :label="$t('nav.menuView')" value="view">
           <UiMenubarItem :icon="sidebarIcon" @select="emit('toggleSidebar')">
-            {{ $t(sidebarLabel) }}
+            <span class="app-bar__menu-label">{{ $t(sidebarLabel) }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("sidebar") }}</UiKbd>
           </UiMenubarItem>
 
           <UiMenubarSeparator />
 
           <UiMenubarItem icon="fullscreen" @select="emit('toggleZen')">
-            {{ zen ? $t("zen.exit") : $t("zen.enter") }}
+            <span class="app-bar__menu-label">{{ zen ? $t("zen.exit") : $t("zen.enter") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("focus") }}</UiKbd>
           </UiMenubarItem>
         </UiMenubarMenu>
 
         <UiMenubarMenu :label="$t('shortcuts.menu')" value="help">
           <UiMenubarItem icon="keyboard" @select="shortcuts.show()">
-            {{ $t("shortcuts.title") }}
+            <span class="app-bar__menu-label">{{ $t("shortcuts.title") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("shortcuts") }}</UiKbd>
+          </UiMenubarItem>
+
+          <UiMenubarSeparator />
+
+          <UiMenubarItem icon="code" @select="openExternal(PROJECT_URL)">
+            <span class="app-bar__menu-label">{{ $t("nav.sourceCode") }}</span>
           </UiMenubarItem>
         </UiMenubarMenu>
       </UiMenubar>
@@ -146,7 +159,7 @@ async function openToday(): Promise<void> {
         <button type="button" class="app-bar__search" @click="showSearch()">
           <MsIcon name="search" :size="18" class="app-bar__search-icon" />
           <span class="app-bar__search-label">{{ $t("nav.search") }}</span>
-          <!-- <UiKbd class="app-bar__search-hint">{{ searchHint }}</UiKbd> -->
+          <UiKbd v-if="searchHint" class="app-bar__search-hint">{{ searchHint }}</UiKbd>
         </button>
       </UiTooltip>
     </div>
@@ -168,6 +181,7 @@ async function openToday(): Promise<void> {
 
     <NewPageDialog v-model:open="newPageOpen" :store="store" @created="onCreated" />
     <WorkspaceExportDialog v-model:open="workspaceExportOpen" :store="store" />
+    <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store" />
   </div>
 </template>
 
@@ -221,14 +235,14 @@ async function openToday(): Promise<void> {
   margin-left: var(--space-1);
   min-width: var(--control-md);
   height: var(--control-sm);
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-0-5) 0 var(--space-2);
   font-family: inherit;
   font-size: var(--text-sm);
   text-align: left;
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition:
     background var(--motion-fast),
@@ -262,7 +276,22 @@ async function openToday(): Promise<void> {
   margin-left: auto;
 }
 
+.app-bar__menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .app-bar__menu-key {
-  margin-left: auto;
+  margin-left: var(--space-1);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .app-bar__menu-key,
+  .app-bar__search-hint {
+    display: none;
+  }
 }
 </style>

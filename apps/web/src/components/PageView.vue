@@ -62,11 +62,9 @@ const emit = defineEmits<{
   (e: "openPage", id: string): void;
   (e: "openPlugin", instanceId: string): void;
   (e: "openGraph"): void;
-  (e: "openSite"): void;
 }>();
 
 const { workspace, workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
-const { show: showSearch } = useSearchPalette();
 const { t } = useI18n();
 
 const typstState = shallowRef<TypstState>();
@@ -95,7 +93,6 @@ const ready = ref(false);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
 const linksOpen = useLocalStorage("typbase:linksPanel", false);
-const packagesOpen = ref(false);
 const assetsOpen = ref(false);
 const exportOpen = ref(false);
 
@@ -1237,8 +1234,6 @@ function setCategory(categoryId: string | null): void {
           "
         />
 
-        <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store" />
-
         <AssetPicker
           v-if="compact && modelValue !== 'read' && store"
           v-model:open="assetsOpen"
@@ -1315,8 +1310,6 @@ function setCategory(categoryId: string | null): void {
             <UiIconButton icon="more_vert" :label="$t('pageView.moreActions')" :disabled="!ready" />
           </template>
 
-          <UiMenuItem icon="search" @select="showSearch">{{ $t("palette.title") }}</UiMenuItem>
-
           <UiMenuItem
             v-if="compact && modelValue !== 'read'"
             icon="text_format"
@@ -1339,16 +1332,20 @@ function setCategory(categoryId: string | null): void {
             :disabled="!ready"
             @select="convertPageKind"
           >
-            {{
-              meta?.kind === "notebook"
-                ? $t("common.convertToDocument")
-                : $t("common.convertToNotebook")
-            }}
+            <span class="page-view__menu-label">
+              {{
+                meta?.kind === "notebook"
+                  ? $t("common.convertToDocument")
+                  : $t("common.convertToNotebook")
+              }}
+            </span>
           </UiMenuItem>
 
           <UiMenuSub icon="category" :label="$t('common.setCategory')" :disabled="!ready">
             <UiMenuItem :checked="!meta?.categoryId" @select="setCategory(null)">
-              {{ $t("newPage.noCategory") }}
+              <span class="page-view__menu-label">
+                {{ $t("newPage.noCategory") }}
+              </span>
             </UiMenuItem>
             <UiMenuItem
               v-for="category in categories"
@@ -1356,30 +1353,30 @@ function setCategory(categoryId: string | null): void {
               :checked="meta?.categoryId === category.id"
               @select="setCategory(category.id)"
             >
-              {{ category.name }}
+              <span class="page-view__menu-label">
+                {{ category.name }}
+              </span>
             </UiMenuItem>
           </UiMenuSub>
 
-          <UiMenuItem icon="package_2" :disabled="degraded" @select="packagesOpen = true">
-            {{ $t("packages.title") }}
-          </UiMenuItem>
-
           <UiMenuItem icon="link" @select="linksOpen = true">
-            {{ $t("links.title") }}
+            <span class="page-view__menu-label">
+              {{ $t("links.title") }}
+            </span>
             <UiKbd class="page-view__menu-key">{{ shortcutLabel("links") }}</UiKbd>
           </UiMenuItem>
 
           <UiMenuItem icon="content_copy" :disabled="!ready" @select="copyPageId">
-            {{ $t("common.copyId") }}
+            <span class="page-view__menu-label">
+              {{ $t("common.copyId") }}
+            </span>
           </UiMenuItem>
 
           <UiMenuItem icon="download" @select="exportOpen = true">
-            {{ $t("exportPage.title") }}
+            <span class="page-view__menu-label">
+              {{ $t("exportPage.title") }}
+            </span>
             <UiKbd class="page-view__menu-key">{{ shortcutLabel("export") }}</UiKbd>
-          </UiMenuItem>
-
-          <UiMenuItem icon="public" @select="emit('openSite')">
-            {{ $t("site.title") }}
           </UiMenuItem>
         </UiMenu>
       </div>
@@ -1687,8 +1684,16 @@ function setCategory(categoryId: string | null): void {
   color: var(--color-accent);
 }
 
+.page-view__menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .page-view__menu-key {
-  margin-left: auto;
+  margin-left: var(--space-2);
 }
 
 .page-view__error {
@@ -1837,5 +1842,10 @@ function setCategory(categoryId: string | null): void {
 .page-view__handle:hover::after,
 .page-view__handle:active::after {
   opacity: 1;
+}
+@media (hover: none) and (pointer: coarse) {
+  .page-view__menu-key {
+    display: none;
+  }
 }
 </style>

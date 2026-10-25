@@ -75,7 +75,8 @@
     "deleteTitle": "Delete page",
     "deleteConfirm": "Delete “{title}”? This cannot be undone.",
     "renameFile": "Rename the file too",
-    "renameFileHint": "{from} becomes {to}."
+    "renameFileHint": "{from} becomes {to}.",
+    "workspaceActions": "Workspace actions"
   },
   "nav": {
     "back": "Back",
@@ -101,7 +102,8 @@
     "menuFile": "File",
     "menuView": "View",
     "menuToday": "Today's note",
-    "accountSignedInAs": "Signed in as {name}"
+    "accountSignedInAs": "Signed in as {name}",
+    "sourceCode": "Source code"
   },
   "pageView": {
     "write": "Write",
@@ -688,26 +690,26 @@
     "appended": "Added to {title}"
   },
   "links": {
-    "title": "Links",
+    "title": "Backlinks",
     "outgoing": "Outgoing links",
-    "backlinks": "Backlinks",
+    "backlinks": "Incoming links",
     "countOutgoing": "{count} outgoing",
-    "countBacklinks": "{count} back",
+    "countBacklinks": "{count} incoming",
     "mentions": "{count}",
-    "noOutgoing": "No links yet. Link a note with the link button or #typbase.page-link.",
-    "noBacklinks": "No pages link here yet.",
+    "noOutgoing": "No outgoing links yet. Link a note with the link button or #typbase.page-link.",
+    "noBacklinks": "No incoming links yet.",
     "dangling": "Not a page",
-    "openGraph": "Open graph",
-    "collapse": "Collapse links",
+    "openGraph": "Open backlink graph",
+    "collapse": "Collapse panel",
     "searchPages": "Search pages",
     "noPages": "No pages match.",
-    "degraded": "Links are unavailable while the Typst engine is stopped.",
-    "resolving": "Resolving query links… {count} left",
+    "degraded": "Outgoing links and backlinks are unavailable while the Typst engine is stopped.",
+    "resolving": "Resolving dynamic links… {count} left",
     "stale": "Rechecking…"
   },
   "graph": {
-    "title": "Graph",
-    "close": "Close graph",
+    "title": "Backlink graph",
+    "close": "Close backlink graph",
     "search": "Filter by title",
     "local": "Local graph",
     "depth": "Depth",
@@ -721,12 +723,12 @@
     "labelsAlways": "Always",
     "labelsNever": "Hover",
     "all": "All",
-    "stats": "{pages} pages · {links} links",
+    "stats": "{pages} pages · {backlinks} backlinks",
     "empty": "No pages to graph yet.",
     "noMatches": "No matching pages",
     "fit": "Fit to view",
     "hint": "Drag to pan, scroll to zoom, click to open.",
-    "resolving": "Resolving query links… {count} left",
+    "resolving": "Resolving dynamic links… {count} left",
     "aroundPage": "Around {title}",
     "openContextPage": "Open the page this graph is rooted at",
     "filters": "Filters"
@@ -863,7 +865,7 @@
     "includeSitemap": "Sitemap and robots.txt",
     "includeSitemapHint": "Write sitemap.xml and robots.txt for search engines.",
     "lastPublished": "Last published {date}, {files} files.",
-    "menu": "Website",
+    "menu": "Website visibility",
     "name": "Site name",
     "navBoth": "Sidebar and top bar",
     "navNone": "None",
@@ -940,6 +942,7 @@
     "visibilityPublic": "Public",
     "visibilityUnlisted": "Unlisted",
     "wispSubdomain": "Wisp subdomain",
-    "wispSubdomainHint": "Claim a label like notes. Wisp allows three subdomains per account."
+    "wispSubdomainHint": "Claim a label like notes. Wisp allows three subdomains per account.",
+    "dashboard": "Website settings"
   }
 }

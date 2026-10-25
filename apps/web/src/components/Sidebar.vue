@@ -5,6 +5,7 @@ import type { MaterialSymbol } from "material-symbols";
 import { renamePagePathFor, type WorkspaceStore } from "@typbase/storage";
 
 import { todayISO } from "~/lib/format";
+import { shortcutLabel } from "~/lib/keybindings";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 const props = defineProps<{
@@ -20,6 +21,10 @@ const emit = defineEmits<{
   (e: "chat"): void;
   /** Opens the workspace graph pane. */
   (e: "graph"): void;
+  /** Opens the workspace website dashboard. */
+  (e: "openSite"): void;
+  /** Opens the storage explorer. */
+  (e: "openFiles"): void;
   /** Collapses the desktop panel / closes the mobile drawer. */
   (e: "collapseRequest"): void;
 }>();
@@ -51,6 +56,9 @@ const settings = useWorkspaceValue(
   ["settings"],
   (store) => store.getSettings(),
 );
+
+/** Chat is opt-in, so its menu entry follows the AI setting. */
+const aiEnabled = computed(() => settings.value?.ai.enabled ?? false);
 
 const regularPages = computed(() => pages.value.filter((page) => !page.path.startsWith("daily/")));
 
@@ -107,6 +115,8 @@ async function openToday() {
   const page = await props.store.createDailyNote(todayISO());
   emit("select", page.id);
 }
+
+const packagesOpen = ref(false);
 
 const renameTarget = ref<PageMeta>();
 const renameTitle = ref("");
@@ -288,14 +298,58 @@ function onCreated(page: PageMeta) {
         </UiTooltip>
       </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
-        <!-- <UiIconButton icon="hub" :label="$t('graph.title')" @click="emit('graph')" /> -->
-        <!-- <UiIconButton icon="forum" :label="$t('chat.title')" @click="emit('chat')" /> -->
-        <!-- <UiIconButton icon="search" :label="$t('palette.title')" @click="emit('search')" /> -->
-        <UiIconButton
-          icon="settings"
-          :label="$t('sidebar.workspaceSettings')"
-          @click="settingsDialog.show()"
-        />
+        <UiMenu align="start" :side-offset="6">
+          <template #trigger>
+            <UiIconButton icon="more_vert" :label="$t('sidebar.workspaceActions')" :size="20" />
+          </template>
+          <UiMenuItem icon="search" @select="emit('search')">
+            <span class="sidebar__menu-label">
+              {{ $t("palette.title") }}
+            </span>
+            <UiKbd class="sidebar__menu-key">{{ shortcutLabel("search") }}</UiKbd>
+          </UiMenuItem>
+          <UiMenuItem icon="hub" @select="emit('graph')">
+            <span class="sidebar__menu-label">
+              {{ $t("graph.title") }}
+            </span>
+          </UiMenuItem>
+          <UiMenuItem v-if="aiEnabled" icon="forum" @select="emit('chat')">
+            <span class="sidebar__menu-label">
+              {{ $t("chat.title") }}
+            </span>
+          </UiMenuItem>
+
+          <UiMenuSeparator />
+
+          <UiMenuItem icon="package_2" @select="packagesOpen = true">
+            <span class="sidebar__menu-label">
+              {{ $t("packages.title") }}
+            </span>
+          </UiMenuItem>
+
+          <UiMenuSeparator />
+
+          <UiMenuItem icon="public" @select="emit('openSite')">
+            <span class="sidebar__menu-label">
+              {{ $t("site.dashboard") }}
+            </span>
+          </UiMenuItem>
+          <UiMenuItem icon="folder_open" @select="emit('openFiles')">
+            <span class="sidebar__menu-label">
+              {{ $t("explorer.title") }}
+            </span>
+            <UiKbd class="sidebar__menu-key">{{ shortcutLabel("files") }}</UiKbd>
+          </UiMenuItem>
+
+          <UiMenuSeparator />
+
+          <UiMenuItem icon="settings" @select="settingsDialog.show()">
+            <span class="sidebar__menu-label">
+              {{ $t("sidebar.workspaceSettings") }}
+            </span>
+            <UiKbd class="sidebar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
+          </UiMenuItem>
+        </UiMenu>
         <!-- <UiIconButton
           icon="chevron_left"
           :label="$t('sidebar.hideSidebar')"
@@ -579,6 +633,7 @@ function onCreated(page: PageMeta) {
       @update:open="(value) => !value && (confirmOpen = false)"
       @confirm="confirmRemove"
     />
+    <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store" />
   </aside>
 </template>
 
@@ -888,5 +943,23 @@ function onCreated(page: PageMeta) {
   padding: var(--space-2);
   font-size: var(--text-md);
   color: var(--color-text-secondary);
+}
+
+.sidebar__menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__menu-key {
+  margin-left: var(--space-2);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .sidebar__menu-key {
+    display: none;
+  }
 }
 </style>

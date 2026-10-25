@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
       <!-- <MsIcon name="hub" :size="20" class="graph__icon" /> -->
       <span class="graph__title">{{ t("graph.title") }}</span>
       <span class="graph__stats">
-        {{ t("graph.stats", { pages: graph.nodes.length, links: graph.edges.length }) }}
+        {{ t("graph.stats", { pages: graph.nodes.length, backlinks: graph.edges.length }) }}
       </span>
       <span v-if="resolving" class="graph__resolving" aria-live="polite">
         {{ t("graph.resolving", { count: status?.pending ?? 0 }) }}

@@ -1191,6 +1191,8 @@ definePageMeta({ ssr: false });
                 @search="openSearch"
                 @chat="openChat"
                 @graph="openGraph"
+                @open-site="openSite"
+                @open-files="openFiles"
                 @collapse-request="toggleSidebar"
               />
             </SplitterPanel>
@@ -1221,7 +1223,6 @@ definePageMeta({ ssr: false });
                   @close-dock="closeDock"
                   @expand-dock="expandDock"
                   @open-graph="openGraph(true)"
-                  @open-site="openSite"
                   @close-graph="graphOpen = false"
                   @close-files="closeFiles"
                   @close-site="closeSite"
@@ -1257,6 +1258,8 @@ definePageMeta({ ssr: false });
                 @search="openSearch"
                 @chat="openChat"
                 @graph="openGraph"
+                @open-site="openSite"
+                @open-files="openFiles"
                 @collapse-request="navOpen = false"
               />
             </div>
@@ -1285,7 +1288,6 @@ definePageMeta({ ssr: false });
                 @open-thread="openChat"
                 @close-chat="closeChat"
                 @open-graph="openGraph(true)"
-                @open-site="openSite"
                 @close-graph="closeGraph"
                 @close-files="closeFiles"
                 @close-site="closeSite"

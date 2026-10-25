@@ -75,7 +75,8 @@
     "deleteTitle": "Eliminar página",
     "deleteConfirm": "¿Eliminar «{title}»? Esta acción no se puede deshacer.",
     "renameFile": "Renombrar también el archivo",
-    "renameFileHint": "{from} pasa a ser {to}."
+    "renameFileHint": "{from} pasa a ser {to}.",
+    "workspaceActions": "Acciones del espacio"
   },
   "nav": {
     "back": "Atrás",
@@ -101,7 +102,8 @@
     "menuFile": "Archivo",
     "menuView": "Ver",
     "menuToday": "Nota de hoy",
-    "accountSignedInAs": "Sesión iniciada como {name}"
+    "accountSignedInAs": "Sesión iniciada como {name}",
+    "sourceCode": "Código fuente"
   },
   "pageView": {
     "write": "Escribir",
@@ -665,26 +667,26 @@
     "appended": "Añadido a {title}"
   },
   "links": {
-    "title": "Enlaces",
+    "title": "Retroenlaces",
     "outgoing": "Enlaces salientes",
     "backlinks": "Enlaces entrantes",
     "countOutgoing": "{count} salientes",
     "countBacklinks": "{count} entrantes",
     "mentions": "{count}",
-    "noOutgoing": "Aún no hay enlaces. Enlaza una nota con el botón de enlace o #typbase.page-link.",
-    "noBacklinks": "Ninguna página enlaza aquí todavía.",
+    "noOutgoing": "Aún no hay enlaces salientes. Enlaza una nota con el botón de enlace o #typbase.page-link.",
+    "noBacklinks": "Aún no hay enlaces entrantes.",
     "dangling": "No es una página",
-    "openGraph": "Abrir grafo",
-    "collapse": "Contraer enlaces",
+    "openGraph": "Abrir grafo de retroenlaces",
+    "collapse": "Contraer panel",
     "searchPages": "Buscar páginas",
     "noPages": "Ninguna página coincide.",
-    "degraded": "Los enlaces no están disponibles mientras el motor de Typst esté detenido.",
-    "resolving": "Resolviendo enlaces de consulta… quedan {count}",
+    "degraded": "Los enlaces salientes y entrantes no están disponibles mientras el motor de Typst esté detenido.",
+    "resolving": "Resolviendo enlaces dinámicos… quedan {count}",
     "stale": "Comprobando…"
   },
   "graph": {
-    "title": "Grafo",
-    "close": "Cerrar grafo",
+    "title": "Grafo de retroenlaces",
+    "close": "Cerrar grafo de retroenlaces",
     "search": "Filtrar por título",
     "local": "Grafo local",
     "depth": "Profundidad",
@@ -698,12 +700,12 @@
     "labelsAlways": "Siempre",
     "labelsNever": "Al pasar",
     "all": "Todas",
-    "stats": "{pages} páginas · {links} enlaces",
+    "stats": "{pages} páginas · {backlinks} retroenlaces",
     "empty": "Aún no hay páginas para el grafo.",
     "noMatches": "Sin páginas coincidentes",
     "fit": "Ajustar a la vista",
     "hint": "Arrastra para desplazar, rueda para ampliar, clic para abrir.",
-    "resolving": "Resolviendo enlaces de consulta… quedan {count}",
+    "resolving": "Resolviendo enlaces dinámicos… quedan {count}",
     "aroundPage": "Alrededor de {title}",
     "openContextPage": "Abrir la página en la que se centra este grafo",
     "filters": "Filtros"
@@ -863,7 +865,7 @@
     "includeSitemap": "Mapa del sitio y robots.txt",
     "includeSitemapHint": "Genera sitemap.xml y robots.txt para los motores de búsqueda.",
     "lastPublished": "Última publicación: {date}, {files} archivos.",
-    "menu": "Sitio web",
+    "menu": "Visibilidad en el sitio web",
     "name": "Nombre del sitio",
     "navBoth": "Barra lateral y superior",
     "navNone": "Ninguna",
@@ -940,6 +942,7 @@
     "visibilityPublic": "Pública",
     "visibilityUnlisted": "No listada",
     "wispSubdomain": "Subdominio de Wisp",
-    "wispSubdomainHint": "Reclama una etiqueta como notes. Wisp permite tres subdominios por cuenta."
+    "wispSubdomainHint": "Reclama una etiqueta como notes. Wisp permite tres subdominios por cuenta.",
+    "dashboard": "Ajustes del sitio web"
   }
 }

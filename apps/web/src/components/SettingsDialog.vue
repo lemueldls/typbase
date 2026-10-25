@@ -31,6 +31,7 @@ import {
   removeCustomFont,
 } from "~/lib/customFonts";
 import { openExternal } from "~/lib/openExternal";
+import { PROJECT_URL } from "~/lib/projectLinks";
 import { normalizeDictionaryWords } from "~/lib/spellcheckSettings";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 import { CUSTOM_THEME_ID, resolveTheme, THEMES } from "~/lib/themes";
@@ -64,6 +65,7 @@ const workspaceIcon = computed({
 const { t, locale, setLocale } = useI18n();
 const appLocale = useAppLocale(locale, setLocale, () => props.store);
 const shortcuts = useShortcutsDialog();
+const coarsePointer = useMediaQuery("(hover: none) and (pointer: coarse)");
 
 const {
   channel: updateChannel,
@@ -390,9 +392,6 @@ function selectTab(id: SettingsTab): void {
 watch(open, (isOpen) => {
   if (!isOpen) searchQuery.value = "";
 });
-
-/** Project home, linked from the General tab. */
-const PROJECT_URL = "https://github.com/lemueldls/typbase";
 
 function openProject(): void {
   openExternal(PROJECT_URL);
@@ -1056,6 +1055,7 @@ async function renameWorkspace(event: Event) {
                 </UiButton>
               </SettingsRow>
               <SettingsRow
+                v-if="!coarsePointer"
                 :label="$t('shortcuts.title')"
                 :hint="$t('shortcuts.hint')"
                 anchor="shortcuts"

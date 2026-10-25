@@ -75,7 +75,8 @@
     "deleteTitle": "Seite löschen",
     "deleteConfirm": "„{title}“ löschen? Das kann nicht rückgängig gemacht werden.",
     "renameFile": "Datei auch umbenennen",
-    "renameFileHint": "{from} wird zu {to}."
+    "renameFileHint": "{from} wird zu {to}.",
+    "workspaceActions": "Arbeitsbereich-Aktionen"
   },
   "nav": {
     "back": "Zurück",
@@ -101,7 +102,8 @@
     "menuFile": "Datei",
     "menuView": "Ansicht",
     "menuToday": "Heutige Notiz",
-    "accountSignedInAs": "Angemeldet als {name}"
+    "accountSignedInAs": "Angemeldet als {name}",
+    "sourceCode": "Quellcode"
   },
   "pageView": {
     "write": "Schreiben",
@@ -665,26 +667,26 @@
     "appended": "Zu {title} hinzugefügt"
   },
   "links": {
-    "title": "Links",
+    "title": "Backlinks",
     "outgoing": "Ausgehende Links",
-    "backlinks": "Backlinks",
+    "backlinks": "Eingehende Links",
     "countOutgoing": "{count} ausgehend",
     "countBacklinks": "{count} eingehend",
     "mentions": "{count}",
-    "noOutgoing": "Noch keine Links. Verlinke eine Notiz über die Link-Schaltfläche oder #typbase.page-link.",
-    "noBacklinks": "Noch keine Seiten verweisen hierher.",
+    "noOutgoing": "Noch keine ausgehenden Links. Verlinke eine Notiz über die Link-Schaltfläche oder #typbase.page-link.",
+    "noBacklinks": "Noch keine eingehenden Links.",
     "dangling": "Keine Seite",
-    "openGraph": "Graph öffnen",
-    "collapse": "Links einklappen",
+    "openGraph": "Backlink-Graph öffnen",
+    "collapse": "Panel einklappen",
     "searchPages": "Seiten suchen",
     "noPages": "Keine passenden Seiten.",
-    "degraded": "Links sind nicht verfügbar, solange die Typst-Engine gestoppt ist.",
-    "resolving": "Query-Links werden aufgelöst… noch {count}",
+    "degraded": "Ausgehende und eingehende Links sind nicht verfügbar, solange die Typst-Engine gestoppt ist.",
+    "resolving": "Dynamische Links werden aufgelöst… noch {count}",
     "stale": "Wird geprüft…"
   },
   "graph": {
-    "title": "Graph",
-    "close": "Graph schließen",
+    "title": "Backlink-Graph",
+    "close": "Backlink-Graph schließen",
     "search": "Nach Titel filtern",
     "local": "Lokaler Graph",
     "depth": "Tiefe",
@@ -698,12 +700,12 @@
     "labelsAlways": "Immer",
     "labelsNever": "Beim Zeigen",
     "all": "Alle",
-    "stats": "{pages} Seiten · {links} Links",
+    "stats": "{pages} Seiten · {backlinks} Backlinks",
     "empty": "Noch keine Seiten für den Graphen.",
     "noMatches": "Keine passenden Seiten",
     "fit": "Ansicht einpassen",
     "hint": "Ziehen zum Verschieben, scrollen zum Zoomen, klicken zum Öffnen.",
-    "resolving": "Query-Links werden aufgelöst… noch {count}",
+    "resolving": "Dynamische Links werden aufgelöst… noch {count}",
     "aroundPage": "Rund um {title}",
     "openContextPage": "Die Seite öffnen, um die dieser Graph zentriert ist",
     "filters": "Filter"
@@ -863,7 +865,7 @@
     "includeSitemap": "Sitemap und robots.txt",
     "includeSitemapHint": "Schreibt sitemap.xml und robots.txt für Suchmaschinen.",
     "lastPublished": "Zuletzt veröffentlicht: {date}, {files} Dateien.",
-    "menu": "Website",
+    "menu": "Sichtbarkeit auf der Website",
     "name": "Website-Name",
     "navBoth": "Seitenleiste und obere Leiste",
     "navNone": "Keine",
@@ -940,6 +942,7 @@
     "visibilityPublic": "Öffentlich",
     "visibilityUnlisted": "Nicht gelistet",
     "wispSubdomain": "Wisp-Subdomain",
-    "wispSubdomainHint": "Beanspruche eine Bezeichnung wie notes. Wisp erlaubt drei Subdomains pro Konto."
+    "wispSubdomainHint": "Beanspruche eine Bezeichnung wie notes. Wisp erlaubt drei Subdomains pro Konto.",
+    "dashboard": "Website-Einstellungen"
   }
 }

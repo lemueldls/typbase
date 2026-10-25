@@ -27,7 +27,6 @@ const emit = defineEmits<{
   (e: "closeDock"): void;
   (e: "expandDock"): void;
   (e: "openGraph"): void;
-  (e: "openSite"): void;
   (e: "closeGraph"): void;
   (e: "openFiles"): void;
   (e: "closeFiles"): void;
@@ -151,7 +150,6 @@ function onDockKeydown(event: KeyboardEvent): void {
         @open-page="emit('openPage', $event)"
         @open-plugin="emit('openPlugin', $event)"
         @open-graph="emit('openGraph')"
-        @open-site="emit('openSite')"
       >
         <template #nav-toggle>
           <slot name="nav-toggle" />

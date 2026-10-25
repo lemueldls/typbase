@@ -1435,7 +1435,7 @@ function copy(value: string): Promise<void> {
 .site-view__heading {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  /* gap: var(--space-2); */
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -1456,6 +1456,7 @@ function copy(value: string): Promise<void> {
 .site-view__title {
   margin: 0;
   font-size: var(--text-2xl);
+  margin-left: var(--space-2);
 }
 
 .site-view__sub {

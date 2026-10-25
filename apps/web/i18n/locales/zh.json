@@ -75,7 +75,8 @@
     "deleteTitle": "删除页面",
     "deleteConfirm": "删除“{title}”？此操作无法撤销。",
     "renameFile": "同时重命名文件",
-    "renameFileHint": "{from} 将变为 {to}。"
+    "renameFileHint": "{from} 将变为 {to}。",
+    "workspaceActions": "工作区操作"
   },
   "nav": {
     "back": "后退",
@@ -101,7 +102,8 @@
     "menuFile": "文件",
     "menuView": "视图",
     "menuToday": "今日笔记",
-    "accountSignedInAs": "已登录为 {name}"
+    "accountSignedInAs": "已登录为 {name}",
+    "sourceCode": "源代码"
   },
   "pageView": {
     "write": "写作",
@@ -665,26 +667,26 @@
     "appended": "已添加到 {title}"
   },
   "links": {
-    "title": "链接",
+    "title": "反向链接",
     "outgoing": "出链",
-    "backlinks": "反向链接",
+    "backlinks": "入链",
     "countOutgoing": "{count} 条出链",
-    "countBacklinks": "{count} 条反链",
+    "countBacklinks": "{count} 条入链",
     "mentions": "{count}",
-    "noOutgoing": "还没有链接。用链接按钮或 #typbase.page-link 关联笔记。",
-    "noBacklinks": "还没有页面链接到这里。",
+    "noOutgoing": "还没有出链。用链接按钮或 #typbase.page-link 关联笔记。",
+    "noBacklinks": "还没有入链。",
     "dangling": "页面不存在",
-    "openGraph": "打开关系图",
-    "collapse": "收起链接",
+    "openGraph": "打开反向链接图",
+    "collapse": "收起面板",
     "searchPages": "搜索页面",
     "noPages": "没有匹配的页面。",
-    "degraded": "Typst 引擎停止时无法使用链接。",
-    "resolving": "正在解析查询链接…还剩 {count}",
+    "degraded": "Typst 引擎停止时无法使用出链和反向链接。",
+    "resolving": "正在解析动态链接…还剩 {count}",
     "stale": "重新检查中…"
   },
   "graph": {
-    "title": "关系图",
-    "close": "关闭关系图",
+    "title": "反向链接图",
+    "close": "关闭反向链接图",
     "search": "按标题筛选",
     "local": "局部图",
     "depth": "深度",
@@ -698,12 +700,12 @@
     "labelsAlways": "始终",
     "labelsNever": "悬停时",
     "all": "全部",
-    "stats": "{pages} 个页面 · {links} 条链接",
+    "stats": "{pages} 个页面 · {backlinks} 条反向链接",
     "empty": "还没有可展示的页面。",
     "noMatches": "没有匹配的页面",
     "fit": "适应视图",
     "hint": "拖动平移，滚轮缩放，点击节点打开页面。",
-    "resolving": "正在解析查询链接…还剩 {count}",
+    "resolving": "正在解析动态链接…还剩 {count}",
     "aroundPage": "围绕 {title}",
     "openContextPage": "打开此关系图所聚焦的页面",
     "filters": "筛选"
@@ -863,7 +865,7 @@
     "includeSitemap": "站点地图和 robots.txt",
     "includeSitemapHint": "为搜索引擎生成 sitemap.xml 和 robots.txt。",
     "lastPublished": "上次发布：{date}，{files} 个文件。",
-    "menu": "网站",
+    "menu": "网站可见性",
     "name": "站点名称",
     "navBoth": "侧边栏和顶栏",
     "navNone": "无",
@@ -940,6 +942,7 @@
     "visibilityPublic": "公开",
     "visibilityUnlisted": "不列出",
     "wispSubdomain": "Wisp 子域名",
-    "wispSubdomainHint": "认领类似 notes 的标签。Wisp 每个账号允许三个子域名。"
+    "wispSubdomainHint": "认领类似 notes 的标签。Wisp 每个账号允许三个子域名。",
+    "dashboard": "网站设置"
   }
 }
