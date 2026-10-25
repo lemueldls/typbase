@@ -17,6 +17,7 @@ import type { PublicProfile } from "~/lib/actor";
 
 import { fetchPublicProfile } from "~/lib/actor";
 import { createNativeAuth } from "~/lib/nativeAuth";
+import { takeOAuthCallback } from "~/lib/oauthCallback";
 import { createSyncHost } from "~/lib/syncHost";
 import { withTimeout } from "~/lib/timeout";
 
@@ -105,6 +106,7 @@ export class AtprotoService {
     // link, dev included, so their client id is the deployed origin's
     // metadata document rather than the page origin.
     const nativeAuth = createNativeAuth();
+    const webCallback = nativeAuth ? undefined : (takeOAuthCallback() ?? undefined);
     const oauthOrigin = this.opts.oauthOrigin.replace(/\/$/, "");
     this.sessions = new SessionManager(
       origin,
@@ -128,7 +130,7 @@ export class AtprotoService {
     // metadata. In an odd browser context it can stall. Bounded here so a
     // hung restore degrades to guest instead of stalling the boot step.
     const session = await withTimeout(
-      this.sessions.restore(),
+      this.sessions.restore(webCallback),
       8_000,
       "OAuth session restore",
     ).catch((cause) => {

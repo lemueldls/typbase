@@ -196,7 +196,7 @@ export class SessionManager {
    * Restores a persisted session (or completes a login callback if the URL
    * carries oauth params). Returns null when nobody is signed in.
    */
-  async restore(): Promise<OAuthSession | null> {
+  async restore(webCallback?: URLSearchParams): Promise<OAuthSession | null> {
     if (this.restoring) return null;
 
     const native = this.options.nativeAuth;
@@ -216,7 +216,9 @@ export class SessionManager {
         session = (await client.init())?.session ?? null;
       } else {
         const oauth = await this.webOAuth();
-        session = (await oauth.init())?.session ?? null;
+        session = webCallback
+          ? (await oauth.client.initCallback(webCallback)).session
+          : ((await oauth.init())?.session ?? null);
       }
       this.notify(session);
 

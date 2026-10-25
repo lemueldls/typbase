@@ -6,6 +6,10 @@ import { defineNuxtConfig } from "nuxt/config";
 
 const defaultLocale = "en";
 const appDescription = "Local-first knowledge base made for Typst and the Atmosphere.";
+// The Nuxt router normalizes the URL before Atproto boots and drops the OAuth
+// response fragment. Capture it while the document is parsing, then let the
+// session manager consume it before any router write can remove it.
+const oauthCallbackScript = `(function(){try{if(location.pathname!=="/")return;var params=new URLSearchParams(location.hash.slice(1));if(!params.has("state")||!(params.has("code")||params.has("error"))){params=new URLSearchParams(location.search);if(!params.has("state")||!(params.has("code")||params.has("error")))return;}window.__typbaseOauthCallback=params.toString();}catch(e){}})();`;
 const locales: LocaleObject[] = [
   { code: "en", dir: "ltr", language: "en-US", file: "en.json" },
   { code: "es", dir: "ltr", language: "es-ES", file: "es.json" },
@@ -44,6 +48,10 @@ export default defineNuxtConfig({
         { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       ],
       script: [
+        {
+          innerHTML: oauthCallbackScript,
+          tagPosition: "head",
+        },
         {
           innerHTML:
             '(function(){var root=document.documentElement;try{var raw=localStorage.getItem("typbase:themeCache");if(raw){var cached=JSON.parse(raw);var vars=cached.vars;if(vars){for(var key in vars)root.style.setProperty(key,vars[key]);if(vars["--color-surface"])root.style.backgroundColor=vars["--color-surface"];}if(cached.mode){root.dataset.theme=cached.mode;root.style.colorScheme=cached.mode;}return;}}catch(e){}try{if(!window.matchMedia||!window.matchMedia("(prefers-color-scheme: dark)").matches)return;root.dataset.theme="dark";root.style.colorScheme="dark";root.style.backgroundColor="#1b1d21";}catch(e){}})();',

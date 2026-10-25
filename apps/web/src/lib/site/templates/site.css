@@ -234,7 +234,7 @@ body[data-nav="none"] .site-sidebar {
 .site-nav li a {
   display: block;
   padding: 0.25rem 0.5rem;
-  margin-left: -0.5rem;
+  /* margin-left: -0.5rem; */
   border-radius: 5px;
   color: var(--site-muted);
   font-size: 0.9rem;
@@ -256,6 +256,9 @@ body[data-nav="none"] .site-sidebar {
   margin-top: 1.5rem;
   border-top: 1px solid var(--site-border);
   padding-top: 1rem;
+}
+.site-toc ol {
+  margin-left: 0.5rem;
 }
 .site-toc li a {
   display: block;
