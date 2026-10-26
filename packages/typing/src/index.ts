@@ -386,6 +386,8 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   name: "My workspace",
   homePageId: null,
   dailyNoteTemplate: [
+    "= #note.title",
+    "",
     "Previous: #typbase.page-link(note.previous)",
     "",
     "Next: #typbase.page-link(note.next)",
