@@ -763,9 +763,6 @@ defineExpose({ view, recompile, revealRange, insertAt });
   background-clip: content-box;
 }
 
-/* Vim paints its block cursor with a hardcoded pink and keeps the character's
-   inline color. Use the palette accent, and the on-accent ink so the covered
-   character stays readable. */
 .cm-editor .cm-fat-cursor {
   color: var(--color-on-accent) !important;
   background: var(--color-accent);

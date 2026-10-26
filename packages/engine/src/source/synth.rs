@@ -42,10 +42,10 @@ pub struct SynthBlock {
     pub inline: bool,
 
     /// True for a list, enum, or term item. Typst lays out the `spacing`
-    /// between these items outside the item's ink, so neither item's chunk
-    /// bounds contain it. The partition hands the gap to the upper item's
-    /// chunk, which is what makes `list(spacing:)` visible in the editor.
-    /// The space below the last item stays out of its chunk.
+    /// between these items outside, so neither item's chunk bounds contain it.
+    /// The partition hands the gap to the upper item's chunk, which is what
+    /// makes `list(spacing:)` visible in the editor. The space below the last
+    /// item stays out of its chunk.
     pub list_item: bool,
 
     /// True for a block whose content is a math equation. The editor's line

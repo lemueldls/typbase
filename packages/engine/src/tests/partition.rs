@@ -32,22 +32,24 @@ fn editor_first_line(chunk: &FrameItemsChunk) -> Option<(f64, f64)> {
     chunk
         .items
         .iter()
-        .filter_map(|item| match &item.item {
-            FrameItem::Text(text) if !text.text.trim().is_empty() => {
-                let metrics = text.font.metrics();
-                let ascender = metrics.ascender.at(text.size);
-                let descender = metrics.descender.at(text.size);
-                let half = (Abs::pt(DEFAULT_LINE_HEIGHT_RATIO * text.size.to_pt())
-                    - (ascender - descender))
-                    / 2.0;
+        .filter_map(|item| {
+            match &item.item {
+                FrameItem::Text(text) if !text.text.trim().is_empty() => {
+                    let metrics = text.font.metrics();
+                    let ascender = metrics.ascender.at(text.size);
+                    let descender = metrics.descender.at(text.size);
+                    let half = (Abs::pt(DEFAULT_LINE_HEIGHT_RATIO * text.size.to_pt())
+                        - (ascender - descender))
+                        / 2.0;
 
-                Some((
-                    item.point.y - ascender - half,
-                    item.point.y,
-                    ascender + half,
-                ))
+                    Some((
+                        item.point.y - ascender - half,
+                        item.point.y,
+                        ascender + half,
+                    ))
+                }
+                _ => None,
             }
-            _ => None,
         })
         .min_by(|left, right| left.0.cmp(&right.0))
         .map(|(_, baseline, offset)| (baseline.to_pt(), offset.to_pt()))
@@ -56,13 +58,15 @@ fn editor_first_line(chunk: &FrameItemsChunk) -> Option<(f64, f64)> {
 fn summarize(chunks: &[FrameItemsChunk]) -> Vec<ChunkSummary> {
     chunks
         .iter()
-        .map(|chunk| ChunkSummary {
-            range: [chunk.range.start, chunk.range.end],
-            items: chunk.items.len(),
-            width: round(chunk.width),
-            height: round(chunk.height),
-            x: round(chunk.x_offset),
-            y: round(chunk.y_offset),
+        .map(|chunk| {
+            ChunkSummary {
+                range: [chunk.range.start, chunk.range.end],
+                items: chunk.items.len(),
+                width: round(chunk.width),
+                height: round(chunk.height),
+                x: round(chunk.x_offset),
+                y: round(chunk.y_offset),
+            }
         })
         .collect()
 }
@@ -148,13 +152,18 @@ fn a_block_with_nested_math_error_keeps_its_chunk() {
     );
 
     let text_of = |range: std::ops::Range<usize>| {
-        fixture.source
+        fixture
+            .source
             .get(range)
             .unwrap_or_default()
             .trim()
             .to_string()
     };
-    let chunks: Vec<String> = render.chunks.iter().map(|c| text_of(c.range.clone())).collect();
+    let chunks: Vec<String> = render
+        .chunks
+        .iter()
+        .map(|c| text_of(c.range.clone()))
+        .collect();
 
     assert!(
         chunks.iter().any(|chunk| chunk.starts_with("/ Term:")),
@@ -175,7 +184,9 @@ fn a_block_with_nested_math_error_keeps_its_chunk() {
 
     assert_eq!(marked.len(), 1, "diagnostics: {:#?}", render.diagnostics);
     assert_eq!(
-        fixture.source.get(marked[0].range.start..marked[0].range.end),
+        fixture
+            .source
+            .get(marked[0].range.start..marked[0].range.end),
         Some("notdefined"),
         "diagnostic is not scoped to the identifier: {:#?}",
         marked[0],
@@ -309,9 +320,9 @@ fn link_underline_stays_with_its_item() {
 /// land in its own item's chunk, or the first item renders without a bullet.
 #[test]
 fn list_markers_stay_with_their_items() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
     use typst::layout::FrameItem;
+
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -329,9 +340,11 @@ fn list_markers_stay_with_their_items() {
         chunk
             .items
             .iter()
-            .filter_map(|item| match &item.item {
-                FrameItem::Text(text) => Some(text.text.to_string()),
-                _ => None,
+            .filter_map(|item| {
+                match &item.item {
+                    FrameItem::Text(text) => Some(text.text.to_string()),
+                    _ => None,
+                }
             })
             .collect::<Vec<_>>()
     };
@@ -362,8 +375,7 @@ fn list_markers_stay_with_their_items() {
 /// prepended to this chunk and lands in the next paragraph instead.
 #[test]
 fn list_marker_survives_a_trailing_comment() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -390,9 +402,11 @@ fn list_marker_survives_a_trailing_comment() {
             chunk
                 .items
                 .iter()
-                .filter_map(|item| match &item.item {
-                    FrameItem::Text(text) => Some(text.text.to_string()),
-                    _ => None,
+                .filter_map(|item| {
+                    match &item.item {
+                        FrameItem::Text(text) => Some(text.text.to_string()),
+                        _ => None,
+                    }
                 })
                 .collect::<Vec<_>>()
         };
@@ -436,8 +450,7 @@ fn list_marker_survives_a_trailing_comment() {
 /// own with its marker and rendered title instead of leaving them in `before`.
 #[test]
 fn page_link_item_keeps_its_own_chunk() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -469,9 +482,11 @@ fn page_link_item_keeps_its_own_chunk() {
             chunk
                 .items
                 .iter()
-                .filter_map(|item| match &item.item {
-                    FrameItem::Text(text) => Some(text.text.to_string()),
-                    _ => None,
+                .filter_map(|item| {
+                    match &item.item {
+                        FrameItem::Text(text) => Some(text.text.to_string()),
+                        _ => None,
+                    }
                 })
                 .collect::<Vec<_>>()
         };
@@ -515,8 +530,7 @@ fn page_link_item_keeps_its_own_chunk() {
 /// changes nothing visible.
 #[test]
 fn list_items_own_the_compiled_gap() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -583,12 +597,11 @@ fn list_items_own_the_compiled_gap() {
 }
 
 /// A list item is copied unwrapped, so without the line-box crop its chunk
-/// starts at the glyph ink. The editor draws the source text on the line
+/// starts at the glyph. The editor draws the source text on the line
 /// baseline, so the crop starts at the editor's line top instead.
 #[test]
 fn list_item_chunks_start_at_the_editor_line_top() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -628,8 +641,7 @@ fn list_item_chunks_start_at_the_editor_line_top() {
 /// so the crop moves up and the rendered text lands on the source baseline.
 #[test]
 fn paragraph_chunks_start_at_the_editor_line_top() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -659,8 +671,7 @@ fn paragraph_chunks_start_at_the_editor_line_top() {
 /// line is taller than its render, and the pane below it shifts on entry.
 #[test]
 fn heading_chunks_fill_the_editor_line_box() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -688,9 +699,11 @@ fn heading_chunks_fill_the_editor_line_box() {
     let size = chunk
         .items
         .iter()
-        .find_map(|item| match &item.item {
-            FrameItem::Text(text) if !text.text.trim().is_empty() => Some(text.size.to_pt()),
-            _ => None,
+        .find_map(|item| {
+            match &item.item {
+                FrameItem::Text(text) if !text.text.trim().is_empty() => Some(text.size.to_pt()),
+                _ => None,
+            }
         })
         .expect("heading text");
 
@@ -706,8 +719,7 @@ fn heading_chunks_fill_the_editor_line_box() {
 /// the equation's own box so math spacing does not change.
 #[test]
 fn equation_chunks_keep_their_own_box() {
-    use crate::renderer::paged::items::chunk_by_items;
-    use crate::source::RenderTarget;
+    use crate::{renderer::paged::items::chunk_by_items, source::RenderTarget};
 
     if !harness::fonts_available() {
         eprintln!("skipping: bundled fonts missing");
@@ -718,7 +730,14 @@ fn equation_chunks_keep_their_own_box() {
     let id = harness::page(&mut state, "equation_box");
     state.resize(&id, Some(600.0), None);
 
-    let render = chunk_by_items(&id, "$ a + b = c $\n", "", None, RenderTarget::Svg, &mut state);
+    let render = chunk_by_items(
+        &id,
+        "$ a + b = c $\n",
+        "",
+        None,
+        RenderTarget::Svg,
+        &mut state,
+    );
 
     assert_eq!(render.chunks.len(), 1, "expected one equation chunk");
     assert!(
