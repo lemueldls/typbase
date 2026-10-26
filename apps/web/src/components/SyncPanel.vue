@@ -163,6 +163,12 @@ function spaceIcon(id: string): MaterialSymbol {
   return (icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
 }
 
+function spaceStyle(id: string): Record<string, string> | undefined {
+  const accent = workspaces.value.find((entry) => entry.id === id)?.accent;
+
+  return accent ? { "--ws-accent": accent } : undefined;
+}
+
 /** A pasted space URI or a bare workspace id. */
 function parseSpaceId(value: string): string {
   const trimmed = value.trim();
@@ -458,7 +464,9 @@ watch(
                 :class="{ 'sync__space-item--current': isCurrentSpace(space.id) }"
               >
                 <span class="sync__space-main">
-                  <MsIcon class="sync__space-icon" :name="spaceIcon(space.id)" :size="18" />
+                  <span class="sync__space-icon" :style="spaceStyle(space.id)" aria-hidden="true">
+                    <MsIcon :name="spaceIcon(space.id)" :size="22" />
+                  </span>
                   <span class="sync__space-copy">
                     <span class="sync__space-name">{{ spaceLabel(space) }}</span>
                     <span class="sync__space-meta">
@@ -841,8 +849,18 @@ watch(
 }
 
 .sync__space-icon {
+  display: grid;
   flex: none;
-  color: var(--color-text-secondary);
+  place-content: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  color: var(--ws-accent, var(--color-accent));
+  background: color-mix(in srgb, var(--ws-accent, var(--color-accent)) 16%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.sync__space-item--current .sync__space-icon {
+  background: var(--color-surface);
 }
 
 .sync__space-copy {

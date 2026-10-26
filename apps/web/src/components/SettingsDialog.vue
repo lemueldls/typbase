@@ -49,7 +49,6 @@ const {
   openStorageSetup,
 } = useWorkspace();
 
-/** The active workspace's registry icon. The setter writes it through the registry. */
 const workspaceIcon = computed({
   get: () => {
     const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);

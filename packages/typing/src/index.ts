@@ -51,7 +51,6 @@ export interface Category {
 export interface WorkspaceInfo {
   id: string;
   name: string;
-  /** Material Symbols glyph name (e.g. "folder"). Empty means the default. */
   icon?: string;
   accent?: string;
   createdAt: number;
@@ -291,6 +290,10 @@ export interface IgnoredSpellcheckLint {
 
 export interface WorkspaceSettings {
   name: string;
+  /** Material Symbols glyph name. Empty means the default workspace icon. */
+  icon?: string;
+  /** Cached accent from the resolved theme, synced for the workspace switcher. */
+  accent?: string;
   /** Page id shown when the app opens, and the page that "Home" points to. */
   homePageId: string | null;
   /**

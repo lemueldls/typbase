@@ -33,7 +33,6 @@ const { workspaces, activeWorkspaceId } = useWorkspace();
 const { t, locale } = useI18n();
 const settingsDialog = useSettingsDialog();
 
-/** The active workspace's registry icon. Falls back to the default folder. */
 const workspaceIcon = computed<MaterialSymbol>(() => {
   const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
   return (info?.icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;

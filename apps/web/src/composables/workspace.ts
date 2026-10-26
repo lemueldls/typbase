@@ -560,13 +560,23 @@ function useWorkspaceState() {
       });
       if (token !== openingSeq) return store;
 
-      // Keep the registry name and accent in sync with the workspace doc. The
-      // accent is what tints this workspace's row in the switcher.
-      const settings = store.getSettings();
-      const name = settings.name;
+      let settings = store.getSettings();
+      if (settings.icon === undefined && info.icon) {
+        store.updateSettings({ icon: info.icon });
+        settings = store.getSettings();
+      }
       const accent = resolveTheme(settings).palette.accent;
-      if (options.seed !== false && (name !== info.name || accent !== info.accent)) {
-        await reg.save({ ...info, lastOpenedAt: Date.now(), name, accent });
+      if (settings.accent !== accent) {
+        store.updateSettings({ accent });
+        settings = store.getSettings();
+      }
+      const name = settings.name;
+      const icon = settings.icon?.trim() || undefined;
+      if (
+        options.seed !== false &&
+        (name !== info.name || icon !== info.icon || accent !== info.accent)
+      ) {
+        await reg.save({ ...info, lastOpenedAt: Date.now(), name, icon, accent });
       }
       const pageCount = store.listPages().length;
       updateBootStep("workspace", {
@@ -625,9 +635,9 @@ function useWorkspaceState() {
   }
 
   /**
-   * Mirrors the workspace doc's name and accent into the registry, only when
-   * one of them changed. Called on every structure change, so the comparison is
-   * what keeps a page edit from rewriting the manifest.
+   * Mirrors the workspace doc's name, icon, and accent into the registry, only
+   * when one of them changed. Called on every structure change, so the
+   * comparison is what keeps a page edit from rewriting the manifest.
    */
   async function syncRegistryEntry(store: WorkspaceStore): Promise<void> {
     const reg = await ensureRegistry();
@@ -636,10 +646,13 @@ function useWorkspaceState() {
 
     const settings = store.getSettings();
     const name = settings.name;
+    const icon = settings.icon?.trim() || undefined;
     const accent = resolveTheme(settings).palette.accent;
-    if (entry.name === name && entry.accent === accent) return;
+    // Keep the synced accent cache current when the theme changes.
+    if (settings.accent !== accent) store.updateSettings({ accent });
+    if (entry.name === name && entry.icon === icon && entry.accent === accent) return;
 
-    await reg.save({ ...entry, name, accent });
+    await reg.save({ ...entry, name, icon, accent });
     workspaces.value = await reg.list();
   }
 
@@ -807,7 +820,16 @@ function useWorkspaceState() {
     const entry = await reg.get(id);
     if (!entry) return;
 
-    await reg.save({ ...entry, icon });
+    const next = icon.trim() || undefined;
+    if (id === activeWorkspaceId.value && workspace.value) {
+      workspace.value.updateSettings({ icon: next });
+    } else {
+      const store = await WorkspaceStore.open(backendRef.value!, id, { name: entry.name });
+      store.updateSettings({ icon: next });
+      await store.flush();
+    }
+
+    await reg.save({ ...entry, icon: next });
     workspaces.value = await reg.list();
   }
 
