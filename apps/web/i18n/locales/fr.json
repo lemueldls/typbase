@@ -998,6 +998,8 @@
     "publishedUrl": "En ligne sur {url}",
     "previewStatic": "Aperçu statique. Les liens sont désactivés.",
     "publicUrl": "URL publique",
-    "draft": "Brouillon"
+    "draft": "Brouillon",
+    "preserveNewlines": "Conserver l’espacement des lignes",
+    "preserveNewlinesHint": "Conserve les sauts et l’espacement des lignes de l’éditeur sur le site web."
   }
 }

@@ -998,6 +998,8 @@
     "publishedUrl": "访问地址：{url}",
     "previewStatic": "静态预览。链接已禁用。",
     "publicUrl": "公开地址",
-    "draft": "草稿"
+    "draft": "草稿",
+    "preserveNewlines": "保留行距",
+    "preserveNewlinesHint": "在网站中保留编辑器的换行与行距。"
   }
 }

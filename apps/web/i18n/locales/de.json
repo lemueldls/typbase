@@ -998,6 +998,8 @@
     "publishedUrl": "Live unter {url}",
     "previewStatic": "Statische Vorschau. Links sind deaktiviert.",
     "publicUrl": "Öffentliche URL",
-    "draft": "Entwurf"
+    "draft": "Entwurf",
+    "preserveNewlines": "Zeilenabstände beibehalten",
+    "preserveNewlinesHint": "Behält die Zeilenumbrüche und Abstände aus dem Editor auf der Website bei."
   }
 }

@@ -91,6 +91,12 @@ export interface SiteSettings {
   showSearch: boolean;
   showToc: boolean;
   showDates: boolean;
+  /**
+   * Keep the editor's line spacing between source lines. The synth renders
+   * each top-level line as its own block; the site CSS otherwise leaves those
+   * divs tight.
+   */
+  preserveNewlines: boolean;
   /** Write sitemap.xml and robots.txt. */
   includeSitemap: boolean;
   /** Write feed.xml. */
@@ -111,6 +117,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   showSearch: true,
   showToc: true,
   showDates: true,
+  preserveNewlines: false,
   includeSitemap: true,
   includeFeed: true,
   wisp: {

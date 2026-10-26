@@ -310,6 +310,11 @@ body[data-nav="none"] .site-sidebar {
 .site-page p {
   margin: 0 0 1.1em;
 }
+/* The synth gives every top-level line its own block wrapper. Without this
+   the browser stacks those divs with no paragraph gap. */
+.site-page--preserve-newlines > div {
+  margin: 0 0 1.1em;
+}
 .site-page ul,
 .site-page ol {
   padding-left: 1.4em;

@@ -147,7 +147,11 @@ const updated = computed(() =>
         </aside>
 
         <main id="site-content" class="site-content">
-          <article class="site-page" v-html="body"></article>
+          <article
+            class="site-page"
+            :class="{ 'site-page--preserve-newlines': site.preserveNewlines }"
+            v-html="body"
+          ></article>
           <p v-if="site.showDates && updated" class="site-updated">Updated {{ updated }}</p>
           <footer class="site-footer">
             <span class="site-footer__name" :title="name">{{ name }}</span>

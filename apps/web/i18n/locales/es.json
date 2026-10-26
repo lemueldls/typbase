@@ -998,6 +998,8 @@
     "publishedUrl": "En línea en {url}",
     "previewStatic": "Vista previa estática. Los enlaces están desactivados.",
     "publicUrl": "URL pública",
-    "draft": "Borrador"
+    "draft": "Borrador",
+    "preserveNewlines": "Conservar el espaciado de líneas",
+    "preserveNewlinesHint": "Mantiene los saltos y el espaciado de líneas del editor en el sitio web."
   }
 }

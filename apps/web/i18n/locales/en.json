@@ -998,6 +998,8 @@
     "publishedUrl": "Live at {url}",
     "previewStatic": "Static preview. Links are disabled.",
     "publicUrl": "Public URL",
-    "draft": "Draft"
+    "draft": "Draft",
+    "preserveNewlines": "Preserve line spacing",
+    "preserveNewlinesHint": "Keep the editor's line breaks and spacing on the website."
   }
 }

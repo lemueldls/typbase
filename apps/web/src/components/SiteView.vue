@@ -1065,6 +1065,19 @@ function copy(value: string): Promise<void> {
                 </div>
                 <div class="site-switch-card">
                   <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.preserveNewlines") }}</span>
+                    <span class="site-switch-card__hint">
+                      {{ $t("site.preserveNewlinesHint") }}
+                    </span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.preserveNewlines"
+                    :aria-label="$t('site.preserveNewlines')"
+                    @update:model-value="updateSite({ preserveNewlines: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
                     <span class="site-switch-card__label">{{ $t("site.includeSitemap") }}</span>
                     <span class="site-switch-card__hint">{{ $t("site.includeSitemapHint") }}</span>
                   </div>
