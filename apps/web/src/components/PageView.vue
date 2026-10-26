@@ -938,13 +938,93 @@ watch(renderRevision, () => {
   editorPane.value?.recompile();
 });
 
-/** The pane whose programmatic scroll must not bounce back into a sync. */
-let scrollEcho: "editor" | "preview" | null = null;
-let echoTimer: ReturnType<typeof setTimeout> | undefined;
-
 /** Which pane follows the other in split view. */
 function splitScrollMode(): SplitScrollMode {
   return editorDisplay.value?.splitScroll ?? "both";
+}
+
+const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+
+interface ScrollFollow {
+  target: number;
+  written: number;
+  frame: number;
+}
+
+const scrollFollows = new WeakMap<HTMLElement, ScrollFollow>();
+/** Fraction of the remaining distance covered per frame. */
+const SCROLL_FOLLOW_EASE = 0.3;
+/** Stop within half a pixel so every follow settles. */
+const SCROLL_FOLLOW_SNAP = 0.5;
+
+function stopScrollFollow(element: HTMLElement): void {
+  const follow = scrollFollows.get(element);
+  if (!follow) return;
+
+  cancelAnimationFrame(follow.frame);
+  scrollFollows.delete(element);
+}
+
+function stepScrollFollow(element: HTMLElement): void {
+  const follow = scrollFollows.get(element);
+  if (!follow) return;
+
+  const current = element.scrollTop;
+  // A position the animation did not write means the pointer took over.
+  if (Math.abs(current - follow.written) > 1) {
+    scrollFollows.delete(element);
+
+    return;
+  }
+
+  const delta = follow.target - current;
+  if (Math.abs(delta) <= SCROLL_FOLLOW_SNAP) {
+    element.scrollTop = follow.target;
+    follow.written = element.scrollTop;
+    follow.frame = 0;
+
+    return;
+  }
+
+  element.scrollTop = current + delta * SCROLL_FOLLOW_EASE;
+  follow.written = element.scrollTop;
+  follow.frame = requestAnimationFrame(() => stepScrollFollow(element));
+}
+
+/** Ease a pane to `top`. A new target retargets the run instead of restarting it. */
+function followScroll(element: HTMLElement, top: number): void {
+  const max = Math.max(0, element.scrollHeight - element.clientHeight);
+  const target = Math.max(0, Math.min(top, max));
+
+  if (reduceMotion.value) {
+    stopScrollFollow(element);
+    element.scrollTop = target;
+    // The settled entry makes the scroll event from this write look ours.
+    scrollFollows.set(element, { target, written: element.scrollTop, frame: 0 });
+
+    return;
+  }
+
+  let follow = scrollFollows.get(element);
+
+  if (!follow) {
+    follow = { target, written: element.scrollTop, frame: 0 };
+    scrollFollows.set(element, follow);
+  } else {
+    follow.target = target;
+  }
+
+  if (!follow.frame) follow.frame = requestAnimationFrame(() => stepScrollFollow(element));
+}
+
+function isFollowScroll(element: HTMLElement): boolean {
+  const follow = scrollFollows.get(element);
+  if (!follow) return false;
+  if (Math.abs(element.scrollTop - follow.written) <= 1) return true;
+
+  stopScrollFollow(element);
+
+  return false;
 }
 
 watch(
@@ -956,8 +1036,6 @@ watch(
   }),
   (current) => {
     cleanupScrollSync();
-    scrollEcho = null;
-    clearTimeout(echoTimer);
     if (current.mode !== "split") return;
 
     const view = editorPane.value?.view;
@@ -967,23 +1045,13 @@ watch(
     let previewExtent = `${scroller.scrollHeight}:${scroller.clientHeight}`;
 
     const onEditor = () => {
-      if (scrollEcho === "editor") {
-        scrollEcho = null;
-
-        return;
-      }
-      scrollEcho = null;
+      if (isFollowScroll(view.scrollDOM)) return;
 
       const mode = splitScrollMode();
       if (mode === "both" || mode === "editor") syncFromEditor(view, scroller);
     };
     const onPreview = () => {
-      if (scrollEcho === "preview") {
-        scrollEcho = null;
-
-        return;
-      }
-      scrollEcho = null;
+      if (isFollowScroll(scroller)) return;
 
       const extent = `${scroller.scrollHeight}:${scroller.clientHeight}`;
       if (extent !== previewExtent) {
@@ -1002,18 +1070,12 @@ watch(
     detachScrollSync = () => {
       view.scrollDOM.removeEventListener("scroll", onEditor);
       scroller.removeEventListener("scroll", onPreview);
+      stopScrollFollow(view.scrollDOM);
+      stopScrollFollow(scroller);
     };
   },
   { immediate: true, flush: "post" },
 );
-
-function expectEcho(pane: "editor" | "preview") {
-  scrollEcho = pane;
-  clearTimeout(echoTimer);
-  echoTimer = setTimeout(() => {
-    scrollEcho = null;
-  }, 250);
-}
 
 function syncFromEditor(view: EditorView, scroller: HTMLElement) {
   const layout = previewPane.value?.getFrameLayout();
@@ -1034,10 +1096,9 @@ function syncFromEditor(view: EditorView, scroller: HTMLElement) {
   }
 
   const top = layout.tops[index];
-  if (top === undefined || Math.abs(scroller.scrollTop - top) < 4) return;
+  if (top === undefined) return;
 
-  expectEcho("preview");
-  scroller.scrollTop = top;
+  followScroll(scroller, top);
 }
 
 function syncFromPreview(view: EditorView, scroller: HTMLElement) {
@@ -1055,12 +1116,10 @@ function syncFromPreview(view: EditorView, scroller: HTMLElement) {
   const range = layout.ranges[index];
   if (!range) return;
 
-  const line = view.state.doc.lineAt(range.start);
-
-  expectEcho("editor");
-  view.dispatch({
-    effects: EditorView.scrollIntoView(line.from, { y: "start", yMargin: 0 }),
-  });
+  // The preview can lag a large edit, so its ranges may point past the live
+  // document. Clamp before asking CodeMirror for the block.
+  const pos = Math.min(range.start, view.state.doc.length);
+  followScroll(view.scrollDOM, view.lineBlockAt(pos).top);
 }
 
 const splitLeft = ref(50);
