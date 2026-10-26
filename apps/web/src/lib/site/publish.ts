@@ -87,7 +87,7 @@ export async function publishSite(
 
   if (site.wisp.publisherDid && site.wisp.publisherDid !== did) {
     throw new Error(
-      `This site belongs to ${site.wisp.publisherDid}. Sign in as that account or fork the site.`,
+      `This site belongs to ${site.wisp.publisherDid}. Sign in as that account, or use the site dashboard to publish under the current account.`,
     );
   }
 

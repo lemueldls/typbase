@@ -11,6 +11,7 @@ import { pushToast } from "~/composables/toasts";
 import { saveExport } from "~/lib/exportPage";
 import { openExternal } from "~/lib/openExternal";
 import { buildSite, siteBaseUrl, siteRkey } from "~/lib/site/build";
+import { forkSiteSettings } from "~/lib/site/fork";
 import { publishSite, unpublishSite, wispClient } from "~/lib/site/publish";
 import { createZip } from "~/lib/zip";
 
@@ -37,6 +38,11 @@ const pages = useWorkspaceValue(
   (store) => store.listPages(),
 );
 const site = computed(() => settings.value.site);
+const publisherMismatch = computed(() => {
+  const did = atprotoStatus.value.did;
+
+  return Boolean(did && site.value.wisp.publisherDid && site.value.wisp.publisherDid !== did);
+});
 
 type SiteTab = "pages" | "design" | "domain" | "publish";
 
@@ -204,6 +210,7 @@ const filteredPages = computed(() => {
 const publishBlockReason = computed(() => {
   if (!atprotoStatus.value.signedIn) return t("site.publishBlockedSignedOut");
   if (!publishingReady.value) return t("site.publishBlockedScope");
+  if (publisherMismatch.value) return t("site.publishBlockedPublisher");
   if (!includedCount.value) return t("site.publishBlockedNoPages");
   return "";
 });
@@ -213,6 +220,7 @@ const publishDisabled = computed(
     busy.value ||
     !atprotoStatus.value.signedIn ||
     !publishingReady.value ||
+    publisherMismatch.value ||
     includedCount.value === 0,
 );
 
@@ -327,6 +335,18 @@ async function onPublish(): Promise<void> {
 }
 
 const confirmUnpublish = ref(false);
+const forkOpen = ref(false);
+
+/** Drops the previous publisher's deploy, domain, and discovery records. */
+function forkForCurrentAccount(): void {
+  if (!atprotoStatus.value.did) return;
+  const key = siteRkey(site.value, settings.value.name);
+  props.store.updateSettings({ site: forkSiteSettings(site.value, key) });
+  forkOpen.value = false;
+  error.value = "";
+  resultNote.value = "";
+  pushToast({ titleKey: "site.forked", duration: 3000 });
+}
 
 async function onUnpublish(): Promise<void> {
   if (!atproto.value || busy.value) return;
@@ -1345,6 +1365,15 @@ function copy(value: string): Promise<void> {
                       {{ $t("site.checkDomain") }}
                     </UiButton>
                     <UiButton
+                      v-if="publisherMismatch"
+                      variant="plain"
+                      icon="fork_right"
+                      :disabled="busy"
+                      @click="forkOpen = true"
+                    >
+                      {{ $t("site.forkToCurrent") }}
+                    </UiButton>
+                    <UiButton
                       v-if="site.wisp.domainStatus === 'verified'"
                       variant="primary"
                       icon="cloud_upload"
@@ -1398,6 +1427,34 @@ function copy(value: string): Promise<void> {
                 >
                   {{ includedCount ? $t("site.editSelection") : $t("site.choosePages") }}
                 </UiButton>
+              </section>
+
+              <section v-if="publisherMismatch" class="site-publish-card site-publish-card--owner">
+                <div class="site-publish__owner">
+                  <div class="site-publish__owner-copy">
+                    <span class="site-publish__owner-icon">
+                      <MsIcon name="warning" :size="24" />
+                    </span>
+                    <div>
+                      <h2>{{ $t("site.publisherMismatchTitle") }}</h2>
+                      <p class="site-view__hint">
+                        {{
+                          $t("site.publisherMismatchHint", {
+                            did: site.wisp.publisherDid,
+                          })
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                  <UiButton
+                    variant="primary"
+                    icon="fork_right"
+                    :disabled="busy"
+                    @click="forkOpen = true"
+                  >
+                    {{ $t("site.forkToCurrent") }}
+                  </UiButton>
+                </div>
               </section>
 
               <section
@@ -1480,7 +1537,7 @@ function copy(value: string): Promise<void> {
                       {{ $t("site.download") }}
                     </UiButton>
                     <UiButton
-                      v-if="site.wisp.lastDeploy"
+                      v-if="site.wisp.lastDeploy && !publisherMismatch"
                       variant="danger"
                       size="large"
                       icon="cloud_off"
@@ -1540,6 +1597,14 @@ function copy(value: string): Promise<void> {
       :description="$t('site.unpublishConfirm')"
       :confirm-label="$t('site.unpublish')"
       @confirm="onUnpublish"
+    />
+
+    <UiConfirmDialog
+      v-model:open="forkOpen"
+      :title="$t('site.forkConfirmTitle')"
+      :description="$t('site.forkConfirm', { did: site.wisp.publisherDid })"
+      :confirm-label="$t('site.forkToCurrent')"
+      @confirm="forkForCurrentAccount"
     />
 
     <UiConfirmDialog
@@ -2440,6 +2505,40 @@ function copy(value: string): Promise<void> {
   border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
 }
 
+.site-publish-card--owner {
+  background: var(--color-warning-soft);
+  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
+}
+
+.site-publish__owner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.site-publish__owner-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2-5);
+  min-width: 0;
+}
+
+.site-publish__owner-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-md);
+  height: var(--control-md);
+  color: var(--color-warning);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.site-publish__owner p {
+  margin-top: 2px;
+}
+
 .site-publish__hero {
   display: flex;
   align-items: center;
@@ -2730,6 +2829,15 @@ function copy(value: string): Promise<void> {
   .site-publish__hero {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .site-publish__owner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .site-publish__owner .button {
+    justify-content: center;
   }
 
   .site-publish__hero-copy {
