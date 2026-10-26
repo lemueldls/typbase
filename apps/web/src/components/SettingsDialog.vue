@@ -586,7 +586,13 @@ const uiRadius = computed({
 
 /** Current value first, so a configured font stays visible before it loads. */
 function fontOptionList(families: string[], current: string | null | undefined): ComboboxOption[] {
-  const values = [...new Set([...(current ? [current] : []), ...families])];
+  const values = [
+    ...new Set([
+      ...(current ? [current] : []),
+      ...families,
+      ...settings.value.customFonts.map((font) => font.family),
+    ]),
+  ];
   const uploaded = new Set(settings.value.customFonts.map((font) => font.family));
 
   return values.map((family) => ({
@@ -758,6 +764,11 @@ async function installSystemFonts() {
   }
 }
 
+async function openSystemFontDialog(): Promise<void> {
+  if (!systemFontsLoaded.value) await installSystemFonts();
+  if (systemFontsLoaded.value) systemFontDialogOpen.value = true;
+}
+
 async function updateFont(patch: {
   font?: string;
   mathFont?: string | null;
@@ -768,6 +779,7 @@ async function updateFont(patch: {
 
 const fontUploadError = ref("");
 const missingFonts = ref<string[]>([]);
+const systemFontDialogOpen = ref(false);
 
 async function refreshMissingFonts(): Promise<void> {
   missingFonts.value = await missingFontFamilies(props.store);
@@ -1557,7 +1569,7 @@ async function renameWorkspace(event: Event) {
               </SettingsRow>
 
               <SettingsRow
-                :label="$t('settings.loadSystemFonts')"
+                :label="$t('settings.systemFonts')"
                 :hint="
                   supportsLocalFonts()
                     ? $t('settings.systemFontsHint')
@@ -1568,13 +1580,12 @@ async function renameWorkspace(event: Event) {
                 <div class="settings__system-fonts">
                   <template v-if="supportsLocalFonts()">
                     <UiButton
-                      v-if="!systemFontsLoaded"
                       variant="primary"
                       :disabled="systemFontsLoading"
-                      @click="installSystemFonts"
+                      @click="openSystemFontDialog"
                     >
                       {{
-                        systemFontsLoading ? $t("settings.loading") : $t("settings.loadSystemFonts")
+                        systemFontsLoading ? $t("settings.loading") : $t("settings.addSystemFonts")
                       }}
                     </UiButton>
                     <p v-if="systemFontsLoaded" class="settings__ok">
@@ -1781,6 +1792,8 @@ async function renameWorkspace(event: Event) {
         </div>
       </div>
     </div>
+
+    <SystemFontDialog v-model:open="systemFontDialogOpen" :store="store" />
 
     <div class="settings__close">
       <UiIconButton

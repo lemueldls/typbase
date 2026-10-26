@@ -202,6 +202,41 @@ export function ensureFontsInstalled(
   return fontInstallChain;
 }
 
+/** Number of faces the system index found for a family. */
+export function systemFontFaceCount(family: string): number {
+  if (isTauri()) {
+    return tauriFontFaces.filter((face) => face.families.includes(family)).length;
+  }
+
+  return localFontFaces.filter((face) => face.family === family).length;
+}
+
+/**
+ * Reads every face of one installed family. Call `loadSystemFonts` first so
+ * the backend has an index to read from.
+ */
+export async function readSystemFontFamily(family: string): Promise<Uint8Array[]> {
+  const payloads: Uint8Array[] = [];
+
+  if (isTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    for (const face of tauriFontFaces.filter((entry) => entry.families.includes(family))) {
+      payloads.push(
+        new Uint8Array(await invoke<ArrayBuffer>("system_font_file", { index: face.index })),
+      );
+    }
+
+    return payloads;
+  }
+
+  for (const face of localFontFaces.filter((entry) => entry.family === family)) {
+    const blob = await face.blob();
+    payloads.push(new Uint8Array(await blob.arrayBuffer()));
+  }
+
+  return payloads;
+}
+
 async function installMissingFonts(
   typstState: TypstState,
   families: Array<string | null | undefined>,
