@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { WorkspaceSpaceSummary } from "~/lib/atproto";
+
+import { pushToast } from "~/composables/toasts";
 import { formatAgo } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
 
@@ -7,7 +10,9 @@ import { openExternal } from "~/lib/openExternal";
  * dashboard so both surfaces use the same handle normalization and errors.
  */
 const { t, locale } = useI18n();
-const { atproto, atprotoStatus, atprotoReady } = useWorkspace();
+const { atproto, atprotoStatus, atprotoReady, joinWorkspace, workspaceId, workspaces } =
+  useWorkspace();
+const settingsDialog = useSettingsDialog();
 
 const emit = defineEmits<{
   (e: "open-profile", did: string): void;
@@ -37,6 +42,101 @@ function ago(timestamp: number): string {
 
 /** The service names Spaces when the PDS cannot host the workspace space. */
 const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.error ?? ""));
+
+const spaces = ref<WorkspaceSpaceSummary[]>([]);
+const spacesLoading = ref(false);
+const spacesError = ref("");
+const joinInput = ref("");
+const joining = ref(false);
+
+const spaceUri = computed(() => atprotoStatus.value.spaceUri);
+const currentSpaceId = computed(() => spaceUri.value?.split("/").pop() ?? workspaceId.value);
+
+function workspaceName(id: string): string {
+  return workspaces.value.find((entry) => entry.id === id)?.name ?? "";
+}
+
+function spaceLabel(space: WorkspaceSpaceSummary): string {
+  return workspaceName(space.id) || `${t("settings.syncSharedWorkspace")} ${space.id}`;
+}
+
+function isCurrentSpace(id: string): boolean {
+  return id === currentSpaceId.value;
+}
+
+/** A pasted space URI or a bare workspace id. */
+function parseSpaceId(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("at://")) {
+    const match = trimmed.match(/^at:\/\/[^/]+\/space\/[^/]+\/([^/]+)\/?$/);
+
+    return match?.[1] ?? "";
+  }
+
+  return trimmed.replace(/^\/+|\/+$/g, "");
+}
+
+async function loadSpaces(): Promise<void> {
+  if (!atproto.value || !atprotoStatus.value.signedIn || !atprotoStatus.value.syncing) {
+    spaces.value = [];
+    return;
+  }
+
+  spacesLoading.value = true;
+  spacesError.value = "";
+  try {
+    spaces.value = await atproto.value.listWorkspaceSpaces();
+  } catch (cause) {
+    spacesError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    spacesLoading.value = false;
+  }
+}
+
+async function openSpace(id: string): Promise<void> {
+  if (!id || joining.value) return;
+  joining.value = true;
+  spacesError.value = "";
+  try {
+    if (!spaces.value.some((space) => space.id === id)) {
+      const exists = await atproto.value?.workspaceSpaceExists(id);
+      if (!exists) {
+        spacesError.value = t("settings.syncJoinNotFound");
+
+        return;
+      }
+    }
+    await joinWorkspace(id, workspaceName(id) || t("settings.syncSharedWorkspace"));
+    settingsDialog.hide();
+  } catch (cause) {
+    spacesError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    joining.value = false;
+  }
+}
+
+async function onJoin(): Promise<void> {
+  const id = parseSpaceId(joinInput.value);
+  if (!id) {
+    spacesError.value = t("settings.syncJoinInvalid");
+
+    return;
+  }
+  await openSpace(id);
+}
+
+async function copySpace(): Promise<void> {
+  if (!spaceUri.value) return;
+  await navigator.clipboard.writeText(spaceUri.value);
+  pushToast({ titleKey: "common.copied", duration: 1800 });
+}
+
+onMounted(loadSpaces);
+watch(
+  () => [atprotoStatus.value.signedIn, atprotoStatus.value.syncing, spaceUri.value],
+  () => void loadSpaces(),
+);
 </script>
 
 <template>
@@ -83,15 +183,14 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
 
         <p v-if="profile?.description" class="sync__bio">{{ profile.description }}</p>
 
-        <UiButton
+        <!-- <UiButton
           v-if="atprotoStatus.did"
           class="sync__profile"
-          size="small"
           icon="open_in_new"
           @click="emit('open-profile', atprotoStatus.did)"
         >
           {{ $t("settings.viewProfile") }}
-        </UiButton>
+        </UiButton> -->
 
         <template v-if="atprotoStatus.syncing">
           <p class="sync__hint">
@@ -105,9 +204,9 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
               })
             }}
           </p>
-          <p class="sync__hint" :class="{ 'sync__hint--error': atprotoStatus.error }">
+          <!-- <p class="sync__hint" :class="{ 'sync__hint--error': atprotoStatus.error }">
             {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
-          </p>
+          </p> -->
 
           <div v-if="atprotoStatus.members.length" class="sync__members">
             <p class="sync__hint">{{ $t("settings.syncMembers") }}</p>
@@ -116,6 +215,67 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
                 {{ shortDid(member.did) }}
               </li>
             </ul>
+          </div>
+
+          <div class="sync__space">
+            <div class="sync__space-head">
+              <p class="sync__label">{{ $t("settings.syncSpace") }}</p>
+              <UiButton v-if="spaceUri" variant="plain" icon="content_copy" @click="copySpace">
+                {{ $t("settings.syncCopySpace") }}
+              </UiButton>
+            </div>
+            <p class="sync__hint">{{ $t("settings.syncSpaceHint") }}</p>
+            <code v-if="spaceUri" class="sync__space-uri">{{ spaceUri }}</code>
+
+            <form class="sync__join-form" @submit.prevent="onJoin">
+              <UiTextField
+                v-model="joinInput"
+                :label="$t('settings.syncJoinTitle')"
+                :placeholder="$t('settings.syncJoinPlaceholder')"
+                autocapitalize="none"
+                spellcheck="false"
+                :disabled="joining"
+              />
+              <UiButton type="submit" size="large" :disabled="joining || !joinInput.trim()">
+                {{ $t("settings.syncJoin") }}
+              </UiButton>
+            </form>
+            <p class="sync__hint">{{ $t("settings.syncJoinHint") }}</p>
+
+            <p class="sync__label">{{ $t("settings.syncSpaces") }}</p>
+            <p v-if="spacesLoading" class="sync__hint">{{ $t("settings.syncSpacesLoading") }}</p>
+            <ul v-else-if="spaces.length" class="sync__spaces">
+              <li
+                v-for="space in spaces"
+                :key="space.id"
+                class="sync__space-item"
+                :class="{ 'sync__space-item--current': isCurrentSpace(space.id) }"
+              >
+                <span class="sync__space-main">
+                  <MsIcon
+                    v-if="isCurrentSpace(space.id)"
+                    class="sync__space-check"
+                    name="check"
+                    :size="16"
+                  />
+                  <span class="sync__space-name">{{ spaceLabel(space) }}</span>
+                  <span v-if="isCurrentSpace(space.id)" class="sync__space-current">
+                    {{ $t("settings.syncCurrent") }}
+                  </span>
+                </span>
+                <UiButton
+                  v-if="!isCurrentSpace(space.id)"
+                  variant="plain"
+                  size="tiny"
+                  :disabled="joining"
+                  @click="openSpace(space.id)"
+                >
+                  {{ workspaceName(space.id) ? $t("settings.syncOpen") : $t("settings.syncJoin") }}
+                </UiButton>
+              </li>
+            </ul>
+            <p v-else class="sync__hint">{{ $t("settings.syncNoSpaces") }}</p>
+            <p v-if="spacesError" class="sync__hint sync__hint--error">{{ spacesError }}</p>
           </div>
         </template>
 
@@ -139,8 +299,8 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
           </span>
         </p>
 
-        <div>
-          <UiButton :disabled="!atprotoReady" @click="onSignOut">
+        <div class="sync__footer">
+          <UiButton variant="danger" icon="logout" :disabled="!atprotoReady" @click="onSignOut">
             {{ $t("settings.syncSignOut") }}
           </UiButton>
         </div>
@@ -232,6 +392,109 @@ const spacesUnsupported = computed(() => /spaces/i.test(atprotoStatus.value.erro
 
 .sync__hint--error {
   color: var(--color-danger);
+}
+
+.sync__label {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+.sync__space {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.sync__space-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sync__space-uri {
+  display: block;
+  padding: var(--space-1-5) var(--space-2);
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.sync__join-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sync__join-form .ui-text-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.sync__spaces {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sync__space-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: var(--control-sm);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.sync__space-item--current {
+  background: var(--color-accent-soft);
+}
+
+.sync__space-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.sync__space-check {
+  flex: none;
+  color: var(--color-accent);
+}
+
+.sync__space-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync__space-current {
+  flex: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.sync__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }
 
 .sync__warning {

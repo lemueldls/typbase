@@ -56,6 +56,13 @@ export interface AtprotoStatus {
   error: string | null;
 }
 
+/** One workspace space the signed-in account has written to. */
+export interface WorkspaceSpaceSummary {
+  /** The space rkey, which is also the local workspace id. */
+  id: string;
+  uri: string;
+}
+
 export class AtprotoService {
   private sessions!: SessionManager;
   private sessionRef: OAuthSession | null = null;
@@ -328,6 +335,15 @@ export class AtprotoService {
   }
 
   private async handleLocalCommit(docId: string): Promise<void> {
+    // The PDS queue is the durable path. The relay only accelerates peers
+    // that are online now, so every local commit has to enter the queue even
+    // when no relay is connected.
+    try {
+      await this.sync?.onLocalCommit(docId);
+    } catch (error) {
+      this.setError(`Sync export failed: ${String(error)}`);
+    }
+
     if (!this.relay?.connected) return;
 
     try {
@@ -420,6 +436,57 @@ export class AtprotoService {
       this.members = [];
       this.setError(`Member list failed: ${String(error)}`);
     }
+  }
+
+  /** Spaces the account can open as a workspace. */
+  async listWorkspaceSpaces(): Promise<WorkspaceSpaceSummary[]> {
+    const session = this.sessionRef;
+    const did = this.statusDid;
+    if (!session || !did) return [];
+
+    const spaces: WorkspaceSpaceSummary[] = [];
+    let cursor: string | undefined;
+    do {
+      const params = new URLSearchParams({
+        type: WORKSPACE_SPACE_TYPE,
+        did,
+        limit: "100",
+      });
+      if (cursor) params.set("cursor", cursor);
+      const response = await session.fetchHandler(
+        `/xrpc/com.atproto.space.listSpaces?${params.toString()}`,
+      );
+      if (!response.ok) throw new Error(`Listing spaces failed (${response.status})`);
+      const body = (await response.json()) as {
+        spaces?: Array<{ uri?: string }>;
+        cursor?: string;
+      };
+      for (const space of body.spaces ?? []) {
+        const uri = space.uri;
+        const id = typeof uri === "string" ? uri.split("/").pop() : "";
+        if (uri && id) spaces.push({ id, uri });
+      }
+      cursor = body.cursor;
+    } while (cursor);
+
+    return spaces;
+  }
+
+  /** Confirm a space exists before opening it as a local workspace. */
+  async workspaceSpaceExists(id: string): Promise<boolean> {
+    const session = this.sessionRef;
+    const did = this.statusDid;
+    if (!session || !did) return false;
+
+    const params = new URLSearchParams({ space: workspaceSpaceUri(did, id) });
+    const response = await session.fetchHandler(
+      `/xrpc/com.atproto.simplespace.getSpace?${params.toString()}`,
+    );
+    if (response.ok) return true;
+    if (response.status === 404) return false;
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (body?.error === "SpaceNotFound") return false;
+    throw new Error(`Space lookup failed (${response.status})`);
   }
 
   /** Stable per-device persona: name + color for remote cursors. */

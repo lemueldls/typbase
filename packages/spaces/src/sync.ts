@@ -201,7 +201,8 @@ export class TypbaseSync {
    * the delta. Safe to run once per account and workspace.
    */
   async bootstrapSnapshots(): Promise<void> {
-    for (const docId of await this.host.listDocIds()) {
+    const docIds = await this.host.listDocIds();
+    for (const docId of docIds) {
       const snapshot = await this.host.exportSnapshot(docId);
       const rkey = await this.transport.createSnapshot({
         docId,
@@ -214,6 +215,7 @@ export class TypbaseSync {
       doc.written = [];
       doc.snapshots = [rkey];
     }
+    if (docIds.length > 0) this.state.lastExportAt = this.now();
     await this.save();
   }
 

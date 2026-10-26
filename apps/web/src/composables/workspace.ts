@@ -522,7 +522,10 @@ function useWorkspaceState() {
     localState.value = undefined;
   }
 
-  async function openWorkspace(id: string): Promise<WorkspaceStore> {
+  async function openWorkspace(
+    id: string,
+    options: { seed?: boolean } = {},
+  ): Promise<WorkspaceStore> {
     const token = ++openingSeq;
     const switchToken = ++switchingSeq;
     switching.value = id;
@@ -547,7 +550,10 @@ function useWorkspaceState() {
       updateBootStep("workspace", { status: "active" });
       // A fresh doc seeds from the registry name. An existing doc's settings
       // name wins and is copied back into the registry below.
-      const store = await WorkspaceStore.open(backendRef.value!, id, { name: info.name });
+      const store = await WorkspaceStore.open(backendRef.value!, id, {
+        name: info.name,
+        seed: options.seed,
+      });
       if (token !== openingSeq) return store;
 
       // Keep the registry name and accent in sync with the workspace doc. The
@@ -555,7 +561,7 @@ function useWorkspaceState() {
       const settings = store.getSettings();
       const name = settings.name;
       const accent = resolveTheme(settings).palette.accent;
-      if (name !== info.name || accent !== info.accent) {
+      if (options.seed !== false && (name !== info.name || accent !== info.accent)) {
         await reg.save({ ...info, lastOpenedAt: Date.now(), name, accent });
       }
       const pageCount = store.listPages().length;
@@ -707,11 +713,11 @@ function useWorkspaceState() {
     ensurePromise = undefined;
   }
 
-  async function switchWorkspace(id: string): Promise<void> {
+  async function switchWorkspace(id: string, options: { seed?: boolean } = {}): Promise<void> {
     error.value = undefined;
     try {
       ensurePromise = undefined;
-      await openWorkspace(id);
+      await openWorkspace(id, options);
       // A switch may land on a workspace with no pages. The shell picks
       // home/first page off the generation key.
     } catch (reason) {
@@ -734,6 +740,36 @@ function useWorkspaceState() {
     await reg.save(info);
     workspaces.value = await reg.list();
     await switchWorkspace(info.id);
+
+    return info;
+  }
+
+  /**
+   * Opens a workspace that already exists in a space on the account. The
+   * local doc starts empty because the sync pull supplies the remote history;
+   * seeding it first would merge a second Welcome page into that history.
+   */
+  async function joinWorkspace(id: string, name = "Workspace"): Promise<WorkspaceInfo> {
+    const clean = id.trim();
+    if (!clean || clean.includes("/")) throw new Error("Invalid workspace id");
+
+    const reg = await ensureRegistry();
+    const existing = await reg.get(clean);
+    if (existing) {
+      await switchWorkspace(existing.id);
+      return existing;
+    }
+
+    const info: WorkspaceInfo = {
+      id: clean,
+      name,
+      createdAt: Date.now(),
+      lastOpenedAt: Date.now(),
+    };
+    localStorage.removeItem(WORKSPACES_EMPTY_KEY);
+    await reg.save(info);
+    workspaces.value = await reg.list();
+    await switchWorkspace(clean, { seed: false });
 
     return info;
   }
@@ -858,6 +894,7 @@ function useWorkspaceState() {
     workspaces,
     activeWorkspaceId,
     switching,
+    joinWorkspace,
     workspaceGeneration,
     switchWorkspace,
     createWorkspace,

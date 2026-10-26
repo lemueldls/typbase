@@ -75,8 +75,8 @@ const label = computed(() => {
   z-index: 65;
   display: flex;
   flex-direction: column;
-  width: min(340px, calc(100vw - var(--space-4)));
-  max-height: calc(50dvh - var(--space-8));
+  width: min(440px, calc(100vw - var(--space-4)));
+  max-height: calc(100dvh - var(--app-bar-height) - var(--space-8));
   overflow-y: auto;
   padding: var(--space-3);
   background: var(--color-surface);

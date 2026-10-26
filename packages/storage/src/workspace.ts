@@ -263,6 +263,13 @@ export interface WorkspaceStoreOptions {
   snapshotDebounceMs?: number;
   /** Settings name for a workspace doc created from scratch. Ignored otherwise. */
   name?: string;
+  /**
+   * Seed a new local workspace with the Welcome page and default settings.
+   * A device joining an existing space opens an empty doc and lets the first
+   * pull fill it, so it must not seed content that would merge into the
+   * remote history.
+   */
+  seed?: boolean;
 }
 
 export interface CreatePageInput {
@@ -344,7 +351,7 @@ export class WorkspaceStore {
       store.emitStructure(batch.events.map((event) => event.path));
     });
 
-    if (!bytes) await store.seed(options.name);
+    if (!bytes && options.seed !== false) await store.seed(options.name);
 
     return store;
   }
