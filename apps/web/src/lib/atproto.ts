@@ -297,12 +297,15 @@ export class AtprotoService {
     const syncHost = createSyncHost(this.store, (level, message) =>
       console[level](`[sync] ${message}`),
     );
-    // Sync state is per space: rkeys and cursors mean nothing in another
-    // space, so the key carries the space type.
+    // Sync state is per space and has a schema revision. Bump the revision
+    // when the import order or host semantics change: the new key makes every
+    // device do one full scan instead of trusting cursors from the old model.
+    // `v2` opened pre-metadata page docs, which fixed pages coming in empty on
+    // a freshly joined workspace.
     const syncStore = {
-      get: (key: string) => this.local.get(`sync:${WORKSPACE_SPACE_TYPE}:${key}`),
+      get: (key: string) => this.local.get(`sync:${WORKSPACE_SPACE_TYPE}:v2:${key}`),
       set: (key: string, value: unknown) =>
-        this.local.set(`sync:${WORKSPACE_SPACE_TYPE}:${key}`, value),
+        this.local.set(`sync:${WORKSPACE_SPACE_TYPE}:v2:${key}`, value),
     };
 
     this.sync = new TypbaseSync(syncHost, syncStore, createAirspaceTransport(airspace.workspace), {

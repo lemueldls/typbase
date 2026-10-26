@@ -1258,21 +1258,14 @@ export class WorkspaceStore {
   async getDocById(docId: string): Promise<LoroDoc | null> {
     if (docId === this.workspaceId) return this.doc;
 
+    // A remote snapshot or update can arrive before the workspace document
+    // that registers the page, plugin, or chat. Open the target doc anyway:
+    // the data is already part of this space, and the metadata will catch up.
     const instanceId = pluginInstanceOf(docId);
-    if (instanceId !== null) {
-      if (!this.getPluginInstance(instanceId)) return null;
-
-      return this.openPluginDoc(instanceId);
-    }
+    if (instanceId !== null) return this.openPluginDoc(instanceId);
 
     const threadId = chatIdOf(docId);
-    if (threadId !== null) {
-      if (!this.getChat(threadId)) return null;
-
-      return this.openChatDoc(threadId);
-    }
-
-    if (!this.getPage(docId)) return null;
+    if (threadId !== null) return this.openChatDoc(threadId);
 
     return this.openPageDoc(docId);
   }
