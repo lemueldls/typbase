@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.5] - 2026-10-26
+
+### New
+
+- Smooth scroll sync between editor and preview panes
+- Public and draft labels to site and styling for better visibility
+
+### Fixed
+
+- Scale row height with ui
+
 ## [0.4.4] - 2026-10-25
 
 ### Fixed
