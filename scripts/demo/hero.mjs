@@ -53,6 +53,53 @@ async function clickSidebar(page, text) {
 }
 
 /**
+ * Puts the caret inside a math expression and waits for the rendered tooltip.
+ * The editor is usually scrolled to the bottom after typing, while these
+ * equations sit farther up the note, so the selection has to scroll into view.
+ * The tooltip is built by the recompile that follows the selection change, so
+ * wait for the popup instead of guessing with a fixed pause.
+ */
+async function showMathTooltip(page, needle, wait = 1600) {
+  const found = await page.evaluate((text) => {
+    const api = window.__typbase;
+    const doc = api.view.state.doc.toString();
+    const at = doc.indexOf(text);
+    if (at < 0) return null;
+
+    const pos = at + 3;
+    api.view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+    api.view.focus();
+
+    return pos;
+  }, needle);
+
+  if (found === null) {
+    console.warn(`[warn] no math expression for ${needle}`);
+
+    return;
+  }
+
+  await page.waitForSelector(".typst-popup-render", { timeout: 6000 }).catch(() => {
+    console.warn(`[warn] math tooltip for ${needle} did not appear`);
+  });
+
+  // Leave the code hover behind and settle beside the popup, so the shot has
+  // one clear tooltip and the cursor has something to do.
+  const tooltip = page.locator(".typst-popup-render").last();
+  const box = (await tooltip.count()) ? await tooltip.boundingBox().catch(() => null) : null;
+  if (box) {
+    await moveCursor(
+      page,
+      Math.min(VIEWPORT.width - 48, box.x + box.width + 28),
+      Math.min(VIEWPORT.height - 48, box.y + box.height - 18),
+      { duration: 480 },
+    );
+  }
+
+  await pause(page, wait);
+}
+
+/**
  * Screen point of a graph node once its position holds still, so a click
  * lands after the refit tween instead of chasing it. Null when the node is
  * not on the canvas.
@@ -163,23 +210,8 @@ async function main() {
     // await hoverToken(page, "#count");
 
     // Math tooltips.
-    await page.evaluate(() => {
-      const api = window.__typbase;
-      const doc = api.view.state.doc.toString();
-
-      api.view.dispatch({ selection: { anchor: doc.indexOf("phi.alt") + 3 } });
-      api.view.focus();
-    });
-    await hoverToken(page, "phi.alt", 300);
-    await pause(page, 1400);
-    await page.evaluate(() => {
-      const api = window.__typbase;
-      const doc = api.view.state.doc.toString();
-
-      api.view.dispatch({ selection: { anchor: doc.indexOf("F_(n-1)") + 3 } });
-      api.view.focus();
-    });
-    await pause(page, 1200);
+    await showMathTooltip(page, "phi.alt");
+    await showMathTooltip(page, "F_(n-1)");
 
     // Inline math at the end of the heading, so the rule just typed styles it.
     await page.evaluate(() => {

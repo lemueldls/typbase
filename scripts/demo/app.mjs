@@ -87,11 +87,16 @@ export async function installCursor(context) {
       const style = document.createElement("style");
       style.textContent = `
         #__demo-cursor {
+          --cursor-tilt: 0deg;
+          --cursor-speed: 0;
+          --cursor-tip-x: 5.63px;
+          --cursor-tip-y: 2.82px;
+
           position: fixed;
           left: 0;
           top: 0;
-          width: 24px;
-          height: 24px;
+          width: 26px;
+          height: 26px;
           z-index: 2147483647;
           pointer-events: none;
           opacity: 0;
@@ -104,49 +109,64 @@ export async function installCursor(context) {
         }
 
         #__demo-cursor svg {
+          position: relative;
           display: block;
           width: 100%;
           height: 100%;
           overflow: visible;
-          filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.4));
+          filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.45));
+          transform: rotate(var(--cursor-tilt)) scale(calc(1 + var(--cursor-speed) * 0.04));
           transform-origin: 5px 3px;
-          transition: transform 90ms ease;
+          transition: transform 80ms ease;
         }
 
         #__demo-cursor.is-pressed svg {
-          transform: scale(0.82);
+          transform: rotate(var(--cursor-tilt)) scale(0.82);
         }
 
         #__demo-cursor .__demo-cursor-ring {
           position: absolute;
-          left: -1px;
-          top: -1px;
-          width: 26px;
-          height: 26px;
-          border: 2px solid rgb(31 35 40 / 0.35);
+          left: var(--cursor-tip-x);
+          top: var(--cursor-tip-y);
+          width: 24px;
+          height: 24px;
+          margin: -12px 0 0 -12px;
+          border: 2px solid color-mix(in srgb, var(--color-accent, #6ea8fe) 68%, white);
           border-radius: 50%;
           opacity: 0;
         }
 
         #__demo-cursor.is-clicked .__demo-cursor-ring {
-          animation: __demo-cursor-ripple 320ms ease-out;
+          animation: __demo-cursor-ripple var(--ripple-duration, 320ms) ease-out;
         }
 
         @keyframes __demo-cursor-ripple {
           from {
-            opacity: 0.55;
+            opacity: 0.6;
             transform: scale(0.35);
           }
 
           to {
             opacity: 0;
-            transform: scale(1.5);
+            transform: scale(var(--ripple-scale, 1.5));
           }
         }
       `;
 
       document.head.append(style);
       document.body.append(cursor);
+
+      let lastMove = { x: 0, y: 0 };
+      let moveTimer;
+
+      // A fixed seed keeps every capture reproducible. The values only vary the
+      // ripple, never the pointer path, so clicks always land where they should.
+      let entropy = 0x7a9e3b1f;
+      const random = () => {
+        entropy = (entropy * 1664525 + 1013904223) >>> 0;
+
+        return entropy / 0x100000000;
+      };
 
       document.addEventListener(
         "mousemove",
@@ -157,8 +177,20 @@ export async function installCursor(context) {
           // first glide started from the center.
           if (!window.__demoCursorArmed) return;
 
+          const dx = event.clientX - lastMove.x;
+          const speed = Math.min(1, Math.hypot(dx, event.clientY - lastMove.y) / 18);
+          lastMove = { x: event.clientX, y: event.clientY };
+
           cursor.classList.add("is-visible");
           cursor.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
+          cursor.style.setProperty("--cursor-tilt", `${Math.max(-9, Math.min(9, dx * 1.6))}deg`);
+          cursor.style.setProperty("--cursor-speed", speed.toFixed(2));
+
+          clearTimeout(moveTimer);
+          moveTimer = setTimeout(() => {
+            cursor.style.setProperty("--cursor-tilt", "0deg");
+            cursor.style.setProperty("--cursor-speed", "0");
+          }, 90);
         },
         true,
       );
@@ -176,6 +208,8 @@ export async function installCursor(context) {
 
           cursor.classList.remove("is-pressed");
           cursor.classList.remove("is-clicked");
+          cursor.style.setProperty("--ripple-scale", (1.35 + random() * 0.3).toFixed(2));
+          cursor.style.setProperty("--ripple-duration", `${280 + Math.round(random() * 80)}ms`);
           // Restart the ripple animation on every click.
           void cursor.offsetWidth;
           cursor.classList.add("is-clicked");

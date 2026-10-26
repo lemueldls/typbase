@@ -5,7 +5,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { ViewPlugin } from "@codemirror/view";
 import { showTooltip } from "@codemirror/view";
 
-import { tooltipsStateField, typstRecompileEffect } from "./widgets";
+import { tooltipsStateEffect, tooltipsStateField, typstRecompileEffect } from "./widgets";
 
 const tooltipStateEffect = StateEffect.define<Tooltip | null>();
 
@@ -25,7 +25,12 @@ export const tooltipStateField = StateField.define<Tooltip | null>({
 export const tooltipViewPlugin = () =>
   ViewPlugin.define((view) => ({
     update(update: ViewUpdate) {
-      if (!update.selectionSet && !update.docChanged && !update.focusChanged) return;
+      const tooltipsChanged = update.transactions.some((transaction) =>
+        transaction.effects.some((effect) => effect.is(tooltipsStateEffect)),
+      );
+      if (!update.selectionSet && !update.docChanged && !update.focusChanged && !tooltipsChanged) {
+        return;
+      }
 
       queueMicrotask(() => {
         if (!view.hasFocus) {
@@ -38,14 +43,10 @@ export const tooltipViewPlugin = () =>
         const pos = state.selection.main.from;
         const { tooltips, ranges } = state.field(tooltipsStateField);
 
-        // The render only builds the overlay for the equation the cursor was in
-        // when it ran, so moving the cursor into another equation finds no
-        // overlay. Ask for a render before showing nothing. The equation ranges
-        // come back with every render, so this does not need its own scan.
         if (!tooltips.some(({ range }) => pos >= range.start && pos <= range.end)) {
           const inMath = ranges.some(([start, end]) => pos >= start && pos <= end);
 
-          if (inMath) {
+          if (inMath && !tooltipsChanged) {
             view.dispatch({ effects: typstRecompileEffect.of(null) });
 
             return;
