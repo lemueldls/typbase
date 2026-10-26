@@ -57,6 +57,7 @@ export {
   pluginPath,
   renamePagePathFor,
   slugify,
+  workspaceNameFromSnapshot,
   workspacePath,
   workspaceRoot,
 } from "./workspace";

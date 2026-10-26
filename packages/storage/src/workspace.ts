@@ -258,6 +258,19 @@ export function chatIdOf(docId: string): string | null {
   return docId.startsWith("chat:") ? docId.slice("chat:".length) : null;
 }
 
+/** Read the display name from a workspace doc snapshot without opening a store. */
+export async function workspaceNameFromSnapshot(bytes: Uint8Array): Promise<string | null> {
+  const { LoroDoc } = await loadLoro();
+  const doc = LoroDoc.fromSnapshot(bytes);
+  try {
+    const name = doc.getMap("settings").get("name");
+
+    return typeof name === "string" && name.trim() ? name : null;
+  } finally {
+    doc.free();
+  }
+}
+
 export interface WorkspaceStoreOptions {
   /** Snapshot writes are debounced by this much. A crash loses at most this window. */
   snapshotDebounceMs?: number;

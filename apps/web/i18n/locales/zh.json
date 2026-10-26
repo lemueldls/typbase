@@ -372,7 +372,10 @@
     "syncSharedWorkspace": "工作区",
     "syncNoSpaces": "未找到空间。",
     "syncJoinInvalid": "请输入空间 URI 或工作区 ID。",
-    "syncJoinNotFound": "此账号中不存在该空间。"
+    "syncJoinNotFound": "此账号中不存在该空间。",
+    "syncExported": "已导出",
+    "syncImported": "已导入",
+    "syncPendingCount": "{count} 个待处理"
   },
   "switcher": {
     "title": "打开工作区",

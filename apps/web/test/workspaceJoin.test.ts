@@ -1,4 +1,4 @@
-import { MemoryBackend, WorkspaceStore } from "@typbase/storage";
+import { MemoryBackend, WorkspaceStore, workspaceNameFromSnapshot } from "@typbase/storage";
 import { describe, expect, it } from "vitest";
 
 describe("joining a remote workspace", () => {
@@ -18,5 +18,14 @@ describe("joining a remote workspace", () => {
     // The space can deliver a page snapshot before the workspace snapshot
     // that registers the page. Dropping the unknown id left notes empty.
     expect(await store.getDocById("remote-page")).not.toBeNull();
+  });
+
+  it("reads the workspace name from a snapshot", async () => {
+    const store = await WorkspaceStore.open(new MemoryBackend(), "named-space", {
+      name: "Named workspace",
+    });
+    const snapshot = await store.exportDocSnapshot("named-space");
+
+    expect(await workspaceNameFromSnapshot(snapshot.bytes)).toBe("Named workspace");
   });
 });

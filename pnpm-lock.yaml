@@ -402,8 +402,8 @@ importers:
         specifier: workspace:*
         version: link:../typing
       loro-crdt:
-        specifier: ^1.16.1
-        version: 1.16.3
+        specifier: ^1.17.1
+        version: 1.17.1
     devDependencies:
       tsdown:
         specifier: 0.23.0
@@ -3754,8 +3754,8 @@ packages:
   long@5.3.2:
     resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
 
-  loro-crdt@1.16.3:
-    resolution: {integrity: sha512-0FP3TsPTCIVLg7fbjh7cJTt3evpbFD/KRfnd4k9R3ZuDTzl83nuiYK/8LRxQ35xKzcHAcvMowoL9pecNDw1bkw==}
+  loro-crdt@1.17.1:
+    resolution: {integrity: sha512-83hWRYG6eMMpPezm+yXWlOqCuUsC0BYY1MVCPW9x2zlikgkHhL7GC7Q6JFH+Hjvauyn287Q1MiwTuRW0lUOUag==}
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
@@ -7961,7 +7961,7 @@ snapshots:
 
   long@5.3.2: {}
 
-  loro-crdt@1.16.3: {}
+  loro-crdt@1.17.1: {}
 
   lru-cache@10.4.3: {}
 

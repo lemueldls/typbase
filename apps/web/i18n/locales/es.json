@@ -372,7 +372,10 @@
     "syncSharedWorkspace": "Espacio de trabajo",
     "syncNoSpaces": "No se encontraron espacios.",
     "syncJoinInvalid": "Introduce una URI de espacio o un ID de espacio de trabajo.",
-    "syncJoinNotFound": "Ese espacio no existe en esta cuenta."
+    "syncJoinNotFound": "Ese espacio no existe en esta cuenta.",
+    "syncExported": "Exportado",
+    "syncImported": "Importado",
+    "syncPendingCount": "{count} pendientes"
   },
   "switcher": {
     "title": "Abrir un espacio de trabajo",

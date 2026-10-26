@@ -1,6 +1,7 @@
 import type { OAuthSession } from "@typbase/spaces";
 import type { LocalState, WorkspaceStore } from "@typbase/storage";
 
+import { base64ToBytes } from "@typbase/spaces";
 import {
   RelayClient,
   SessionManager,
@@ -11,6 +12,7 @@ import {
   workspaceSpaceUri,
   type WorkspaceClient,
 } from "@typbase/spaces";
+import { workspaceNameFromSnapshot } from "@typbase/storage";
 import { NATIVE_OAUTH_METADATA_PATH } from "@typbase/typing";
 
 import type { PublicProfile } from "~/lib/actor";
@@ -61,6 +63,8 @@ export interface WorkspaceSpaceSummary {
   /** The space rkey, which is also the local workspace id. */
   id: string;
   uri: string;
+  /** Display name read from the workspace snapshot, when one is available. */
+  name?: string;
 }
 
 export class AtprotoService {
@@ -442,7 +446,9 @@ export class AtprotoService {
   }
 
   /** Spaces the account can open as a workspace. */
-  async listWorkspaceSpaces(): Promise<WorkspaceSpaceSummary[]> {
+  async listWorkspaceSpaces(
+    knownIds: ReadonlySet<string> = new Set(),
+  ): Promise<WorkspaceSpaceSummary[]> {
     const session = this.sessionRef;
     const did = this.statusDid;
     if (!session || !did) return [];
@@ -472,7 +478,51 @@ export class AtprotoService {
       cursor = body.cursor;
     } while (cursor);
 
+    await Promise.all(
+      spaces.map(async (space) => {
+        if (knownIds.has(space.id)) return;
+        space.name = await this.readWorkspaceSpaceName(space.id).catch(() => undefined);
+      }),
+    );
+
     return spaces;
+  }
+
+  /** Read the workspace title from the latest workspace doc snapshot. */
+  private async readWorkspaceSpaceName(id: string): Promise<string | undefined> {
+    const session = this.sessionRef;
+    const did = this.statusDid;
+    if (!session || !did) return undefined;
+
+    let cursor: string | undefined;
+    do {
+      const params = new URLSearchParams({
+        space: workspaceSpaceUri(did, id),
+        repo: did,
+        collection: "at.typbase.snapshot",
+        limit: "100",
+        excludeValues: "false",
+      });
+      if (cursor) params.set("cursor", cursor);
+      const response = await session.fetchHandler(
+        `/xrpc/com.atproto.space.listRecords?${params.toString()}`,
+      );
+      if (!response.ok) return undefined;
+      const body = (await response.json()) as {
+        records?: Array<{
+          value?: { docId?: string; snapshot?: string };
+        }>;
+        cursor?: string;
+      };
+      for (const record of body.records ?? []) {
+        if (record.value?.docId !== id || !record.value.snapshot) continue;
+        const name = await workspaceNameFromSnapshot(base64ToBytes(record.value.snapshot));
+        if (name) return name;
+      }
+      cursor = body.cursor;
+    } while (cursor);
+
+    return undefined;
   }
 
   /** Confirm a space exists before opening it as a local workspace. */

@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import type { MaterialSymbol } from "material-symbols";
+
 import type { WorkspaceSpaceSummary } from "~/lib/atproto";
 
 import { pushToast } from "~/composables/toasts";
 import { formatAgo } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
+import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 /**
  * Sign-in and account details. The sign-in form is shared with the website
@@ -51,17 +54,29 @@ const joining = ref(false);
 
 const spaceUri = computed(() => atprotoStatus.value.spaceUri);
 const currentSpaceId = computed(() => spaceUri.value?.split("/").pop() ?? workspaceId.value);
+const exporting = computed(() => atprotoStatus.value.pendingUpdates > 0);
+const statusLabel = computed(() =>
+  exporting.value ? t("settings.syncExporting") : t("settings.syncInSync"),
+);
 
 function workspaceName(id: string): string {
   return workspaces.value.find((entry) => entry.id === id)?.name ?? "";
 }
 
 function spaceLabel(space: WorkspaceSpaceSummary): string {
-  return workspaceName(space.id) || `${t("settings.syncSharedWorkspace")} ${space.id}`;
+  return (
+    workspaceName(space.id) || space.name || `${t("settings.syncSharedWorkspace")} ${space.id}`
+  );
 }
 
 function isCurrentSpace(id: string): boolean {
   return id === currentSpaceId.value;
+}
+
+function spaceIcon(id: string): MaterialSymbol {
+  const icon = workspaces.value.find((entry) => entry.id === id)?.icon;
+
+  return (icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
 }
 
 /** A pasted space URI or a bare workspace id. */
@@ -86,7 +101,9 @@ async function loadSpaces(): Promise<void> {
   spacesLoading.value = true;
   spacesError.value = "";
   try {
-    spaces.value = await atproto.value.listWorkspaceSpaces();
+    spaces.value = await atproto.value.listWorkspaceSpaces(
+      new Set(workspaces.value.map((entry) => entry.id)),
+    );
   } catch (cause) {
     spacesError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -193,17 +210,30 @@ watch(
         </UiButton> -->
 
         <template v-if="atprotoStatus.syncing">
-          <p class="sync__hint">
-            {{
-              $t("settings.syncStatus", {
-                pending: atprotoStatus.pendingUpdates
-                  ? $t("settings.syncExporting")
-                  : $t("settings.syncInSync"),
-                exported: ago(atprotoStatus.lastExportAt),
-                imported: ago(atprotoStatus.lastImportAt),
-              })
-            }}
-          </p>
+          <div
+            class="sync__status"
+            :class="{ 'sync__status--busy': exporting }"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="sync__status-head">
+              <span class="sync__status-dot" aria-hidden="true" />
+              <span class="sync__status-label">{{ statusLabel }}</span>
+              <span v-if="atprotoStatus.pendingUpdates" class="sync__status-count">
+                {{ $t("settings.syncPendingCount", { count: atprotoStatus.pendingUpdates }) }}
+              </span>
+            </div>
+            <div class="sync__status-meta">
+              <span class="sync__status-meta-item">
+                <MsIcon name="upload" :size="14" />
+                {{ $t("settings.syncExported") }} {{ ago(atprotoStatus.lastExportAt) }}
+              </span>
+              <span class="sync__status-meta-item">
+                <MsIcon name="download" :size="14" />
+                {{ $t("settings.syncImported") }} {{ ago(atprotoStatus.lastImportAt) }}
+              </span>
+            </div>
+          </div>
           <!-- <p class="sync__hint" :class="{ 'sync__hint--error': atprotoStatus.error }">
             {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
           </p> -->
@@ -252,15 +282,16 @@ watch(
                 :class="{ 'sync__space-item--current': isCurrentSpace(space.id) }"
               >
                 <span class="sync__space-main">
-                  <MsIcon
-                    v-if="isCurrentSpace(space.id)"
-                    class="sync__space-check"
-                    name="check"
-                    :size="16"
-                  />
-                  <span class="sync__space-name">{{ spaceLabel(space) }}</span>
-                  <span v-if="isCurrentSpace(space.id)" class="sync__space-current">
-                    {{ $t("settings.syncCurrent") }}
+                  <MsIcon class="sync__space-icon" :name="spaceIcon(space.id)" :size="18" />
+                  <span class="sync__space-copy">
+                    <span class="sync__space-name">{{ spaceLabel(space) }}</span>
+                    <span class="sync__space-meta">
+                      <span class="sync__space-id">{{ space.id }}</span>
+                      <span v-if="isCurrentSpace(space.id)" class="sync__space-current">
+                        <MsIcon name="check" :size="13" />
+                        {{ $t("settings.syncCurrent") }}
+                      </span>
+                    </span>
                   </span>
                 </span>
                 <UiButton
@@ -394,6 +425,65 @@ watch(
   color: var(--color-danger);
 }
 
+.sync__status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-2-5);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sync__status-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sync__status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--color-ok);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--color-ok-soft);
+}
+
+.sync__status--busy .sync__status-dot {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 3px var(--color-warning-soft);
+}
+
+.sync__status-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.sync__status-count {
+  margin-left: auto;
+  padding: 1px var(--space-1-5);
+  color: var(--color-warning);
+  font-size: var(--text-xs);
+  background: var(--color-warning-soft);
+  border-radius: 999px;
+}
+
+.sync__status-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.sync__status-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+}
+
 .sync__label {
   margin: 0;
   font-size: var(--text-sm);
@@ -470,12 +560,20 @@ watch(
   min-width: 0;
 }
 
-.sync__space-check {
+.sync__space-icon {
   flex: none;
-  color: var(--color-accent);
+  color: var(--color-text-secondary);
+}
+
+.sync__space-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .sync__space-name {
+  display: block;
   min-width: 0;
   overflow: hidden;
   font-size: var(--text-sm);
@@ -483,10 +581,26 @@ watch(
   white-space: nowrap;
 }
 
-.sync__space-current {
-  flex: none;
+.sync__space-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.sync__space-id {
   color: var(--color-text-secondary);
-  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.sync__space-current {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-accent);
+  font-size: var(--text-2xs);
   white-space: nowrap;
 }
 

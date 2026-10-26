@@ -372,7 +372,10 @@
     "syncSharedWorkspace": "Arbeitsbereich",
     "syncNoSpaces": "Keine Spaces gefunden.",
     "syncJoinInvalid": "Gib eine Space-URI oder Arbeitsbereich-ID ein.",
-    "syncJoinNotFound": "Dieser Space existiert auf diesem Konto nicht."
+    "syncJoinNotFound": "Dieser Space existiert auf diesem Konto nicht.",
+    "syncExported": "Exportiert",
+    "syncImported": "Importiert",
+    "syncPendingCount": "{count} ausstehend"
   },
   "switcher": {
     "title": "Arbeitsbereich öffnen",
