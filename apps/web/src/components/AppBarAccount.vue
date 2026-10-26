@@ -5,15 +5,22 @@ const { t } = useI18n();
 const open = ref(false);
 
 const profile = computed(() => atprotoStatus.value.profile);
-const avatarFailed = ref(false);
-watch(
-  () => profile.value?.avatar,
-  () => {
-    avatarFailed.value = false;
-  },
+const activeAccount = computed(() =>
+  atprotoStatus.value.accounts.find((account) => account.did === atprotoStatus.value.did),
 );
+const avatar = computed(() => profile.value?.avatar ?? activeAccount.value?.avatar ?? null);
+const avatarFailed = ref(false);
+watch(avatar, () => {
+  avatarFailed.value = false;
+});
 const accountName = computed(
-  () => profile.value?.displayName || profile.value?.handle || atprotoStatus.value.did || "",
+  () =>
+    profile.value?.displayName ||
+    activeAccount.value?.displayName ||
+    profile.value?.handle ||
+    activeAccount.value?.handle ||
+    atprotoStatus.value.did ||
+    "",
 );
 
 function openProfile(did: string): void {
@@ -55,9 +62,9 @@ const label = computed(() => {
       <UiTooltip :text="label">
         <button type="button" class="app-bar-account__trigger" :class="tone">
           <img
-            v-if="profile?.avatar && !avatarFailed"
+            v-if="avatar && !avatarFailed"
             class="app-bar-account__avatar"
-            :src="profile.avatar"
+            :src="avatar"
             alt=""
             @error="avatarFailed = true"
           />

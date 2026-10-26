@@ -1,9 +1,9 @@
 /**
  * Client for the app's relay: a per-workspace fanout channel for Loro
  * updates and awareness payloads. Bears no secrets and stores nothing: the
- * relay is a plain WebSocket, the room is the workspace id, and the server
- * never writes anything down. When it drops, the poll loop in TypbaseSync is
- * the fallback. Presence is best-effort by design.
+ * relay is a plain WebSocket, the room is chosen by the caller (workspace and
+ * account), and the server never writes anything down. When it drops, the poll
+ * loop in TypbaseSync is the fallback. Presence is best-effort by design.
  */
 
 export type RelayMessage =

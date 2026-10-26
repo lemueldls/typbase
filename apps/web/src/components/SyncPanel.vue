@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MaterialSymbol } from "material-symbols";
 
-import type { WorkspaceSpaceSummary } from "~/lib/atproto";
+import type { AtprotoAccount, WorkspaceSpaceSummary } from "~/lib/atproto";
 
 import { pushToast } from "~/composables/toasts";
 import { formatAgo } from "~/lib/format";
@@ -22,15 +22,99 @@ const emit = defineEmits<{
 }>();
 
 const profile = computed(() => atprotoStatus.value.profile);
+const activeAccount = computed(
+  () =>
+    atprotoStatus.value.accounts.find((account) => account.did === atprotoStatus.value.did) ?? null,
+);
+const activeHandle = computed(() => profile.value?.handle ?? activeAccount.value?.handle ?? null);
+const activeAvatar = computed(() => profile.value?.avatar ?? activeAccount.value?.avatar ?? null);
 const profileName = computed(
-  () => profile.value?.displayName || profile.value?.handle || shortDid(atprotoStatus.value.did),
+  () =>
+    profile.value?.displayName ||
+    activeAccount.value?.displayName ||
+    profile.value?.handle ||
+    activeAccount.value?.handle ||
+    shortDid(atprotoStatus.value.did),
 );
 
 const SPACES_ALPHA_URL = "https://atproto.com/blog/atproto-spaces-alpha";
 
-async function onSignOut() {
-  await atproto.value?.signOut();
+const otherAccounts = computed(() =>
+  atprotoStatus.value.accounts.filter((account) => account.did !== atprotoStatus.value.did),
+);
+const addAccountOpen = ref(false);
+const switchBusy = ref<string | null>(null);
+const signingOut = ref(false);
+const removing = ref(false);
+const accountError = ref("");
+const removeTarget = ref<AtprotoAccount | null>(null);
+const removeOpen = ref(false);
+const accountBusy = computed(() => switchBusy.value !== null || signingOut.value || removing.value);
+
+function accountName(account: AtprotoAccount): string {
+  return account.displayName || account.handle || shortDid(account.did);
 }
+
+async function onSwitchAccount(did: string): Promise<void> {
+  if (accountBusy.value || did === atprotoStatus.value.did) return;
+  switchBusy.value = did;
+  accountError.value = "";
+  try {
+    await atproto.value?.switchAccount(did);
+    addAccountOpen.value = false;
+  } catch (cause) {
+    accountError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    switchBusy.value = null;
+  }
+}
+
+function toggleAddAccount(): void {
+  addAccountOpen.value = !addAccountOpen.value;
+  if (addAccountOpen.value) accountError.value = "";
+}
+
+function askRemoveAccount(account: AtprotoAccount): void {
+  removeTarget.value = account;
+  removeOpen.value = true;
+}
+
+async function confirmRemoveAccount(): Promise<void> {
+  const account = removeTarget.value;
+  if (!account) return;
+  removeTarget.value = null;
+  removeOpen.value = false;
+  removing.value = true;
+  accountError.value = "";
+  try {
+    await atproto.value?.removeAccount(account.did);
+  } catch (cause) {
+    accountError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    removing.value = false;
+  }
+}
+
+async function onSignOut() {
+  if (signingOut.value) return;
+  signingOut.value = true;
+  accountError.value = "";
+  try {
+    await atproto.value?.signOut();
+  } catch (cause) {
+    accountError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    signingOut.value = false;
+  }
+}
+
+watch(
+  () => atprotoStatus.value.did,
+  () => {
+    addAccountOpen.value = false;
+    accountError.value = "";
+  },
+);
 
 /** DIDs are long, so show the method prefix and the tail. */
 function shortDid(did: string | null): string {
@@ -112,7 +196,7 @@ async function loadSpaces(): Promise<void> {
 }
 
 async function openSpace(id: string): Promise<void> {
-  if (!id || joining.value) return;
+  if (!id || joining.value || accountBusy.value) return;
   joining.value = true;
   spacesError.value = "";
   try {
@@ -144,7 +228,7 @@ async function onJoin(): Promise<void> {
 }
 
 async function copySpace(): Promise<void> {
-  if (!spaceUri.value) return;
+  if (!spaceUri.value || accountBusy.value) return;
   await navigator.clipboard.writeText(spaceUri.value);
   pushToast({ titleKey: "common.copied", duration: 1800 });
 }
@@ -163,6 +247,10 @@ watch(
     <template v-if="atprotoReady && atproto">
       <template v-if="!atprotoStatus.signedIn">
         <p class="sync__hint">{{ $t("settings.syncSignInHint") }}</p>
+
+        <p v-if="atprotoStatus.error" class="sync__hint sync__hint--error" role="alert">
+          {{ atprotoStatus.error }}
+        </p>
 
         <AtprotoSignIn />
 
@@ -184,7 +272,7 @@ watch(
 
       <template v-else>
         <div class="sync__account">
-          <img v-if="profile?.avatar" class="sync__avatar" :src="profile.avatar" alt="" />
+          <img v-if="activeAvatar" class="sync__avatar" :src="activeAvatar" alt="" />
           <MsIcon
             v-else
             class="sync__avatar sync__avatar--placeholder"
@@ -193,7 +281,7 @@ watch(
           />
           <div class="sync__account-info">
             <span class="sync__account-name">{{ profileName }}</span>
-            <span v-if="profile?.handle" class="sync__handle">@{{ profile.handle }}</span>
+            <span v-if="activeHandle" class="sync__handle">@{{ activeHandle }}</span>
             <span class="sync__did">{{ atprotoStatus.did }}</span>
           </div>
         </div>
@@ -208,6 +296,84 @@ watch(
         >
           {{ $t("settings.viewProfile") }}
         </UiButton> -->
+
+        <div class="sync__accounts">
+          <div class="sync__accounts-head">
+            <p class="sync__label">{{ $t("settings.accountsTitle") }}</p>
+            <UiButton
+              variant="plain"
+              :icon="addAccountOpen ? 'close' : 'add'"
+              :disabled="accountBusy || !atprotoReady"
+              @click="toggleAddAccount"
+            >
+              {{ addAccountOpen ? $t("common.cancel") : $t("settings.accountAdd") }}
+            </UiButton>
+          </div>
+
+          <p v-if="otherAccounts.length" class="sync__hint">
+            {{ $t("settings.accountSwitchHint") }}
+          </p>
+
+          <ul v-if="otherAccounts.length" class="sync__account-list">
+            <li v-for="account in otherAccounts" :key="account.did" class="sync__account-row">
+              <img
+                v-if="account.avatar"
+                class="sync__account-avatar"
+                :src="account.avatar"
+                alt=""
+              />
+              <MsIcon
+                v-else
+                class="sync__account-avatar sync__account-avatar--placeholder"
+                name="account_circle"
+                :size="32"
+              />
+              <div class="sync__account-copy">
+                <span class="sync__account-row-name">{{ accountName(account) }}</span>
+                <span v-if="account.displayName || account.handle" class="sync__account-row-meta">
+                  <span v-if="account.displayName && account.handle" class="sync__handle">
+                    @{{ account.handle }}
+                  </span>
+                  <span class="sync__did">{{ shortDid(account.did) }}</span>
+                </span>
+              </div>
+              <div class="sync__account-actions">
+                <UiButton
+                  variant="plain"
+                  size="large"
+                  :aria-label="`${$t('settings.accountSwitch')} ${accountName(account)}`"
+                  :disabled="accountBusy"
+                  @click="onSwitchAccount(account.did)"
+                >
+                  {{
+                    switchBusy === account.did
+                      ? $t("settings.accountSwitching")
+                      : $t("settings.accountSwitch")
+                  }}
+                </UiButton>
+                <UiIconButton
+                  icon="person_remove"
+                  variant="ghost"
+                  danger
+                  :size="18"
+                  :label="`${$t('settings.accountRemove')} ${accountName(account)}`"
+                  :disabled="accountBusy"
+                  @click="askRemoveAccount(account)"
+                />
+              </div>
+            </li>
+          </ul>
+
+          <p v-else-if="!addAccountOpen" class="sync__hint">
+            {{ $t("settings.accountNone") }}
+          </p>
+
+          <AtprotoSignIn v-if="addAccountOpen" compact />
+
+          <p v-if="accountError" class="sync__hint sync__hint--error" role="alert">
+            {{ accountError }}
+          </p>
+        </div>
 
         <template v-if="atprotoStatus.syncing">
           <div
@@ -250,7 +416,13 @@ watch(
           <div class="sync__space">
             <div class="sync__space-head">
               <p class="sync__label">{{ $t("settings.syncSpace") }}</p>
-              <UiButton v-if="spaceUri" variant="plain" icon="content_copy" @click="copySpace">
+              <UiButton
+                v-if="spaceUri"
+                variant="plain"
+                icon="content_copy"
+                :disabled="accountBusy"
+                @click="copySpace"
+              >
                 {{ $t("settings.syncCopySpace") }}
               </UiButton>
             </div>
@@ -264,9 +436,13 @@ watch(
                 :placeholder="$t('settings.syncJoinPlaceholder')"
                 autocapitalize="none"
                 spellcheck="false"
-                :disabled="joining"
+                :disabled="joining || accountBusy"
               />
-              <UiButton type="submit" size="large" :disabled="joining || !joinInput.trim()">
+              <UiButton
+                type="submit"
+                size="large"
+                :disabled="joining || accountBusy || !joinInput.trim()"
+              >
                 {{ $t("settings.syncJoin") }}
               </UiButton>
             </form>
@@ -297,8 +473,7 @@ watch(
                 <UiButton
                   v-if="!isCurrentSpace(space.id)"
                   variant="plain"
-                  size="tiny"
-                  :disabled="joining"
+                  :disabled="joining || accountBusy"
                   @click="openSpace(space.id)"
                 >
                   {{ workspaceName(space.id) ? $t("settings.syncOpen") : $t("settings.syncJoin") }}
@@ -331,8 +506,13 @@ watch(
         </p>
 
         <div class="sync__footer">
-          <UiButton variant="danger" icon="logout" :disabled="!atprotoReady" @click="onSignOut">
-            {{ $t("settings.syncSignOut") }}
+          <UiButton
+            variant="danger"
+            icon="logout"
+            :disabled="!atprotoReady || accountBusy"
+            @click="onSignOut"
+          >
+            {{ signingOut ? $t("settings.syncSigningOut") : $t("settings.syncSignOut") }}
           </UiButton>
         </div>
       </template>
@@ -340,6 +520,17 @@ watch(
 
     <p v-else class="sync__hint">{{ $t("settings.syncRequiresServer") }}</p>
   </div>
+
+  <UiConfirmDialog
+    :open="removeOpen"
+    :title="$t('settings.accountRemoveTitle')"
+    :description="
+      $t('settings.accountRemoveConfirm', { name: removeTarget ? accountName(removeTarget) : '' })
+    "
+    :confirm-label="$t('settings.accountRemove')"
+    @update:open="(value) => !value && (removeOpen = false)"
+    @confirm="confirmRemoveAccount"
+  />
 </template>
 
 <style>
@@ -412,6 +603,95 @@ watch(
 
 .sync__profile {
   align-self: flex-start;
+}
+
+.sync__accounts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.sync__accounts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sync__account-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sync__account-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.sync__account-avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sync__account-avatar--placeholder {
+  color: var(--color-text-secondary);
+}
+
+.sync__account-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sync__account-row-name {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync__account-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.sync__account-row-meta .sync__handle {
+  flex: none;
+  font-size: var(--text-xs);
+}
+
+.sync__account-row-meta .sync__did {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync__account-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .sync__hint {
@@ -543,7 +823,7 @@ watch(
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--control-sm);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
 }

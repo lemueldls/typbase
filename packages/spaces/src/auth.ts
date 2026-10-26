@@ -261,17 +261,76 @@ export class SessionManager {
     return await oauth.signIn(identifier);
   }
 
-  async signOut(): Promise<void> {
+  /** Restore one of the other sessions the OAuth client has kept. */
+  async restoreAccount(did: string): Promise<OAuthSession> {
     const native = this.options.nativeAuth;
+    let session: OAuthSession;
     if (native) {
       const client = await this.nativeOAuth();
-      const session = await client.initRestore();
-      if (session) await client.revoke(session.session.sub);
-    } else if (this.currentDid) {
+      session = await client.restore(did);
+    } else {
       const oauth = await this.webOAuth();
-      await oauth.revoke(this.currentDid);
+      session = await oauth.restore(did);
     }
-    this.notify(null);
+    this.notify(session);
+
+    return session;
+  }
+
+  /** Revoke one stored session without changing the active one. */
+  async revoke(did: string): Promise<void> {
+    const activeDid = this.currentDid;
+    let failure: unknown;
+    try {
+      const native = this.options.nativeAuth;
+      if (native) {
+        const client = await this.nativeOAuth();
+        await client.revoke(did);
+      } else {
+        const oauth = await this.webOAuth();
+        await oauth.revoke(did);
+      }
+    } catch (error) {
+      failure = error;
+    }
+
+    if (failure) {
+      // The browser client drops the active marker before the network revoke,
+      // so put the active session back when the revoke did not go through.
+      if (activeDid) await this.pinActive(activeDid);
+    } else if (activeDid === did) {
+      this.notify(null);
+    } else if (activeDid) {
+      await this.pinActive(activeDid);
+    }
+
+    if (failure) throw failure;
+  }
+
+  /**
+   * @atproto/oauth-client-browser.revoke drops the active-session marker even
+   * when the revoked session is not the active one. Restore the active session
+   * without refreshing so a reload still finds it.
+   */
+  private async pinActive(did: string): Promise<void> {
+    try {
+      const native = this.options.nativeAuth;
+      if (native) {
+        const client = await this.nativeOAuth();
+        await client.restore(did, false);
+      } else {
+        const oauth = await this.webOAuth();
+        await oauth.client.restore(did, false);
+      }
+    } catch {
+      // The current session keeps working this run. A reload restores it only
+      // if the marker survived; otherwise the user signs in again.
+    }
+  }
+
+  async signOut(): Promise<void> {
+    if (this.currentDid) await this.revoke(this.currentDid);
+    else this.notify(null);
   }
 
   private async completeNativeCallback(params: URLSearchParams): Promise<OAuthSession> {

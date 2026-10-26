@@ -16,12 +16,16 @@ import { workspaceNameFromSnapshot } from "@typbase/storage";
 import { NATIVE_OAUTH_METADATA_PATH } from "@typbase/typing";
 
 import type { PublicProfile } from "~/lib/actor";
+import type { AtprotoAccount } from "~/lib/atprotoAccounts";
 
 import { fetchPublicProfile } from "~/lib/actor";
+import { readAccounts, writeAccounts } from "~/lib/atprotoAccounts";
 import { createNativeAuth } from "~/lib/nativeAuth";
 import { takeOAuthCallback } from "~/lib/oauthCallback";
 import { createSyncHost } from "~/lib/syncHost";
 import { withTimeout } from "~/lib/timeout";
+
+export type { AtprotoAccount } from "~/lib/atprotoAccounts";
 
 export interface Persona {
   name: string;
@@ -56,6 +60,8 @@ export interface AtprotoStatus {
   members: Array<{ did: string; handle: string | null }>;
   relayConnected: boolean;
   error: string | null;
+  /** Accounts saved on this device, active account first when just used. */
+  accounts: AtprotoAccount[];
 }
 
 /** One workspace space the signed-in account has written to. */
@@ -82,6 +88,8 @@ export class AtprotoService {
   private statusProfile: PublicProfile | null = null;
   private statusError: string | null = null;
   private members: Array<{ did: string; handle: string | null }> = [];
+  private accounts: AtprotoAccount[] = [];
+  private attachEpoch = 0;
   private disposed = false;
 
   private constructor(
@@ -112,6 +120,7 @@ export class AtprotoService {
   }
 
   private async restore(): Promise<void> {
+    this.accounts = readAccounts();
     const origin = this.opts.appUrl.replace(/\/$/, "");
     // Native shells always sign in through the system browser and a deep
     // link, dev included, so their client id is the deployed origin's
@@ -153,12 +162,14 @@ export class AtprotoService {
 
     this.sessionRef = session;
     this.statusDid = session.did;
+    this.recordActiveAccount(session.did);
 
     try {
       await this.attach();
     } catch (error) {
       this.setError(`Space setup failed: ${String(error)}`);
     }
+    this.emit();
     void this.refreshProfile();
   }
 
@@ -180,6 +191,7 @@ export class AtprotoService {
       members: this.members,
       relayConnected: this.relay?.connected ?? false,
       error: this.statusError,
+      accounts: this.accounts,
     };
   }
 
@@ -198,8 +210,14 @@ export class AtprotoService {
       throw error;
     }
 
+    if (this.disposed) return;
+
+    this.detach();
     this.sessionRef = session;
     this.statusDid = session.did;
+    this.statusProfile = null;
+    this.members = [];
+    this.recordActiveAccount(session.did);
 
     try {
       await this.attach();
@@ -211,12 +229,136 @@ export class AtprotoService {
   }
 
   async signOut(): Promise<void> {
+    const did = this.statusDid;
     await this.sessions.signOut();
+    if (did) this.removeStoredAccount(did);
     this.sessionRef = null;
     this.statusDid = null;
     this.statusProfile = null;
     this.detach();
     this.setError(null);
+    const next = this.accounts[0];
+    if (next) {
+      try {
+        await this.switchAccount(next.did);
+        return;
+      } catch {
+        // switchAccount reports the failure and leaves the app signed out.
+      }
+    }
+    this.emit();
+  }
+
+  /** Switch the active session without revoking the current one. */
+  async switchAccount(did: string): Promise<void> {
+    if (!did || did === this.statusDid) return;
+
+    this.setError(null);
+
+    let session: OAuthSession;
+    try {
+      // Restore first. A dead session leaves the current account alone.
+      session = await this.sessions.restoreAccount(did);
+    } catch (error) {
+      this.removeStoredAccount(did);
+      // A failed user-initiated switch leaves the active account in place, so
+      // the panel shows the error next to the list. A sign-out fallback has no
+      // active account to carry that message.
+      if (!this.statusDid) {
+        this.setError(`Account switch failed: ${String(error)}`);
+        this.emit();
+      }
+      throw error;
+    }
+
+    if (this.disposed) return;
+
+    this.detach();
+    this.statusProfile = null;
+    this.members = [];
+    await this.activateSession(session);
+  }
+
+  /** Revoke one account. Signing out the active account switches to the next. */
+  async removeAccount(did: string): Promise<void> {
+    if (did === this.statusDid) {
+      await this.signOut();
+      return;
+    }
+
+    try {
+      await this.sessions.revoke(did);
+    } finally {
+      this.removeStoredAccount(did);
+    }
+  }
+
+  private async activateSession(session: OAuthSession): Promise<void> {
+    if (this.disposed) return;
+
+    this.sessionRef = session;
+    this.statusDid = session.did;
+    this.recordActiveAccount(session.did);
+
+    try {
+      await this.attach();
+    } catch (error) {
+      this.setError(`Space setup failed: ${String(error)}`);
+    }
+    this.emit();
+    void this.refreshProfile();
+  }
+
+  private recordActiveAccount(did: string): void {
+    const now = Date.now();
+    let account = this.accounts.find((entry) => entry.did === did);
+    if (!account) {
+      account = {
+        did,
+        handle: null,
+        displayName: null,
+        avatar: null,
+        addedAt: now,
+        lastUsedAt: now,
+      };
+      this.accounts.push(account);
+    } else {
+      account.lastUsedAt = now;
+    }
+    if (this.statusProfile?.did === did) this.applyProfile(account, this.statusProfile);
+    this.accounts.sort((left, right) => right.lastUsedAt - left.lastUsedAt);
+    writeAccounts(this.accounts);
+    this.emit();
+  }
+
+  private updateAccountProfile(profile: PublicProfile): void {
+    let account = this.accounts.find((entry) => entry.did === profile.did);
+    if (!account) {
+      const now = Date.now();
+      account = {
+        did: profile.did,
+        handle: null,
+        displayName: null,
+        avatar: null,
+        addedAt: now,
+        lastUsedAt: now,
+      };
+      this.accounts.push(account);
+    }
+    this.applyProfile(account, profile);
+    this.accounts.sort((left, right) => right.lastUsedAt - left.lastUsedAt);
+    writeAccounts(this.accounts);
+  }
+
+  private applyProfile(account: AtprotoAccount, profile: PublicProfile): void {
+    account.handle = profile.handle ?? account.handle;
+    account.displayName = profile.displayName ?? account.displayName;
+    account.avatar = profile.avatar ?? account.avatar;
+  }
+
+  private removeStoredAccount(did: string): void {
+    this.accounts = this.accounts.filter((entry) => entry.did !== did);
+    writeAccounts(this.accounts);
     this.emit();
   }
 
@@ -227,7 +369,8 @@ export class AtprotoService {
    */
   private async attach(): Promise<void> {
     const session = this.sessionRef;
-    if (!session) throw new Error("Not signed in");
+    if (!session || this.disposed) return;
+    const epoch = this.attachEpoch;
 
     const airspace = createWorkspaceClient({
       session,
@@ -243,6 +386,7 @@ export class AtprotoService {
         appAccess: "open",
       });
     } catch (error) {
+      if (!this.isCurrentAttach(session, epoch)) return;
       // The session is fine. This PDS just cannot host the workspace space
       // (bsky.social does not run the spaces alpha). Publishing still works.
       if (isSpacesUnsupported(error)) {
@@ -255,8 +399,21 @@ export class AtprotoService {
       throw error;
     }
 
-    await this.startSync(airspace);
+    if (!this.isCurrentAttach(session, epoch)) return;
+    this.airspace = airspace;
+
+    try {
+      await this.startSync(airspace, session, epoch);
+    } catch (error) {
+      if (!this.isCurrentAttach(session, epoch)) return;
+      throw error;
+    }
+    if (!this.isCurrentAttach(session, epoch)) return;
     void this.refreshMembers();
+  }
+
+  private isCurrentAttach(session: OAuthSession, epoch: number): boolean {
+    return !this.disposed && this.attachEpoch === epoch && this.sessionRef === session;
   }
 
   /**
@@ -266,7 +423,7 @@ export class AtprotoService {
    */
   private async refreshProfile(): Promise<void> {
     const session = this.sessionRef;
-    if (!session) return;
+    if (!session || this.disposed) return;
     const did = session.did;
 
     let handle: string | null = null;
@@ -284,7 +441,7 @@ export class AtprotoService {
     }
 
     const rich = await fetchPublicProfile(did);
-    if (this.sessionRef?.did !== did) return;
+    if (this.disposed || this.sessionRef?.did !== did) return;
     this.statusProfile = {
       did,
       handle: rich?.handle ?? handle,
@@ -293,50 +450,75 @@ export class AtprotoService {
       avatar: rich?.avatar ?? null,
       banner: rich?.banner ?? null,
     };
+    this.updateAccountProfile(this.statusProfile);
     this.emit();
   }
 
-  private async startSync(airspace: WorkspaceClient): Promise<void> {
-    const memberDid = this.sessionRef?.did ?? this.statusDid ?? "";
+  private async startSync(
+    airspace: WorkspaceClient,
+    session: OAuthSession,
+    epoch: number,
+  ): Promise<void> {
+    if (this.disposed) return;
+
+    const memberDid = session.did;
     const syncHost = createSyncHost(this.store, (level, message) =>
       console[level](`[sync] ${message}`),
     );
-    // Sync state is per space and has a schema revision. Bump the revision
-    // when the import order or host semantics change: the new key makes every
-    // device do one full scan instead of trusting cursors from the old model.
-    // `v2` opened pre-metadata page docs, which fixed pages coming in empty on
-    // a freshly joined workspace.
+    // Sync state is per account and space, and has a schema revision. Bump the
+    // revision when the import order or host semantics change: the new key
+    // makes every device do one full scan instead of trusting cursors from the
+    // old model. `v2` opened pre-metadata page docs, which fixed pages coming
+    // in empty on a freshly joined workspace. The DID keeps a switch from
+    // carrying the old account's cursors and pending queue into the new space.
+    const syncStatePrefix = `sync:${WORKSPACE_SPACE_TYPE}:v2:${memberDid}:`;
     const syncStore = {
-      get: (key: string) => this.local.get(`sync:${WORKSPACE_SPACE_TYPE}:v2:${key}`),
-      set: (key: string, value: unknown) =>
-        this.local.set(`sync:${WORKSPACE_SPACE_TYPE}:v2:${key}`, value),
+      get: (key: string) => this.local.get(`${syncStatePrefix}${key}`),
+      set: (key: string, value: unknown) => this.local.set(`${syncStatePrefix}${key}`, value),
     };
 
-    this.sync = new TypbaseSync(syncHost, syncStore, createAirspaceTransport(airspace.workspace), {
+    const sync = new TypbaseSync(syncHost, syncStore, createAirspaceTransport(airspace.workspace), {
       compactionThreshold: 100,
       pollIntervalMs: 5000,
     });
+    this.sync = sync;
 
     this.commitUnsubscribe?.();
     this.commitUnsubscribe = this.store.onLocalCommit((docId) => {
       void this.handleLocalCommit(docId);
     });
 
-    await this.sync.start();
+    await sync.start();
+    if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {
+      sync.stop();
+      return;
+    }
 
     // Once per account and space: push a snapshot of every doc so a fresh
     // device has a starting point, then send only deltas. The flag carries
     // the space type, so another space starts its own bootstrap.
     const bootstrapFlag = `synced:${memberDid}:${this.store.workspaceId}:${WORKSPACE_SPACE_TYPE}`;
     if (!(await this.local.get<boolean>(bootstrapFlag))) {
+      if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {
+        sync.stop();
+        return;
+      }
       try {
-        await this.sync.bootstrapSnapshots();
-        await this.local.set(bootstrapFlag, true);
+        await sync.bootstrapSnapshots();
+        if (this.isCurrentAttach(session, epoch) && this.sync === sync) {
+          await this.local.set(bootstrapFlag, true);
+        }
       } catch (error) {
-        this.setError(`Snapshot bootstrap failed: ${String(error)}`);
+        if (this.isCurrentAttach(session, epoch) && this.sync === sync) {
+          this.setError(`Snapshot bootstrap failed: ${String(error)}`);
+        }
       }
     }
 
+    if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {
+      sync.stop();
+      return;
+    }
     this.startRelay();
     this.emit();
   }
@@ -372,8 +554,11 @@ export class AtprotoService {
     // over. Without it the relay targets the app origin and just never opens,
     // which leaves the polling sync loop as the only path.
     const base = (this.opts.relayUrl?.trim() || this.opts.appUrl).replace(/\/$/, "");
-    const url = `${base}/relay?workspace=${encodeURIComponent(this.store.workspaceId)}`;
-    this.relay = new RelayClient(url, this.store.workspaceId, {
+    // Two accounts can use the same local workspace id. Scope the live room by
+    // DID so their relay traffic cannot cross.
+    const room = `${this.store.workspaceId}:${this.statusDid ?? ""}`;
+    const url = `${base}/relay?workspace=${encodeURIComponent(room)}`;
+    this.relay = new RelayClient(url, room, {
       onOpen: () => this.emit(),
       onClose: () => this.emit(),
       onUpdate: (docId, b64) => {
@@ -433,13 +618,16 @@ export class AtprotoService {
   }
 
   async refreshMembers(): Promise<void> {
-    if (!this.airspace) return;
+    const airspace = this.airspace;
+    if (!airspace) return;
 
     try {
-      const members = await this.airspace.workspace.manage.members.list();
+      const members = await airspace.workspace.manage.members.list();
+      if (this.airspace !== airspace) return;
       this.members = members.map((member) => ({ did: member.did, handle: null }));
       this.emit();
     } catch (error) {
+      if (this.airspace !== airspace) return;
       this.members = [];
       this.setError(`Member list failed: ${String(error)}`);
     }
@@ -484,6 +672,8 @@ export class AtprotoService {
         space.name = await this.readWorkspaceSpaceName(space.id).catch(() => undefined);
       }),
     );
+
+    if (this.sessionRef !== session || this.statusDid !== did) return [];
 
     return spaces;
   }
@@ -598,6 +788,7 @@ export class AtprotoService {
   }
 
   private detach(): void {
+    this.attachEpoch += 1;
     this.commitUnsubscribe?.();
     this.commitUnsubscribe = undefined;
     this.sync?.stop();
@@ -605,6 +796,9 @@ export class AtprotoService {
     this.relay?.disconnect();
     this.relay = null;
     this.airspace = null;
+    this.members = [];
+    this.presence.clear();
+    this.relayVersions.clear();
   }
 
   private setError(message: string | null): void {

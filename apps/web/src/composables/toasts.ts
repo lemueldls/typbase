@@ -1,5 +1,3 @@
-import { ref } from "vue";
-
 export interface ToastAction {
   /** i18n key for the button label. */
   labelKey: string;

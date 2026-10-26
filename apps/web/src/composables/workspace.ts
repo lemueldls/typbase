@@ -147,6 +147,7 @@ function useWorkspaceState() {
     members: [],
     relayConnected: false,
     error: null,
+    accounts: [],
   });
   const atprotoReady = ref(false);
   let ensurePromise: Promise<WorkspaceStore | null> | undefined;
@@ -516,6 +517,7 @@ function useWorkspaceState() {
       members: [],
       relayConnected: false,
       error: null,
+      accounts: [],
     };
     if (flush) {
       void workspace.value?.flush();
