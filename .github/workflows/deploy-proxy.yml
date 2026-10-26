@@ -1,0 +1,88 @@
+name: Deploy Proxy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-proxy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: 📡 Deploy proxy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: 🔍 Check configuration
+        id: gate
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Cloudflare credentials are not set; skipping the proxy deploy."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🔄 Checkout
+        if: steps.gate.outputs.deploy == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: 🌙 Setup moon
+        if: steps.gate.outputs.deploy == 'true'
+        uses: ./.github/actions/setup-moon
+        with:
+          node-version: "26"
+
+      - name: 📥 Install dependencies
+        if: steps.gate.outputs.deploy == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build the proxy
+        if: steps.gate.outputs.deploy == 'true'
+        run: pnpm --filter @typbase/proxy build
+        env:
+          NITRO_PRESET: cloudflare-durable
+
+      - name: 🛡️ Check the generated worker
+        if: steps.gate.outputs.deploy == 'true'
+        run: |
+          node -e '
+            const config = require("./apps/proxy/.output/server/wrangler.json")
+            if (!config.durable_objects?.bindings?.length) {
+              throw new Error("the proxy build has no Durable Object binding")
+            }
+            if (!config.migrations?.length) {
+              throw new Error("the proxy build has no Durable Object migration")
+            }
+          '
+
+      - name: 🧰 Prepare the Wrangler action
+        if: steps.gate.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/wrangler-action"
+          printf '{"private":true}\n' > "$RUNNER_TEMP/wrangler-action/package.json"
+
+      - name: 🚀 Deploy to Cloudflare
+        if: steps.gate.outputs.deploy == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: ${{ runner.temp }}/wrangler-action
+          packageManager: npm
+          wranglerVersion: "4"
+          command: deploy --config ${{ github.workspace }}/apps/proxy/.output/server/wrangler.json

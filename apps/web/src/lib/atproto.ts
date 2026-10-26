@@ -99,7 +99,7 @@ export class AtprotoService {
       appUrl: string;
       oauthOrigin: string;
       handleResolver?: string;
-      relayUrl?: string;
+      proxyUrl?: string;
     },
   ) {}
 
@@ -110,7 +110,7 @@ export class AtprotoService {
       appUrl: string;
       oauthOrigin: string;
       handleResolver?: string;
-      relayUrl?: string;
+      proxyUrl?: string;
     },
   ): Promise<AtprotoService> {
     const service = new AtprotoService(store, local, opts);
@@ -550,10 +550,10 @@ export class AtprotoService {
   private startRelay(): void {
     if (this.relay) return;
 
-    // Static deploys have no Nitro relay. `relayUrl` lets a hosted one take
+    // Static deploys have no Nitro relay. `proxyUrl` lets a hosted one take
     // over. Without it the relay targets the app origin and just never opens,
     // which leaves the polling sync loop as the only path.
-    const base = (this.opts.relayUrl?.trim() || this.opts.appUrl).replace(/\/$/, "");
+    const base = (this.opts.proxyUrl?.trim() || this.opts.appUrl).replace(/\/$/, "");
     // Two accounts can use the same local workspace id. Scope the live room by
     // DID so their relay traffic cannot cross.
     const room = `${this.store.workspaceId}:${this.statusDid ?? ""}`;

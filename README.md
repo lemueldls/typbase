@@ -48,6 +48,8 @@ pnpm install
 pnpm dev
 ```
 
+The static app runs on its own. An optional live relay and font API proxy can also run using `pnpm dev:proxy` in a second terminal, and set with `NUXT_PUBLIC_PROXY_URL=http://localhost:3001` if you want live rooms.
+
 ### Production
 
 ```sh
@@ -55,6 +57,15 @@ pnpm install
 pnpm build
 pnpm preview
 ```
+
+To host the relay and font proxy, build the companion service separately:
+
+```sh
+pnpm build:proxy
+node apps/proxy/.output/server/index.mjs
+```
+
+Set `NUXT_PUBLIC_PROXY_URL` to the companion service origin when building the web app.
 
 ## Installation
 

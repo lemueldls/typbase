@@ -452,8 +452,8 @@ function useWorkspaceState() {
           // when the webview loads the dev server, so the configured origin is
           // kept separate from the page origin.
           oauthOrigin: String(runtimeConfig.public.appUrl ?? ""),
-          ...(runtimeConfig.public.relayUrl
-            ? { relayUrl: String(runtimeConfig.public.relayUrl) }
+          ...(runtimeConfig.public.proxyUrl
+            ? { proxyUrl: String(runtimeConfig.public.proxyUrl) }
             : {}),
           ...(runtimeConfig.public.pdsUrl
             ? { handleResolver: String(runtimeConfig.public.pdsUrl) }

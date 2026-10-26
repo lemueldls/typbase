@@ -1,18 +1,5 @@
 import { defineWebSocketHandler } from "nitro/h3";
 
-/**
- * Relay: per-workspace fanout, no data at rest. Peers connect to
- * `/relay?workspace=<room>`. Each peer subscribes to a room-scoped topic,
- * so rooms stay isolated without a custom upgrade hook (the upgrade hook
- * stalls the handshake in this nightly, hence the topic approach).
- * Messages are opaque JSON (Loro updates, awareness payloads) forwarded
- * to everyone else in the room.
- *
- * PDS notifyWrite registration is deliberately not implemented here: the
- * sync engine polls listRepoOps, which is the correctness path. The relay
- * only makes it fast.
- */
-
 function workspaceOf(request: Request): string {
   try {
     return new URL(request.url).searchParams.get("workspace") ?? "";

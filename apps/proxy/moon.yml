@@ -1,0 +1,45 @@
+language: "typescript"
+stack: "frontend"
+layer: "application"
+
+tasks:
+  dev:
+    command: "pnpm nitro dev"
+    preset: "server"
+    options:
+      persistent: true
+
+  build:
+    command: "pnpm nitro build"
+    inputs:
+      - "routes/**/*"
+      - "lib/**/*"
+      - "nitro.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "/pnpm-workspace.yaml"
+    outputs:
+      - ".output/**/*"
+
+  test:
+    command: "pnpm test"
+    inputs:
+      - "routes/**/*"
+      - "lib/**/*"
+      - "test/**/*"
+      - "nitro.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+
+  typecheck:
+    command: "pnpm typecheck"
+    inputs:
+      - "routes/**/*"
+      - "lib/**/*"
+      - "test/**/*"
+      - "nitro.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "/pnpm-lock.yaml"

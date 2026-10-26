@@ -152,7 +152,7 @@ export default defineNuxtConfig({
       appUrl: "http://localhost:3000",
       nativeAppUrl: "",
       pdsUrl: "",
-      relayUrl: "",
+      proxyUrl: process.env.NODE_ENV === "development" ? "http://localhost:3001" : "",
     },
   },
   nitro: {

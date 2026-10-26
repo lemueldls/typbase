@@ -48,8 +48,14 @@ jobs:
       - name: 🧠 Typecheck
         run: pnpm typecheck
 
+      - name: 🧪 Test proxy app
+        run: pnpm test:proxy
+
       - name: 🔨 Build web app
         run: pnpm build
+
+      - name: 🔨 Build proxy app
+        run: pnpm build:proxy
 
   engine:
     name: 🦀 Engine tests

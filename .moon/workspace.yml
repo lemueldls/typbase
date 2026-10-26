@@ -1,5 +1,6 @@
 projects:
   web: "apps/web"
+  proxy: "apps/proxy"
   native: "apps/native"
   engine: "packages/engine"
   codemirror: "packages/codemirror"

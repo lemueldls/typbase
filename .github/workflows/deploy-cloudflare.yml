@@ -61,7 +61,7 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         run: pnpm generate
         env:
-          NUXT_PUBLIC_RELAY_URL: ${{ vars.NUXT_PUBLIC_RELAY_URL }}
+          NUXT_PUBLIC_PROXY_URL: ${{ vars.NUXT_PUBLIC_PROXY_URL || 'https://proxy.typbase.at' }}
 
       - name: 🛡️ Check the OAuth metadata
         if: steps.gate.outputs.deploy == 'true'
