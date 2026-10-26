@@ -97,17 +97,16 @@
   }
 }
 
-// Renders the board in a note. The host answers the plugin-data query, so
-// the note recompiles whenever the drawing changes.
+// Renders the board in a note at the ink's own bounds, without a frame. The
+// host answers the plugin-data query, so the note recompiles whenever the
+// drawing changes.
 #let embed(instance-id) = {
   let data = typbase.query("plugin-data", filter: instance-id)
   if data == none { return text(fill: luma(140))[Missing drawing] }
 
   let all = ordered(data.at("strokes", default: ()))
   if all.len() == 0 {
-    return box(width: 100%, inset: 8pt, stroke: 0.5pt, radius: 4pt)[
-      #text(fill: luma(140))[Empty drawing]
-    ]
+    return text(fill: luma(140))[Empty drawing]
   }
 
   let xs = ()
@@ -122,43 +121,41 @@
   let max-x = calc.max(..xs)
   let min-y = calc.min(..ys)
   let max-y = calc.max(..ys)
-  let scale = 360 / calc.max(max-x - min-x, 1)
+  // A stroke is centered on its points, so half the widest brush is part of
+  // the drawing's bounds. Without this the outer edge clips at the frame.
+  let widths = all.map(stroke => stroke.at("width", default: 3))
+  let pad = calc.max(..widths) / 2
+  let width = (max-x - min-x + 2 * pad) * 1pt
+  let height = (max-y - min-y + 2 * pad) * 1pt
 
   link("typbase://plugin/" + instance-id)[
-    #box(
-      width: 100%,
-      height: ((max-y - min-y) * scale + 10) * 1pt,
-      inset: 5pt,
-      stroke: 0.5pt,
-      radius: 4pt,
-      [
-        #for stroke in all [
-          #let bounds = stroke-bounds(stroke)
-          #let segs = (
-            stroke
-              .points
-              .enumerate()
-              .map(((index, point)) => {
-                let px = ((point.at(0) - bounds.at(0)) * scale) * 1pt
-                let py = ((point.at(1) - bounds.at(1)) * scale) * 1pt
-                if index == 0 { curve.move((px, py)) } else { curve.line((px, py)) }
-              })
-          )
-          #place(
-            dx: ((bounds.at(0) - min-x) * scale) * 1pt,
-            dy: ((bounds.at(1) - min-y) * scale) * 1pt,
-            curve(
-              fill: none,
-              stroke: (
-                paint: rgb(stroke.color),
-                thickness: calc.max(stroke.width * scale * 1pt, 0.5pt),
-              ),
-              ..segs,
+    #box(width: width, height: height, [
+      #for stroke in all [
+        #let bounds = stroke-bounds(stroke)
+        #let segs = (
+          stroke
+            .points
+            .enumerate()
+            .map(((index, point)) => {
+              let px = ((point.at(0) - bounds.at(0) + pad) * 1pt)
+              let py = ((point.at(1) - bounds.at(1) + pad) * 1pt)
+              if index == 0 { curve.move((px, py)) } else { curve.line((px, py)) }
+            })
+        )
+        #place(
+          dx: ((bounds.at(0) - min-x + pad) * 1pt),
+          dy: ((bounds.at(1) - min-y + pad) * 1pt),
+          curve(
+            fill: none,
+            stroke: (
+              paint: rgb(stroke.color),
+              thickness: calc.max(stroke.width * 1pt, 0.5pt),
             ),
-          )
-        ]
-      ],
-    )
+            ..segs,
+          ),
+        )
+      ]
+    ])
   ]
 }
 
