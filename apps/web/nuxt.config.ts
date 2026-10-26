@@ -137,6 +137,9 @@ export default defineNuxtConfig({
     resolve: {
       alias: {
         "loro-crdt": "loro-crdt/bundler",
+        // unifont imports node:process for its Node proxy dispatcher. The
+        // browser build has no proxy env, so the shim keeps it inert.
+        "node:process": fileURLToPath(new URL("./src/lib/nodeProcessShim.ts", import.meta.url)),
       },
     },
     // experimental: { bundledDev: true },

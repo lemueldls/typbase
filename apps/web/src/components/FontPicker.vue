@@ -57,7 +57,7 @@ function pick(next: string): void {
       @select="pick"
     >
       <template #trigger>
-        <UiButton type="button" class="font-picker__trigger" :disabled="disabled">
+        <UiButton type="button" class="font-picker__trigger" size="large" :disabled="disabled">
           <span class="font-picker__value">{{ current?.label ?? value ?? fallback }}</span>
           <MsIcon name="keyboard_arrow_down" :size="18" />
         </UiButton>

@@ -56,7 +56,7 @@ function onRowClick(event: MouseEvent) {
 <style>
 .settings-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 17rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 13rem);
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-2-5) var(--space-3);

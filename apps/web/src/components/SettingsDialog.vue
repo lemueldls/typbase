@@ -780,6 +780,17 @@ async function updateFont(patch: {
 const fontUploadError = ref("");
 const missingFonts = ref<string[]>([]);
 const systemFontDialogOpen = ref(false);
+const webFontDialogOpen = ref(false);
+const runtimeConfig = useRuntimeConfig();
+const fontProxyBase = computed(() => {
+  const config = runtimeConfig.public;
+  const origin = String(config.proxyUrl ?? "").trim();
+  if (!origin) return "";
+
+  const base = origin.replace(/\/+$/, "");
+
+  return base.endsWith("/fonts") ? base : `${base}/fonts`;
+});
 
 async function refreshMissingFonts(): Promise<void> {
   missingFonts.value = await missingFontFamilies(props.store);
@@ -1602,6 +1613,17 @@ async function renameWorkspace(event: Event) {
                   </p>
                 </div>
               </SettingsRow>
+
+              <SettingsRow
+                v-if="fontProxyBase"
+                :label="$t('settings.webFonts')"
+                :hint="$t('settings.webFontsHint')"
+                anchor="web-fonts"
+              >
+                <UiButton variant="primary" @click="webFontDialogOpen = true">
+                  {{ $t("settings.browseWebFonts") }}
+                </UiButton>
+              </SettingsRow>
             </SettingsSection>
           </section>
 
@@ -1794,6 +1816,7 @@ async function renameWorkspace(event: Event) {
     </div>
 
     <SystemFontDialog v-model:open="systemFontDialogOpen" :store="store" />
+    <WebFontDialog v-model:open="webFontDialogOpen" :store="store" :api-base="fontProxyBase" />
 
     <div class="settings__close">
       <UiIconButton
