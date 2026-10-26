@@ -1402,9 +1402,9 @@ describe("typbase app", async () => {
     });
     await page.waitForTimeout(200);
 
-    // The toolbar menu restores focus to its trigger after the palette mounts.
+    // The sidebar menu restores focus to its trigger after the palette mounts.
     // The input has to win anyway so typing lands in the search box.
-    await page.locator('[aria-label="More actions"]').first().click();
+    await page.locator('[aria-label="Workspace actions"]').first().click();
     await page.getByRole("menuitem", { name: "Search" }).click();
     await page.waitForSelector(".search-palette", { timeout: 30_000 });
     await expect
@@ -1832,7 +1832,7 @@ describe("typbase app", async () => {
     await page.locator('[aria-label="More actions"]').first().click();
     await page.getByRole("menuitem", { name: "Links" }).click();
     await page.waitForSelector(".links", { timeout: 30_000 });
-    await page.locator('[aria-label="Open graph"]').first().click();
+    await page.locator('[aria-label="Open backlink graph"]').first().click();
     await page.waitForSelector(".graph canvas", { timeout: 60_000 });
     await expect
       .poll(() => page.evaluate(() => window.__typbase.store.getSettings().graph), {

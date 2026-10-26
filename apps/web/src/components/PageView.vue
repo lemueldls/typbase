@@ -64,7 +64,8 @@ const emit = defineEmits<{
   (e: "openGraph"): void;
 }>();
 
-const { workspace, workspaceId, dataRevision, ensure, presence, atproto } = useWorkspace();
+const { workspace, workspaceId, dataRevision, ensure, presence, atproto, atprotoStatus } =
+  useWorkspace();
 const { t } = useI18n();
 
 const typstState = shallowRef<TypstState>();
@@ -95,6 +96,7 @@ const formatOpen = useLocalStorage("typbase:formatToolbar", true);
 const linksOpen = useLocalStorage("typbase:linksPanel", false);
 const assetsOpen = ref(false);
 const exportOpen = ref(false);
+const publishOpen = ref(false);
 
 // The toolbar drops its action buttons into the overflow menu when the pane is
 // narrow. Observed on the pane, not a viewport media query: expanding the
@@ -1242,15 +1244,6 @@ function setCategory(categoryId: string | null): void {
           @click="formatOpen = !formatOpen"
         />
 
-        <UiIconButton
-          v-if="store && aiEnabled"
-          icon="forum"
-          :label="$t('chat.ask')"
-          :disabled="!ready"
-          class="page-view__ai-toggle"
-          @click="askAi"
-        />
-
         <!-- <UiIconButton
           v-if="store"
           icon="link"
@@ -1278,7 +1271,7 @@ function setCategory(categoryId: string | null): void {
           />
         </UiPopover>
 
-        <PublishButton v-if="store" :page-id="pageId" :store="store" />
+        <PublishDialog v-if="store" v-model:open="publishOpen" :page-id="pageId" :store="store" />
 
         <ExportDialog
           v-if="store"
@@ -1369,6 +1362,10 @@ function setCategory(categoryId: string | null): void {
             <UiIconButton icon="more_vert" :label="$t('pageView.moreActions')" :disabled="!ready" />
           </template>
 
+          <UiMenuItem v-if="store && aiEnabled" icon="forum" :disabled="!ready" @select="askAi">
+            {{ $t("chat.ask") }}
+          </UiMenuItem>
+
           <UiMenuItem
             v-if="compact && modelValue !== 'read'"
             icon="text_format"
@@ -1385,6 +1382,8 @@ function setCategory(categoryId: string | null): void {
           >
             {{ $t("assets.title") }}
           </UiMenuItem>
+
+          <UiMenuSeparator v-if="(store && aiEnabled) || (compact && modelValue !== 'read')" />
 
           <UiMenuItem
             :icon="meta?.kind === 'notebook' ? 'description' : 'view_agenda'"
@@ -1428,6 +1427,18 @@ function setCategory(categoryId: string | null): void {
           <UiMenuItem icon="content_copy" :disabled="!ready" @select="copyPageId">
             <span class="page-view__menu-label">
               {{ $t("common.copyId") }}
+            </span>
+          </UiMenuItem>
+
+          <UiMenuSeparator />
+
+          <UiMenuItem
+            v-if="store && atprotoStatus.signedIn"
+            :icon="meta?.publishedAt ? 'cloud_done' : 'cloud_upload'"
+            @select="publishOpen = true"
+          >
+            <span class="page-view__menu-label">
+              {{ meta?.publishedAt ? $t("pageView.republish") : $t("pageView.publish") }}
             </span>
           </UiMenuItem>
 
