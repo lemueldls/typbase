@@ -7,7 +7,7 @@ withDefaults(
   defineProps<{
     /** "plain" is the default bordered button and "ghost" is borderless. */
     variant?: "plain" | "primary" | "danger" | "ghost";
-    size?: "default" | "small" | "tiny";
+    size?: "default" | "small" | "tiny" | "large";
     /** Optional leading glyph. */
     icon?: MaterialSymbol;
     /** Glyph size in px. */
@@ -33,6 +33,7 @@ withDefaults(
       'button--ghost': variant === 'ghost',
       'button--small': size === 'small',
       'button--tiny': size === 'tiny',
+      'button--large': size === 'large',
     }"
   >
     <MsIcon v-if="icon" :name="icon" :size="iconSize" />
@@ -80,6 +81,11 @@ withDefaults(
 .button--ghost {
   background: transparent;
   border-color: transparent;
+}
+
+.button--large {
+  padding: var(--space-2);
+  /* font-size: var(--text-lg); */
 }
 
 .button--icon {

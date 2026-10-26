@@ -969,7 +969,7 @@ async function renameWorkspace(event: Event) {
                     align="start"
                   >
                     <template #trigger>
-                      <UiButton icon="apps">
+                      <UiButton icon="apps" size="large">
                         {{ $t("settings.iconMore") }}
                       </UiButton>
                     </template>
@@ -2276,12 +2276,12 @@ async function renameWorkspace(event: Event) {
   white-space: nowrap;
 }
 
-@media (max-width: 48rem) {
+/* @media (max-width: 48rem) {
   .settings__storage {
     flex-direction: column;
     align-items: stretch;
   }
-}
+} */
 
 .settings__ok {
   margin: var(--space-2) 0 0;
