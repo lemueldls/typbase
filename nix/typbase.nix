@@ -52,10 +52,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     owner = "lemueldls";
     repo = "typbase";
     tag = "typbase-v${finalAttrs.version}";
-    hash = "sha256-dHMCDTIkKeUmoJ6LXMRbIK304MwP8I9FHL9wtl0qLBs=";
+    hash = "sha256-nJ+3Bwdo4IDbnLYagkYRIcGHTj6Z2IXONiXEjroKJ+E=";
   };
 
-  cargoHash = "sha256-WpNX71q1RQJm2mCvdKjnFO+WBciX6PwfqErs65vpc58=";
+  cargoHash = "sha256-bCnLiuyUkF+XwkfjgsLQiHrHW8bRB5niPSkboJWX1Cw=";
 
   buildAndTestSubdir = "apps/native";
 
