@@ -22,7 +22,7 @@ export function presenceCursors(
       const peersChanged = transaction.effects.some((effect) => effect.is(presenceRefreshEffect));
       if (!peersChanged && !transaction.docChanged) return decorations;
 
-      return buildDecorations(transaction.state, docId, getPeers());
+      return buildPresenceDecorations(transaction.state, docId, getPeers());
     },
     provide: (decorationsField) => EditorView.decorations.from(decorationsField),
   });
@@ -30,7 +30,7 @@ export function presenceCursors(
   return field;
 }
 
-function buildDecorations(
+export function buildPresenceDecorations(
   state: EditorState,
   docId: string,
   peers: Map<string, PresencePeer>,
@@ -42,12 +42,16 @@ function buildDecorations(
     if (from < 0 || to > state.doc.length || from > to) continue;
 
     const color = data.persona.color;
-    decorations.push(
-      Decoration.mark({
-        class: "typbase-remote-cursor",
-        attributes: { style: `--cursor-color: ${color}`, "data-peer": peer },
-      }).range(from, to || from),
-    );
+    // A collapsed selection is a cursor, not a mark. CodeMirror rejects
+    // zero-length marks, which is what a peer's unfocused caret sends.
+    if (to > from) {
+      decorations.push(
+        Decoration.mark({
+          class: "typbase-remote-cursor",
+          attributes: { style: `--cursor-color: ${color}`, "data-peer": peer },
+        }).range(from, to),
+      );
+    }
 
     decorations.push(
       Decoration.widget({
