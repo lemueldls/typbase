@@ -86,13 +86,14 @@ export async function removeWorkspace(backend: StorageBackend, workspaceId: stri
 }
 
 async function removeEntryRecursive(backend: StorageBackend, path: string): Promise<void> {
-  const children = await backend.list(path);
-  if (children.length > 0) {
-    for (const child of children) {
+  // Only directories have children. The Tauri backend returns ENOTDIR when
+  // listing a file, while memory and OPFS return an empty list; stat keeps
+  // the walk independent of that difference.
+  const stat = await backend.stat(path);
+  if (stat?.kind === "directory") {
+    for (const child of await backend.list(path)) {
       await removeEntryRecursive(backend, `${path}/${child}`);
     }
   }
-  await backend.delete(path).catch(() => {
-    // Already gone, which is fine.
-  });
+  await backend.delete(path);
 }

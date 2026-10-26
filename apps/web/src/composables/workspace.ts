@@ -498,7 +498,7 @@ function useWorkspaceState() {
   }
 
   /** Nothing but the atproto/search/services belong to the old workspace. */
-  function teardownActive(): void {
+  function teardownActive({ flush = true }: { flush?: boolean } = {}): void {
     unwatchSources?.();
     unwatchSources = undefined;
     atproto.value?.dispose();
@@ -517,8 +517,10 @@ function useWorkspaceState() {
       relayConnected: false,
       error: null,
     };
-    void workspace.value?.flush();
-    void localState.value?.flush();
+    if (flush) {
+      void workspace.value?.flush();
+      void localState.value?.flush();
+    }
     localState.value = undefined;
   }
 
@@ -816,17 +818,24 @@ function useWorkspaceState() {
 
   async function deleteWorkspace(id: string): Promise<void> {
     const reg = await ensureRegistry();
-    await removeWorkspace(backendRef.value!, id);
-    await reg.remove(id);
-    workspaces.value = await reg.list();
+    const deletingActive = activeWorkspaceId.value === id;
 
-    if (activeWorkspaceId.value === id) {
-      teardownActive();
+    // Stop the store before deleting its files. A flush here would write the
+    // open workspace back into the directory after the delete.
+    if (deletingActive) {
+      teardownActive({ flush: false });
       workspace.value = undefined;
       activeWorkspaceId.value = null;
       workspaceGeneration.value += 1;
       localStorage.removeItem(LAST_WORKSPACE_KEY);
       ensurePromise = undefined;
+    }
+
+    await removeWorkspace(backendRef.value!, id);
+    await reg.remove(id);
+    workspaces.value = await reg.list();
+
+    if (deletingActive) {
       if (workspaces.value.length === 0) localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
 
       // Boot the next workspace that exists (if any). The shell falls back to
@@ -841,7 +850,7 @@ function useWorkspaceState() {
     const active = backendRef.value;
     if (!active) return;
 
-    teardownActive();
+    teardownActive({ flush: false });
     workspace.value = undefined;
     activeWorkspaceId.value = null;
     workspaceGeneration.value += 1;
