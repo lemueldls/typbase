@@ -106,10 +106,17 @@ const sharedUrl = computed(() => {
 
   return wispSiteUrl(did, key, site.value.wisp.serviceUrl);
 });
+/** Wisp treats the shared path as a directory; show the address without the slash. */
+function cleanSiteUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
 /** The last deployed address, which is the only one that is actually live. */
-const openSiteUrl = computed(() => site.value.wisp.lastDeploy?.url ?? "");
-const displayUrl = computed(
-  () => openSiteUrl.value || siteBaseUrl(site.value, atprotoStatus.value.did) || sharedUrl.value,
+const openSiteUrl = computed(() => cleanSiteUrl(site.value.wisp.lastDeploy?.url ?? ""));
+const displayUrl = computed(() =>
+  cleanSiteUrl(
+    openSiteUrl.value || siteBaseUrl(site.value, atprotoStatus.value.did) || sharedUrl.value,
+  ),
 );
 
 const visibilityOptions = computed(() => [
@@ -416,7 +423,8 @@ function inlinePreview(files: Array<{ name: string; bytes: Uint8Array }>, html: 
     anchor.setAttribute("tabindex", "-1");
   }
   const style = doc.createElement("style");
-  style.textContent = 'a[aria-disabled="true"] { pointer-events: none; cursor: default; }';
+  style.textContent =
+    'a[aria-disabled="true"] { color: inherit; text-decoration: none; pointer-events: none; cursor: default; }';
   doc.head.append(style);
 
   return `<!doctype html>\n${doc.documentElement.outerHTML}`;
@@ -670,11 +678,21 @@ function copy(value: string): Promise<void> {
     <div ref="siteView" class="site-view__body">
       <div class="site-view__content">
         <div v-if="displayUrl" class="site-view__address">
-          <span v-if="site.wisp.lastDeploy" class="site-view__live-dot" aria-hidden="true" />
-          <span class="site-view__address-label">
-            {{ site.wisp.lastDeploy ? $t("site.liveAt") : $t("site.urlPreview") }}
+          <span
+            class="site-view__address-status"
+            :class="
+              site.wisp.lastDeploy
+                ? 'site-view__address-status--live'
+                : 'site-view__address-status--draft'
+            "
+          >
+            <span v-if="site.wisp.lastDeploy" class="site-view__live-dot" aria-hidden="true" />
+            {{ site.wisp.lastDeploy ? $t("site.live") : $t("site.draft") }}
           </span>
-          <code class="site-view__address-url" :title="displayUrl">{{ displayUrl }}</code>
+          <div class="site-view__address-copy">
+            <span class="site-view__address-label">{{ $t("site.publicUrl") }}</span>
+            <code class="site-view__address-url" :title="displayUrl">{{ displayUrl }}</code>
+          </div>
           <div class="site-view__address-actions">
             <UiIconButton
               icon="content_copy"
@@ -833,10 +851,12 @@ function copy(value: string): Promise<void> {
                       @update:model-value="toggleIncluded(page, $event)"
                     >
                       <span class="site-page__identity">
-                        <span class="site-page__title">{{
-                          pageSettings(page).title || page.title
-                        }}</span>
-                        <span class="site-page__path">{{ page.path }}</span>
+                        <span
+                          class="site-page__title"
+                          :title="pageSettings(page).title || page.title"
+                          >{{ pageSettings(page).title || page.title }}</span
+                        >
+                        <span class="site-page__path" :title="page.path">{{ page.path }}</span>
                       </span>
                     </UiCheckbox>
                     <div class="site-page__controls">
@@ -1392,16 +1412,6 @@ function copy(value: string): Promise<void> {
                       <p class="site-view__hint">{{ $t("site.publishHeroHint") }}</p>
                     </div>
                   </div>
-                  <UiButton
-                    class="site-publish__cta"
-                    variant="primary"
-                    icon="cloud_upload"
-                    :icon-size="22"
-                    :disabled="publishDisabled"
-                    @click="onPublish"
-                  >
-                    {{ site.wisp.lastDeploy ? $t("site.republish") : $t("site.publish") }}
-                  </UiButton>
                 </div>
 
                 <p v-if="publishBlockReason" class="site-publish__blocked">
@@ -1448,20 +1458,37 @@ function copy(value: string): Promise<void> {
                 <p v-if="error" class="site-view__error">{{ error }}</p>
 
                 <div class="site-publish__actions">
-                  <UiButton variant="plain" icon="preview" :disabled="busy" @click="openPreview">
-                    {{ $t("site.preview") }}
-                  </UiButton>
-                  <UiButton variant="plain" icon="download" :disabled="busy" @click="downloadSite">
-                    {{ $t("site.download") }}
-                  </UiButton>
+                  <div class="site-publish__secondary-actions">
+                    <UiButton variant="plain" icon="preview" :disabled="busy" @click="openPreview">
+                      {{ $t("site.preview") }}
+                    </UiButton>
+                    <UiButton
+                      variant="plain"
+                      icon="download"
+                      :disabled="busy"
+                      @click="downloadSite"
+                    >
+                      {{ $t("site.download") }}
+                    </UiButton>
+                    <UiButton
+                      v-if="site.wisp.lastDeploy"
+                      variant="danger"
+                      icon="cloud_off"
+                      :disabled="busy"
+                      @click="confirmUnpublish = true"
+                    >
+                      {{ $t("site.unpublish") }}
+                    </UiButton>
+                  </div>
                   <UiButton
-                    v-if="site.wisp.lastDeploy"
-                    variant="danger"
-                    icon="cloud_off"
-                    :disabled="busy"
-                    @click="confirmUnpublish = true"
+                    class="site-publish__cta"
+                    variant="primary"
+                    icon="cloud_upload"
+                    :icon-size="22"
+                    :disabled="publishDisabled"
+                    @click="onPublish"
                   >
-                    {{ $t("site.unpublish") }}
+                    {{ site.wisp.lastDeploy ? $t("site.republish") : $t("site.publish") }}
                   </UiButton>
                 </div>
               </section>
@@ -1552,8 +1579,8 @@ function copy(value: string): Promise<void> {
 .site-view__header {
   width: 100%;
   min-height: var(--pane-header-height);
-  padding: calc(var(--space-2) + var(--safe-top)) calc(var(--space-2) + var(--safe-right))
-    var(--space-2) calc(var(--space-2) + var(--safe-left));
+  padding: var(--space-2) calc(var(--space-2) + var(--safe-right)) var(--space-2)
+    calc(var(--space-2) + var(--safe-left));
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
@@ -1606,24 +1633,52 @@ function copy(value: string): Promise<void> {
 }
 
 .site-view__address {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-1-5) var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
+.site-view__address-status {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+.site-view__address-status--live {
+  color: var(--color-ok);
+  background: var(--color-ok-soft);
+}
+
+.site-view__address-status--draft {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+}
+
+.site-view__address-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .site-view__address-label {
-  flex: none;
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
 }
 
 .site-view__address-url {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   font-family: var(--font-mono);
@@ -2016,6 +2071,12 @@ function copy(value: string): Promise<void> {
   color: var(--color-text-secondary);
 }
 
+.site-page__advanced {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
 .site-page__advanced .ui-collapsible__trigger {
   width: auto;
   justify-content: flex-start;
@@ -2041,10 +2102,10 @@ function copy(value: string): Promise<void> {
 }
 
 .site-page {
+  padding: var(--space-3);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface);
 }
 
 .site-page--included {
@@ -2052,14 +2113,13 @@ function copy(value: string): Promise<void> {
 }
 
 .site-page__main {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
 }
 
 .site-page__include {
-  flex: 1;
   min-width: 0;
   align-items: flex-start;
 }
@@ -2069,26 +2129,30 @@ function copy(value: string): Promise<void> {
 }
 
 .site-page__include .ui-checkbox__label {
-  flex: 1;
   min-width: 0;
 }
 
 .site-page__identity {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 
 .site-page__title {
+  overflow: hidden;
   font-size: var(--text-sm);
   font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .site-page__path {
-  font-size: var(--text-xs);
+  overflow: hidden;
   color: var(--color-text-secondary);
-  overflow-wrap: anywhere;
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .site-page__controls {
@@ -2096,6 +2160,10 @@ function copy(value: string): Promise<void> {
   align-items: center;
   gap: var(--space-1);
   flex: none;
+}
+
+.site-page__controls .ui-select__trigger {
+  min-width: 8.5rem;
 }
 
 .site-page__grid {
@@ -2364,7 +2432,6 @@ function copy(value: string): Promise<void> {
 .site-publish__hero {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-4);
 }
 
@@ -2429,11 +2496,27 @@ function copy(value: string): Promise<void> {
   overflow-wrap: anywhere;
 }
 
+.site-publish__actions {
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.site-publish__secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .site-publish__cta {
   flex: none;
   justify-content: center;
   min-width: 12rem;
   min-height: var(--control-lg);
+  margin-left: auto;
   padding-inline: var(--space-6);
   font-weight: 600;
 }
@@ -2504,19 +2587,23 @@ function copy(value: string): Promise<void> {
   }
 
   .site-view__address {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+
+  .site-view__address-copy {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .site-view__address-url {
-    flex-basis: 100%;
-    order: 3;
     overflow-wrap: anywhere;
     white-space: normal;
   }
 
   .site-view__address-actions {
-    order: 2;
+    grid-column: 2;
+    grid-row: 1;
     margin-left: auto;
   }
 
@@ -2526,22 +2613,50 @@ function copy(value: string): Promise<void> {
   }
 
   .site-view__tabs {
-    position: static;
+    position: sticky;
+    top: calc(-1 * var(--space-2));
+    z-index: 3;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-2);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-0-5);
+    width: calc(100% + 2 * var(--space-2) + var(--safe-left) + var(--safe-right));
+    margin-inline: calc(-1 * var(--space-2) - var(--safe-left))
+      calc(-1 * var(--space-2) - var(--safe-right));
+    padding: var(--space-1) calc(var(--space-2) + var(--safe-right)) var(--space-1)
+      calc(var(--space-2) + var(--safe-left));
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .site-view__tab {
-    padding: var(--space-2);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-1-5) var(--space-1);
+    text-align: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .site-view__tab--active {
+    background: var(--color-accent-soft);
+    border: 0;
   }
 
   .site-view__tab-icon {
-    width: var(--control-sm);
-    height: var(--control-sm);
+    width: auto;
+    height: auto;
   }
 
-  .site-view__tab-hint {
+  .site-view__tab-label {
+    font-size: var(--text-xs);
+  }
+
+  .site-view__tab-hint,
+  .site-view__tab-count,
+  .site-view__tab-status {
     display: none;
   }
 
@@ -2556,13 +2671,19 @@ function copy(value: string): Promise<void> {
   }
 
   .site-page__main {
-    align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: var(--space-2);
   }
 
   .site-page__controls {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .site-page__controls .ui-select__trigger {
+    flex: 1;
+    min-width: 0;
   }
 
   .site-view__grid,
@@ -2604,8 +2725,14 @@ function copy(value: string): Promise<void> {
     align-items: flex-start;
   }
 
+  .site-publish__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .site-publish__cta {
-    align-self: stretch;
+    width: 100%;
+    margin-left: 0;
     justify-content: center;
   }
 

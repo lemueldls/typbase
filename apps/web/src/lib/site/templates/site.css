@@ -100,9 +100,13 @@ math {
   border-bottom: 1px solid var(--site-border);
 }
 .site-brand {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   font-weight: 650;
   color: var(--site-text);
   text-decoration: none;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .site-brand:hover {
@@ -336,6 +340,20 @@ body[data-nav="none"] .site-sidebar {
   border-top: 1px solid var(--site-border);
   color: var(--site-muted);
   font-size: 0.8rem;
+}
+.site-footer__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-footer a {
+  flex: none;
+  color: inherit;
+}
+.site-footer a:hover {
+  color: var(--site-accent);
+  text-decoration: underline;
 }
 .site-index__group h2 {
   font-size: 1.2rem;

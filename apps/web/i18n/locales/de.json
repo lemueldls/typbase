@@ -950,8 +950,9 @@
     "tabPublishHint": "Erstellen, Vorschau und veröffentlichen.",
     "live": "Live",
     "liveAt": "Live unter",
-    "urlPreview": "Wird veröffentlicht unter",
     "publishedUrl": "Live unter {url}",
-    "previewStatic": "Statische Vorschau. Links sind deaktiviert."
+    "previewStatic": "Statische Vorschau. Links sind deaktiviert.",
+    "publicUrl": "Öffentliche URL",
+    "draft": "Entwurf"
   }
 }

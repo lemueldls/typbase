@@ -3,6 +3,7 @@ import type { SiteSettings } from "@typbase/typing";
 
 import type { SiteBuildNavigationGroup } from "~/lib/site/build";
 
+import { PROJECT_URL } from "~/lib/projectLinks";
 import { absoluteUrl, relativeUrl } from "~/lib/site/urls";
 
 export interface SiteTocEntry {
@@ -92,7 +93,7 @@ const updated = computed(() =>
         >
           <span></span><span></span><span></span>
         </button>
-        <a class="site-brand" :href="root">{{ name }}</a>
+        <a class="site-brand" :href="root" :title="name">{{ name }}</a>
 
         <nav v-if="top" class="site-top">
           <a v-for="page in topPages" :key="page.id" :href="relativeUrl(root, page.url)">
@@ -126,6 +127,7 @@ const updated = computed(() =>
                     :class="{ 'is-current': page.id === currentPageId }"
                     :href="relativeUrl(root, page.url)"
                     :aria-current="page.id === currentPageId ? 'page' : undefined"
+                    :title="page.title"
                   >
                     {{ page.title }}
                   </a>
@@ -148,8 +150,8 @@ const updated = computed(() =>
           <article class="site-page" v-html="body"></article>
           <p v-if="site.showDates && updated" class="site-updated">Updated {{ updated }}</p>
           <footer class="site-footer">
-            <span>{{ name }}</span>
-            <span>Made with Typbase</span>
+            <span class="site-footer__name" :title="name">{{ name }}</span>
+            <a :href="PROJECT_URL" target="_blank" rel="noopener noreferrer"> Made with Typbase </a>
           </footer>
         </main>
       </div>

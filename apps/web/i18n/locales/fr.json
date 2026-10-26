@@ -950,8 +950,9 @@
     "tabPublishHint": "Compiler, prévisualiser et publier.",
     "live": "En ligne",
     "liveAt": "En ligne sur",
-    "urlPreview": "Sera publié sur",
     "publishedUrl": "En ligne sur {url}",
-    "previewStatic": "Aperçu statique. Les liens sont désactivés."
+    "previewStatic": "Aperçu statique. Les liens sont désactivés.",
+    "publicUrl": "URL publique",
+    "draft": "Brouillon"
   }
 }

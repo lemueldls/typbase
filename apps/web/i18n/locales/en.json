@@ -950,8 +950,9 @@
     "tabPublishHint": "Build, preview, and publish.",
     "live": "Live",
     "liveAt": "Live at",
-    "urlPreview": "Publishes to",
     "publishedUrl": "Live at {url}",
-    "previewStatic": "Static preview. Links are disabled."
+    "previewStatic": "Static preview. Links are disabled.",
+    "publicUrl": "Public URL",
+    "draft": "Draft"
   }
 }
