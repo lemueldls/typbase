@@ -91,6 +91,7 @@ async function onSignIn(): Promise<void> {
         type="submit"
         variant="primary"
         class="atproto-signin__button"
+        size="large"
         :aria-label="busy ? $t('settings.syncSignInBusy') : $t('settings.syncSignIn')"
         :disabled="busy || !atprotoReady || !identifier.trim()"
       >

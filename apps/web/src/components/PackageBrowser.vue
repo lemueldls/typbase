@@ -401,8 +401,22 @@ function openRepository(entry: PackageEntry) {
           </div>
 
           <div class="package-browser__actions">
+            <UiIconButton
+              v-if="latestVersion(entry)?.repository"
+              icon="open_in_new"
+              :size="20"
+              :label="$t('packages.repository')"
+              @click="openRepository(entry)"
+            />
+            <UiIconButton
+              :icon="copied === entry.name ? 'check' : 'content_copy'"
+              :size="20"
+              :label="copied === entry.name ? $t('packages.copied') : $t('packages.copySpec')"
+              @click="copySpec(entry)"
+            />
+
             <UiButton
-              size="small"
+              size="large"
               class="package-browser__action"
               :variant="isInstalled(entry.name, versionFor(entry)) ? 'plain' : 'primary'"
               :disabled="busy === rowKey(entry)"
@@ -416,20 +430,6 @@ function openRepository(entry: PackageEntry) {
               <MsIcon v-else :name="actionIcon(entry)" :size="20" />
               {{ actionLabel(entry) }}
             </UiButton>
-
-            <UiIconButton
-              :icon="copied === entry.name ? 'check' : 'content_copy'"
-              :size="20"
-              :label="copied === entry.name ? $t('packages.copied') : $t('packages.copySpec')"
-              @click="copySpec(entry)"
-            />
-            <UiIconButton
-              v-if="latestVersion(entry)?.repository"
-              icon="open_in_new"
-              :size="20"
-              :label="$t('packages.repository')"
-              @click="openRepository(entry)"
-            />
           </div>
         </div>
       </div>

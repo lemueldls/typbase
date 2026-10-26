@@ -1199,6 +1199,7 @@ function copy(value: string): Promise<void> {
                   <span class="site-domain__suffix">.wisp.place</span>
                   <UiButton
                     variant="primary"
+                    size="large"
                     :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
                     @click="claimSubdomain"
                   >
@@ -1234,6 +1235,7 @@ function copy(value: string): Promise<void> {
                     />
                     <UiButton
                       variant="primary"
+                      size="large"
                       :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
                       @click="claimCustomDomain"
                     >
@@ -1459,11 +1461,18 @@ function copy(value: string): Promise<void> {
 
                 <div class="site-publish__actions">
                   <div class="site-publish__secondary-actions">
-                    <UiButton variant="plain" icon="preview" :disabled="busy" @click="openPreview">
+                    <UiButton
+                      variant="plain"
+                      icon="preview"
+                      size="large"
+                      :disabled="busy"
+                      @click="openPreview"
+                    >
                       {{ $t("site.preview") }}
                     </UiButton>
                     <UiButton
                       variant="plain"
+                      size="large"
                       icon="download"
                       :disabled="busy"
                       @click="downloadSite"
@@ -1473,6 +1482,7 @@ function copy(value: string): Promise<void> {
                     <UiButton
                       v-if="site.wisp.lastDeploy"
                       variant="danger"
+                      size="large"
                       icon="cloud_off"
                       :disabled="busy"
                       @click="confirmUnpublish = true"
@@ -1483,6 +1493,7 @@ function copy(value: string): Promise<void> {
                   <UiButton
                     class="site-publish__cta"
                     variant="primary"
+                    size="large"
                     icon="cloud_upload"
                     :icon-size="22"
                     :disabled="publishDisabled"
@@ -2512,12 +2523,12 @@ function copy(value: string): Promise<void> {
 }
 
 .site-publish__cta {
-  flex: none;
-  justify-content: center;
-  min-width: 12rem;
-  min-height: var(--control-lg);
+  /* flex: none; */
+  /* justify-content: center; */
+  /* min-width: 12rem; */
+  /* min-height: var(--control-lg); */
   margin-left: auto;
-  padding-inline: var(--space-6);
+  /* padding-inline: var(--space-6); */
   font-weight: 600;
 }
 
