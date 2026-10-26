@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.6] - 2026-10-26
+
+### New
+
+- Space sync management
+
+### Fixed
+
+- Compact page header items
+- Post rendering of list items
+- Settings button sizings
+- Sync state document retrieval
+- Workspace deletion logic
+
 ## [0.4.5] - 2026-10-26
 
 ### New
