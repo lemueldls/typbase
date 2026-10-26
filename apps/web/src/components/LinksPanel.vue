@@ -205,7 +205,7 @@ function mentionCount(group: BacklinkGroup): string {
 }
 
 .links__title {
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--color-text);
 }

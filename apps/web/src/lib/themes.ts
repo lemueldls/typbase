@@ -517,6 +517,16 @@ const UI_DENSITY_SCALE: Record<UiDensity, number> = {
 };
 const UI_RADIUS_SCALE: Record<UiRadius, number> = { square: 0.25, default: 1, round: 1.5 };
 
+export function uiScale(settings?: Pick<AppChromeSettings, "uiSize" | "uiDensity">): {
+  size: number;
+  density: number;
+} {
+  return {
+    size: UI_SIZE_SCALE[settings?.uiSize ?? "default"],
+    density: UI_DENSITY_SCALE[settings?.uiDensity ?? "default"],
+  };
+}
+
 function cssFamily(family: string): string {
   // Family names are user data. Quote and escape so a stray quote cannot
   // break the declaration.
@@ -575,8 +585,9 @@ export function themeCssVars(
   }
 
   // Size presets multiply the token scale. tokens.css carries the fallbacks.
-  vars["--ui-size"] = String(UI_SIZE_SCALE[settings?.uiSize ?? "default"]);
-  vars["--ui-density"] = String(UI_DENSITY_SCALE[settings?.uiDensity ?? "default"]);
+  const scale = uiScale(settings);
+  vars["--ui-size"] = String(scale.size);
+  vars["--ui-density"] = String(scale.density);
   vars["--ui-radius"] = String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]);
   // The editor and the rendered headings follow the document text size. The
   // engine gets the same number for compiled output.

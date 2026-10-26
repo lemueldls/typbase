@@ -15,6 +15,7 @@ import {
   specString,
   type PackageEntry,
 } from "~/lib/packages";
+import { uiScale } from "~/lib/themes";
 
 import { openExternal } from "../lib/openExternal";
 
@@ -40,11 +41,12 @@ const sortOptions = computed(() => [
 const busy = ref<string>();
 const copied = ref<string>();
 const selected = reactive<Record<string, string>>({});
-const installed = useWorkspaceValue(
+const settings = useWorkspaceValue(
   () => props.store,
   ["settings"],
-  (store) => store.getSettings().installedPackages,
+  (store) => store.getSettings(),
 );
+const installed = computed(() => settings.value.installedPackages);
 
 const needle = computed(() => query.value.trim().toLowerCase());
 
@@ -68,12 +70,18 @@ const filtered = computed(() => {
   return list;
 });
 
-// The index has a few thousand rows, so render only what the dialog shows. Rows
-// stack their actions under the text on narrow screens, so they need more
-// height there. Mirrors `--breakpoint-sm` in tokens.css.
 const compact = useMediaQuery("(max-width: 40rem)");
+
+const rowHeight = computed(() => {
+  const { size, density } = uiScale(settings.value);
+  const content = compact.value ? 146 : 103;
+
+  return Math.round(content * size + 16 * density + 1);
+});
+const rowHeightPx = computed(() => `${rowHeight.value}px`);
+
 const { list, containerProps, wrapperProps } = useVirtualList(filtered, {
-  itemHeight: () => (compact.value ? 163 : 120),
+  itemHeight: () => rowHeight.value,
   overscan: 6,
 });
 
@@ -260,6 +268,7 @@ function openRepository(entry: PackageEntry) {
   <UiDialog
     v-model:open="open"
     class="package-dialog"
+    :style="{ '--package-row-height': rowHeightPx }"
     :title="$t('packages.title')"
     :description="$t('packages.description')"
   >
@@ -301,7 +310,7 @@ function openRepository(entry: PackageEntry) {
         v-for="index in 6"
         :key="index"
         class="package-browser__skeleton"
-        :height="compact ? '163px' : '120px'"
+        :height="rowHeightPx"
         radius="0"
       />
     </div>
@@ -469,7 +478,7 @@ function openRepository(entry: PackageEntry) {
   justify-content: space-between;
   gap: var(--space-2);
   box-sizing: border-box;
-  height: 120px;
+  height: var(--package-row-height);
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
@@ -621,11 +630,10 @@ function openRepository(entry: PackageEntry) {
 }
 
 /* Narrow screens: the row stacks its actions under the text and the search
-   takes its own line. Keep the heights in sync with the virtual list's
-   compact itemHeight. */
+   takes its own line. The compact row height comes from the script's
+   rowHeight, which the virtual list also uses. */
 @media (max-width: 40rem) {
   .package-browser__row {
-    height: 163px;
     flex-direction: column;
     align-items: stretch;
   }
