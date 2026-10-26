@@ -356,6 +356,159 @@ fn list_markers_stay_with_their_items() {
     );
 }
 
+/// A comment on the item's line is parsed as a separate top-level node. It
+/// must not become the block's kind: without the item's `inline` and
+/// `list_item` flags, the marker deferred from the previous item is not
+/// prepended to this chunk and lands in the next paragraph instead.
+#[test]
+fn list_marker_survives_a_trailing_comment() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    for (name, source) in [
+        (
+            "line_comment",
+            "before\n\n- one\n- two // comment\n\nafter\n",
+        ),
+        (
+            "block_comment",
+            "before\n\n- one\n- two /* comment */\n\nafter\n",
+        ),
+    ] {
+        let mut state = harness::state();
+        let id = harness::page(&mut state, name);
+        state.resize(&id, Some(600.0), None);
+
+        let render = chunk_by_items(&id, source, "", None, RenderTarget::Svg, &mut state);
+
+        let texts = |chunk: &FrameItemsChunk| {
+            chunk
+                .items
+                .iter()
+                .filter_map(|item| match &item.item {
+                    FrameItem::Text(text) => Some(text.text.to_string()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let two = render
+            .chunks
+            .iter()
+            .find(|chunk| source[chunk.range.clone()].starts_with("- two"))
+            .expect("second item chunk missing");
+
+        assert!(two.list_item, "{name}: item lost its list flag");
+
+        let two_texts = texts(two);
+        assert!(
+            two_texts.iter().any(|text| text == "•"),
+            "{name}: item lost its marker: {two_texts:?}",
+        );
+        assert!(
+            two_texts.iter().any(|text| text == "two"),
+            "{name}: item lost its text: {two_texts:?}",
+        );
+
+        let after = render
+            .chunks
+            .iter()
+            .find(|chunk| source[chunk.range.clone()].starts_with("after"))
+            .expect("trailing paragraph missing");
+        let after_texts = texts(after);
+
+        assert!(
+            !after_texts.iter().any(|text| text == "•"),
+            "{name}: marker leaked into the paragraph: {after_texts:?}",
+        );
+    }
+}
+
+/// A list item whose only content is generated has no frame item whose span
+/// sits inside the item: `#typbase.page-link` takes the text from its query,
+/// and that glyph span points back into the prelude. The title is not the
+/// previous block's source either, so the item must still get a chunk of its
+/// own with its marker and rendered title instead of leaving them in `before`.
+#[test]
+fn page_link_item_keeps_its_own_chunk() {
+    use crate::renderer::paged::items::chunk_by_items;
+    use crate::source::RenderTarget;
+
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    for (name, source) in [
+        (
+            "page_link_only",
+            "before\n\n- #typbase.page-link(\"target\")\n",
+        ),
+        (
+            "page_link_between",
+            "before\n\n- #typbase.page-link(\"target\")\n\nafter\n",
+        ),
+    ] {
+        let mut state = harness::state();
+        let id = harness::page(&mut state, name);
+        state.resize(&id, Some(600.0), None);
+
+        // Answer the page-link query so the item renders the title instead of
+        // failing on a missing file.
+        let query = state.create_file_id("/typbase/query/pages/by-id/target.json");
+        state.insert_file(&query, br#"{"title":"Target"}"#.to_vec());
+
+        let render = chunk_by_items(&id, source, "", None, RenderTarget::Svg, &mut state);
+
+        let texts = |chunk: &FrameItemsChunk| {
+            chunk
+                .items
+                .iter()
+                .filter_map(|item| match &item.item {
+                    FrameItem::Text(text) => Some(text.text.to_string()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let item = render
+            .chunks
+            .iter()
+            .find(|chunk| source[chunk.range.clone()].starts_with("- #typbase.page-link"))
+            .expect("list item chunk missing");
+
+        assert!(item.list_item, "{name}: item lost its list flag");
+
+        let item_texts = texts(item);
+        assert!(
+            item_texts.iter().any(|text| text == "•"),
+            "{name}: item lost its marker: {item_texts:?}",
+        );
+        assert!(
+            item_texts.iter().any(|text| text == "Target"),
+            "{name}: item lost its title: {item_texts:?}",
+        );
+
+        for chunk in &render.chunks {
+            if chunk.range == item.range {
+                continue;
+            }
+
+            let other = texts(chunk);
+            assert!(
+                !other.iter().any(|text| text == "•" || text == "Target"),
+                "{name}: item content leaked into {:?}: {other:?}",
+                chunk.range,
+            );
+        }
+    }
+}
+
 /// The editor stacks chunk widgets by height and never reads their page
 /// offsets, so the compiled spacing between two items only reaches the screen
 /// when the upper item's chunk includes it. Without that, `list(spacing:)`

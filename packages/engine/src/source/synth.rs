@@ -2,6 +2,7 @@ use std::ops::Range;
 
 use typst_syntax::{LinkedNode, Source, SyntaxKind};
 
+use super::context::SyncedInput;
 use crate::{
     bindings::TypstFileId,
     source::{
@@ -10,8 +11,6 @@ use crate::{
     state::TypstState,
     world::TypstWorld,
 };
-
-use super::context::SyncedInput;
 
 /// The result of a synth-building pass.
 pub struct SynthResult {
@@ -257,6 +256,7 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
     let mut in_block = false;
 
     let mut last_kind: Option<SyntaxKind> = None;
+    let mut last_content_kind: Option<SyntaxKind> = None;
 
     // End of the last top-level node accepted, used to drop parser error
     // artifacts that point back into text already emitted.
@@ -280,15 +280,11 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
 
                 if let Some(last_block) = blocks.last_mut() {
                     last_block.range.end = (last_block.range.end + until_newline).min(range.end);
-                    wrap_block(&mut builder, last_block, last_kind);
+                    wrap_block(&mut builder, last_block, last_content_kind.or(last_kind));
                 }
             } else if !leaf.trim().is_empty() {
-                // A newline-bearing leaf outside a block is content of its
-                // own. The parser folds an unclosed raw block or comment into
-                // one error leaf whose text still contains newlines. Closing
-                // the previous block again here wrapped it twice and produced
-                // an out-of-order map.
                 last_kind = Some(node.kind());
+                last_content_kind = (!node.kind().is_trivia()).then_some(node.kind());
                 in_block = true;
 
                 blocks.push(SynthBlock {
@@ -302,9 +298,14 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
             last_kind = Some(node.kind());
 
             if in_block {
+                if !node.kind().is_trivia() {
+                    last_content_kind = Some(node.kind());
+                }
+
                 let last_block = blocks.last_mut().unwrap();
                 last_block.range.end = last_block.range.end.max(range.end);
             } else {
+                last_content_kind = (!node.kind().is_trivia()).then_some(node.kind());
                 in_block = true;
 
                 blocks.push(SynthBlock {
@@ -320,7 +321,7 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
     if let Some(last_block) = blocks.last_mut()
         && in_block
     {
-        wrap_block(&mut builder, last_block, last_kind);
+        wrap_block(&mut builder, last_block, last_content_kind.or(last_kind));
     }
 
     let (synth, map) = builder.finish();

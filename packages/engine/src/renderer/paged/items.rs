@@ -24,17 +24,6 @@ use crate::{
     world::TypstWorld,
 };
 
-/// Chunks a Typst document into renderable blocks by frame items, handling
-/// diagnostics and error divergence.
-///
-/// The compile runs against the disposable render source, so recovery can
-/// rewrite it without touching the pristine synth. IDE queries parse the
-/// render source too (see `TypstState::hover`), which is why recovery must
-/// keep it compilable: blocks get blanked, math spans get placeholders.
-/// The editor's popup shows the equation the cursor is inside, so a caret
-/// narrows the overlays to that one equation. `None` builds an overlay for every
-/// equation, which is what a caller with no cursor position wants. The value is a
-/// raw UTF-16 offset, the position the editor reports.
 pub type TooltipFocus = Option<usize>;
 
 pub fn chunk_by_items(
@@ -156,9 +145,11 @@ pub fn chunk_by_items_with_blocks(
                 overlays = tags
                     .overlays()
                     .iter()
-                    .map(|(parent, span)| EquationOverlay {
-                        parent: *parent,
-                        range: world.range(*span),
+                    .map(|(parent, span)| {
+                        EquationOverlay {
+                            parent: *parent,
+                            range: world.range(*span),
+                        }
                     })
                     .collect();
 
@@ -190,32 +181,43 @@ pub fn chunk_by_items_with_blocks(
                         .unwrap_or(raw_range.end);
                     let raw_range_utf16 = start_utf16..end_utf16;
 
+                    let synth_range_start =
+                        context.map_repaired_to_render(repaired_range.start, Side::Before);
                     let synth_range_end =
                         context.map_repaired_to_render(repaired_range.end, Side::After);
 
                     let mut chunk_items = VecDeque::<BoundFrameItem>::new();
                     let mut deferred_items = Vec::<BoundFrameItem>::new();
 
+                    let mut matched = false;
+
                     // Grow the block's bounding box with each item it keeps.
                     let mut bounds = BlockBounds::default();
 
                     while let Some(frame_block) = bound_frame_items.peek() {
-                        if let Some(range) = &frame_block.range {
-                            if range.end <= synth_range_end {
-                                let frame_block = bound_frame_items.next().unwrap();
+                        let passed = frame_block
+                            .range
+                            .as_ref()
+                            .is_some_and(|range| range.start < synth_range_start);
+                        let belongs = frame_block.range.as_ref().is_some_and(|range| {
+                            range.start >= synth_range_start && range.end <= synth_range_end
+                        });
 
-                                // crate::log!("{frame_block:#?}");
+                        if belongs {
+                            let frame_block = bound_frame_items.next().unwrap();
+                            matched = true;
 
-                                bounds.absorb(&frame_block);
+                            // crate::log!("{frame_block:#?}");
 
-                                for deferred in deferred_items.drain(..) {
-                                    bounds.absorb(&deferred);
-                                    chunk_items.push_back(deferred);
-                                }
-                                chunk_items.push_back(frame_block);
-                            } else {
-                                break;
+                            bounds.absorb(&frame_block);
+
+                            for deferred in deferred_items.drain(..) {
+                                bounds.absorb(&deferred);
+                                chunk_items.push_back(deferred);
                             }
+                            chunk_items.push_back(frame_block);
+                        } else if !passed && frame_block.range.is_some() {
+                            break;
                         } else {
                             let frame_block = bound_frame_items.next().unwrap();
 
@@ -236,11 +238,6 @@ pub fn chunk_by_items_with_blocks(
                         }
                     }
 
-                    // Items whose range belongs to another file (e.g. an
-                    // `#typbase.embed` include) never match this block's
-                    // range, so a block that renders nothing of its own would
-                    // drop them all and the embedded page vanished. Give them
-                    // a chunk mapped to the include line instead.
                     if chunk_items.is_empty() && !deferred_items.is_empty() {
                         for deferred in deferred_items.drain(..) {
                             bounds.absorb(&deferred);
@@ -248,18 +245,13 @@ pub fn chunk_by_items_with_blocks(
                         }
                     }
 
-                    // The editor draws the source text on its line baseline.
-                    // Crop to the editor's line box: the first line's top (the
-                    // text ascender plus the half-leading) down to the last
-                    // line's bottom. That keeps a single-line chunk exactly as
-                    // tall as its source line, so a heading (whose CSS line box
-                    // is larger than its Typst box) does not grow the pane when
-                    // its source appears. The top is clamped to what is
-                    // actually painted: the synth's 0pt-stroke wrapper and tag
-                    // positions do not count, but text, math, images, and
-                    // visible shapes do, so tall content never clips. Math
-                    // chunks keep their own box so equation spacing does not
-                    // change.
+                    if !matched && block.inline && !remaining_items.is_empty() {
+                        for remaining in remaining_items.drain(..).rev() {
+                            bounds.absorb(&remaining);
+                            chunk_items.push_front(remaining);
+                        }
+                    }
+
                     if !block.math {
                         let mut desired_top: Option<Abs> = None;
                         let mut desired_bottom: Option<Abs> = None;
@@ -332,14 +324,6 @@ pub fn chunk_by_items_with_blocks(
                         continue;
                     }
 
-                    // The compiled spacing between two list items is not ink,
-                    // so neither chunk's bounds contain it, and the editor
-                    // stacks chunks by height with no page offsets. Hand the
-                    // gap to the upper item's widget: it is the only place it
-                    // can live, and it is what makes `list(spacing:)` visible.
-                    // Only between items: the space below the last item is the
-                    // boundary with the following block, and folding it in
-                    // stretches the item's widget past its text.
                     if let Some(previous) = chunks.last_mut()
                         && previous.list_item
                         && block.list_item
@@ -380,8 +364,7 @@ pub fn chunk_by_items_with_blocks(
                     break;
                 }
 
-                let (mapped, unmappable) =
-                    split_unmappable(&source_diagnostics, context, world);
+                let (mapped, unmappable) = split_unmappable(&source_diagnostics, context, world);
 
                 diagnostics.extend(TypstDiagnostic::from_diagnostics(mapped, context, world));
 
@@ -480,31 +463,26 @@ pub fn chunk_by_items_with_blocks(
                             // Report the blamed prefix's errors on the block
                             // that caused them, not the whole note.
                             let raw = blamed_raw_range(&blocks[index], context, world);
-                            let (_, blamed_unmappable) =
-                                split_unmappable(&blamed, context, world);
+                            let (_, blamed_unmappable) = split_unmappable(&blamed, context, world);
 
-                            diagnostics.extend(
-                                TypstDiagnostic::from_diagnostics_with_fallback(
-                                    blamed_unmappable.into_iter().collect(),
-                                    context,
-                                    world,
-                                    Some(&raw),
-                                ),
-                            );
+                            diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                                blamed_unmappable.into_iter().collect(),
+                                context,
+                                world,
+                                Some(&raw),
+                            ));
 
                             indicies.push(index);
                         }
                         None => {
                             crate::error!("NO ERROR BLOCKS FOUND ‼️");
 
-                            diagnostics.extend(
-                                TypstDiagnostic::from_diagnostics_with_fallback(
-                                    unmappable.into_iter().collect(),
-                                    context,
-                                    world,
-                                    None,
-                                ),
-                            );
+                            diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                                unmappable.into_iter().collect(),
+                                context,
+                                world,
+                                None,
+                            ));
 
                             break;
                         }
