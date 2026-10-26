@@ -471,7 +471,13 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
 export interface QueryConfig {
   name: string;
   homePageId: string | null;
+  /** Text font. Kept as the original field; `textFont` is the explicit name. */
   font: string;
+  textFont: string;
+  /** Effective code family, falling back to the text font. */
+  codeFont: string;
+  /** Effective math family, falling back to the text font. */
+  mathFont: string;
 }
 
 /** `typbase/query/pages.json` (optionally filtered by category id). */

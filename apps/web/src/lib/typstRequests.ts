@@ -268,7 +268,12 @@ export async function buildQueryJson(
       return JSON.stringify({
         name: settings.name,
         homePageId,
+        // `font` is the original text-font field. Keep it for documents that
+        // already read it, and expose the effective families separately.
         font: settings.font,
+        textFont: settings.font,
+        codeFont: settings.codeFont ?? settings.font,
+        mathFont: settings.mathFont ?? settings.font,
       });
     }
     case "pages": {
