@@ -2,8 +2,8 @@ import { createId } from "@typbase/storage";
 import { describe, expect, it } from "vitest";
 
 describe("createId", () => {
-  it("draws eight-character ids", () => {
-    expect(createId()).toMatch(/^[a-z][a-z0-9]{7}$/);
+  it("draws sixteen-character ids", () => {
+    expect(createId()).toMatch(/^[a-z][a-z0-9]{15}$/);
   });
 
   it("redraws when the scope already holds the id", () => {
@@ -15,6 +15,6 @@ describe("createId", () => {
     });
 
     expect(draws).toBe(2);
-    expect(id).toMatch(/^[a-z][a-z0-9]{7}$/);
+    expect(id).toMatch(/^[a-z][a-z0-9]{15}$/);
   });
 });
