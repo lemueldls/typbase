@@ -20,7 +20,7 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 - [Typst](https://typst.app) 0.15 compiled to WebAssembly for the engine.
 - [Loro](https://loro.dev) CRDTs for collaborative editing.
 - [Nitro](https://nitro.build) and [unifont](https://unifont.dev) for live relay and font proxy.
-- The [Atmosphere](https://atproto.com) with [airspace](https://getair.space) for storage and sync.
+- [airspace](https://getair.space) using the [Atmosphere](https://atproto.com) for storage and sync.
 - [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) for search.
 - [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile builds.
 - [pnpm](https://pnpm.io) and [moonrepo](https://moonrepo.dev) for workspace management.
