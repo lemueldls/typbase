@@ -8,6 +8,12 @@ export interface FontPayload {
   bytes: Uint8Array;
 }
 
+export interface FontFaceInfo {
+  family: string;
+  weight: number;
+  style: "normal" | "italic" | "oblique";
+}
+
 /**
  * The family a font file declares, or null when the bytes are not a font the
  * engine can read. The engine answers this rather than the app parsing the
@@ -18,6 +24,15 @@ export function fontFamilyOf(bytes: Uint8Array): string | null {
     return TypstState.fontFamilies(bytes)[0] ?? null;
   } catch {
     return null;
+  }
+}
+
+/** Every face in a font file, with the weight and style the file declares. */
+export function fontFacesOf(bytes: Uint8Array): FontFaceInfo[] {
+  try {
+    return TypstState.fontFaces(bytes) as FontFaceInfo[];
+  } catch {
+    return [];
   }
 }
 

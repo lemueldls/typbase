@@ -326,6 +326,15 @@ impl TypstState {
         crate::fonts::family_names(&bytes)
     }
 
+    /// The faces a font file declares, with weights and styles. Site CSS needs
+    /// one @font-face per uploaded file, not the same 400 normal descriptor for
+    /// every face in a family.
+    #[wasm_bindgen(js_name = "fontFaces")]
+    pub fn font_faces(bytes: Vec<u8>) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&crate::fonts::face_info(&bytes))
+            .map_err(|error| JsError::new(&error.to_string()))
+    }
+
     /// Index mapping self-test for the debug lab. Builds the synth exactly
     /// like a compile would, then verifies map invariants: segments tile both
     /// spaces, both directions stay in bounds, and neither regresses.

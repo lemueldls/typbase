@@ -2,7 +2,12 @@
 //! generated prelude turns on. Both feed settings the app cannot derive on its
 //! own, so they are pinned here.
 
-use crate::{fonts::family_names, state::TypstState, tests::harness, theme::ThemeColors};
+use crate::{
+    fonts::{face_info, family_names},
+    state::TypstState,
+    tests::harness,
+    theme::ThemeColors,
+};
 
 fn bundled(rel: &str) -> Vec<u8> {
     std::fs::read(harness::fonts_dir().join(rel)).expect("bundled font")
@@ -28,9 +33,31 @@ fn reads_the_family_a_font_declares() {
 }
 
 #[test]
+fn reads_each_face_weight_and_style() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+
+        return;
+    }
+
+    let regular = face_info(&bundled("maple/MapleMono-Regular.ttf"));
+    assert_eq!(regular.len(), 1);
+    assert_eq!(regular[0].family, "Maple Mono");
+    assert_eq!(regular[0].weight, 400);
+    assert_eq!(regular[0].style, "normal");
+
+    let bold_italic = face_info(&bundled("maple/MapleMono-BoldItalic.ttf"));
+    assert_eq!(bold_italic.len(), 1);
+    assert_eq!(bold_italic[0].family, "Maple Mono");
+    assert_eq!(bold_italic[0].weight, 700);
+    assert_eq!(bold_italic[0].style, "italic");
+}
+
+#[test]
 fn reports_nothing_for_bytes_that_are_not_a_font() {
     assert!(family_names(b"not a font at all").is_empty());
     assert!(family_names(&[]).is_empty());
+    assert!(face_info(b"not a font at all").is_empty());
 }
 
 fn style(ligatures: bool, kerning: bool) -> String {

@@ -1,8 +1,43 @@
+use serde::Serialize;
 use typst::{
     foundations::Bytes,
-    text::{Font, FontBook},
+    text::{Font, FontBook, FontStyle},
     utils::LazyHash,
 };
+
+/// One face a font file declares, with the weight and style a browser needs
+/// to pick the right file for a @font-face rule.
+#[derive(Debug, Clone, Serialize)]
+pub struct FontFaceInfo {
+    pub family: String,
+    pub weight: u16,
+    pub style: String,
+}
+
+/// Every face a font file declares, including all faces of a collection.
+#[must_use]
+pub fn face_info(bytes: &[u8]) -> Vec<FontFaceInfo> {
+    Font::iter(Bytes::new(bytes.to_vec()))
+        .filter_map(|font| {
+            let info = font.info();
+            if info.family.is_empty() {
+                return None;
+            }
+
+            let style = match info.variant.style {
+                FontStyle::Normal => "normal",
+                FontStyle::Italic => "italic",
+                FontStyle::Oblique => "oblique",
+            };
+
+            Some(FontFaceInfo {
+                family: info.family.clone(),
+                weight: info.variant.weight.to_number(),
+                style: style.to_string(),
+            })
+        })
+        .collect()
+}
 
 /// The families a font file declares, one entry per face and deduplicated.
 #[must_use]
