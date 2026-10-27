@@ -13,6 +13,9 @@ export type SiteTheme = "light" | "workspace";
 /** Navigation placement in the generated shell. */
 export type SiteNavigation = "sidebar" | "top" | "both" | "none";
 
+/** Published shell layout. Docs keeps navigation in a left rail and context in a right rail. */
+export type SiteLayout = "classic" | "docs";
+
 export interface SitePageSettings {
   /**
    * Public pages appear in navigation, search, feeds, and the sitemap.
@@ -88,9 +91,19 @@ export interface SiteSettings {
   defaultVisibility: SiteVisibility;
   pages: Record<string, SitePageSettings>;
   navigation: SiteNavigation;
+  /** Desktop shell layout. */
+  layout: SiteLayout;
   showSearch: boolean;
   showToc: boolean;
   showDates: boolean;
+  /** Use Material Symbols for site chrome and the workspace icon. */
+  showIcons: boolean;
+  /** Show the "Made with Typbase" footer. */
+  showFooter: boolean;
+  /** Show the site name beside the Typbase footer link. */
+  showFooterName: boolean;
+  /** Show an interactive graph of links between public pages. */
+  showGraph: boolean;
   /**
    * Keep the editor's line spacing between source lines. The synth renders
    * each top-level line as its own block; the site CSS otherwise leaves those
@@ -114,9 +127,14 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   defaultVisibility: "private",
   pages: {},
   navigation: "sidebar",
+  layout: "docs",
   showSearch: true,
   showToc: true,
   showDates: true,
+  showIcons: false,
+  showFooter: true,
+  showFooterName: true,
+  showGraph: false,
   preserveNewlines: false,
   includeSitemap: true,
   includeFeed: true,

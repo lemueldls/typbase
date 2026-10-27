@@ -150,6 +150,11 @@ const navigationOptions = computed(() => [
   { value: "none", label: t("site.navNone") },
 ]);
 
+const layoutOptions = computed(() => [
+  { value: "docs", label: t("site.layoutDocs") },
+  { value: "classic", label: t("site.layoutClassic") },
+]);
+
 const GENERATED_HOME = "__generated";
 
 const homeOptions = computed(() => [
@@ -379,6 +384,8 @@ async function openPreview(): Promise<void> {
   try {
     const prepared: SiteSettings = {
       ...site.value,
+      showIcons: false,
+      showGraph: false,
       wisp: { ...site.value.wisp, siteRkey: siteRkey(site.value, settings.value.name) },
     };
     const build = await buildSite(props.store, prepared, {
@@ -435,6 +442,8 @@ function inlinePreview(files: Array<{ name: string; bytes: Uint8Array }>, html: 
   }
   output = output.replace(/<script src="[^"]*assets\/site\.js" defer><\/script>/, "");
   output = output.replace(/<script src="[^"]*assets\/site\.js"><\/script>/, "");
+  output = output.replace(/<script src="[^"]*assets\/site-graph\.js" defer><\/script>/, "");
+  output = output.replace(/<script src="[^"]*assets\/site-graph\.js"><\/script>/, "");
   output = output.replace(/src="(?:\.\/|\.\.\/)*(assets\/[^"]+)"/g, (_match, path: string) => {
     const bytes = byName.get(path);
     return bytes ? `src="data:${mimeFor(path)};base64,${base64(bytes)}"` : `src="${path}"`;
@@ -443,6 +452,9 @@ function inlinePreview(files: Array<{ name: string; bytes: Uint8Array }>, html: 
   // The preview has no server behind it, so a link can only fail or replace the
   // document. Remove every target and make the anchors read as disabled.
   const doc = new DOMParser().parseFromString(output, "text/html");
+  for (const graph of doc.querySelectorAll("[data-site-graph], [data-site-graph-panel]")) {
+    graph.remove();
+  }
   for (const anchor of doc.querySelectorAll("a")) {
     anchor.removeAttribute("href");
     anchor.removeAttribute("target");
@@ -1068,6 +1080,15 @@ function copy(value: string): Promise<void> {
                     "
                   />
                 </label>
+                <label class="site-view__field">
+                  <span>{{ $t("site.layout") }}</span>
+                  <UiSelect
+                    :model-value="site.layout ?? 'docs'"
+                    :options="layoutOptions"
+                    :label="$t('site.layout')"
+                    @update:model-value="updateSite({ layout: $event as SiteSettings['layout'] })"
+                  />
+                </label>
               </div>
               <p v-if="site.wisp.lastDeploy" class="site-view__hint">
                 {{ $t("site.slugChangeHint") }}
@@ -1105,6 +1126,50 @@ function copy(value: string): Promise<void> {
                     :model-value="site.showDates"
                     :aria-label="$t('site.showDates')"
                     @update:model-value="updateSite({ showDates: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showIcons") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showIconsHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showIcons"
+                    :aria-label="$t('site.showIcons')"
+                    @update:model-value="updateSite({ showIcons: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showGraph") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showGraphHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showGraph"
+                    :aria-label="$t('site.showGraph')"
+                    @update:model-value="updateSite({ showGraph: $event })"
+                  />
+                </div>
+                <div class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showFooter") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showFooterHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showFooter !== false"
+                    :aria-label="$t('site.showFooter')"
+                    @update:model-value="updateSite({ showFooter: $event })"
+                  />
+                </div>
+                <div v-if="site.showFooter !== false" class="site-switch-card">
+                  <div class="site-switch-card__copy">
+                    <span class="site-switch-card__label">{{ $t("site.showFooterName") }}</span>
+                    <span class="site-switch-card__hint">{{ $t("site.showFooterNameHint") }}</span>
+                  </div>
+                  <UiSwitch
+                    :model-value="site.showFooterName !== false"
+                    :aria-label="$t('site.showFooterName')"
+                    @update:model-value="updateSite({ showFooterName: $event })"
                   />
                 </div>
                 <div class="site-switch-card">

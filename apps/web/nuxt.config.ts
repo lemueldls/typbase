@@ -1,21 +1,89 @@
 import type { LocaleObject } from "@nuxtjs/i18n";
 
-import { transformSync } from "esbuild";
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { defineNuxtConfig } from "nuxt/config";
+import { build as rolldownBuild } from "rolldown";
+import { minifySync } from "rolldown/utils";
 
 const defaultLocale = "en";
 const appDescription = "Local-first knowledge base made for Typst and the Atmosphere.";
 const siteCssFile = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
+const siteRuntimeDir = fileURLToPath(new URL("./src/lib/site/templates/runtime", import.meta.url));
 
 /** Minify one of the inline head scripts from its readable source. */
 function inlineScript(name: string): string {
   const file = fileURLToPath(new URL(`./scripts/${name}`, import.meta.url));
   const source = readFileSync(file, "utf8");
+  const result = minifySync(file, source, {
+    compress: { target: "es2020" },
+    mangle: true,
+    codegen: true,
+  });
+  if (result.errors.length) {
+    throw new Error(`Failed to minify ${name}: ${result.errors.map(String).join(", ")}`);
+  }
 
-  return transformSync(source, { minify: true, target: "es2020" }).code.trim();
+  return result.code.trim();
+}
+
+const runtimeEntries = {
+  "virtual:typbase-site-script": "site.ts",
+  "virtual:typbase-graph-script": "graph.ts",
+} as const;
+
+async function bundleRuntime(entry: string): Promise<string> {
+  const result = await rolldownBuild({
+    input: fileURLToPath(new URL(`./src/lib/site/templates/runtime/${entry}`, import.meta.url)),
+    platform: "browser",
+    write: false,
+    logLevel: "silent",
+    output: { format: "iife", minify: true },
+  });
+  const chunk = result.output.find((item) => item.type === "chunk");
+  if (!chunk) throw new Error(`Site runtime bundle for ${entry} produced no chunk.`);
+
+  return chunk.code.trim();
+}
+
+interface DevServer {
+  watcher: { add(path: string): void; on(event: "change", listener: (file: string) => void): void };
+  moduleGraph: {
+    getModuleById(id: string): { id: string } | undefined;
+    invalidateModule(module: { id: string }): void;
+  };
+  ws: { send(payload: { type: string }): void };
+}
+
+/** Compile the published site's vanilla runtimes from TS modules at build time. */
+function siteRuntimePlugin() {
+  return {
+    name: "typbase:site-runtime",
+    resolveId(id: string) {
+      return id in runtimeEntries ? `\0${id}` : null;
+    },
+    async load(id: string) {
+      if (!id.startsWith("\0virtual:typbase-")) return null;
+      const key = id.slice(1) as keyof typeof runtimeEntries;
+      const entry = runtimeEntries[key];
+      if (!entry) return null;
+      const code = await bundleRuntime(entry);
+
+      return `export default ${JSON.stringify(code)};`;
+    },
+    configureServer(server: DevServer) {
+      server.watcher.add(siteRuntimeDir);
+      server.watcher.on("change", (file: string) => {
+        if (!file.startsWith(siteRuntimeDir)) return;
+        for (const id of Object.keys(runtimeEntries)) {
+          const mod = server.moduleGraph.getModuleById(`\0${id}`);
+          if (mod) server.moduleGraph.invalidateModule(mod);
+        }
+        server.ws.send({ type: "full-reload" });
+      });
+    },
+  };
 }
 
 const oauthCallbackScript = inlineScript("oauth-callback.js");
@@ -71,6 +139,7 @@ export default defineNuxtConfig({
   },
   vite: {
     plugins: [
+      siteRuntimePlugin(),
       {
         name: "typbase:site-css",
         enforce: "pre",

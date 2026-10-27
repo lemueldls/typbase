@@ -1,28 +1,22 @@
 <script setup lang="ts">
 import type { ThemePaletteTokens } from "@typbase/typing";
 
-import {
-  forceCenter,
-  forceCollide,
-  forceLink,
-  forceManyBody,
-  forceSimulation,
-  forceX,
-  forceY,
-  type ForceLink,
-  type Simulation,
-  type SimulationLinkDatum,
-  type SimulationNodeDatum,
-} from "d3-force";
+import { type ForceLink, type SimulationNodeDatum } from "d3-force";
 
 import type { GraphData, GraphEdge, GraphNode } from "~/lib/graph";
 
+import {
+  createGraphSimulation,
+  fitCamera,
+  graphRadius,
+  hitTestGraph,
+  linkEndpoints,
+  type LayoutLink,
+} from "~/lib/graph/engine";
 import { testApi } from "~/lib/testApi";
 
 interface SimNode extends GraphNode, SimulationNodeDatum {}
-interface SimLink extends SimulationLinkDatum<SimNode> {
-  source: string | SimNode;
-  target: string | SimNode;
+interface SimLink extends LayoutLink<SimNode> {
   weight: number;
 }
 
@@ -67,24 +61,7 @@ const FIT_ALPHA = 0.15;
 /** Node-set changes within this window coalesce into one refit. */
 const FIT_QUIET_MS = 250;
 
-const simulation: Simulation<SimNode, SimLink> = forceSimulation<SimNode>([])
-  .force(
-    "link",
-    forceLink<SimNode, SimLink>([])
-      .id((node) => node.id)
-      .distance(80)
-      .strength(0.35),
-  )
-  .force("charge", forceManyBody<SimNode>().strength(-180).distanceMax(500))
-  .force("center", forceCenter(0, 0).strength(0.05))
-  .force(
-    "collide",
-    forceCollide<SimNode>().radius((node) => radius(node) + 4),
-  )
-  .force("x", forceX<SimNode>(0).strength(0.015))
-  .force("y", forceY<SimNode>(0).strength(0.015))
-  .alphaDecay(0.035)
-  .velocityDecay(0.5);
+const simulation = createGraphSimulation<SimNode, SimLink>();
 simulation.on("tick", () => {
   scheduleDraw();
 
@@ -136,10 +113,6 @@ interface DragState {
 let drag: DragState | null = null;
 let pinch: { distance: number; x: number; y: number } | null = null;
 
-function radius(node: Pick<GraphNode, "degree">): number {
-  return 4 + Math.min(10, Math.sqrt(node.degree) * 2);
-}
-
 function categoryColor(node: GraphNode): string {
   if (!node.categoryId) return props.palette.textSecondary;
 
@@ -152,11 +125,7 @@ function categoryColor(node: GraphNode): string {
 
 /** Resolved endpoints for a link, whichever form d3 has it in. */
 function endpoints(link: SimLink): { source: SimNode; target: SimNode } | null {
-  const source = typeof link.source === "object" ? link.source : nodeById.get(link.source);
-  const target = typeof link.target === "object" ? link.target : nodeById.get(link.target);
-  if (!source || !target) return null;
-
-  return { source, target };
+  return linkEndpoints(link, nodeById);
 }
 
 function neighborsOf(id: string): Set<string> {
@@ -272,23 +241,14 @@ function worldY(screenY: number): number {
 }
 
 function nodeAt(screenX: number, screenY: number): SimNode | null {
-  const x = worldX(screenX);
-  const y = worldY(screenY);
-  let best: SimNode | null = null;
-  let bestDistance = Infinity;
-
-  for (const node of nodeById.values()) {
-    if (node.x === undefined || node.y === undefined) continue;
-
-    const distance = Math.hypot(node.x - x, node.y - y);
-    const threshold = radius(node) + 4 / camera.k;
-    if (distance <= threshold && distance < bestDistance) {
-      best = node;
-      bestDistance = distance;
-    }
-  }
-
-  return best;
+  return hitTestGraph(
+    [...nodeById.values()],
+    camera,
+    viewport.width,
+    viewport.height,
+    screenX,
+    screenY,
+  );
 }
 
 /** Screen point of a node in page coordinates, for the demo script and e2e. */
@@ -306,37 +266,12 @@ function nodePoint(id: string): { x: number; y: number } | null {
 }
 
 function fitView(): void {
-  const nodes = [...nodeById.values()].filter(
-    (node) => node.x !== undefined && node.y !== undefined,
-  );
-  if (nodes.length === 0 || viewport.width === 0) return;
-
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const node of nodes) {
-    minX = Math.min(minX, node.x ?? 0);
-    maxX = Math.max(maxX, node.x ?? 0);
-    minY = Math.min(minY, node.y ?? 0);
-    maxY = Math.max(maxY, node.y ?? 0);
-  }
-
-  const padding = 48;
-  animateCamera({
-    x: (minX + maxX) / 2,
-    y: (minY + maxY) / 2,
-    k: Math.min(
-      FIT_MAX_ZOOM,
-      Math.max(
-        MIN_ZOOM,
-        Math.min(
-          (viewport.width - padding * 2) / Math.max(1, maxX - minX),
-          (viewport.height - padding * 2) / Math.max(1, maxY - minY),
-        ),
-      ),
-    ),
+  const fit = fitCamera([...nodeById.values()], viewport.width, viewport.height, {
+    padding: 48,
+    minZoom: MIN_ZOOM,
+    maxZoom: FIT_MAX_ZOOM,
   });
+  if (fit) animateCamera(fit);
 }
 
 function prefersReducedMotion(): boolean {
@@ -447,7 +382,7 @@ function draw(): void {
     context.globalAlpha = alpha;
     context.fillStyle = isFocus ? props.palette.accent : categoryColor(node);
     context.beginPath();
-    context.arc(node.x, node.y, radius(node), 0, Math.PI * 2);
+    context.arc(node.x, node.y, graphRadius(node), 0, Math.PI * 2);
     context.fill();
 
     if (isFocus || selected === node.id) {
@@ -464,7 +399,7 @@ function draw(): void {
       context.globalAlpha = Math.max(alpha, 0.85);
       context.textAlign = "center";
       context.textBaseline = "top";
-      const y = node.y + radius(node) + 3 / camera.k;
+      const y = node.y + graphRadius(node) + 3 / camera.k;
       context.lineWidth = 3 / camera.k;
       context.strokeStyle = props.palette.surface;
       context.strokeText(label, node.x, y);

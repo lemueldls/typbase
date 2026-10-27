@@ -1,20 +1,26 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta, SitePageSettings, SiteSettings, ThemePaletteTokens } from "@typbase/typing";
 
+import iconFontUrl from "material-symbols/material-symbols-rounded.woff2?url";
+
+import { fontFacesOf } from "~/lib/customFonts";
 import { fontFiles } from "~/lib/exportPage";
 import { pageContext, typstContextBinding } from "~/lib/pageContext";
 import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
 
 import { isSiteEmbedAllowed } from "./embeds";
+import { buildSiteNavigation, type SiteNavigationGroup } from "./navigation";
 import { siteRkey, siteSlug } from "./slug";
 
 export { siteRkey, siteSlug } from "./slug";
+export type { SiteNavigationPage } from "./navigation";
 
 import {
   escapeHtml,
   feed,
   htmlToText,
+  graphScript,
   renderHomeIndex,
   renderNotFound,
   renderShell,
@@ -22,6 +28,7 @@ import {
   siteScript,
   siteStyles,
   sitemap,
+  type SiteFontFace,
 } from "./shell";
 
 /** One page that made it into the build. */
@@ -84,18 +91,7 @@ export interface SiteBuild {
   };
 }
 
-export interface SiteNavigationPage {
-  id: string;
-  title: string;
-  url: string;
-  updatedAt: number;
-}
-
-export interface SiteBuildNavigationGroup {
-  id: string | null;
-  name: string;
-  pages: SiteNavigationPage[];
-}
+export type SiteBuildNavigationGroup = SiteNavigationGroup;
 
 export interface SiteBuildOptions {
   /** Canonical origin and optional base path, without a trailing slash. */
@@ -114,6 +110,7 @@ const RESERVED_PATHS = new Set([
   "_redirects",
   ".well-known",
   "search.json",
+  "graph.json",
   "sitemap.xml",
   "feed.xml",
   "robots.txt",
@@ -192,6 +189,7 @@ export async function buildSite(
   const allowedIds = new Set(included.map((entry) => entry.page.id));
   const pages: SiteBuildPage[] = [];
   const imageFiles = new Map<string, SiteBuildFile>();
+  const linksByPage = new Map<string, string[]>();
   let renderedPages = 0;
 
   for (const entry of included) {
@@ -230,9 +228,10 @@ export async function buildSite(
 
     const url = pageUrls.get(page.id)!;
     const root = rootPrefix(url);
-    const body = extractBody(rendered.html);
+    const body = wrapMath(extractBody(rendered.html));
     const headCss = extractStyles(rendered.html);
     const text = htmlToText(body);
+    const pageLinks = pageLinkTargets(body, allowedIds);
     const links = rewriteLinks(body, pageUrls, root, warnings);
     const withAssets = await extractImages(links, root, imageFiles);
     const title = pageTitle(config, page);
@@ -250,7 +249,7 @@ export async function buildSite(
       root,
       body: withAssets,
       headCss,
-      navigation: buildNavigation(included, site, pageUrls, categories),
+      navigation: siteNavigation(included, site, pageUrls, categories),
       currentPageId: page.id,
       updatedAt: page.updatedAt,
       noindex: visibility === "unlisted",
@@ -274,11 +273,12 @@ export async function buildSite(
       html,
       text,
     });
+    linksByPage.set(page.id, pageLinks);
     renderedPages++;
     options.onProgress?.(renderedPages, included.length);
   }
 
-  const navigation = buildNavigation(included, site, pageUrls, categories);
+  const navigation = siteNavigation(included, site, pageUrls, categories);
   const files: SiteBuildFile[] = [];
   for (const page of pages) {
     files.push({
@@ -321,8 +321,28 @@ export async function buildSite(
     });
   }
 
+  if (site.showGraph) {
+    const graphData = siteGraph(pages, linksByPage);
+    files.push({
+      name: "graph.json",
+      bytes: new TextEncoder().encode(JSON.stringify(graphData)),
+      mimeType: siteMime("graph.json"),
+    });
+  }
+
   const fonts = await collectFonts(store);
   files.push(...fonts.files, ...imageFiles.values());
+  if (site.showIcons) {
+    const iconFont = await fetch(iconFontUrl);
+    if (!iconFont.ok) {
+      throw new Error(`Could not load the Material Symbols font (${iconFont.status}).`);
+    }
+    files.push({
+      name: "fonts/MaterialSymbolsRounded.woff2",
+      bytes: new Uint8Array(await iconFont.arrayBuffer()),
+      mimeType: siteMime("fonts/MaterialSymbolsRounded.woff2"),
+    });
+  }
   const css = siteStyles({
     site,
     settings,
@@ -340,6 +360,13 @@ export async function buildSite(
     bytes: new TextEncoder().encode(siteScript()),
     mimeType: siteMime("assets/site.js"),
   });
+  if (site.showGraph) {
+    files.push({
+      name: "assets/site-graph.js",
+      bytes: new TextEncoder().encode(graphScript()),
+      mimeType: siteMime("assets/site-graph.js"),
+    });
+  }
 
   if (baseUrl) {
     const publicPages = pages.filter((page) => page.visibility === "public");
@@ -614,6 +641,14 @@ function preflightSource(
   }
 }
 
+/** Wide display equations scroll in their own box instead of widening the page. */
+function wrapMath(html: string): string {
+  return html.replace(
+    /<math\b[^>]*\bdisplay=(["'])block\1[^>]*>[\s\S]*?<\/math>/gi,
+    (math) => `<div class="site-math-scroll">${math}</div>`,
+  );
+}
+
 function extractBody(html: string): string {
   const body = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
   if (body?.[1] !== undefined) return body[1];
@@ -650,6 +685,46 @@ function rewriteLinks(
     })
     .replace(/href=(["'])typbase:\/\/plugin\/[^"']*\1/gi, "data-typbase-plugin")
     .replace(/href=(["'])typbase:\/\/page\/[^"']*\1/gi, "data-typbase-unpublished");
+}
+
+function pageLinkTargets(html: string, known: Set<string>): string[] {
+  const ids = new Set<string>();
+  for (const match of html.matchAll(/href=(["'])typbase:\/\/page\/([^"'?#]+)\1/gi)) {
+    const id = match[2];
+    if (id && known.has(id)) ids.add(id);
+  }
+
+  return [...ids];
+}
+
+/** The public page graph, keyed by public URLs rather than workspace page ids. */
+function siteGraph(
+  pages: SiteBuildPage[],
+  linksByPage: Map<string, string[]>,
+): {
+  nodes: Array<{ id: string; title: string; url: string }>;
+  edges: Array<{ source: string; target: string }>;
+} {
+  const publicPages = pages.filter((page) => page.visibility === "public");
+  const byId = new Map(publicPages.map((page) => [page.id, page]));
+  const edges: Array<{ source: string; target: string }> = [];
+  const seen = new Set<string>();
+
+  for (const page of publicPages) {
+    for (const targetId of linksByPage.get(page.id) ?? []) {
+      const target = byId.get(targetId);
+      if (!target || target.id === page.id) continue;
+      const key = `${page.id}\0${target.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push({ source: page.url, target: target.url });
+    }
+  }
+
+  return {
+    nodes: publicPages.map((page) => ({ id: page.url, title: page.title, url: page.url })),
+    edges,
+  };
 }
 
 function rootPrefix(url: string): string {
@@ -701,20 +776,36 @@ function extensionFor(mime: string): string {
 
 async function collectFonts(store: WorkspaceStore): Promise<{
   files: SiteBuildFile[];
-  faces: Array<{ family: string; file: string; weight: number; style: "normal" | "italic" }>;
+  faces: SiteFontFace[];
 }> {
   const bundled = await fontFiles(store);
   const customFamilies = store.getSettings().customFonts.map((font) => font.family);
   const files: SiteBuildFile[] = [];
-  const faces: Array<{ family: string; file: string; weight: number; style: "normal" | "italic" }> =
-    [];
+  const faces: SiteFontFace[] = [];
 
   for (const font of bundled) {
     const name = font.name.split("/").pop() ?? "font";
     const file = `fonts/${name}`;
     files.push({ name: file, bytes: font.bytes, mimeType: siteMime(file) });
-    const face = faceForBundled(name) ?? faceForCustom(name, customFamilies);
-    if (face) faces.push({ ...face, file });
+
+    // The file carries the real weight and style. Filename guesses put every
+    // Iosevka face in a family at 400 normal, so the browser picked one file
+    // for the whole page, often an italic or semibold face.
+    const detected = fontFacesOf(font.bytes);
+    if (detected.length) {
+      for (const face of detected) {
+        faces.push({
+          family: face.family,
+          file,
+          weight: face.weight,
+          style: face.style,
+        });
+      }
+      continue;
+    }
+
+    const fallback = faceForBundled(name) ?? faceForCustom(name, customFamilies);
+    if (fallback) faces.push({ ...fallback, file });
   }
 
   return { files, faces };
@@ -754,42 +845,22 @@ function faceForBundled(name: string): {
   return null;
 }
 
-function buildNavigation(
+function siteNavigation(
   included: Array<{ page: PageMeta; config: SitePageSettings; visibility: "public" | "unlisted" }>,
   site: SiteSettings,
   urls: Map<string, string>,
   categories: Array<{ id: string; name: string }>,
 ): SiteBuildNavigationGroup[] {
-  const visible = included.filter(
-    (entry) => entry.visibility === "public" && !entry.config.hiddenFromNav,
+  return buildSiteNavigation(
+    included.map((entry) => ({
+      page: entry.page,
+      config: entry.config,
+      visibility: entry.visibility,
+      url: urls.get(entry.page.id)!,
+    })),
+    categories,
+    site.navigation,
   );
-  const byCategory = new Map<string | null, typeof visible>();
-  for (const entry of visible) {
-    const key = entry.page.categoryId ?? null;
-    const group = byCategory.get(key);
-    if (group) group.push(entry);
-    else byCategory.set(key, [entry]);
-  }
-
-  const groups: SiteBuildNavigationGroup[] = [];
-  for (const [categoryId, entries] of byCategory) {
-    const category = categoryId
-      ? (categories.find((candidate) => candidate.id === categoryId) ?? null)
-      : null;
-    groups.push({
-      id: categoryId,
-      name:
-        category?.name ?? (categoryId ? "Pages" : site.navigation === "top" ? "Pages" : "General"),
-      pages: entries.map((entry) => ({
-        id: entry.page.id,
-        title: entry.config.title?.trim() || entry.page.title,
-        url: urls.get(entry.page.id)!,
-        updatedAt: entry.page.updatedAt,
-      })),
-    });
-  }
-
-  return groups;
 }
 
 function dedupeFiles(files: SiteBuildFile[]): SiteBuildFile[] {

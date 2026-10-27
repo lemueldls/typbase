@@ -1,6 +1,8 @@
 import type { SiteSettings, ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
+import graphScriptCode from "virtual:typbase-graph-script";
 import siteCss from "virtual:typbase-site-css";
+import siteScriptCode from "virtual:typbase-site-script";
 import { createSSRApp } from "vue";
 import { renderToString } from "vue/server-renderer";
 
@@ -8,7 +10,6 @@ import type { SiteBuildNavigationGroup, SiteBuildPage } from "./build";
 
 import SiteDocument from "../../components/site/SiteDocument.vue";
 import { siteSlug } from "./slug";
-import searchScript from "./templates/site.js?raw";
 import { absoluteUrl, relativeUrl } from "./urls";
 
 export { absoluteUrl, relativeUrl };
@@ -54,6 +55,7 @@ export async function renderShell(input: ShellInput): Promise<string> {
     navigation: input.navigation,
     toc,
     currentPageId: input.currentPageId,
+    workspaceIcon: (input.settings.icon || "folder").replaceAll("-", "_"),
     updatedAt: input.updatedAt,
     noindex: input.noindex,
   });
@@ -164,15 +166,23 @@ function decorateHeadings(body: string): {
   return { body: output, toc };
 }
 
+export interface SiteFontFace {
+  family: string;
+  file: string;
+  weight: number;
+  style: "normal" | "italic" | "oblique";
+}
+
 export function siteStyles(input: {
   site: SiteSettings;
   settings: WorkspaceSettings;
   palette: ThemePaletteTokens;
-  fonts: Array<{ family: string; file: string; weight: number; style: "normal" | "italic" }>;
+  fonts: SiteFontFace[];
   inline?: boolean;
 }): string {
   const { palette, settings, fonts } = input;
   const dark = isDark(palette.surface);
+  const radiusScale = { square: 0.25, default: 1, round: 1.5 }[settings.uiRadius ?? "default"];
   const fontFaces = fonts
     .map(
       (face) =>
@@ -182,8 +192,12 @@ export function siteStyles(input: {
   const textFont = settings.font || "Maple Mono";
   const codeFont = settings.codeFont || settings.font || "Maple Mono";
   const mathFont = settings.mathFont || "New Computer Modern Math";
+  const iconFont = input.site.showIcons
+    ? `@font-face{font-family:"Material Symbols Rounded";src:url("../fonts/MaterialSymbolsRounded.woff2") format("woff2");font-weight:100 700;font-style:normal;font-display:block;}`
+    : "";
 
   return `${fontFaces}
+${iconFont}
 :root{
   color-scheme:${dark ? "dark" : "light"};
   --site-bg:${palette.surface};
@@ -195,6 +209,8 @@ export function siteStyles(input: {
   --site-accent:${palette.accent};
   --site-accent-soft:${palette.accentSoft};
   --site-code:${palette.code};
+  --site-radius-scale:${radiusScale};
+  --site-control-radius:calc(1rem * var(--site-radius-scale));
   --site-text-font:"${textFont}",ui-sans-serif,system-ui,sans-serif;
   --site-code-font:"${codeFont}",ui-monospace,SFMono-Regular,monospace;
   --site-math-font:"${mathFont}",serif;
@@ -203,7 +219,11 @@ ${siteCss}`;
 }
 
 export function siteScript(): string {
-  return searchScript;
+  return siteScriptCode;
+}
+
+export function graphScript(): string {
+  return graphScriptCode;
 }
 
 export function htmlToText(html: string): string {

@@ -31,6 +31,7 @@ tasks:
       NODE_OPTIONS: "--max-old-space-size=8192"
     inputs:
       - "src/**/*"
+      - "scripts/**/*"
       - "i18n/**/*"
       - "public/**/*"
       - "server/**/*"
@@ -58,6 +59,29 @@ tasks:
       # - "typing:build"
       # - "storage:build"
       # - "spaces:build"
+    env:
+      NODE_OPTIONS: "--max-old-space-size=8192"
+    inputs:
+      - "src/**/*"
+      - "scripts/**/*"
+      - "i18n/**/*"
+      - "public/**/*"
+      - "server/**/*"
+      - "nuxt.config.ts"
+      - "tsconfig.json"
+      - "golar.config.ts"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "/pnpm-workspace.yaml"
+      - "$NUXT_*"
+      - "$TAURI_*"
+      - "project://engine"
+      - "project://codemirror"
+      - "project://typing"
+      - "project://storage"
+      - "project://spaces"
+    outputs:
+      - ".output/**/*"
 
   preview:
     command: "pnpm nuxt preview"

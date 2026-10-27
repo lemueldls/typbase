@@ -236,6 +236,9 @@ export async function publishSite(
         },
         { name: "Cache-Control", value: "no-cache", path: "/assets/site.css" },
         { name: "Cache-Control", value: "no-cache", path: "/assets/site.js" },
+        { name: "Cache-Control", value: "no-cache", path: "/assets/site-graph.js" },
+        { name: "Cache-Control", value: "no-cache", path: "/fonts/MaterialSymbolsRounded.woff2" },
+        { name: "Cache-Control", value: "no-cache", path: "/graph.json" },
         {
           name: "Cache-Control",
           value: "public, max-age=31536000, immutable",
