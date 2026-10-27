@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+  NUXT_PUBLIC_PROXY_URL: ${{ vars.NUXT_PUBLIC_PROXY_URL || 'https://proxy.typbase.at' }}
+
 jobs:
   deploy:
     name: 🪶 Deploy
@@ -53,14 +57,11 @@ jobs:
       - name: 🔨 Generate the static site
         if: steps.gate.outputs.deploy == 'true'
         run: pnpm generate
-        env:
-          NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
-          NUXT_PUBLIC_PROXY_URL: ${{ vars.NUXT_PUBLIC_PROXY_URL || 'https://proxy.typbase.at' }}
 
       - name: 🛡️ Check the OAuth metadata
         if: steps.gate.outputs.deploy == 'true'
         env:
-          APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+          APP_URL: ${{ env.NUXT_PUBLIC_APP_URL }}
         run: bash scripts/ci/check-oauth-metadata.sh
 
       - name: 🚀 Deploy to wisp.place

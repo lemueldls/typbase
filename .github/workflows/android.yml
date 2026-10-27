@@ -16,6 +16,7 @@ on:
 
 env:
   NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+  NUXT_PUBLIC_PROXY_URL: ${{ vars.NUXT_PUBLIC_PROXY_URL || 'https://proxy.typbase.at' }}
   NDK_VERSION: "27.0.11902837"
 
 jobs:

@@ -18,6 +18,7 @@ on:
 
 env:
   NUXT_PUBLIC_APP_URL: ${{ vars.NUXT_PUBLIC_APP_URL || 'https://typbase.at' }}
+  NUXT_PUBLIC_PROXY_URL: ${{ vars.NUXT_PUBLIC_PROXY_URL || 'https://proxy.typbase.at' }}
   XBPS_ALLOW_RESTRICTED: "yes"
   XBPS_CHROOT_CMD: ethereal
   XBPS_ALLOW_CHROOT_BREAKOUT: "yes"

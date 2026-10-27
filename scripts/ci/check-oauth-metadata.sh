@@ -4,6 +4,7 @@
 # origin. Static builds bake NUXT_PUBLIC_APP_URL into these documents, and the
 # default is localhost, which produces a loopback client id that the PDS will
 # not accept for a deployed client.
+
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

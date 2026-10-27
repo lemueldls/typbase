@@ -10,15 +10,16 @@ concurrency:
   group: deploy-cloudflare-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NUXT_PUBLIC_APP_URL: ${{ vars.CLOUDFLARE_APP_URL || format('https://typbase.{0}.workers.dev', github.repository_owner) }}
+  NUXT_PUBLIC_NATIVE_APP_URL: https://typbase.at
+
 jobs:
   deploy:
     name: ☁️ Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      NUXT_PUBLIC_APP_URL: ${{ vars.CLOUDFLARE_APP_URL || format('https://typbase.{0}.workers.dev', github.repository_owner) }}
-      NUXT_PUBLIC_NATIVE_APP_URL: https://typbase.at
     steps:
       - name: 🔍 Check configuration
         id: gate
@@ -60,8 +61,6 @@ jobs:
       - name: 🔨 Generate the static site
         if: steps.gate.outputs.deploy == 'true'
         run: pnpm generate
-        env:
-          NUXT_PUBLIC_PROXY_URL: ${{ vars.NUXT_PUBLIC_PROXY_URL || 'https://proxy.typbase.at' }}
 
       - name: 🛡️ Check the OAuth metadata
         if: steps.gate.outputs.deploy == 'true'

@@ -2,6 +2,7 @@
 
 # Generates a PKGBUILD with <generator> and runs the namcap/makepkg checks on
 # it. Run as the unprivileged build user.
+
 set -euo pipefail
 
 generator=${1:-}
