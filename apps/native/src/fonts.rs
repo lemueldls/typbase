@@ -109,10 +109,12 @@ fn build_index() -> Vec<SystemFontFace> {
         let flags = face_flags(&database, face);
 
         let (key, source) = match &face.source {
-            fontdb::Source::File(path) | fontdb::Source::SharedFile(path, _) => (
-                path.to_string_lossy().to_string(),
-                FontSource::Path(path.clone()),
-            ),
+            fontdb::Source::File(path) | fontdb::Source::SharedFile(path, _) => {
+                (
+                    path.to_string_lossy().to_string(),
+                    FontSource::Path(path.clone()),
+                )
+            }
             fontdb::Source::Binary(_) => {
                 let data = database
                     .with_face_data(face.id, |data, _| data.to_vec())
@@ -193,9 +195,11 @@ pub async fn system_font_file(index: usize) -> Result<Response, String> {
 
         match &entry.source {
             FontSource::Bytes(data) => Ok::<_, String>(Response::new(data.clone())),
-            FontSource::Path(path) => fs::read(path)
-                .map(Response::new)
-                .map_err(|error| error.to_string()),
+            FontSource::Path(path) => {
+                fs::read(path)
+                    .map(Response::new)
+                    .map_err(|error| error.to_string())
+            }
         }
     })
     .await

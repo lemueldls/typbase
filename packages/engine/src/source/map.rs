@@ -154,11 +154,13 @@ impl Segment {
                     to,
                 }
             }
-            Self::Generated { kind, from, .. } => Self::Generated {
-                kind: *kind,
-                from: *from,
-                to,
-            },
+            Self::Generated { kind, from, .. } => {
+                Self::Generated {
+                    kind: *kind,
+                    from: *from,
+                    to,
+                }
+            }
         }
     }
 }
@@ -229,11 +231,13 @@ impl SourceMap {
                 Some(Segment::Generated { from, to, .. }) if *from == offset => {
                     to.end += text.len();
                 }
-                _ => segments.push(Segment::Generated {
-                    kind,
-                    from: offset,
-                    to: to_cursor..to_cursor + text.len(),
-                }),
+                _ => {
+                    segments.push(Segment::Generated {
+                        kind,
+                        from: offset,
+                        to: to_cursor..to_cursor + text.len(),
+                    })
+                }
             }
             to_cursor += text.len();
         }
@@ -374,36 +378,38 @@ impl SourceMap {
             Segment::Copy { to, .. } => to.end,
             Segment::Generated {
                 from: point, to, ..
-            } if from == *point => match side {
-                Side::Before => {
-                    let mut start = to.start;
-                    for earlier in self.segments[..index - 1].iter().rev() {
-                        match earlier {
-                            Segment::Generated {
-                                from: point, to, ..
-                            } if *point == from => {
-                                start = to.start;
+            } if from == *point => {
+                match side {
+                    Side::Before => {
+                        let mut start = to.start;
+                        for earlier in self.segments[..index - 1].iter().rev() {
+                            match earlier {
+                                Segment::Generated {
+                                    from: point, to, ..
+                                } if *point == from => {
+                                    start = to.start;
+                                }
+                                _ => break,
                             }
-                            _ => break,
                         }
+                        start
                     }
-                    start
-                }
-                Side::After => {
-                    let mut end = to.end;
-                    for later in &self.segments[index..] {
-                        match later {
-                            Segment::Generated {
-                                from: point, to, ..
-                            } if *point == from => {
-                                end = to.end;
+                    Side::After => {
+                        let mut end = to.end;
+                        for later in &self.segments[index..] {
+                            match later {
+                                Segment::Generated {
+                                    from: point, to, ..
+                                } if *point == from => {
+                                    end = to.end;
+                                }
+                                _ => break,
                             }
-                            _ => break,
                         }
+                        end
                     }
-                    end
                 }
-            },
+            }
             Segment::Generated { to, .. } => to.end,
         }
     }
@@ -507,14 +513,11 @@ impl SourceMap {
             }
             merge_index + 1
         } else {
-            self.segments.insert(
-                index,
-                Segment::Generated {
-                    kind,
-                    from: from_at,
-                    to: to_at..to_at + text.len(),
-                },
-            );
+            self.segments.insert(index, Segment::Generated {
+                kind,
+                from: from_at,
+                to: to_at..to_at + text.len(),
+            });
             index + 1
         };
 
@@ -579,14 +582,11 @@ impl SourceMap {
             // could shift inside a merged span, breaking the tiling.
             index
         } else {
-            rebuilt.insert(
-                index,
-                Segment::Generated {
-                    kind,
-                    from: from_at,
-                    to: start..start + text.len(),
-                },
-            );
+            rebuilt.insert(index, Segment::Generated {
+                kind,
+                from: from_at,
+                to: start..start + text.len(),
+            });
             index + 1
         };
 

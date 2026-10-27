@@ -6,8 +6,10 @@
 //! memory" from a normal panic, and cannot decide whether rebuilding the state
 //! is worth a try.
 
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    alloc::{GlobalAlloc, Layout, System},
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 /// Set when the system allocator returned null. Drained by [`take_oom`].
 static OOM: AtomicBool = AtomicBool::new(false);

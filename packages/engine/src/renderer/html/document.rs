@@ -131,9 +131,7 @@ pub(crate) fn render_html_ctx(
                     split_unmappable(&source_diagnostics, ctx.note, ctx.world);
 
                 diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                    mapped,
-                    ctx.note,
-                    ctx.world,
+                    mapped, ctx.note, ctx.world,
                 ));
 
                 crate::debug!("[ERRORS]: {diagnostics:?}");
@@ -156,26 +154,22 @@ pub(crate) fn render_html_ctx(
                             let (_, blamed_unmappable) =
                                 split_unmappable(&blamed, ctx.note, ctx.world);
 
-                            diagnostics.extend(
-                                TypstDiagnostic::from_diagnostics_with_fallback(
-                                    blamed_unmappable.into_iter().collect(),
-                                    ctx.note,
-                                    ctx.world,
-                                    Some(&raw),
-                                ),
-                            );
+                            diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                                blamed_unmappable.into_iter().collect(),
+                                ctx.note,
+                                ctx.world,
+                                Some(&raw),
+                            ));
                         }
                         None => {
                             crate::error!("NO ERROR BLOCKS FOUND ‼️");
 
-                            diagnostics.extend(
-                                TypstDiagnostic::from_diagnostics_with_fallback(
-                                    unmappable.into_iter().collect(),
-                                    ctx.note,
-                                    ctx.world,
-                                    None,
-                                ),
-                            );
+                            diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
+                                unmappable.into_iter().collect(),
+                                ctx.note,
+                                ctx.world,
+                                None,
+                            ));
 
                             break;
                         }
@@ -191,9 +185,7 @@ pub(crate) fn render_html_ctx(
 
     if let Some(warnings) = compiled_warnings {
         diagnostics.extend(TypstDiagnostic::from_diagnostics(
-            warnings,
-            ctx.note,
-            ctx.world,
+            warnings, ctx.note, ctx.world,
         ));
     }
 

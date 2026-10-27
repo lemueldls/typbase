@@ -121,10 +121,12 @@ impl StorageState {
                 let root = match config.mode {
                     StorageMode::App => app_root.clone(),
                     StorageMode::Device => device_root.clone().unwrap_or_else(|| app_root.clone()),
-                    StorageMode::Custom => config
-                        .path
-                        .filter(|path| path.is_absolute())
-                        .unwrap_or_else(|| app_root.clone()),
+                    StorageMode::Custom => {
+                        config
+                            .path
+                            .filter(|path| path.is_absolute())
+                            .unwrap_or_else(|| app_root.clone())
+                    }
                 };
                 (config.mode, root)
             }
@@ -191,23 +193,21 @@ impl StorageState {
 
         let root = match mode {
             StorageMode::App => self.app_root.clone(),
-            StorageMode::Device => self
-                .device_root
-                .clone()
-                .ok_or("this device has no documents directory")?,
+            StorageMode::Device => {
+                self.device_root
+                    .clone()
+                    .ok_or("this device has no documents directory")?
+            }
             StorageMode::Custom => custom_path.clone().unwrap(),
         };
 
         fs::create_dir_all(&root)
             .map_err(|error| format!("failed to create {}: {error}", root.display()))?;
 
-        write_config(
-            &self.config_file,
-            &StorageConfig {
-                mode,
-                path: custom_path,
-            },
-        )?;
+        write_config(&self.config_file, &StorageConfig {
+            mode,
+            path: custom_path,
+        })?;
 
         *self.active_mut() = Active {
             mode,
@@ -402,10 +402,14 @@ pub fn storage_delete(state: State<'_, StorageState>, path: String) -> Result<()
     let target = state.resolve(&path)?;
 
     match fs::symlink_metadata(&target) {
-        Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(&target)
-            .map_err(|error| format!("failed to delete {}: {error}", target.display())),
-        Ok(_) => fs::remove_file(&target)
-            .map_err(|error| format!("failed to delete {}: {error}", target.display())),
+        Ok(metadata) if metadata.is_dir() => {
+            fs::remove_dir_all(&target)
+                .map_err(|error| format!("failed to delete {}: {error}", target.display()))
+        }
+        Ok(_) => {
+            fs::remove_file(&target)
+                .map_err(|error| format!("failed to delete {}: {error}", target.display()))
+        }
         Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
         Err(error) => Err(format!("failed to stat {}: {error}", target.display())),
     }
@@ -517,13 +521,10 @@ pub fn storage_watch<R: Runtime>(
                 continue;
             }
 
-            let _ = app.emit(
-                "storage-source-change",
-                SourceChange {
-                    root: watched.clone(),
-                    relative,
-                },
-            );
+            let _ = app.emit("storage-source-change", SourceChange {
+                root: watched.clone(),
+                relative,
+            });
         }
     })
     .map_err(|error| format!("failed to start the source watcher: {error}"))?;
@@ -597,15 +598,17 @@ fn safe_relative(raw: &str) -> Result<PathBuf, String> {
 fn request_bytes(body: &InvokeBody) -> Result<Vec<u8>, String> {
     match body {
         InvokeBody::Raw(bytes) => Ok(bytes.clone()),
-        InvokeBody::Json(serde_json::Value::Array(values)) => values
-            .iter()
-            .map(|value| {
-                value
-                    .as_u64()
-                    .and_then(|byte| u8::try_from(byte).ok())
-                    .ok_or_else(|| "storage_write received a non-byte value".to_string())
-            })
-            .collect(),
+        InvokeBody::Json(serde_json::Value::Array(values)) => {
+            values
+                .iter()
+                .map(|value| {
+                    value
+                        .as_u64()
+                        .and_then(|byte| u8::try_from(byte).ok())
+                        .ok_or_else(|| "storage_write received a non-byte value".to_string())
+                })
+                .collect()
+        }
         InvokeBody::Json(_) => Err("storage_write received an unsupported body".into()),
     }
 }

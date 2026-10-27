@@ -418,9 +418,11 @@ fn collect_equation_fixes(node: &LinkedNode, text: &str, fixes: &mut Vec<Delimit
         }
     }
 
-    fixes.extend(string_fixes.into_iter().map(|fix| DelimiterFix {
-        raw_offset: fix.raw_offset,
-        kind: FixKind::MathQuote,
+    fixes.extend(string_fixes.into_iter().map(|fix| {
+        DelimiterFix {
+            raw_offset: fix.raw_offset,
+            kind: FixKind::MathQuote,
+        }
     }));
     fixes.extend(attachments);
 
@@ -558,13 +560,10 @@ mod tests {
     fn unclosed_dollar_closes_at_blank_line() {
         let text = "Before.\n\n$ x + y\n\nAfter paragraph.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 16,
-                kind: FixKind::MathDollar,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 16,
+            kind: FixKind::MathDollar,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n$ x + y$\n\nAfter paragraph.\n");
     }
@@ -573,13 +572,10 @@ mod tests {
     fn unclosed_quote_uses_the_existing_dollar() {
         let text = "Before.\n\n$ \"abc > 3 $\n\nAfter paragraph.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 20,
-                kind: FixKind::MathQuote,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 20,
+            kind: FixKind::MathQuote,
+        }]);
 
         assert_eq!(
             repaired(text),
@@ -591,19 +587,16 @@ mod tests {
     fn unclosed_quote_without_dollar_gets_both() {
         let text = "$ \"abc";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![
-                DelimiterFix {
-                    raw_offset: 6,
-                    kind: FixKind::MathQuote,
-                },
-                DelimiterFix {
-                    raw_offset: 6,
-                    kind: FixKind::MathDollar,
-                },
-            ]
-        );
+        assert_eq!(find_fixes(text), vec![
+            DelimiterFix {
+                raw_offset: 6,
+                kind: FixKind::MathQuote,
+            },
+            DelimiterFix {
+                raw_offset: 6,
+                kind: FixKind::MathDollar,
+            },
+        ]);
 
         assert_eq!(repaired(text), "$ \"abc\"$");
     }
@@ -618,13 +611,10 @@ mod tests {
     fn bare_attachments_get_a_placeholder() {
         let text = "Before.\n\n$ abs((x_)) $\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 18,
-                kind: FixKind::MathAttachment,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 18,
+            kind: FixKind::MathAttachment,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n$ abs((x_#none)) $\n\nAfter.\n");
     }
@@ -633,13 +623,10 @@ mod tests {
     fn superscript_attachments_get_a_placeholder() {
         let text = "$ abs(x^) $";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 8,
-                kind: FixKind::MathAttachment,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 8,
+            kind: FixKind::MathAttachment,
+        }]);
     }
 
     #[test]
@@ -652,19 +639,16 @@ mod tests {
     fn lone_quote_at_eof_gets_both() {
         let text = "$ \"";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![
-                DelimiterFix {
-                    raw_offset: 3,
-                    kind: FixKind::MathQuote,
-                },
-                DelimiterFix {
-                    raw_offset: 3,
-                    kind: FixKind::MathDollar,
-                },
-            ]
-        );
+        assert_eq!(find_fixes(text), vec![
+            DelimiterFix {
+                raw_offset: 3,
+                kind: FixKind::MathQuote,
+            },
+            DelimiterFix {
+                raw_offset: 3,
+                kind: FixKind::MathDollar,
+            },
+        ]);
 
         assert_eq!(repaired(text), "$ \"\"$");
     }
@@ -673,19 +657,16 @@ mod tests {
     fn bare_attachment_at_eof_gets_a_placeholder() {
         let text = "$ x_";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![
-                DelimiterFix {
-                    raw_offset: 4,
-                    kind: FixKind::MathAttachment,
-                },
-                DelimiterFix {
-                    raw_offset: 4,
-                    kind: FixKind::MathDollar,
-                },
-            ]
-        );
+        assert_eq!(find_fixes(text), vec![
+            DelimiterFix {
+                raw_offset: 4,
+                kind: FixKind::MathAttachment,
+            },
+            DelimiterFix {
+                raw_offset: 4,
+                kind: FixKind::MathDollar,
+            },
+        ]);
 
         assert_eq!(repaired(text), "$ x_#none$");
     }
@@ -709,16 +690,13 @@ mod tests {
     fn unclosed_fence_gets_a_closing_fence() {
         let text = "Before.\n\n```\nlet x = 1\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 22,
-                kind: FixKind::Raw {
-                    run: 3,
-                    block: true
-                },
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 22,
+            kind: FixKind::Raw {
+                run: 3,
+                block: true
+            },
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n```\nlet x = 1\n```\n\nAfter.\n",);
     }
@@ -727,16 +705,13 @@ mod tests {
     fn unclosed_fence_with_language_gets_a_fence() {
         let text = "Before.\n\n```python\nx = 1\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 24,
-                kind: FixKind::Raw {
-                    run: 3,
-                    block: true
-                },
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 24,
+            kind: FixKind::Raw {
+                run: 3,
+                block: true
+            },
+        }]);
 
         assert_eq!(
             repaired(text),
@@ -748,16 +723,13 @@ mod tests {
     fn long_fence_gets_a_matching_run() {
         let text = "Before.\n\n````\nlet x = 1\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 23,
-                kind: FixKind::Raw {
-                    run: 4,
-                    block: true
-                },
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 23,
+            kind: FixKind::Raw {
+                run: 4,
+                block: true
+            },
+        }]);
 
         assert_eq!(
             repaired(text),
@@ -769,16 +741,13 @@ mod tests {
     fn fence_at_eof_closes_after_the_last_line() {
         let text = "Before.\n\n```\nlet x = 1\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 23,
-                kind: FixKind::Raw {
-                    run: 3,
-                    block: true
-                },
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 23,
+            kind: FixKind::Raw {
+                run: 3,
+                block: true
+            },
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n```\nlet x = 1\n\n```");
     }
@@ -787,16 +756,13 @@ mod tests {
     fn unclosed_inline_raw_gets_a_backtick() {
         let text = "A `code fragment\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 16,
-                kind: FixKind::Raw {
-                    run: 1,
-                    block: false,
-                },
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 16,
+            kind: FixKind::Raw {
+                run: 1,
+                block: false,
+            },
+        }]);
 
         assert_eq!(repaired(text), "A `code fragment`\n\nAfter.\n");
     }
@@ -805,13 +771,10 @@ mod tests {
     fn unclosed_code_block_gets_a_brace() {
         let text = "Before.\n\n#{ let x = 1\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 21,
-                kind: FixKind::CodeBlock,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 21,
+            kind: FixKind::CodeBlock,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n#{ let x = 1}\n\nAfter.\n");
     }
@@ -820,13 +783,10 @@ mod tests {
     fn unclosed_content_block_gets_a_bracket() {
         let text = "Before.\n\n#[hello\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 16,
-                kind: FixKind::ContentBlock,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 16,
+            kind: FixKind::ContentBlock,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n#[hello]\n\nAfter.\n");
     }
@@ -835,13 +795,10 @@ mod tests {
     fn unclosed_call_gets_a_paren() {
         let text = "Before.\n\n#f(1, 2\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 16,
-                kind: FixKind::Grouping,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 16,
+            kind: FixKind::Grouping,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n#f(1, 2)\n\nAfter.\n");
     }
@@ -850,26 +807,20 @@ mod tests {
     fn unclosed_array_gets_a_paren() {
         let text = "Before.\n\n#(1, 2\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 15,
-                kind: FixKind::Grouping,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 15,
+            kind: FixKind::Grouping,
+        }]);
     }
 
     #[test]
     fn unclosed_code_string_gets_a_quote() {
         let text = "Before.\n\n#let x = \"abc\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 22,
-                kind: FixKind::String,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 22,
+            kind: FixKind::String,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n#let x = \"abc\"\n\nAfter.\n",);
     }
@@ -878,13 +829,10 @@ mod tests {
     fn unclosed_block_comment_gets_a_terminator() {
         let text = "Before.\n\n/* comment\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 19,
-                kind: FixKind::BlockComment,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 19,
+            kind: FixKind::BlockComment,
+        }]);
 
         assert_eq!(repaired(text), "Before.\n\n/* comment*/\n\nAfter.\n");
     }
@@ -893,19 +841,16 @@ mod tests {
     fn nested_closers_are_inserted_inner_first() {
         let text = "Before.\n\n#f(1, #[hello\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![
-                DelimiterFix {
-                    raw_offset: 22,
-                    kind: FixKind::ContentBlock,
-                },
-                DelimiterFix {
-                    raw_offset: 22,
-                    kind: FixKind::Grouping,
-                },
-            ]
-        );
+        assert_eq!(find_fixes(text), vec![
+            DelimiterFix {
+                raw_offset: 22,
+                kind: FixKind::ContentBlock,
+            },
+            DelimiterFix {
+                raw_offset: 22,
+                kind: FixKind::Grouping,
+            },
+        ]);
 
         assert_eq!(repaired(text), "Before.\n\n#f(1, #[hello])\n\nAfter.\n",);
     }
@@ -914,19 +859,16 @@ mod tests {
     fn nested_string_and_paren_are_inserted_inner_first() {
         let text = "Before.\n\n#f(\"abc\n\nAfter.\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![
-                DelimiterFix {
-                    raw_offset: 16,
-                    kind: FixKind::String,
-                },
-                DelimiterFix {
-                    raw_offset: 16,
-                    kind: FixKind::Grouping,
-                },
-            ]
-        );
+        assert_eq!(find_fixes(text), vec![
+            DelimiterFix {
+                raw_offset: 16,
+                kind: FixKind::String,
+            },
+            DelimiterFix {
+                raw_offset: 16,
+                kind: FixKind::Grouping,
+            },
+        ]);
 
         assert_eq!(repaired(text), "Before.\n\n#f(\"abc\")\n\nAfter.\n",);
     }
@@ -953,13 +895,10 @@ mod tests {
     fn crlf_blank_lines_close_constructs() {
         let text = "Before.\r\n\r\n#[open\r\n\r\nAfter.\r\n";
 
-        assert_eq!(
-            find_fixes(text),
-            vec![DelimiterFix {
-                raw_offset: 17,
-                kind: FixKind::ContentBlock,
-            }]
-        );
+        assert_eq!(find_fixes(text), vec![DelimiterFix {
+            raw_offset: 17,
+            kind: FixKind::ContentBlock,
+        }]);
 
         assert_eq!(repaired(text), "Before.\r\n\r\n#[open]\r\n\r\nAfter.\r\n",);
     }

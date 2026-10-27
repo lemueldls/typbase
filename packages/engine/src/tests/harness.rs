@@ -4,7 +4,11 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     bindings::TypstFileId,
-    renderer::paged::{PagedRender, items::chunk_by_items, svg::SvgRender, svg::render_svgs_by_items},
+    renderer::paged::{
+        PagedRender,
+        items::chunk_by_items,
+        svg::{SvgRender, render_svgs_by_items},
+    },
     source::RenderTarget,
     state::TypstState,
 };

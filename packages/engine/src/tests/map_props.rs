@@ -95,7 +95,7 @@ fn random_text_repairs_are_sound() {
 #[test]
 fn random_edits_keep_maps_sound() {
     let from = "abcdefghij";
-    let mut rng = Rng(0xDEAD_BEEF);
+    let mut rng = Rng(0xdead_beef);
 
     for round in 0..64 {
         let mut map = SourceMap::identity(from.len());
@@ -148,7 +148,7 @@ fn delimiter_fixes_are_deterministic() {
 /// Every insertion lands at a raw offset inside the text.
 #[test]
 fn delimiter_fixes_stay_inside_the_text() {
-    let mut rng = Rng(0x0BAD_F00D);
+    let mut rng = Rng(0x0bad_f00d);
     let alphabet = ["$", "\"", "x", " ", "\n", "_"];
 
     for _ in 0..64 {

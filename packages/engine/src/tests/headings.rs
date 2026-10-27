@@ -18,14 +18,11 @@ fn reads_levels_and_strips_markup() {
 === `code` and _emph_
 ";
     let headings = outline(text);
-    assert_eq!(
-        headings,
-        vec![
-            (1, "One".to_string()),
-            (2, "Two bold".to_string()),
-            (3, "code and emph".to_string()),
-        ]
-    );
+    assert_eq!(headings, vec![
+        (1, "One".to_string()),
+        (2, "Two bold".to_string()),
+        (3, "code and emph".to_string()),
+    ]);
 }
 
 #[test]

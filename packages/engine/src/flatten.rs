@@ -297,11 +297,13 @@ pub fn extract_headings_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec
     found
         .into_iter()
         .enumerate()
-        .map(|(index, (level, title, _))| HeadingSpan {
-            level,
-            title,
-            from: utf16[index * 2],
-            to: utf16[index * 2 + 1],
+        .map(|(index, (level, title, _))| {
+            HeadingSpan {
+                level,
+                title,
+                from: utf16[index * 2],
+                to: utf16[index * 2 + 1],
+            }
         })
         .collect()
 }
@@ -346,9 +348,11 @@ pub fn extract_equations_root(root: &typst_syntax::SyntaxNode, text: &str) -> Ve
     ranges
         .into_iter()
         .enumerate()
-        .map(|(index, _)| EquationSpan {
-            from: utf16[index * 2],
-            to: utf16[index * 2 + 1],
+        .map(|(index, _)| {
+            EquationSpan {
+                from: utf16[index * 2],
+                to: utf16[index * 2 + 1],
+            }
         })
         .collect()
 }
@@ -438,7 +442,11 @@ const CELL_KINDS: &[&str] = &["prose", "code", "log", "hidden"];
 
 /// Reads a cell attribute line
 fn cell_attribute(comment: &str) -> Option<CellAttribute> {
-    let attrs = comment.strip_prefix("//")?.trim_start().strip_prefix('%')?.trim();
+    let attrs = comment
+        .strip_prefix("//")?
+        .trim_start()
+        .strip_prefix('%')?
+        .trim();
 
     let mut kind: Option<String> = None;
     let mut name: Option<String> = None;
@@ -501,10 +509,12 @@ pub fn extract_cells_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<Ce
         // comment has to name a known kind or it is just a comment.
         let attribute = match child.kind() {
             SyntaxKind::Heading => None,
-            SyntaxKind::LineComment => match text.get(child.range()).and_then(cell_attribute) {
-                Some(attribute) => Some(attribute),
-                None => continue,
-            },
+            SyntaxKind::LineComment => {
+                match text.get(child.range()).and_then(cell_attribute) {
+                    Some(attribute) => Some(attribute),
+                    None => continue,
+                }
+            }
             _ => continue,
         };
 
@@ -525,17 +535,14 @@ pub fn extract_cells_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<Ce
     boundaries.sort_by_key(|boundary| boundary.line_start);
 
     if boundaries.is_empty() {
-        return to_spans(
-            text,
-            vec![CellBytes {
-                kind: String::from("prose"),
-                name: None,
-                marker_start: 0,
-                marker_end: 0,
-                content_start: 0,
-                content_end: text.len(),
-            }],
-        );
+        return to_spans(text, vec![CellBytes {
+            kind: String::from("prose"),
+            name: None,
+            marker_start: 0,
+            marker_end: 0,
+            content_start: 0,
+            content_end: text.len(),
+        }]);
     }
 
     let mut cells: Vec<CellBytes> = Vec::new();
@@ -644,13 +651,15 @@ fn to_spans(text: &str, cells: Vec<CellBytes>) -> Vec<CellSpan> {
     cells
         .into_iter()
         .enumerate()
-        .map(|(index, cell)| CellSpan {
-            kind: cell.kind,
-            name: cell.name,
-            marker_start: utf16[index * 4],
-            marker_end: utf16[index * 4 + 1],
-            content_start: utf16[index * 4 + 2],
-            content_end: utf16[index * 4 + 3],
+        .map(|(index, cell)| {
+            CellSpan {
+                kind: cell.kind,
+                name: cell.name,
+                marker_start: utf16[index * 4],
+                marker_end: utf16[index * 4 + 1],
+                content_start: utf16[index * 4 + 2],
+                content_end: utf16[index * 4 + 3],
+            }
         })
         .collect()
 }

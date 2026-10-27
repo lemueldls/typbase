@@ -70,9 +70,7 @@ impl FontLoader {
     }
 
     pub fn install<T>(&mut self, bytes: T)
-    where
-        T: AsRef<[u8]> + Send + Sync + 'static,
-    {
+    where T: AsRef<[u8]> + Send + Sync + 'static {
         for font in Font::iter(Bytes::new(bytes)) {
             // Installing the same font twice (a repeated settings sync, a
             // worker restart) used to duplicate it in the book and the font

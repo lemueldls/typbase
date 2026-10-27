@@ -41,7 +41,10 @@ fn ranges_are_utf16() {
     assert_eq!(equations.len(), 1);
 
     let byte_start = text.find('$').unwrap();
-    let utf16_start = text[..byte_start].chars().map(char::len_utf16).sum::<usize>();
+    let utf16_start = text[..byte_start]
+        .chars()
+        .map(char::len_utf16)
+        .sum::<usize>();
     assert_eq!(equations[0].0, utf16_start);
     assert_eq!(
         equations[0].1,

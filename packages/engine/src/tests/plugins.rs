@@ -1,11 +1,7 @@
 //! The plugin surface contract: the host-generated wrapper, `ui.typ`, and the
 //! bundled plugins compile to HTML with a patch holder the host can read.
 
-use crate::{
-    bindings::TypstDiagnosticSeverity,
-    renderer::html::render,
-    tests::harness,
-};
+use crate::{bindings::TypstDiagnosticSeverity, renderer::html::render, tests::harness};
 
 const UI_LIB: &str = include_str!("../../../../apps/web/public/plugins/ui.typ");
 const CALENDAR: &str = include_str!("../../../../apps/web/public/plugins/calendar/main.typ");
@@ -121,30 +117,39 @@ fn calendar_surface_compiles_and_emits_a_patch() {
         r#""surface": { "kind": "pane", "title": "Demo" }"#,
     );
 
-    let (html, errors) = compile_surface(
-        "main.typ",
-        "pane",
-        CALENDAR,
-        &ctx,
-        &[
-            ("typbase/query/daily/2026-09.json", "[]"),
-            ("typbase/query/content/2026-09-26.json", "null"),
-        ],
-    );
+    let (html, errors) = compile_surface("main.typ", "pane", CALENDAR, &ctx, &[
+        ("typbase/query/daily/2026-09.json", "[]"),
+        ("typbase/query/content/2026-09-26.json", "null"),
+    ]);
 
     assert!(errors.is_empty(), "calendar pane errors: {errors:?}");
     assert!(html.contains("data-tb-patch"), "no patch holder in: {html}");
-    assert!(html.contains("class=\"tb-surface\""), "no surface container in: {html}");
-    assert!(html.contains("Dentist"), "existing event missing from: {html}");
-    assert!(html.contains("cal-day--selected"), "selected day has no tone: {html}");
-    assert!(html.contains("event.create"), "create action missing from: {html}");
+    assert!(
+        html.contains("class=\"tb-surface\""),
+        "no surface container in: {html}"
+    );
+    assert!(
+        html.contains("Dentist"),
+        "existing event missing from: {html}"
+    );
+    assert!(
+        html.contains("cal-day--selected"),
+        "selected day has no tone: {html}"
+    );
+    assert!(
+        html.contains("event.create"),
+        "create action missing from: {html}"
+    );
     // The action render carries the appended record in its patch. The UI
     // itself stays pre-patch until the host rerenders.
     assert!(
         html.contains("&quot;op&quot;: &quot;append&quot;"),
         "append op missing from: {html}"
     );
-    assert!(html.contains("Checkup"), "append record missing from: {html}");
+    assert!(
+        html.contains("Checkup"),
+        "append record missing from: {html}"
+    );
 }
 
 #[test]
@@ -166,7 +171,11 @@ fn unresolved_requests_render_recovery_instead_of_panicking() {
 
     let (html, errors) = compile_surface("main.typ", "pane", CALENDAR, &ctx, &[]);
 
-    assert!(errors.iter().any(|error| error.contains("failed to load file")));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("failed to load file"))
+    );
     assert!(!html.is_empty(), "recovery should still produce a frame");
 }
 
@@ -188,9 +197,18 @@ fn drawing_surface_compiles_with_theme_colors_and_a_chain() {
     let (html, errors) = compile_surface("main.typ", "window", DRAWING, &ctx, &[]);
 
     assert!(errors.is_empty(), "drawing window errors: {errors:?}");
-    assert!(html.contains("--tb-swatch:#b42828"), "theme swatch missing from: {html}");
-    assert!(html.contains("data-tb-chain"), "insert chain missing from: {html}");
-    assert!(html.contains("data-tb-component"), "canvas component missing from: {html}");
+    assert!(
+        html.contains("--tb-swatch:#b42828"),
+        "theme swatch missing from: {html}"
+    );
+    assert!(
+        html.contains("data-tb-chain"),
+        "insert chain missing from: {html}"
+    );
+    assert!(
+        html.contains("data-tb-component"),
+        "canvas component missing from: {html}"
+    );
 
     // The snippet a note carries: the module aliased, addressed through the slug
     // from the context rather than a hardcoded path. The code block is

@@ -22,14 +22,12 @@ fn reads_the_family_a_font_declares() {
     }
 
     // The typographic family is what a font menu shows.
-    assert_eq!(
-        family_names(&bundled("maple/MapleMono-Regular.ttf")),
-        vec![String::from("Maple Mono")]
-    );
-    assert_eq!(
-        family_names(&bundled("math/NewCMMath-Regular.otf")),
-        vec![String::from("New Computer Modern Math")]
-    );
+    assert_eq!(family_names(&bundled("maple/MapleMono-Regular.ttf")), vec![
+        String::from("Maple Mono")
+    ]);
+    assert_eq!(family_names(&bundled("math/NewCMMath-Regular.otf")), vec![
+        String::from("New Computer Modern Math")
+    ]);
 }
 
 #[test]

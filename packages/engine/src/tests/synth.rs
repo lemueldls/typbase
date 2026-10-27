@@ -62,7 +62,11 @@ fn the_shared_parse_always_matches_its_text() {
     // covers, and the two texts here differ in length.
     let first_len = context.parse_cached(&fixture.source).len();
     let other = context.parse_cached("Before.\n");
-    assert_ne!(other.len(), first_len, "the cached tree was reused for other text");
+    assert_ne!(
+        other.len(),
+        first_len,
+        "the cached tree was reused for other text"
+    );
     assert_eq!(
         context.parse_cached(&fixture.source).len(),
         first_len,
@@ -93,7 +97,9 @@ fn nested_equations_are_recorded_with_dollar_bounds() {
     // equation holding a nested introspectable element.
     assert_eq!(result.equation_ranges.len(), 6, "found {found:#?}");
     assert!(
-        found.iter().all(|text| text.starts_with('$') && text.ends_with('$')),
+        found
+            .iter()
+            .all(|text| text.starts_with('$') && text.ends_with('$')),
         "a nested range does not cover its delimiters: {found:#?}",
     );
     assert!(

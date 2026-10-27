@@ -871,13 +871,15 @@ impl TypstState {
                 side,
             );
 
-            tooltip.map(|tooltip| match tooltip {
-                Tooltip::Text(text) => text.to_string(),
-                Tooltip::Code(code) => {
-                    if code.starts_with('<') && code.ends_with('>') {
-                        code.to_string()
-                    } else {
-                        typst_syntax::highlight_html(&typst_syntax::parse_code(&code))
+            tooltip.map(|tooltip| {
+                match tooltip {
+                    Tooltip::Text(text) => text.to_string(),
+                    Tooltip::Code(code) => {
+                        if code.starts_with('<') && code.ends_with('>') {
+                            code.to_string()
+                        } else {
+                            typst_syntax::highlight_html(&typst_syntax::parse_code(&code))
+                        }
                     }
                 }
             })

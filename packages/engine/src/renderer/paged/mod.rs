@@ -232,17 +232,19 @@ impl TypstState {
         let (document, mut diagnostics) = compile_export_document(&mut ctx);
 
         let bytes = match document {
-            Some(document) => match pdf(&document, &PdfOptions::default()) {
-                Ok(pdf) => Some(pdf),
-                Err(source_diagnostics) => {
-                    diagnostics.extend(TypstDiagnostic::from_diagnostics(
-                        source_diagnostics,
-                        ctx.note,
-                        ctx.world,
-                    ));
-                    None
+            Some(document) => {
+                match pdf(&document, &PdfOptions::default()) {
+                    Ok(pdf) => Some(pdf),
+                    Err(source_diagnostics) => {
+                        diagnostics.extend(TypstDiagnostic::from_diagnostics(
+                            source_diagnostics,
+                            ctx.note,
+                            ctx.world,
+                        ));
+                        None
+                    }
                 }
-            },
+            }
             None => None,
         };
 

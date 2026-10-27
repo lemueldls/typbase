@@ -4,7 +4,10 @@ use crate::flatten::extract_cells;
 
 /// Cell kinds in source order, for the readable assertions below.
 fn kinds(text: &str) -> Vec<String> {
-    extract_cells(text).into_iter().map(|cell| cell.kind).collect()
+    extract_cells(text)
+        .into_iter()
+        .map(|cell| cell.kind)
+        .collect()
 }
 
 /// The text of each cell's content, so a swallowed line shows up as a failure.
@@ -80,7 +83,10 @@ fn an_unknown_kind_is_not_an_attribute() {
     let text = "//% kind=prose\nA.\n\n//% kind=nope\nB.\n\n//% kind=code\n#let x = 1\n";
 
     assert_eq!(kinds(text), vec!["prose", "code"]);
-    assert_eq!(contents(text), vec!["A.\n\n//% kind=nope\nB.", "#let x = 1"]);
+    assert_eq!(contents(text), vec![
+        "A.\n\n//% kind=nope\nB.",
+        "#let x = 1"
+    ]);
 }
 
 #[test]

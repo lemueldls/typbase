@@ -18,9 +18,11 @@ struct TooltipSummary {
 fn summarize(chunks: &[FrameItemsChunk]) -> Vec<TooltipSummary> {
     chunks
         .iter()
-        .map(|chunk| TooltipSummary {
-            range: [chunk.range.start, chunk.range.end],
-            items: chunk.items.len(),
+        .map(|chunk| {
+            TooltipSummary {
+                range: [chunk.range.start, chunk.range.end],
+                items: chunk.items.len(),
+            }
         })
         .collect()
 }
@@ -99,7 +101,10 @@ fn a_nested_introspectable_element_keeps_one_overlay() {
 
     let render = harness::compile(&mut state, &id, &fixture.source);
 
-    let nested = fixture.source.find("#strong").expect("fixture holds the nested element");
+    let nested = fixture
+        .source
+        .find("#strong")
+        .expect("fixture holds the nested element");
     let matching: Vec<_> = render
         .tooltips
         .iter()
@@ -133,9 +138,8 @@ fn a_let_bound_equation_anchors_at_its_definition() {
         return;
     }
 
-    let source = String::from(
-        "#let xn = $(x_n)_(n>=0)$\n\nmiddle\n\n$ xn->l quad \"for some\" l in RR $\n",
-    );
+    let source =
+        String::from("#let xn = $(x_n)_(n>=0)$\n\nmiddle\n\n$ xn->l quad \"for some\" l in RR $\n");
     let mut state = harness::state();
     let id = harness::page(&mut state, "let_bound_equation");
     let render = harness::compile(&mut state, &id, &source);
@@ -214,7 +218,11 @@ fn a_caret_renders_only_the_equation_under_it() {
         RenderTarget::Svg,
         &mut state,
     );
-    assert_eq!(all.tooltips.len(), every, "no focus should build every equation");
+    assert_eq!(
+        all.tooltips.len(),
+        every,
+        "no focus should build every equation"
+    );
 }
 
 /// A `let`-bound equation is laid out at each use, and the items it produces
@@ -238,7 +246,8 @@ fn a_let_bound_equation_is_drawn_inside_the_equation_that_uses_it() {
         let mut state = harness::state();
         let id = harness::page(&mut state, name);
 
-        let render = crate::renderer::paged::svg::render_svgs_by_items(&id, source, "", None, &mut state);
+        let render =
+            crate::renderer::paged::svg::render_svgs_by_items(&id, source, "", None, &mut state);
 
         assert_eq!(
             render.tooltips.len(),
@@ -278,7 +287,8 @@ fn each_use_of_a_binding_gets_its_own_overlay() {
     let mut state = harness::state();
     let id = harness::page(&mut state, "shared_binding");
 
-    let render = crate::renderer::paged::svg::render_svgs_by_items(&id, &source, "", None, &mut state);
+    let render =
+        crate::renderer::paged::svg::render_svgs_by_items(&id, &source, "", None, &mut state);
 
     let ranges: Vec<_> = render
         .tooltips

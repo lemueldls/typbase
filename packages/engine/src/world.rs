@@ -1,7 +1,10 @@
+use std::path::PathBuf;
+
 use dashmap::DashSet;
 use rustc_hash::FxHashMap;
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, UtcOffset};
+use tsify::Tsify;
 use typst::{
     Feature, Features, Library, LibraryExt, World,
     diag::{FileError, FileResult},
@@ -12,9 +15,6 @@ use typst::{
 };
 use typst_ide::IdeWorld;
 use typst_syntax::{VirtualPath, VirtualRoot, package::PackageSpec};
-
-use serde::{Deserialize, Serialize};
-use tsify::Tsify;
 
 use crate::fonts::FontLoader;
 
@@ -123,9 +123,11 @@ impl TypstWorld {
     /// changed.
     pub fn remove_package(&mut self, spec: &PackageSpec) -> usize {
         let before = self.files.len();
-        self.files.retain(|id, _| match id.root() {
-            VirtualRoot::Package(root) => root != spec,
-            VirtualRoot::Project => true,
+        self.files.retain(|id, _| {
+            match id.root() {
+                VirtualRoot::Package(root) => root != spec,
+                VirtualRoot::Project => true,
+            }
         });
 
         before - self.files.len()

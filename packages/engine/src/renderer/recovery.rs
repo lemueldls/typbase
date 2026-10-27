@@ -373,7 +373,8 @@ fn sanitize_marked_text(text: &str) -> String {
 /// span on the callee alone. Wrapping just the callee leaves `(x)` to attach
 /// to the inserted code expression, which fails again and spins the recovery
 /// loop. Marking the whole call as red content renders instead.
-fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {    let bytes = text.as_bytes();
+fn expand_math_call(text: &str, range: Range<usize>) -> Range<usize> {
+    let bytes = text.as_bytes();
 
     if bytes.get(range.end) != Some(&b'(') {
         return range;

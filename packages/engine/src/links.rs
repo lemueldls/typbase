@@ -174,14 +174,16 @@ fn to_spans(text: &str, links: Vec<RawLink>) -> Vec<LinkSpan> {
     links
         .into_iter()
         .enumerate()
-        .map(|(index, link)| LinkSpan {
-            kind: link.kind.to_string(),
-            target: link.target,
-            from: utf16[index * 4],
-            to: utf16[index * 4 + 3],
-            target_from: utf16[index * 4 + 1],
-            target_to: utf16[index * 4 + 2],
-            dynamic: link.dynamic,
+        .map(|(index, link)| {
+            LinkSpan {
+                kind: link.kind.to_string(),
+                target: link.target,
+                from: utf16[index * 4],
+                to: utf16[index * 4 + 3],
+                target_from: utf16[index * 4 + 1],
+                target_to: utf16[index * 4 + 2],
+                dynamic: link.dynamic,
+            }
         })
         .collect()
 }
@@ -246,7 +248,10 @@ mod tests {
         assert_eq!(links[0].kind, "page-link");
         assert!(links[0].dynamic);
         assert_eq!(links[0].target, "");
-        assert_eq!(&text[links[0].from..links[0].to], "#typbase.page-link(page.id)");
+        assert_eq!(
+            &text[links[0].from..links[0].to],
+            "#typbase.page-link(page.id)"
+        );
         assert_eq!(&text[links[0].target_from..links[0].target_to], "page.id");
     }
 
@@ -263,7 +268,10 @@ mod tests {
         assert_eq!(links[0].kind, "embed");
         assert_eq!(&text[links[0].target_from..links[0].target_to], "myId");
         assert_eq!(links[1].kind, "url");
-        assert_eq!(&text[links[1].target_from..links[1].target_to], "base + \"/page\"");
+        assert_eq!(
+            &text[links[1].target_from..links[1].target_to],
+            "base + \"/page\""
+        );
         // A dynamic first argument beats a string in a later position.
         assert_eq!(&text[links[2].target_from..links[2].target_to], "pageId");
     }

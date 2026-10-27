@@ -160,13 +160,7 @@ fn autocomplete_follows_a_synced_keystroke() {
 
     // The keystroke, with no render since. The engine's document still describes
     // `before`, so this is the case that used to answer for the old text.
-    crate::source::sync_source_state(
-        &id,
-        after,
-        "",
-        crate::source::RenderTarget::Svg,
-        &mut state,
-    );
+    crate::source::sync_source_state(&id, after, "", crate::source::RenderTarget::Svg, &mut state);
 
     let labels = labels_at(&mut state, after);
     assert!(
@@ -242,13 +236,7 @@ fn field_completion_follows_a_synced_keystroke() {
     );
 
     // The keystroke, with no render since.
-    crate::source::sync_source_state(
-        &id,
-        after,
-        "",
-        crate::source::RenderTarget::Svg,
-        &mut state,
-    );
+    crate::source::sync_source_state(&id, after, "", crate::source::RenderTarget::Svg, &mut state);
 
     let fields = fields_at(&mut state, after);
     assert!(
