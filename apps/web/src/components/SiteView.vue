@@ -12,7 +12,12 @@ import { saveExport } from "~/lib/exportPage";
 import { openExternal } from "~/lib/openExternal";
 import { buildSite, siteBaseUrl, siteRkey } from "~/lib/site/build";
 import { forkSiteSettings } from "~/lib/site/fork";
-import { publishSite, unpublishSite, wispClient } from "~/lib/site/publish";
+import {
+  publishSite,
+  createWispDomainRequest,
+  unpublishSite,
+  wispClient,
+} from "~/lib/site/publish";
 import { createZip } from "~/lib/zip";
 
 const props = defineProps<{
@@ -26,6 +31,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { atproto, atprotoStatus, localState } = useWorkspace();
+const runtimeConfig = useRuntimeConfig();
+const wispRequest = createWispDomainRequest(String(runtimeConfig.public.proxyUrl ?? ""));
 
 const settings = useWorkspaceValue(
   () => props.store,
@@ -353,7 +360,7 @@ async function onUnpublish(): Promise<void> {
   busy.value = true;
   error.value = "";
   try {
-    await unpublishSite(props.store, atproto.value);
+    await unpublishSite(props.store, atproto.value, wispRequest);
     resultNote.value = "";
     pushToast({ titleKey: "site.unpublished", duration: 3000 });
   } catch (cause) {
@@ -526,7 +533,7 @@ function domainClient() {
   if (!atprotoValue) throw new Error(t("site.signInFirst"));
   const session = atprotoValue.requireSession();
 
-  return wispClient(site.value, session);
+  return wispClient(site.value, session, wispRequest);
 }
 
 async function claimSubdomain(): Promise<void> {
@@ -595,6 +602,39 @@ async function refreshDomain(): Promise<void> {
       domainStatus: status.verified || status.status === "verified" ? "verified" : "pending",
       domainError: status.lastError ?? "",
     });
+  } catch (cause) {
+    domainError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    domainBusy.value = false;
+  }
+}
+
+/** Attach a domain that was already claimed through Wisp's own dashboard. */
+async function checkExistingCustomDomain(): Promise<void> {
+  const domain = customDomainInput.value.trim().toLowerCase();
+  if (!domain) return;
+  domainBusy.value = true;
+  domainError.value = "";
+  try {
+    const status = await domainClient().domains.status(domain);
+    const verified = status.verified || status.status === "verified";
+    if (!verified && status.status !== "alreadyClaimed") {
+      domainError.value = t("site.domainNotClaimed");
+      return;
+    }
+    const key = siteRkey(site.value, settings.value.name);
+    if (status.siteRkey && status.siteRkey !== key) {
+      domainError.value = t("site.domainOtherSite", { site: status.siteRkey });
+      return;
+    }
+    updateWisp({
+      customDomain: domain,
+      domainStatus: verified ? "verified" : "pending",
+      domainDns: null,
+      domainError: status.lastError ?? "",
+    });
+    customDomainInput.value = "";
+    pushToast({ titleKey: "site.domainClaimed", duration: 3000 });
   } catch (cause) {
     domainError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -689,6 +729,7 @@ function copy(value: string): Promise<void> {
         <UiIconButton
           class="site-view__close"
           icon="close"
+          variant="ghost"
           :label="$t('common.close')"
           @click="emit('close')"
         />
@@ -844,7 +885,11 @@ function copy(value: string): Promise<void> {
 
               <div class="site-pages__defaults">
                 <label class="site-view__field site-view__field--inline">
-                  <span>{{ $t("site.defaultVisibility") }}</span>
+                  <span class="site-view__label">
+                    {{ $t("site.defaultVisibility") }}
+                    <p class="site-view__hint">{{ $t("site.defaultVisibilityHint") }}</p>
+                  </span>
+
                   <UiSelect
                     :model-value="site.defaultVisibility"
                     :options="visibilityOptions"
@@ -854,7 +899,6 @@ function copy(value: string): Promise<void> {
                     "
                   />
                 </label>
-                <p class="site-view__hint">{{ $t("site.defaultVisibilityHint") }}</p>
               </div>
 
               <ul v-if="filteredPages.length" class="site-pages">
@@ -1274,6 +1318,14 @@ function copy(value: string): Promise<void> {
                     >
                       {{ $t("site.claimCustomDomain") }}
                     </UiButton>
+                    <UiButton
+                      variant="plain"
+                      size="large"
+                      :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
+                      @click="checkExistingCustomDomain"
+                    >
+                      {{ $t("site.checkDomain") }}
+                    </UiButton>
                   </div>
                   <p class="site-view__hint">{{ $t("site.customDomainSteps") }}</p>
                 </div>
@@ -1681,7 +1733,7 @@ function copy(value: string): Promise<void> {
   justify-content: space-between;
   gap: var(--space-3);
   width: 100%;
-  max-width: var(--site-content-width);
+  /* max-width: var(--site-content-width); */
   margin-inline: auto;
 }
 
@@ -1999,6 +2051,10 @@ function copy(value: string): Promise<void> {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+}
+
+.site-view__label {
+  flex: 1;
 }
 
 .site-view__grid {
@@ -2325,6 +2381,7 @@ function copy(value: string): Promise<void> {
 }
 
 .site-view__copy-row code {
+  flex: 1;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }

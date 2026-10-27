@@ -11,6 +11,17 @@ export interface WispPublishOptions {
   /** Previous SHA-256 per path, so unchanged blobs are not uploaded again. */
   fileHashes?: Record<string, string>;
   settings?: WispSiteSettingsRecord;
+  /** Upload progress, then a manifest stage once every file has been handled. */
+  onProgress?: (progress: WispPublishProgress) => void;
+}
+
+export interface WispPublishProgress {
+  stage: "upload" | "manifest";
+  done: number;
+  total: number;
+  uploaded: number;
+  reused: number;
+  current?: string;
 }
 
 export interface WispPublishResult {
@@ -136,8 +147,31 @@ export interface PublicSession {
 
 /** A public repo view over one session, without airspace's space model. */
 export function createPublicRepo(session: PublicSession, did: string = session.did): PublicRepo {
-  async function call(method: string, init: RequestInit = {}): Promise<Response> {
-    return session.fetchHandler(`/xrpc/${method}`, init);
+  async function call(
+    method: string,
+    init: RequestInit = {},
+    timeout = PUBLIC_REPO_TIMEOUT,
+  ): Promise<Response> {
+    const signal =
+      init.signal ??
+      (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+        ? AbortSignal.timeout(timeout)
+        : undefined);
+    try {
+      return await session.fetchHandler(`/xrpc/${method}`, { ...init, signal });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const timedOut =
+        (typeof error === "object" &&
+          error !== null &&
+          "name" in error &&
+          (error as { name?: unknown }).name === "TimeoutError") ||
+        /signal timed out/i.test(message);
+      if (!init.signal && timedOut) {
+        throw new Error(`${method} timed out after ${timeout}ms`, { cause: error });
+      }
+      throw error;
+    }
   }
 
   async function fail(response: Response, method: string): Promise<never> {
@@ -155,7 +189,24 @@ export function createPublicRepo(session: PublicSession, did: string = session.d
     async getRecord(collection, rkey) {
       const params = new URLSearchParams({ repo: did, collection, rkey });
       const response = await call(`com.atproto.repo.getRecord?${params.toString()}`);
-      if (response.status === 400 || response.status === 404) return null;
+      if (response.status === 404) return null;
+      if (response.status === 400) {
+        // The reference PDS reports a missing record as 400 RecordNotFound;
+        // do not hide any other bad request behind the same path.
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+          message?: string;
+        } | null;
+        if (
+          body?.error === "RecordNotFound" ||
+          (body?.message ?? "").toLowerCase().includes("could not locate record")
+        ) {
+          return null;
+        }
+        throw new Error(
+          `com.atproto.repo.getRecord failed (400): ${body?.message ?? body?.error ?? "Bad Request"}`,
+        );
+      }
       if (!response.ok) await fail(response, "com.atproto.repo.getRecord");
       const body = (await response.json()) as RecordResult;
 
@@ -182,11 +233,15 @@ export function createPublicRepo(session: PublicSession, did: string = session.d
       if (!response.ok) await fail(response, "com.atproto.repo.deleteRecord");
     },
     async uploadBlob(bytes, mimeType = "application/octet-stream") {
-      const response = await call("com.atproto.repo.uploadBlob", {
-        method: "POST",
-        headers: { "content-type": mimeType },
-        body: bytes as BodyInit,
-      });
+      const response = await call(
+        "com.atproto.repo.uploadBlob",
+        {
+          method: "POST",
+          headers: { "content-type": mimeType },
+          body: bytes as BodyInit,
+        },
+        BLOB_UPLOAD_TIMEOUT,
+      );
       if (!response.ok) await fail(response, "com.atproto.repo.uploadBlob");
       const body = (await response.json()) as { blob: Record<string, unknown> };
 
@@ -203,10 +258,6 @@ export function createPublicRepo(session: PublicSession, did: string = session.d
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/* Wisp                                                                        */
-/* -------------------------------------------------------------------------- */
-
 const WISP_FS = "place.wisp.fs";
 const WISP_SUBFS = "place.wisp.subfs";
 const WISP_SETTINGS = "place.wisp.settings";
@@ -214,6 +265,10 @@ const MAX_FILES = 1000;
 const MAX_SITE_BYTES = 300 * 1024 * 1024;
 const MAX_MANIFEST_SIZE = 140 * 1024;
 const MAX_SUBFS_SIZE = 75 * 1024;
+/** A PDS call that never settles leaves the publish dialog busy forever. */
+const PUBLIC_REPO_TIMEOUT = 120_000;
+/** Blob uploads can legitimately take minutes on a slow connection. */
+const BLOB_UPLOAD_TIMEOUT = 10 * 60_000;
 const FILE_COUNT_THRESHOLD = 250;
 const TARGET_FILES = 200;
 
@@ -265,6 +320,14 @@ export async function publishWispSite(
   }
 
   const existing = await readWispSite(repo, repo.did, options.siteRkey);
+  const existingSettings = await repo.getRecord(WISP_SETTINGS, options.siteRkey).catch(() => null);
+  options.onProgress?.({
+    stage: "upload",
+    done: 0,
+    total: options.files.length,
+    uploaded: 0,
+    reused: 0,
+  });
   const hashes: Record<string, string> = {};
   const uploaded: Array<{
     file: WispFile;
@@ -274,6 +337,7 @@ export async function publishWispSite(
   }> = [];
   let reused = 0;
   let uploadedCount = 0;
+  let done = 0;
 
   for (const file of options.files) {
     const hash = await sha256Hex(file.bytes);
@@ -287,14 +351,45 @@ export async function publishWispSite(
         base64: previous.base64,
       });
       reused++;
+      done++;
+      options.onProgress?.({
+        stage: "upload",
+        done,
+        total: options.files.length,
+        uploaded: uploadedCount,
+        reused,
+      });
       continue;
     }
 
+    options.onProgress?.({
+      stage: "upload",
+      done,
+      total: options.files.length,
+      uploaded: uploadedCount,
+      reused,
+      current: file.name,
+    });
     const blob = await repo.uploadBlob(file.bytes);
     uploaded.push({ file, blob });
     uploadedCount++;
+    done++;
+    options.onProgress?.({
+      stage: "upload",
+      done,
+      total: options.files.length,
+      uploaded: uploadedCount,
+      reused,
+    });
   }
 
+  options.onProgress?.({
+    stage: "manifest",
+    done: options.files.length,
+    total: options.files.length,
+    uploaded: uploadedCount,
+    reused,
+  });
   const root = wispTree(uploaded);
   const createdAt = new Date().toISOString();
   const generation = nextTid();
@@ -306,7 +401,7 @@ export async function publishWispSite(
     written.add(record.rkey);
   }
 
-  if (options.settings) {
+  if (options.settings && !wispSettingsEqual(existingSettings?.value, options.settings)) {
     await repo.putRecord(WISP_SETTINGS, options.siteRkey, {
       $type: WISP_SETTINGS,
       cleanUrls: options.settings.cleanUrls ?? true,
@@ -593,6 +688,32 @@ function countFiles(entry: WispTreeEntry | WispTreeDirectory): number {
   return entry.entries.reduce((sum, child) => sum + countFiles(child), 0);
 }
 
+/**
+ * Wisp settings rarely change. Rewriting an identical record adds a commit to
+ * the firehose and makes every publish look like a settings update to Wisp.
+ */
+function wispSettingsEqual(
+  existing: Record<string, unknown> | null | undefined,
+  next: WispSiteSettingsRecord,
+): boolean {
+  if (!existing) return false;
+
+  const current = {
+    cleanUrls: existing.cleanUrls ?? true,
+    custom404: existing.custom404,
+    indexFiles: existing.indexFiles ?? ["index.html"],
+    headers: existing.headers ?? [],
+  };
+  const desired = {
+    cleanUrls: next.cleanUrls ?? true,
+    custom404: next.custom404,
+    indexFiles: next.indexFiles ?? ["index.html"],
+    headers: next.headers ?? [],
+  };
+
+  return JSON.stringify(current) === JSON.stringify(desired);
+}
+
 function jsonSize(value: unknown): number {
   return JSON.stringify(value).length;
 }
@@ -650,10 +771,6 @@ async function readWispSite(
 
   return { files, subfs };
 }
-
-/* -------------------------------------------------------------------------- */
-/* Wisp domains                                                               */
-/* -------------------------------------------------------------------------- */
 
 function parseWispBody<T>(body: string): (T & { message?: string; error?: string }) | null {
   if (!body) return null;
@@ -739,10 +856,6 @@ export function createWispDomains(
     },
   };
 }
-
-/* -------------------------------------------------------------------------- */
-/* Standard.site                                                              */
-/* -------------------------------------------------------------------------- */
 
 const STANDARD_PUBLICATION = "site.standard.publication";
 const STANDARD_DOCUMENT = "site.standard.document";

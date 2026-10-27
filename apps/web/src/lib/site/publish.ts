@@ -39,30 +39,47 @@ export interface PublishSiteResult {
 const hashKey = (did: string, key: string): string => `site:hashes:${did}:${key}`;
 
 /**
- * Wisp's domain XRPC does not allow the Tauri webview origin through CORS.
- * The native command sends the same request through Rust. The browser build
- * keeps the ordinary fetch path so web and desktop behave the same.
+ * Wisp's domain XRPC only sends CORS headers for its own origin. The browser
+ * build sends the call through the proxy service, which forwards it from a
+ * Worker. The native command already bypasses CORS and keeps the direct path.
  */
-export const wispDomainRequest: WispRequestTransport = async (request) => {
-  if (isTauri()) {
-    const { invoke } = await import("@tauri-apps/api/core");
+export function createWispDomainRequest(proxyUrl?: string): WispRequestTransport {
+  const proxy = proxyUrl?.trim().replace(/\/+$/, "") ?? "";
 
-    return invoke<WispResponse>("wisp_request", {
-      url: request.url,
+  return async (request) => {
+    if (isTauri()) {
+      const { invoke } = await import("@tauri-apps/api/core");
+
+      return invoke<WispResponse>("wisp_request", {
+        url: request.url,
+        method: request.method,
+        headers: request.headers ?? null,
+        body: request.body ?? null,
+      });
+    }
+
+    const target = proxy ? proxyWispUrl(proxy, request.url) : request.url;
+    const response = await fetch(target, {
       method: request.method,
-      headers: request.headers ?? null,
-      body: request.body ?? null,
+      headers: request.headers,
+      body: request.body,
     });
-  }
 
-  const response = await fetch(request.url, {
-    method: request.method,
-    headers: request.headers,
-    body: request.body,
-  });
+    return { status: response.status, body: await response.text() };
+  };
+}
 
-  return { status: response.status, body: await response.text() };
-};
+/** Wisp only serves its domain XRPC from its own origin, so send that one through the proxy. */
+function proxyWispUrl(proxy: string, url: string): string {
+  const parsed = new URL(url);
+  if (parsed.hostname !== "wisp.place") return url;
+
+  const nsid = parsed.pathname.replace(/^\/xrpc\/?/, "");
+
+  return `${proxy}/wisp/${nsid}${parsed.search}`;
+}
+
+export const wispDomainRequest = createWispDomainRequest();
 
 /**
  * Builds the site from the workspace and publishes it to the signing account's
@@ -110,7 +127,7 @@ export async function publishSite(
     onProgress: (done, total) =>
       progress({
         stage: "build",
-        message: `Rendering pages (${done}/${total})`,
+        message: `Rendering pages`,
         done,
         total,
       }),
@@ -187,7 +204,6 @@ export async function publishSite(
   progress({ stage: "upload", message: "Uploading files" });
   const previousHashes =
     (await options.local?.get<Record<string, string>>(hashKey(did, key))) ?? {};
-  progress({ stage: "upload", message: "Writing Wisp manifest" });
   const published = await publishWispSite(repo, {
     siteRkey: key,
     files: finalBuild.files.map((file) => ({
@@ -196,6 +212,18 @@ export async function publishSite(
       mimeType: file.mimeType,
     })),
     fileHashes: previousHashes,
+    onProgress: (entry) => {
+      if (entry.stage === "manifest") {
+        progress({ stage: "manifest", message: "Writing Wisp manifest" });
+        return;
+      }
+      progress({
+        stage: "upload",
+        message: `Uploading files`,
+        done: entry.done,
+        total: entry.total,
+      });
+    },
     settings: {
       cleanUrls: true,
       custom404: "404.html",
@@ -265,7 +293,11 @@ export async function publishSite(
 }
 
 /** Takes the site offline. The domain claim and the local configuration stay. */
-export async function unpublishSite(store: WorkspaceStore, atproto: AtprotoService): Promise<void> {
+export async function unpublishSite(
+  store: WorkspaceStore,
+  atproto: AtprotoService,
+  request: WispRequestTransport = wispDomainRequest,
+): Promise<void> {
   const session = atproto.requireSession();
   const site = store.getSiteSettings();
   const key = siteRkey(site, store.getSettings().name || "site");
@@ -277,12 +309,7 @@ export async function unpublishSite(store: WorkspaceStore, atproto: AtprotoServi
     );
   }
 
-  const domains = createWispDomains(
-    repo,
-    site.wisp.serviceUrl,
-    site.wisp.serviceDid,
-    wispDomainRequest,
-  );
+  const domains = createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid, request);
   await domains.deleteSite(key).catch(() => undefined);
   await deleteWispSite(repo, key);
 
@@ -308,12 +335,16 @@ export async function unpublishSite(store: WorkspaceStore, atproto: AtprotoServi
   });
 }
 
-export function wispClient(site: SiteSettings, session: OAuthSession) {
+export function wispClient(
+  site: SiteSettings,
+  session: OAuthSession,
+  request: WispRequestTransport = wispDomainRequest,
+) {
   const repo = createPublicRepo(session, session.did);
 
   return {
     repo,
-    domains: createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid, wispDomainRequest),
+    domains: createWispDomains(repo, site.wisp.serviceUrl, site.wisp.serviceDid, request),
     sharedUrl: (key: string) => wispSiteUrl(session.did, key, site.wisp.serviceUrl),
   };
 }

@@ -897,6 +897,8 @@
     "dnsInstructions": "Füge diese DNS-Einträge bei deinem Domain-Anbieter hinzu:",
     "dnsRecords": "DNS-Einträge",
     "domainClaimed": "Domain beansprucht",
+    "domainNotClaimed": "Diese Domain ist bei Wisp noch nicht beansprucht.",
+    "domainOtherSite": "Diese Domain zeigt auf die Wisp-Site {site}. Benenne den Schlüssel dieser Site passend um oder beanspruche die Domain erneut.",
     "domainPendingHint": "DNS-Änderungen brauchen manchmal ein paar Minuten. Prüfe erneut, nachdem du deinen Anbieter aktualisiert hast.",
     "domainStatusError": "Prüfen",
     "domainStatusNone": "Nicht beansprucht",

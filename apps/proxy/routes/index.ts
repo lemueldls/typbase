@@ -6,6 +6,7 @@ export default defineHandler(() => ({
   endpoints: {
     relay: "/relay",
     fonts: "/fonts",
+    wisp: "/wisp",
     health: "/health",
   },
 }));

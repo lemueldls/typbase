@@ -897,6 +897,8 @@
     "dnsInstructions": "在域名提供商处添加这些 DNS 记录：",
     "dnsRecords": "DNS 记录",
     "domainClaimed": "域名已认领",
+    "domainNotClaimed": "该域名尚未在 Wisp 中认领。",
+    "domainOtherSite": "该域名指向 Wisp 站点 {site}。请将本站点的键改成与之一致，或重新认领该域名。",
     "domainPendingHint": "DNS 更改可能需要几分钟生效。更新服务商后请再次检查。",
     "domainStatusError": "需要处理",
     "domainStatusNone": "未认领",

@@ -897,6 +897,8 @@
     "dnsInstructions": "Add these DNS records at your domain provider:",
     "dnsRecords": "DNS records",
     "domainClaimed": "Domain claimed",
+    "domainNotClaimed": "That domain is not claimed in Wisp yet.",
+    "domainOtherSite": "That domain points at the Wisp site {site}. Rename this site's key to match it, or claim the domain again.",
     "domainPendingHint": "DNS changes can take a few minutes to propagate. Check again after updating your provider.",
     "domainStatusError": "Needs attention",
     "domainStatusNone": "Not claimed",

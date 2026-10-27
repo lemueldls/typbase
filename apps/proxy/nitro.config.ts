@@ -33,5 +33,11 @@ export default defineConfig({
         "x-proxy-status": "experimental; see https://github.com/unjs/unifont/tree/main/proxy",
       },
     },
+    "/wisp/**": {
+      cors: true,
+      headers: {
+        "access-control-max-age": "86400",
+      },
+    },
   },
 });

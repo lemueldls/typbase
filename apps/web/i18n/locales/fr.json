@@ -897,6 +897,8 @@
     "dnsInstructions": "Ajoutez ces enregistrements DNS chez votre fournisseur de domaine :",
     "dnsRecords": "Enregistrements DNS",
     "domainClaimed": "Domaine réclamé",
+    "domainNotClaimed": "Ce domaine n'est pas encore réclamé dans Wisp.",
+    "domainOtherSite": "Ce domaine pointe vers le site Wisp {site}. Renommez la clé de ce site pour qu'elle corresponde, ou réclamez à nouveau le domaine.",
     "domainPendingHint": "Les changements DNS peuvent prendre quelques minutes. Vérifiez à nouveau après la mise à jour chez votre fournisseur.",
     "domainStatusError": "À vérifier",
     "domainStatusNone": "Non réclamé",

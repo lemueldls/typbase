@@ -1,10 +1,12 @@
 import {
+  createPublicRepo,
   createWispDomains,
   nextTid,
   publishStandardSite,
   publishWispSite,
   wispSiteUrl,
   type PublicRepo,
+  type PublicSession,
   type WispRequest,
 } from "@typbase/spaces";
 import { describe, expect, it } from "vitest";
@@ -85,6 +87,19 @@ describe("Wisp publisher", () => {
     ]);
   });
 
+  it("does not rewrite settings when the record is unchanged", async () => {
+    const repo = new FakeRepo();
+    const settings = { cleanUrls: true, custom404: "404.html" };
+    await publishWispSite(repo, { siteRkey: "notes", files: [file("index.html")], settings });
+    const first = repo.order.filter((collection) => collection === "place.wisp.settings").length;
+
+    await publishWispSite(repo, { siteRkey: "notes", files: [file("index.html")], settings });
+
+    expect(repo.order.filter((collection) => collection === "place.wisp.settings")).toHaveLength(
+      first,
+    );
+  });
+
   it("splits a large site into subfs records", async () => {
     const repo = new FakeRepo();
     const files = Array.from({ length: 300 }, (_, index) => file(`p/${index}/index.html`));
@@ -110,6 +125,39 @@ describe("Wisp publisher", () => {
     ).toBe(true);
   });
 
+  it("reports upload progress and switches to the manifest stage", async () => {
+    const repo = new FakeRepo();
+    const events: Array<{
+      stage: "upload" | "manifest";
+      done: number;
+      total: number;
+      uploaded: number;
+      reused: number;
+    }> = [];
+
+    await publishWispSite(repo, {
+      siteRkey: "progress",
+      files: [file("index.html"), file("about/index.html")],
+      onProgress: (entry) => events.push({ ...entry }),
+    });
+
+    expect(events[0]).toMatchObject({
+      stage: "upload",
+      done: 0,
+      total: 2,
+      uploaded: 0,
+      reused: 0,
+    });
+    expect(events.some((entry) => entry.stage === "upload" && entry.done === 1)).toBe(true);
+    expect(events.at(-1)).toMatchObject({
+      stage: "manifest",
+      done: 2,
+      total: 2,
+      uploaded: 2,
+      reused: 0,
+    });
+  });
+
   it("reuses unchanged blobs when the hash matches", async () => {
     const repo = new FakeRepo();
     const first = await publishWispSite(repo, {
@@ -126,6 +174,41 @@ describe("Wisp publisher", () => {
     expect(second.reused).toBe(1);
     expect(second.uploaded).toBe(0);
     expect(repo.uploads).toBe(before);
+  });
+});
+
+describe("public repo record reads", () => {
+  function sessionWith(status: number, body: unknown): PublicSession {
+    return {
+      did: "did:plc:test",
+      async fetchHandler() {
+        return new Response(JSON.stringify(body), {
+          status,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    };
+  }
+
+  it("treats the PDS RecordNotFound 400 as a missing record", async () => {
+    const repo = createPublicRepo(
+      sessionWith(400, {
+        error: "RecordNotFound",
+        message: "Could not locate record: at://did:plc:test/place.wisp.fs/new-site",
+      }),
+    );
+
+    await expect(repo.getRecord("place.wisp.fs", "new-site")).resolves.toBeNull();
+  });
+
+  it("does not hide another bad request as a missing record", async () => {
+    const repo = createPublicRepo(
+      sessionWith(400, { error: "InvalidRequest", message: "collection is invalid" }),
+    );
+
+    await expect(repo.getRecord("place.wisp.fs", "new-site")).rejects.toThrow(
+      "collection is invalid",
+    );
   });
 });
 
