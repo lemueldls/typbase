@@ -4,8 +4,8 @@
 use crate::{bindings::TypstDiagnosticSeverity, renderer::html::render, tests::harness};
 
 const UI_LIB: &str = include_str!("../../../../apps/web/public/plugins/ui.typ");
-const CALENDAR: &str = include_str!("../../../../apps/web/public/plugins/calendar/main.typ");
-const DRAWING: &str = include_str!("../../../../apps/web/public/plugins/drawing/main.typ");
+const CALENDAR: &str = include_str!("../../../../plugins/calendar/main.typ");
+const DRAWING: &str = include_str!("../../../../plugins/drawing/main.typ");
 
 /// Placeholder JSON replaced per test. Both fields are spliced raw.
 const BASE_CTX: &str = r##"{
