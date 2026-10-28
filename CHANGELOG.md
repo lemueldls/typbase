@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.7] - 2026-10-27
+
+### New
+
+- System font management
+- Account switching and management
+- Site forking
+- Website preserve newlines option
+- Live relay and font proxy
+- Web font management
+- Additional site settings
+
+### Fixed
+
+- Presence cursor decor
+- Workspace theme sync
+- Proxy wisp site and uploads
+- Handle fonts with detailed face information
+
 ## [0.4.6] - 2026-10-26
 
 ### New

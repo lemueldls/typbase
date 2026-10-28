@@ -46,23 +46,23 @@ in
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typbase";
-  version = "0.4.6";
+  version = "0.4.7";
 
   src = fetchFromGitHub {
     owner = "lemueldls";
     repo = "typbase";
     tag = "typbase-v${finalAttrs.version}";
-    hash = "sha256-nJ+3Bwdo4IDbnLYagkYRIcGHTj6Z2IXONiXEjroKJ+E=";
+    hash = "sha256-DuwtQUWCNQkXyUsL0RsRmbQTbpUNiE676SqUbdyG0dk=";
   };
 
-  cargoHash = "sha256-bCnLiuyUkF+XwkfjgsLQiHrHW8bRB5niPSkboJWX1Cw=";
+  cargoHash = "sha256-2XSKO2QyemzjrNxMxOH+xcAOqFSuUelDJAghaZRdgkQ=";
 
   buildAndTestSubdir = "apps/native";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     fetcherVersion = 3;
-    hash = "sha256-Pxv0bN4XED4EYUqQHXlQYP6SeYg4MsP9NScBbk+hc8Q=";
+    hash = "sha256-01G7hDBzPVvT9Vk1VkCyXvRxG9Xuq4g4r9iVE4SLl+U=";
   };
 
   nativeBuildInputs = [
