@@ -28,7 +28,7 @@ use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, them
 //
 // The prelude around this module defines `theme` (the resolved palette),
 // `note` (the compiling page's own data), and the host values under
-// `sys.inputs` (`page`, `workspace`, `reason`). An included file sees none of
+// `sys.inputs` (`page`, `workspace`, `reason`, `target`). An included file sees none of
 // them: Typst evaluates `include` as its own module, so an embedded page that
 // uses `theme` or `note` fails unless it defines them itself.
 //

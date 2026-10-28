@@ -113,7 +113,12 @@ self.addEventListener(
     try {
       const typstState = await ensureState();
       if (style) applyStyle(typstState, style, spaceId);
-      setTypstInputs(typstState, { pageId, workspaceId: spaceId, reason: "resolve" });
+      setTypstInputs(typstState, {
+        pageId,
+        workspaceId: spaceId,
+        reason: "resolve",
+        target: "html",
+      });
 
       // One source file per page: file ids intern by path, so a shared path
       // would leak one page's text into another page's compile.

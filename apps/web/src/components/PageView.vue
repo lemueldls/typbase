@@ -688,6 +688,7 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
     pageId,
     workspaceId: workspaceId.value,
     reason: "editor",
+    target: "paged",
   });
   syncNotebookController();
 

@@ -23,6 +23,7 @@ const CAPABILITIES: Record<PluginCapability, true> = {
   "daily.write": true,
   "plugin.data": true,
   "plugin.ai": true,
+  "site.publish": true,
   "ui.external": true,
 };
 

@@ -40,6 +40,7 @@ export function bundleTextFiles(files: ExportFile[]): BundleTextFile[] {
 
 async function withFonts<T>(use: (state: TypstState) => Promise<T>): Promise<T> {
   const state = new TypstStateClass();
+  state.setInputs(null, null, "render", "html");
   for (const fontImports of getTypstFontImports()) {
     // oxlint-disable-next-line no-await-in-loop
     await Promise.all(

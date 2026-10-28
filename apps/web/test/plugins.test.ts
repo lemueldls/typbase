@@ -44,6 +44,12 @@ describe("parseManifest", () => {
     ).toThrow(/two pane surfaces/);
   });
 
+  it("accepts the site publishing capability", () => {
+    expect(parseManifest({ ...base, capabilities: ["site.publish"] }).capabilities).toEqual([
+      "site.publish",
+    ]);
+  });
+
   it("rejects entries that escape the plugin folder", () => {
     expect(() => parseManifest({ ...base, entry: "../main.typ" })).toThrow(/unsafe/);
     expect(() => parseManifest({ ...base, entry: "/main.typ" })).toThrow(/unsafe/);

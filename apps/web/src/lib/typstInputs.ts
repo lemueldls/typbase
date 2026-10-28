@@ -9,9 +9,17 @@ import type { TypstState } from "@typbase/engine";
 /** Why a compile runs. Documents can branch on `sys.inputs.reason`. */
 export type CompileReason = "editor" | "resolve" | "render" | "chat";
 
+/** Which renderer is asking. `html` cannot lay out CeTZ/Fletcher content. */
+export type CompileTarget = "html" | "paged";
+
 export function setTypstInputs(
   state: TypstState,
-  input: { pageId?: string | null; workspaceId?: string | null; reason: CompileReason },
+  input: {
+    pageId?: string | null;
+    workspaceId?: string | null;
+    reason: CompileReason;
+    target: CompileTarget;
+  },
 ): void {
-  state.setInputs(input.pageId ?? null, input.workspaceId ?? null, input.reason);
+  state.setInputs(input.pageId ?? null, input.workspaceId ?? null, input.reason, input.target);
 }

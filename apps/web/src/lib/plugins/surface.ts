@@ -64,11 +64,17 @@ export function attachPluginSurface(
         element: HTMLElement;
         dx: number;
         dy: number;
+        startX: number;
+        startY: number;
+        moved: boolean;
         boardRect: DOMRect;
         x?: number;
         y?: number;
       }
     | undefined;
+  // A drag ends with a click. The host drops that click so a movable element
+  // can also carry a select action without selecting itself after every drag.
+  let suppressClickUntil = 0;
 
   function parseArgs(element: Element): Record<string, unknown> {
     const raw = element.getAttribute("data-tb-args");
@@ -150,6 +156,12 @@ export function attachPluginSurface(
   }
 
   function onClick(event: Event): void {
+    if (performance.now() < suppressClickUntil) {
+      suppressClickUntil = 0;
+      event.preventDefault();
+      return;
+    }
+
     const target = event.target;
     if (!(target instanceof Element)) return;
 
@@ -196,6 +208,9 @@ export function attachPluginSurface(
       element: handle,
       dx: event.clientX - rect.left,
       dy: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
       boardRect: board.getBoundingClientRect(),
     };
     handle.setPointerCapture(event.pointerId);
@@ -207,6 +222,12 @@ export function attachPluginSurface(
     if (!moving) return;
     const x = event.clientX - moving.boardRect.left - moving.dx;
     const y = event.clientY - moving.boardRect.top - moving.dy;
+    if (
+      Math.abs(event.clientX - moving.startX) > 4 ||
+      Math.abs(event.clientY - moving.startY) > 4
+    ) {
+      moving.moved = true;
+    }
     moving.x = x;
     moving.y = y;
     moving.element.style.left = `${x}px`;
@@ -216,12 +237,14 @@ export function attachPluginSurface(
   function onPointerUp(event: PointerEvent): void {
     if (moving) {
       const handle = moving.element;
+      const moved = moving.moved;
       handle.classList.remove("tb-dragging");
       const actionName = handle.getAttribute("data-tb-move");
       const x = Math.round(moving.x ?? parseFloat(handle.getAttribute("data-tb-x") ?? "0"));
       const y = Math.round(moving.y ?? parseFloat(handle.getAttribute("data-tb-y") ?? "0"));
       moving = undefined;
-      if (actionName) {
+      suppressClickUntil = moved ? performance.now() + 500 : 0;
+      if (actionName && moved) {
         // Static args carry the record id, but x/y win over any stale ones.
         options.onAction({
           id: newId(),
@@ -260,6 +283,7 @@ export function attachPluginSurface(
     if (!moving) return;
     moving.element.classList.remove("tb-dragging");
     moving = undefined;
+    suppressClickUntil = 0;
   }
 
   function mountComponents(): void {

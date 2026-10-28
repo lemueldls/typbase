@@ -716,6 +716,7 @@
     "confirmRemove": "移除“{name}”并删除其数据？",
     "close": "关闭插件",
     "capPagesRead": "读取页面",
+    "capSitePublish": "发布插件数据",
     "capPagesCreate": "创建页面",
     "capDailyWrite": "写入每日笔记",
     "capData": "插件数据",

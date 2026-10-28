@@ -25,7 +25,7 @@ export interface RequestScope {
    * public page cannot pull private workspace text into its output.
    */
   pageIds?: ReadonlySet<string>;
-  /** Site builds: plugin data is app state, not published content. */
+  /** Site builds: plugin data needs the plugin's `site.publish` capability. */
   site?: boolean;
 }
 
@@ -336,9 +336,23 @@ export async function buildQueryJson(
       });
     }
     case "plugin-data": {
-      if (!filterValue || scope?.site) return "null";
+      if (!filterValue) return "null";
       const instance = store.getPluginInstance(filterValue);
       if (!instance) return "null";
+      // Site builds publish plugin data only when the plugin opts in. Without
+      // this, a public page could query any installed plugin's private records.
+      if (scope?.site) {
+        const install = store.getPluginInstall(instance.pluginId);
+        let capabilities: string[] = [];
+        try {
+          capabilities =
+            (JSON.parse(install?.manifest ?? "{}") as { capabilities?: string[] }).capabilities ??
+            [];
+        } catch {
+          return "null";
+        }
+        if (!capabilities.includes("site.publish")) return "null";
+      }
       // Plugin surfaces read their own data only. Note content reads all.
       if (scope?.pluginId && instance.pluginId !== scope.pluginId) return "null";
 

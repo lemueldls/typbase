@@ -69,7 +69,10 @@ plugins/my-plugin/
   up in the studio rather than as a missing element in a surface.
 - `plugin.data` gates the instance's synced collections both ways. Without it a
   surface sees `ctx.state` as empty and its patches are refused, which is
-  reported as an error on the surface.
+  reported as an error on the surface. Add `site.publish` when a public page
+  may embed the data. Site builds block every other plugin's `plugin-data`
+  query so a page cannot publish private records by naming another instance.
+  The diagrams plugin declares it for node and edge embeds.
 - `surfaces` declares at most one `widget` (sidebar), `pane` (main area), and
   `window` (floating window) per plugin. Every instance of the plugin renders
   all of them from the same data.
@@ -166,6 +169,19 @@ leave Typst, like canvas stroke colors; the CSS variables below cover the rest.
 call `typbase.query(...)` and `typbase.embed(...)`; the host answers requests
 like it does for pages. `plugin-data` queries are scoped to the calling
 plugin.
+
+An embed can read `sys.inputs.target`: `html` for published pages, chat, link
+resolution, and HTML export, `paged` for the editor, PDF, SVG, and project
+exports. CeTZ and Fletcher layouts do not survive the HTML renderer, so the
+diagrams plugin emits an inline SVG for `html` and a Fletcher diagram for
+`paged`. A project exported as Typst source has no `sys.inputs`; pick the
+paged branch as the default.
+
+The diagrams plugin stores colors as tokens such as `@surface2`, `@borderStrong`,
+and `@text`. The editor resolves them through `ctx.theme`; an embed resolves them
+through the optional `theme` argument. The insert action writes
+`theme: theme`, so a diagram follows the workspace palette in the editor,
+exports, and published sites.
 
 `canvas` draws the strokes it is given and, in erase mode, hit-tests the
 pointer path against them. Every stroke needs an `id` so the eraser can name

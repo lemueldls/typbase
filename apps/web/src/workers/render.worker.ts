@@ -68,7 +68,12 @@ self.addEventListener(
 
     try {
       const typstState = await ensureState();
-      setTypstInputs(typstState, { pageId, workspaceId: spaceId, reason: "render" });
+      setTypstInputs(typstState, {
+        pageId,
+        workspaceId: spaceId,
+        reason: "render",
+        target: wants === "html" ? "html" : "paged",
+      });
       // renderHtml/renderPdf/renderSvg go through the raw/synth pipeline,
       // which needs a registered SourceContext: a plain file id panics in the
       // prelude.

@@ -11,13 +11,19 @@ fn set_inputs_reaches_sys_inputs() {
     }
 
     let mut state = harness::state();
-    state.set_inputs(Some("p1".into()), Some("demo".into()), "test".into());
+    state.set_inputs(
+        Some("p1".into()),
+        Some("demo".into()),
+        "test".into(),
+        "html".into(),
+    );
 
     let id = harness::page(&mut state, "inputs");
     let text = concat!(
         "#assert(sys.inputs.page == \"p1\")\n",
         "#assert(sys.inputs.workspace == \"demo\")\n",
         "#assert(sys.inputs.reason == \"test\")\n",
+        "#assert(sys.inputs.target == \"html\")\n",
         "\nOK\n",
     );
 
@@ -34,15 +40,21 @@ fn invalid_inputs_clear_sys_inputs() {
     }
 
     let mut state = harness::state();
-    state.set_inputs(Some("p1".into()), Some("demo".into()), "test".into());
+    state.set_inputs(
+        Some("p1".into()),
+        Some("demo".into()),
+        "test".into(),
+        "html".into(),
+    );
     // A later call replaces the whole set. Omitted values must not linger.
-    state.set_inputs(None, None, "test".into());
+    state.set_inputs(None, None, "test".into(), "paged".into());
 
     let id = harness::page(&mut state, "inputs-empty");
     let text = concat!(
         "#assert(sys.inputs.at(\"page\", default: none) == none)\n",
         "#assert(sys.inputs.at(\"workspace\", default: none) == none)\n",
         "#assert(sys.inputs.reason == \"test\")\n",
+        "#assert(sys.inputs.target == \"paged\")\n",
         "\nOK\n",
     );
 

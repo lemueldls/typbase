@@ -76,11 +76,17 @@ fn build_library(features: Features, inputs: &Dict) -> LazyHash<Library> {
 }
 
 impl TypstWorld {
-    /// Replaces `sys.inputs`: the compiling page and workspace (both optional)
-    /// plus the compile reason (`editor`, `resolve`, `render`, `chat`).
-    /// Rebuilding the library drops memoized compiles, so callers set this
-    /// when the values actually change (a page bind, a worker job).
-    pub fn set_inputs(&mut self, page: Option<String>, workspace: Option<String>, reason: String) {
+    /// Replaces `sys.inputs`: the compiling page and workspace (both optional),
+    /// the compile reason (`editor`, `resolve`, `render`, `chat`), and the
+    /// output target (`html` or `paged`). Rebuilding the library drops memoized
+    /// compiles, so callers set this when the values actually change.
+    pub fn set_inputs(
+        &mut self,
+        page: Option<String>,
+        workspace: Option<String>,
+        reason: String,
+        target: String,
+    ) {
         let mut inputs = Dict::new();
         if let Some(page) = page {
             inputs.insert("page".into(), Value::Str(page.into()));
@@ -89,6 +95,7 @@ impl TypstWorld {
             inputs.insert("workspace".into(), Value::Str(workspace.into()));
         }
         inputs.insert("reason".into(), Value::Str(reason.into()));
+        inputs.insert("target".into(), Value::Str(target.into()));
 
         self.inputs = inputs;
         self.library = build_library(self.features.clone(), &self.inputs);

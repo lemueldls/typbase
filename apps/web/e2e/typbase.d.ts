@@ -37,6 +37,11 @@ interface StoreHandle {
   };
   setPageText(id: string, text: string): Promise<void>;
   getAiSettings(): Record<string, unknown>;
+  getSiteSettings(): {
+    pages: Record<string, { visibility?: "public" | "unlisted" | "private" }>;
+    defaultVisibility?: "public" | "unlisted" | "private";
+    [key: string]: unknown;
+  };
   listPages(): Array<{ id: string; title: string; path: string; order?: number }>;
   listCategories(): Array<{ id: string; name: string }>;
   addCategory(name: string): Promise<{ id: string; name: string }>;
@@ -82,6 +87,12 @@ declare global {
       pluginWindowOpen(instanceId: string): boolean;
       pluginState(instanceId: string): Promise<Record<string, unknown[]>>;
       writeWorkspaceFile(path: string, text: string): Promise<void>;
+      /** Build the site bundle in memory. */
+      siteBuild(options?: { baseUrl?: string }): Promise<{
+        hash: string;
+        files: Array<{ name: string; size: number; text?: string }>;
+        pages: Array<{ id: string; title: string; url: string }>;
+      }>;
       /** Build a page export bundle and return its readable files. */
       exportPage(
         pageId: string,

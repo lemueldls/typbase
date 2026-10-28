@@ -1,0 +1,41 @@
+{
+  "id": "local:diagrams",
+  "name": "Diagrams",
+  "version": "0.2.0",
+  "description": "Build node-and-edge diagrams visually and embed them as Fletcher diagrams, with an SVG fallback for HTML.",
+  "api": "typbase.host.v2",
+  "entry": "main.typ",
+  "icon": "account_tree",
+  "capabilities": ["pages.read", "pages.write", "plugin.data", "site.publish"],
+  "collections": {
+    "nodes": {
+      "fields": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "label": { "type": "string" },
+        "shape": { "type": "string" },
+        "fill": { "type": "string" },
+        "stroke": { "type": "string" },
+        "textColor": { "type": "string" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "order": { "type": "number" }
+      }
+    },
+    "edges": {
+      "fields": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "label": { "type": "string" },
+        "arrow": { "type": "string" },
+        "color": { "type": "string" },
+        "bend": { "type": "number" },
+        "order": { "type": "number" }
+      }
+    }
+  },
+  "surfaces": [
+    { "kind": "pane", "fn": "pane", "title": "Diagram", "icon": "account_tree" },
+    { "kind": "window", "fn": "window", "title": "Diagram", "icon": "account_tree" }
+  ]
+}

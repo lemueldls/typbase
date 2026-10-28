@@ -790,6 +790,185 @@ describe("plugin system", async () => {
     await page.close();
   });
 
+  it("builds node and edge diagrams for HTML and paged output", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:diagrams"));
+    await page.waitForFunction(
+      () => document.querySelectorAll(".plugin-sidebar__row").length === 1,
+      null,
+      { timeout: 30_000 },
+    );
+    await page.evaluate((id) => window.__typbase.openPlugin(id), instanceId);
+    await page.waitForFunction(
+      (id) => window.__typbase.pluginStatus(id, "pane") === "ok",
+      instanceId,
+      { timeout: 120_000 },
+    );
+
+    const action = (
+      name: string,
+      args: Record<string, unknown> = {},
+      fields: Record<string, unknown> = {},
+    ) =>
+      page.evaluate(
+        ({ id, name: actionName, args: actionArgs, fields: actionFields }) =>
+          window.__typbase.pluginAction(id, "pane", actionName, actionArgs, actionFields),
+        { id: instanceId, name, args, fields },
+      );
+
+    await action("node.add");
+    await action("node.add");
+    let state = await page.evaluate((id) => window.__typbase.pluginState(id), instanceId);
+    const [first, second] = state.nodes as Array<{ id: string; fill: string }>;
+    expect(first?.id).toBeTruthy();
+    expect(second?.id).toBeTruthy();
+    // Defaults are theme tokens, so changing the workspace theme updates the
+    // diagram instead of leaving a baked-in light or dark color behind.
+    expect(state.nodes.every((node) => (node as { fill: string }).fill === "@surface2")).toBe(true);
+
+    // Exercise the pointer path too: the movable wrapper captures the pointer,
+    // so the click has to be answered by the wrapper's select action.
+    const surface = page.locator(".plugin-surface");
+    const boardTop = () =>
+      page.evaluate(
+        () =>
+          document
+            .querySelector(".plugin-surface")
+            ?.shadowRoot?.querySelector(".dg-board")
+            ?.getBoundingClientRect().top ?? 0,
+      );
+    const topBeforeConnect = await boardTop();
+    await surface.getByRole("button", { name: "Connect" }).click();
+    await page.waitForTimeout(150);
+    expect(await boardTop()).toBe(topBeforeConnect);
+    const nodeLocator = surface.locator(".dg-node");
+    await nodeLocator.nth(0).click();
+    await page.waitForFunction(
+      () =>
+        [
+          ...(document
+            .querySelector(".plugin-surface")
+            ?.shadowRoot?.querySelectorAll(".tb-muted") ?? []),
+        ]
+          .map((element) => element.textContent)
+          .includes("Click the target node to connect."),
+      null,
+      { timeout: 30_000 },
+    );
+    await nodeLocator.nth(1).click();
+    await expect
+      .poll(
+        async () => {
+          const next = await page.evaluate((id) => window.__typbase.pluginState(id), instanceId);
+
+          return next.edges?.length ?? 0;
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(1);
+    state = await page.evaluate((id) => window.__typbase.pluginState(id), instanceId);
+    expect(state.edges).toHaveLength(1);
+
+    // The editor renders the graph as HTML/SVG, not as a blank Typst frame.
+    await page.waitForFunction(
+      (id) => {
+        const html = window.__typbase.pluginHtml(id, "pane");
+
+        return html.includes("dg-edges") && html.includes("dg-node");
+      },
+      instanceId,
+      { timeout: 30_000 },
+    );
+
+    // A node selects on click, and the grip replaces the old overflow icon.
+    expect(await page.locator(".plugin-surface .dg-node-handle").count()).toBe(2);
+    expect(await page.locator(".plugin-surface").textContent()).not.toContain("⋯");
+    await page.locator(".plugin-surface .dg-node").first().click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const root = document.querySelector(".plugin-surface")?.shadowRoot;
+
+          return Boolean(root?.querySelector(".dg-node--selected"));
+        }),
+      )
+      .toBe(true);
+
+    const pageId = await page.evaluate(async (id) => {
+      const meta = await window.__typbase.store.createPage({
+        title: "Diagram export",
+        content: `#import "/typbase/plugin/diagrams/main.typ" as diagrams\n\n#diagrams.embed("${id}", theme: theme)\n`,
+      });
+
+      return meta.id;
+    }, instanceId);
+
+    const html = await page.evaluate(
+      (id) => window.__typbase.exportPage(id, { html: true }),
+      pageId,
+    );
+    const htmlFile = html.files.find((file) => file.name.endsWith(".html"));
+    expect(htmlFile?.text).toContain("<svg");
+    expect(htmlFile?.text).toContain("Node 1");
+    expect(htmlFile?.text).toContain("Node 2");
+
+    // Paged output takes the Fletcher branch. It has to produce a PDF, not
+    // the empty document the HTML renderer produces for CeTZ layouts.
+    const pdf = await page.evaluate(
+      (id) => window.__typbase.exportPage(id, { html: false, pdf: true }),
+      pageId,
+    );
+    // The call throws when renderPdf produces no bytes. The text bundle does
+    // not carry the PDF itself, so the project entry is the readable artifact.
+    expect(pdf.files.some((file) => file.name.endsWith(".typ"))).toBe(true);
+
+    // A public page may render the diagram because the plugin declares
+    // `site.publish`; the build otherwise strips every plugin-data query.
+    const site = await page.evaluate(
+      async ({ pageId: id }) => {
+        const settings = window.__typbase.store.getSiteSettings();
+        settings.pages[id] = { ...(settings.pages[id] ?? {}), visibility: "public" };
+        window.__typbase.store.updateSettings({ site: settings });
+
+        return window.__typbase.siteBuild({ baseUrl: "https://example.test" });
+      },
+      { pageId },
+    );
+    const sitePage = site.files.find((file) => file.name === "diagram-export/index.html");
+    expect(sitePage?.text).toContain("<svg");
+    expect(sitePage?.text).toContain("Node 1");
+
+    // The phone layout keeps the canvas usable by scrolling it sideways and
+    // stacks the two inspectors into one column.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate((id) => window.__typbase.openPlugin(id), instanceId);
+    await page.waitForFunction(
+      (id) => window.__typbase.pluginStatus(id, "pane") === "ok",
+      instanceId,
+      { timeout: 30_000 },
+    );
+    await page.waitForTimeout(300);
+    const phone = await page.evaluate(() => {
+      const root = document.querySelector(".plugin-surface")?.shadowRoot;
+      const scroll = root?.querySelector(".dg-board-scroll");
+      const inspectors = root?.querySelector(".dg-inspectors");
+
+      return {
+        clientWidth: scroll?.clientWidth ?? 0,
+        scrollWidth: scroll?.scrollWidth ?? 0,
+        inspectorColumns: inspectors
+          ? getComputedStyle(inspectors).gridTemplateColumns.split(" ").length
+          : 0,
+      };
+    });
+    expect(phone.scrollWidth).toBeGreaterThan(phone.clientWidth);
+    expect(phone.inspectorColumns).toBe(1);
+
+    await page.close();
+  });
+
   it("renders the studio with an editor for a local plugin", async () => {
     const page = await createPage();
     const errors: string[] = [];

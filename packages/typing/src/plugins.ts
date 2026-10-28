@@ -19,6 +19,7 @@ export type PluginCapability =
   | "daily.write"
   | "plugin.data"
   | "plugin.ai"
+  | "site.publish"
   | "ui.external";
 
 /**

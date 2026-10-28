@@ -96,10 +96,10 @@ self.addEventListener(
       if (style) applyStyle(typstState, style, spaceId);
       // Setting inputs rebuilds the library. The chat streams many renders of
       // the same page, so only do it when the values change.
-      const inputs = `chat:${spaceId}`;
+      const inputs = `chat:${spaceId}:html`;
       if (inputs !== inputsKey) {
         inputsKey = inputs;
-        setTypstInputs(typstState, { workspaceId: spaceId, reason: "chat" });
+        setTypstInputs(typstState, { workspaceId: spaceId, reason: "chat", target: "html" });
       }
 
       // One source file per workspace: file ids intern by path, so a shared

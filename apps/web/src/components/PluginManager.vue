@@ -58,6 +58,7 @@ const CAPABILITY_LABELS: Record<PluginCapability, string> = {
   "daily.write": "plugins.capDailyWrite",
   "plugin.data": "plugins.capData",
   "plugin.ai": "plugins.capAi",
+  "site.publish": "plugins.capSitePublish",
   "ui.external": "plugins.capExternal",
 };
 

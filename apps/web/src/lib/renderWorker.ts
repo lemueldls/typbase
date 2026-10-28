@@ -16,7 +16,7 @@ import { wasmBinaryUrl } from "~/lib/wasmUrl";
 export interface RenderScope {
   /** Site builds: page ids that exist in the public projection. */
   pageIds?: string[];
-  /** Site builds: disable plugin data and treat missing pages as errors. */
+  /** Site builds: restrict plugin data to `site.publish` plugins and treat missing pages as errors. */
   site?: boolean;
   /** Page being compiled, for self-embed detection. */
   currentPage?: string | null;

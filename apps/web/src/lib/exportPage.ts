@@ -118,6 +118,13 @@ export async function buildExport(
     files.push(file);
   };
 
+  // Support files can arrive from both the render request payloads and the
+  // plugin/project inventory. They describe the same generated source, so the
+  // first copy wins. Page files still go through `addFile` and collide loudly.
+  const addSupportFile = (file: ExportFile): void => {
+    if (!names.has(file.name)) addFile(file);
+  };
+
   const collect = (outcome: RenderOutcome): void => {
     for (const payload of outcome.payloads) {
       // Packages were installed into the worker's world. The exported project
@@ -210,9 +217,9 @@ export async function buildExport(
     }
     const syntax = await publishSyntaxTheme(store.getSettings(), themeOptions);
     addFile({ name: syntax.path, bytes: encoder.encode(syntax.text) });
-    for (const payload of payloads.values()) addFile(payload);
+    for (const payload of payloads.values()) addSupportFile(payload);
     for (const plugin of await pluginProjectFiles(store)) {
-      addFile({ name: plugin.path, bytes: encoder.encode(plugin.text) });
+      addSupportFile({ name: plugin.path, bytes: encoder.encode(plugin.text) });
     }
     if (options.fonts) {
       for (const font of await fontFiles(store)) addFile(font);

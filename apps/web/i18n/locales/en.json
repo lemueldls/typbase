@@ -739,6 +739,7 @@
     "confirmRemove": "Remove “{name}” and delete its data?",
     "close": "Close plugin",
     "capPagesRead": "Read pages",
+    "capSitePublish": "Publish plugin data",
     "capPagesCreate": "Create pages",
     "capDailyWrite": "Write daily notes",
     "capData": "Plugin data",

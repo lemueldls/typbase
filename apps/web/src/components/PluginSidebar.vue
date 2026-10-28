@@ -10,11 +10,16 @@ const { t } = useI18n();
 const managerOpen = ref(false);
 
 const widgets = computed(() => plugins.instancesWithSurface("widget"));
-/** Instances that open in a pane or a floating window get a sidebar row. */
-const rows = computed(() => [
-  ...plugins.instancesWithSurface("pane"),
-  ...plugins.instancesWithSurface("window"),
-]);
+/** Instances that open in a pane or a floating window get one sidebar row. */
+const rows = computed(() => {
+  const panes = plugins.instancesWithSurface("pane");
+  const paneIds = new Set(panes.map((instance) => instance.id));
+
+  return [
+    ...panes,
+    ...plugins.instancesWithSurface("window").filter((instance) => !paneIds.has(instance.id)),
+  ];
+});
 
 function titleOf(instance: PluginInstance): string {
   return plugins.manifestOf(instance.pluginId)?.name ?? instance.title;

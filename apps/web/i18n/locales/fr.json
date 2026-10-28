@@ -716,6 +716,7 @@
     "confirmRemove": "Supprimer « {name} » et ses données ?",
     "close": "Fermer le plugin",
     "capPagesRead": "Lire les pages",
+    "capSitePublish": "Publier les données du plugin",
     "capPagesCreate": "Créer des pages",
     "capDailyWrite": "Écrire les notes quotidiennes",
     "capData": "Données du plugin",

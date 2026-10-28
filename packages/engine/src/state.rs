@@ -117,12 +117,18 @@ impl TypstState {
     }
 
     /// Host values for `sys.inputs`: the compiling page and workspace (both
-    /// optional) plus the compile reason (`editor`, `resolve`, `render`,
-    /// `chat`). The library bakes them into its global scope, so a change
-    /// rebuilds it and drops memoized compiles.
+    /// optional), the compile reason (`editor`, `resolve`, `render`, `chat`),
+    /// and the output target (`html` or `paged`). The library bakes them into
+    /// its global scope, so a change rebuilds it and drops memoized compiles.
     #[wasm_bindgen(js_name = "setInputs")]
-    pub fn set_inputs(&mut self, page: Option<String>, workspace: Option<String>, reason: String) {
-        self.world.set_inputs(page, workspace, reason);
+    pub fn set_inputs(
+        &mut self,
+        page: Option<String>,
+        workspace: Option<String>,
+        reason: String,
+        target: String,
+    ) {
+        self.world.set_inputs(page, workspace, reason, target);
         self.revision += 1;
     }
 

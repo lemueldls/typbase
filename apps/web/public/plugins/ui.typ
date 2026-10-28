@@ -212,8 +212,10 @@
 
 
 // Free-positioned element inside `board`. The runtime moves it live and sends
-// x/y on drop, merged with `args` (carry the record id there).
-#let movable(action, x: 0, y: 0, body: [], args: (:)) = html.elem(
+// x/y on drop, merged with `args` (carry the record id there). `attrs` adds
+// wrapper attributes such as a select action; the wrapper receives the click
+// because it owns pointer capture during a drag.
+#let movable(action, x: 0, y: 0, body: [], args: (:), attrs: (:)) = html.elem(
   "div",
   attrs: (
     class: "tb-movable",
@@ -222,7 +224,7 @@
     "data-tb-x": str(x),
     "data-tb-y": str(y),
     "data-tb-args": json.encode(args),
-  ),
+  ) + attrs,
   body,
 )
 
