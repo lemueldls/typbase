@@ -21,6 +21,7 @@ import type { AtprotoAccount } from "~/lib/atprotoAccounts";
 import { fetchPublicProfile } from "~/lib/actor";
 import { createAssetHost } from "~/lib/assetHost";
 import { readAccounts, writeAccounts } from "~/lib/atprotoAccounts";
+import { installRecordValue } from "~/lib/installRecord";
 import { createNativeAuth } from "~/lib/nativeAuth";
 import { takeOAuthCallback } from "~/lib/oauthCallback";
 import { createSyncHost } from "~/lib/syncHost";
@@ -390,6 +391,7 @@ export class AtprotoService {
       workspaceId: this.store.workspaceId,
     });
     this.airspace = airspace;
+    void this.publishInstallRecord();
 
     try {
       await airspace.workspace.manage.ensure({
@@ -541,6 +543,45 @@ export class AtprotoService {
     this.startAssetSync(airspace, session);
     this.startRelay();
     this.emit();
+  }
+
+  /**
+   * Writes one public installation record for the account. It contains only
+   * the client class and timestamps, never a device id or workspace data.
+   */
+  private async publishInstallRecord(): Promise<void> {
+    const session = this.sessionRef;
+    if (!session || this.disposed) return;
+
+    try {
+      const query = new URLSearchParams({
+        repo: session.did,
+        collection: "at.typbase.install",
+        rkey: "self",
+      });
+      const current = await session.fetchHandler(
+        `/xrpc/com.atproto.repo.getRecord?${query.toString()}`,
+      );
+      const body = current.ok ? ((await current.json()) as { value?: unknown }) : null;
+      const record = installRecordValue(body?.value);
+      if (!record) return;
+
+      const response = await session.fetchHandler("/xrpc/com.atproto.repo.putRecord", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          repo: session.did,
+          collection: "at.typbase.install",
+          rkey: "self",
+          record,
+        }),
+      });
+      if (!response.ok) {
+        console.warn(`[atproto] installation record failed (${response.status})`);
+      }
+    } catch (error) {
+      console.warn("[atproto] installation record failed:", error);
+    }
   }
 
   private scheduleAssetSync(): void {
