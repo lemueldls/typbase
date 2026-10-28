@@ -304,6 +304,8 @@
     "syncUnknownHandle": "Aucun compte Atmosphere trouvé pour « {identifier} ».",
     "syncOff": "La synchronisation est désactivée pour ce compte.",
     "syncStatus": "État : {pending} · exporté {exported} · importé {imported}",
+    "syncAssetsPending": "{count} ressources en attente",
+    "syncAssetsSynced": "Ressources synchronisées {time}",
     "syncInSync": "synchronisé",
     "syncExporting": "exportation…",
     "syncNever": "jamais",

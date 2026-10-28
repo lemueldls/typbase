@@ -806,6 +806,20 @@ useEventListener("pagehide", () => void flushText());
 useEventListener(document, "visibilitychange", () => {
   if (document.hidden) void flushText();
 });
+// A font or image arrived from the space. The settings did not change, so
+// nothing else would drop the cached fallback and recompile the page.
+useAssetDownloads(() => {
+  if (pageDisposed || !store || !typstState.value || engineHealth.value.status !== "ok") return;
+  void applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value))
+    .then(() => {
+      if (pageDisposed) return;
+      requestService?.purge();
+      editorPane.value?.recompile();
+    })
+    .catch(() => {
+      // The editor's normal compile path reports the failure.
+    });
+});
 
 function cleanupScrollSync() {
   detachScrollSync?.();

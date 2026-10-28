@@ -1,7 +1,7 @@
-import type { OAuthSession } from "@typbase/spaces";
+import type { AssetSyncStatus, OAuthSession } from "@typbase/spaces";
 import type { LocalState, WorkspaceStore } from "@typbase/storage";
 
-import { base64ToBytes } from "@typbase/spaces";
+import { AssetSync, base64ToBytes, createAssetRemote } from "@typbase/spaces";
 import {
   RelayClient,
   SessionManager,
@@ -19,6 +19,7 @@ import type { PublicProfile } from "~/lib/actor";
 import type { AtprotoAccount } from "~/lib/atprotoAccounts";
 
 import { fetchPublicProfile } from "~/lib/actor";
+import { createAssetHost } from "~/lib/assetHost";
 import { readAccounts, writeAccounts } from "~/lib/atprotoAccounts";
 import { createNativeAuth } from "~/lib/nativeAuth";
 import { takeOAuthCallback } from "~/lib/oauthCallback";
@@ -57,6 +58,8 @@ export interface AtprotoStatus {
   pendingUpdates: number;
   lastExportAt: number;
   lastImportAt: number;
+  /** Content-addressed blobs moving between this device and the space. */
+  assets: AssetSyncStatus;
   members: Array<{ did: string; handle: string | null }>;
   relayConnected: boolean;
   error: string | null;
@@ -78,6 +81,8 @@ export class AtprotoService {
   private sessionRef: OAuthSession | null = null;
   private airspace: WorkspaceClient | null = null;
   private sync: TypbaseSync | null = null;
+  private assetSync: AssetSync | null = null;
+  private assetWakeTimer: ReturnType<typeof setTimeout> | undefined;
   private relay: RelayClient | null = null;
   private commitUnsubscribe: (() => void) | undefined;
   private persona: Persona = { name: "Guest", color: "#7c7ce0" };
@@ -188,6 +193,13 @@ export class AtprotoService {
       pendingUpdates: syncStatus?.pending ?? 0,
       lastExportAt: syncStatus?.lastExportAt ?? 0,
       lastImportAt: syncStatus?.lastImportAt ?? 0,
+      assets: this.assetSync?.status() ?? {
+        syncing: false,
+        pending: 0,
+        revision: 0,
+        lastSyncedAt: 0,
+        error: null,
+      },
       members: this.members,
       relayConnected: this.relay?.connected ?? false,
       error: this.statusError,
@@ -462,8 +474,15 @@ export class AtprotoService {
     if (this.disposed) return;
 
     const memberDid = session.did;
-    const syncHost = createSyncHost(this.store, (level, message) =>
-      console[level](`[sync] ${message}`),
+    const syncHost = createSyncHost(
+      this.store,
+      (level, message) => console[level](`[sync] ${message}`),
+      () => {
+        // Pages and settings may have arrived after the asset pass read the
+        // reference set. Debounce the wake so a snapshot import does not scan
+        // the whole reference set once per page.
+        this.scheduleAssetSync();
+      },
     );
     // Sync state is per account and space, and has a schema revision. Bump the
     // revision when the import order or host semantics change: the new key
@@ -519,8 +538,29 @@ export class AtprotoService {
       sync.stop();
       return;
     }
+    this.startAssetSync(airspace, session);
     this.startRelay();
     this.emit();
+  }
+
+  private scheduleAssetSync(): void {
+    if (this.assetWakeTimer) clearTimeout(this.assetWakeTimer);
+    this.assetWakeTimer = setTimeout(() => {
+      this.assetWakeTimer = undefined;
+      void this.assetSync?.syncNow();
+    }, 300);
+  }
+
+  private startAssetSync(airspace: WorkspaceClient, session: OAuthSession): void {
+    this.assetSync?.stop();
+    this.assetSync = new AssetSync(
+      createAssetHost(this.store),
+      createAssetRemote(airspace, session),
+      {
+        onStatus: () => this.emit(),
+      },
+    );
+    this.assetSync.start();
   }
 
   private async handleLocalCommit(docId: string): Promise<void> {
@@ -769,6 +809,7 @@ export class AtprotoService {
   /** Wakes the pull loop (visibilitychange, focus, relay poke). */
   async wake(): Promise<void> {
     await this.sync?.wake();
+    void this.assetSync?.syncNow();
   }
 
   onChange(listener: () => void): () => void {
@@ -793,6 +834,10 @@ export class AtprotoService {
     this.commitUnsubscribe = undefined;
     this.sync?.stop();
     this.sync = null;
+    if (this.assetWakeTimer) clearTimeout(this.assetWakeTimer);
+    this.assetWakeTimer = undefined;
+    this.assetSync?.stop();
+    this.assetSync = null;
     this.relay?.disconnect();
     this.relay = null;
     this.airspace = null;

@@ -304,6 +304,8 @@
     "syncUnknownHandle": "No Atmosphere account found for “{identifier}”.",
     "syncOff": "Sync is off for this account.",
     "syncStatus": "Status: {pending} · exported {exported} · imported {imported}",
+    "syncAssetsPending": "{count} assets pending",
+    "syncAssetsSynced": "Assets synced {time}",
     "syncInSync": "in sync",
     "syncExporting": "exporting…",
     "syncNever": "never",

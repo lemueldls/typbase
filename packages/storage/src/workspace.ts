@@ -317,6 +317,7 @@ export class WorkspaceStore {
   private pluginListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
   private chatListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
   private commitListeners = new Set<(docId: string) => void>();
+  private blobListeners = new Set<(hash: string, change: "put" | "delete") => void>();
   private commitTimer: ReturnType<typeof setTimeout> | undefined;
   private pendingCommits = new Set<string>();
   private loro!: LoroModule;
@@ -1267,6 +1268,21 @@ export class WorkspaceStore {
     return () => this.commitListeners.delete(listener);
   }
 
+  /**
+   * Fires after a blob write or delete. Asset sync uses this to upload new
+   * bytes without polling the whole blob tree, and a remote import also fires
+   * it so the sync layer can skip the echo.
+   */
+  onBlobChange(listener: (hash: string, change: "put" | "delete") => void): () => void {
+    this.blobListeners.add(listener);
+
+    return () => this.blobListeners.delete(listener);
+  }
+
+  private emitBlob(hash: string, change: "put" | "delete"): void {
+    for (const listener of this.blobListeners) listener(hash, change);
+  }
+
   /** docId space: workspace id, page ids, `plugin:<id>` and `chat:<id>` docs. */
   async getDocById(docId: string): Promise<LoroDoc | null> {
     if (docId === this.workspaceId) return this.doc;
@@ -1853,6 +1869,8 @@ export class WorkspaceStore {
     if (existing) {
       const same = existing.size === bytes.byteLength && (await this.blobBytesMatch(path, bytes));
       if (same) {
+        this.emitBlob(id, "put");
+
         return { hash: id, size: bytes.byteLength, modifiedAt: existing.modifiedAt };
       }
 
@@ -1860,6 +1878,7 @@ export class WorkspaceStore {
       const fullPath = blobPath(this.workspaceId, full);
       const fullExisting = await this.backend.stat(fullPath).catch(() => null);
       if (!fullExisting) await this.backend.write(fullPath, bytes);
+      this.emitBlob(full, "put");
 
       return {
         hash: full,
@@ -1869,6 +1888,7 @@ export class WorkspaceStore {
     }
 
     await this.backend.write(path, bytes);
+    this.emitBlob(id, "put");
 
     return { hash: id, size: bytes.byteLength, modifiedAt: Date.now() };
   }
@@ -1919,6 +1939,7 @@ export class WorkspaceStore {
     if (!isBlobHash(hash)) return;
 
     await this.backend.delete(blobPath(this.workspaceId, hash));
+    this.emitBlob(hash, "delete");
   }
 
   /** Blob hash -> page ids that mention it in source or asset records. */

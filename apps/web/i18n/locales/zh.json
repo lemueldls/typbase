@@ -304,6 +304,8 @@
     "syncUnknownHandle": "未找到 {identifier} 对应的 Atmosphere 账号。",
     "syncOff": "此账户的同步已关闭。",
     "syncStatus": "状态：{pending} · 已导出 {exported} · 已导入 {imported}",
+    "syncAssetsPending": "{count} 个资源待同步",
+    "syncAssetsSynced": "资源已同步 {time}",
     "syncInSync": "已同步",
     "syncExporting": "导出中…",
     "syncNever": "从未",

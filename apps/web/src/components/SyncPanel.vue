@@ -138,7 +138,9 @@ const joining = ref(false);
 
 const spaceUri = computed(() => atprotoStatus.value.spaceUri);
 const currentSpaceId = computed(() => spaceUri.value?.split("/").pop() ?? workspaceId.value);
-const exporting = computed(() => atprotoStatus.value.pendingUpdates > 0);
+const exporting = computed(
+  () => atprotoStatus.value.pendingUpdates > 0 || atprotoStatus.value.assets.pending > 0,
+);
 const statusLabel = computed(() =>
   exporting.value ? t("settings.syncExporting") : t("settings.syncInSync"),
 );
@@ -404,8 +406,21 @@ watch(
                 <MsIcon name="download" :size="14" />
                 {{ $t("settings.syncImported") }} {{ ago(atprotoStatus.lastImportAt) }}
               </span>
+              <span v-if="atprotoStatus.assets.pending" class="sync__status-meta-item">
+                <MsIcon name="attachment" :size="14" />
+                {{ $t("settings.syncAssetsPending", { count: atprotoStatus.assets.pending }) }}
+              </span>
+              <span v-else-if="atprotoStatus.assets.lastSyncedAt" class="sync__status-meta-item">
+                <MsIcon name="attachment" :size="14" />
+                {{
+                  $t("settings.syncAssetsSynced", { time: ago(atprotoStatus.assets.lastSyncedAt) })
+                }}
+              </span>
             </div>
           </div>
+          <p v-if="atprotoStatus.assets.error" class="sync__hint sync__hint--error" role="alert">
+            {{ atprotoStatus.assets.error }}
+          </p>
           <!-- <p class="sync__hint" :class="{ 'sync__hint--error': atprotoStatus.error }">
             {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
           </p> -->

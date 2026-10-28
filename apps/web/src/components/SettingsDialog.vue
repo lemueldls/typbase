@@ -800,6 +800,7 @@ watch(
   () => void refreshMissingFonts(),
   { immediate: true },
 );
+useAssetDownloads(() => refreshMissingFonts());
 
 /**
  * Stores each file as a blob and files it under the family the engine reads out

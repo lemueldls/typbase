@@ -73,6 +73,7 @@ async function refresh(): Promise<void> {
 }
 
 onMounted(() => void refresh());
+useAssetDownloads(() => refresh());
 onBeforeUnmount(revokeUrls);
 defineExpose({ refresh });
 

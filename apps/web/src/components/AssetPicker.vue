@@ -94,6 +94,9 @@ async function refresh(): Promise<void> {
   }
 }
 
+useAssetDownloads(() => {
+  if (open.value) return refresh();
+});
 watch(open, (isOpen) => {
   if (isOpen) void refresh();
 });

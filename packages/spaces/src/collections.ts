@@ -15,6 +15,7 @@ export function workspaceSpace(skey: string) {
       update: collections.update,
       snapshot: collections.snapshot,
       post: collections.post,
+      asset: collections.asset,
     },
   });
 }

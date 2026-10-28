@@ -39,5 +39,17 @@ export default defineLexicons("at.typbase", {
     /** Set on the public copy by `publish()`. */
     publishedAt: field.datetime().optional(),
   },
-  workspace: space(["update", "snapshot", "post"], { name: "Typbase workspace" }),
+  asset: {
+    // The record key is the full content hash, so a retry cannot duplicate it.
+    key: "any",
+    hash: field.text({ max: 128 }),
+    address: field.text({ max: 128 }),
+    cid: field.text({ max: 256 }),
+    mime: field.text({ max: 128 }),
+    size: field.number({ min: 0 }),
+    kind: field.enum(["font", "image", "file"]),
+    blob: field.blob(),
+    createdAt: field.datetime(),
+  },
+  workspace: space(["update", "snapshot", "post", "asset"], { name: "Typbase workspace" }),
 });
