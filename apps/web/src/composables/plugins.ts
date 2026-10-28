@@ -12,6 +12,8 @@ import type {
   PluginSurfaceKind,
 } from "@typbase/typing";
 
+import { createPluginBundle, parsePluginBundle } from "@typbase/plugin-sdk";
+import { publishPlugin, resolvePlugin } from "@typbase/spaces";
 import { PLUGIN_API } from "@typbase/typing";
 
 import type { PluginSurfacePackage } from "~/lib/plugins/protocol";
@@ -27,6 +29,7 @@ import { sectionsOf } from "~/lib/engineSyntax";
 import { todayISO } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
 import { specString } from "~/lib/packages";
+import { installPluginBundle } from "~/lib/plugins/bundle";
 import {
   loadBundledCatalog,
   loadLocalCatalog,
@@ -36,7 +39,7 @@ import {
 } from "~/lib/plugins/catalog";
 import { compilePluginSurface, pluginEngine, resetPluginEngine } from "~/lib/plugins/engine";
 import { importPluginFolder } from "~/lib/plugins/folderImport";
-import { validatePatch } from "~/lib/plugins/manifest";
+import { parseManifest, pluginSlug, validatePatch } from "~/lib/plugins/manifest";
 import {
   bumpPluginsRevision,
   pluginsRevision,
@@ -124,7 +127,8 @@ function parseConfig(instance: PluginInstance): Record<string, unknown> {
 export const DEFAULT_WINDOW_SIZE = { width: 620, height: 480 };
 
 export function usePluginHost() {
-  const { workspace, backend, localState, dataRevision, pluginFilesRevision } = useWorkspace();
+  const { workspace, backend, localState, dataRevision, pluginFilesRevision, atproto } =
+    useWorkspace();
   const { locale } = useI18n();
   // Plugin AI actions go through the chat runtime. Instantiate it so the
   // engine deps exist even when no chat pane is open (for example /debug).
@@ -332,7 +336,14 @@ export function usePluginHost() {
     return errors.value.filter((error) => error.pluginId === pluginId);
   }
 
-  async function install(pluginId: string): Promise<void> {
+  interface InstallOptions {
+    source?: string;
+    origin?: string;
+    release?: string;
+    sha256?: string;
+  }
+
+  async function install(pluginId: string, options: InstallOptions = {}): Promise<void> {
     const store = workspace.value;
     const entry = catalog.value.find((candidate) => candidate.manifest.id === pluginId);
     if (!store || !entry || store.getPluginInstall(pluginId)) return;
@@ -341,9 +352,12 @@ export function usePluginHost() {
       id: entry.manifest.id,
       version: entry.manifest.version,
       enabled: true,
-      source: entry.source,
+      source: options.source ?? entry.source,
       installedAt: Date.now(),
       manifest: JSON.stringify(entry.manifest),
+      ...(options.origin ? { origin: options.origin } : {}),
+      ...(options.release ? { release: options.release } : {}),
+      ...(options.sha256 ? { sha256: options.sha256 } : {}),
     });
 
     await store.createPluginInstance({
@@ -395,6 +409,131 @@ export function usePluginHost() {
         message: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  /**
+   * Resolves a plugin listing from the publisher's PDS, verifies the artifact,
+   * and installs the release as a local plugin. A catalog is not involved.
+   */
+  async function installFromUri(uri: string): Promise<void> {
+    const store = workspace.value;
+    const active = backend.value;
+    if (!store || !active) return;
+
+    try {
+      const resolved = await resolvePlugin(uri);
+      const manifest = parseManifest(resolved.manifest);
+      if (manifest.id !== uri) {
+        throw new Error("plugin manifest id does not match the listing URI");
+      }
+      if (resolved.release.version !== manifest.version) {
+        throw new Error("plugin release version does not match its manifest");
+      }
+      if (resolved.release.api !== manifest.api) {
+        throw new Error("plugin release API does not match its manifest");
+      }
+
+      const bundle = parsePluginBundle(resolved.artifact);
+      const bundledManifest = parseManifest(bundle.manifest);
+      if (JSON.stringify(bundledManifest) !== JSON.stringify(manifest)) {
+        throw new Error("plugin bundle manifest does not match its release manifest");
+      }
+      if (!bundle.files.some((file) => file.path === manifest.entry)) {
+        throw new Error(`plugin bundle is missing its entry file "${manifest.entry}"`);
+      }
+
+      const capabilities = manifest.capabilities.length ? manifest.capabilities.join(", ") : "none";
+      if (
+        !window.confirm(
+          `Install ${manifest.name} ${manifest.version} from ${uri}?\n\nCapabilities: ${capabilities}`,
+        )
+      ) {
+        return;
+      }
+
+      await installPluginBundle(active, manifest, bundle.files);
+      await refreshCatalog();
+
+      const existing = store.getPluginInstall(manifest.id);
+      if (existing) {
+        store.setPluginInstall({
+          ...existing,
+          version: manifest.version,
+          source: "registry",
+          manifest: JSON.stringify(manifest),
+          origin: uri,
+          release: resolved.releaseUri,
+          sha256: resolved.release.sha256,
+        });
+        if (!store.listPluginInstances().some((instance) => instance.pluginId === manifest.id)) {
+          await store.createPluginInstance({
+            pluginId: manifest.id,
+            title: manifest.name,
+            icon: manifest.icon,
+          });
+        }
+      } else {
+        await install(manifest.id, {
+          source: "registry",
+          origin: uri,
+          release: resolved.releaseUri,
+          sha256: resolved.release.sha256,
+        });
+      }
+      bumpPluginsRevision();
+    } catch (error) {
+      pushError({
+        pluginId: "registry",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Publishes one local plugin revision to the signed-in account's public
+   * repo. Publishing under the current DID creates a normal registry listing;
+   * the local authoring copy keeps its own local id.
+   */
+  async function publishToAtmosphere(pluginId: string): Promise<void> {
+    const entry = catalog.value.find((candidate) => candidate.manifest.id === pluginId);
+    const session = atproto.value?.session;
+    if (!entry || !session) {
+      throw new Error("Sign in before publishing a plugin.");
+    }
+    if (!(await atproto.value?.hasPluginPublishingScope())) {
+      throw new Error("Reconnect your account to grant plugin publishing access.");
+    }
+    if (entry.manifest.id.startsWith("at://") && !entry.manifest.id.includes(session.did)) {
+      throw new Error("This plugin belongs to another publisher. Fork it before publishing.");
+    }
+
+    const slug = pluginSlug(entry.manifest.id);
+    const listingUri = `at://${session.did}/at.typbase.plugin/${slug}`;
+    const manifest: PluginManifest = { ...entry.manifest, id: listingUri };
+    const prefix = `/typbase/plugin/${entry.slug}/`;
+    const files = [
+      ...entry.sources.map((source) => ({
+        path: source.path.startsWith(prefix) ? source.path.slice(prefix.length) : source.path,
+        text: source.text,
+      })),
+      ...entry.styles.map((style) => ({ path: style.name, text: style.text })),
+    ];
+    if (!files.some((file) => file.path === manifest.entry)) {
+      throw new Error(`plugin source is missing its entry file "${manifest.entry}"`);
+    }
+    const artifact = createPluginBundle(manifest, files);
+    const published = await publishPlugin(session, session.did, {
+      slug,
+      manifest,
+      artifact,
+    });
+    pushToast({
+      titleKey: "plugins.published",
+      descriptionKey: "plugins.publishedHint",
+      params: { uri: published.listingUri },
+      duration: 4500,
+    });
   }
 
   async function setEnabled(pluginId: string, enabled: boolean): Promise<void> {
@@ -1453,6 +1592,8 @@ export function usePluginHost() {
     install,
     addInstance,
     installFromFolder,
+    installFromUri,
+    publish: publishToAtmosphere,
     refreshCatalog,
     uninstall,
     setEnabled,

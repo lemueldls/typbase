@@ -1,12 +1,14 @@
 projects:
   web: "apps/web"
   proxy: "apps/proxy"
+  registry: "apps/registry"
   native: "apps/native"
   engine: "packages/engine"
   codemirror: "packages/codemirror"
   typing: "packages/typing"
   storage: "packages/storage"
   spaces: "packages/spaces"
+  plugin-sdk: "packages/plugin-sdk"
 
 defaultProject: "web"
 

@@ -5,6 +5,7 @@ import type { MaterialSymbol } from "material-symbols";
 import type { PluginError } from "~/composables/plugins";
 
 import PluginCodeEditor from "~/components/studio/PluginCodeEditor.vue";
+import { pushToast } from "~/composables/toasts";
 import { LOCAL_ID_PREFIX, parseManifest, pluginSlug } from "~/lib/plugins/manifest";
 
 // The studio is a client tool: it needs storage and the catalog, and SSR only
@@ -56,6 +57,7 @@ const saveError = ref("");
 const stateJson = ref("{}");
 const viewJson = ref("{}");
 const dataError = ref("");
+const publishing = ref(false);
 
 onMounted(() => void ensure());
 
@@ -394,6 +396,22 @@ async function installPlugin(): Promise<void> {
   await refreshData();
 }
 
+async function publishSelected(): Promise<void> {
+  if (!selected.value || publishing.value) return;
+  publishing.value = true;
+  try {
+    await plugins.publish(selected.value.manifest.id);
+  } catch (error) {
+    pushToast({
+      title: error instanceof Error ? error.message : String(error),
+      variant: "danger",
+      duration: 7000,
+    });
+  } finally {
+    publishing.value = false;
+  }
+}
+
 function openPreview(): void {
   const id = selectedInstanceId.value;
   if (!id) return;
@@ -470,6 +488,15 @@ function formatTime(at: number): string {
                 Add instance
               </UiButton>
             </template>
+            <UiButton
+              v-if="selected.source === 'local'"
+              size="small"
+              variant="ghost"
+              :disabled="publishing"
+              @click="publishSelected"
+            >
+              {{ $t("plugins.publish") }}
+            </UiButton>
           </div>
 
           <h2 class="studio__label">Instances</h2>
@@ -521,14 +548,14 @@ function formatTime(at: number): string {
             />
             <UiButton
               v-if="previewSurface !== 'widget'"
-              size="small"
+              size="large"
               :disabled="!selectedInstanceId"
               @click="openPreview"
             >
               Open
             </UiButton>
             <UiButton
-              size="small"
+              size="large"
               variant="ghost"
               :disabled="!selectedInstanceId"
               @click="plugins.renderInstance(selectedInstanceId, previewSurface)"

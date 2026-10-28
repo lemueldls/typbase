@@ -1468,6 +1468,11 @@ export class WorkspaceStore {
     map.set("source", install.source);
     map.set("installedAt", install.installedAt);
     map.set("manifest", install.manifest);
+    for (const key of ["origin", "release", "sha256"] as const) {
+      const value = install[key];
+      if (value) map.set(key, value);
+      else map.delete(key);
+    }
     this.doc.commit();
   }
 

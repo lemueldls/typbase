@@ -248,6 +248,22 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@26.6.2)(vite@8.3.0)
 
+  apps/registry:
+    dependencies:
+      '@typbase/spaces':
+        specifier: workspace:*
+        version: link:../../packages/spaces
+      nitro:
+        specifier: 3.0.260903-beta
+        version: 3.0.260903-beta
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   apps/web:
     dependencies:
       '@codemirror/autocomplete':
@@ -289,6 +305,9 @@ importers:
       '@typbase/engine':
         specifier: workspace:*
         version: link:../../packages/engine/pkg
+      '@typbase/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
       '@typbase/spaces':
         specifier: workspace:*
         version: link:../../packages/spaces
@@ -398,6 +417,19 @@ importers:
         version: 5.9.3
 
   packages/engine/pkg: {}
+
+  packages/plugin-sdk:
+    dependencies:
+      '@typbase/typing':
+        specifier: workspace:*
+        version: link:../typing
+    devDependencies:
+      tsdown:
+        specifier: 0.23.0
+        version: 0.23.0(@vitejs/devtools@0.7.5)(@vue/language-core@3.3.5)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/spaces:
     dependencies:

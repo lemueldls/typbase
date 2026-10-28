@@ -13,16 +13,18 @@
     "generate:direct": "bash scripts/build-web-direct.sh",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "packages:build": "moon run typing:build storage:build spaces:build codemirror:build",
-    "packages:dev": "moon run typing:build-dev storage:build-dev spaces:build-dev codemirror:build-dev",
+    "packages:build": "moon run typing:build storage:build spaces:build plugin-sdk:build codemirror:build",
+    "packages:dev": "moon run typing:build-dev storage:build-dev spaces:build-dev plugin-sdk:build-dev codemirror:build-dev",
     "preview": "moon run web:preview",
     "symbols": "node scripts/symbols/transform.mjs",
     "test:e2e": "pnpm --filter @typbase/web test:e2e",
     "test:unit": "pnpm --filter @typbase/web test:unit",
-    "typecheck": "pnpm --filter @typbase/web typecheck && pnpm --filter @typbase/proxy typecheck && pnpm --filter @typbase/typing --filter @typbase/storage --filter @typbase/spaces --filter @typbase/codemirror typecheck",
+    "typecheck": "pnpm --filter @typbase/web typecheck && pnpm --filter @typbase/proxy typecheck && pnpm --filter @typbase/registry typecheck && pnpm --filter @typbase/typing --filter @typbase/storage --filter @typbase/spaces --filter @typbase/plugin-sdk --filter @typbase/codemirror typecheck",
     "dev:proxy": "moon run proxy:dev",
     "build:proxy": "moon run proxy:build",
-    "test:proxy": "pnpm --filter @typbase/proxy test"
+    "test:proxy": "pnpm --filter @typbase/proxy test",
+    "dev:registry": "moon run registry:dev",
+    "build:registry": "moon run registry:build"
   },
   "dependencies": {
     "@tauri-apps/api": "^3.0.0-alpha.0",

@@ -9,6 +9,10 @@
   },
   "type": "module",
   "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin-registry": "./src/pluginRegistry.ts"
+  },
   "scripts": {
     "build": "tsdown",
     "build-dev": "tsdown --watch",

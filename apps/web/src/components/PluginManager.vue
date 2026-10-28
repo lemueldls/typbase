@@ -19,6 +19,24 @@ const canImportFolder = isFsaSupported();
 const renameOpen = ref(false);
 const renameTarget = ref<PluginInstance>();
 const renameTitle = ref("");
+const installUri = ref("");
+const installUriError = ref("");
+const installingUri = ref(false);
+
+async function installFromUri(): Promise<void> {
+  const uri = installUri.value.trim();
+  if (!uri || installingUri.value) return;
+  installUriError.value = "";
+  installingUri.value = true;
+  try {
+    await plugins.installFromUri(uri);
+    installUri.value = "";
+  } catch (error) {
+    installUriError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    installingUri.value = false;
+  }
+}
 
 function startRename(instance: PluginInstance): void {
   renameTarget.value = instance;
@@ -67,6 +85,29 @@ function openInstance(instance: PluginInstance) {
 
 <template>
   <div class="plugin-manager">
+    <section class="plugin-manager__group">
+      <h3 class="plugin-manager__title">{{ $t("plugins.installFromAtmosphere") }}</h3>
+      <p class="plugin-manager__description">{{ $t("plugins.installFromAtmosphereHint") }}</p>
+      <div class="plugin-manager__tools">
+        <UiTextField
+          v-model="installUri"
+          class="plugin-manager__uri"
+          :placeholder="$t('plugins.installUriPlaceholder')"
+          :aria-label="$t('plugins.installUri')"
+          @keyup.enter="installFromUri"
+        />
+        <UiButton
+          size="small"
+          variant="primary"
+          :disabled="!installUri.trim() || installingUri"
+          @click="installFromUri"
+        >
+          {{ $t("plugins.installUri") }}
+        </UiButton>
+      </div>
+      <p v-if="installUriError" class="plugin-manager__error" role="alert">{{ installUriError }}</p>
+    </section>
+
     <section class="plugin-manager__group">
       <h3 class="plugin-manager__title">{{ $t("plugins.available") }}</h3>
 
@@ -255,6 +296,17 @@ function openInstance(instance: PluginInstance) {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-1-5);
+}
+
+.plugin-manager__uri {
+  min-width: min(100%, 22rem);
+  flex: 1;
+}
+
+.plugin-manager__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
 }
 
 .plugin-manager__entry {

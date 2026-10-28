@@ -6,8 +6,8 @@ the plugin's records in a Loro doc that syncs like a page.
 
 ## Where plugins live
 
-- Bundled plugins ship in `apps/web/public/plugins/<slug>/` and are always in
-  the catalog.
+- First-party plugins ship in `plugins/<slug>/` and are
+  always in the catalog. The app bundles them at build time.
 - Local plugins live in `plugins/<slug>/` inside the workspace storage root.
   Import a folder from the plugin manager, create one in the studio, or write
   the files by hand; the storage watcher picks up external edits where the
@@ -53,10 +53,11 @@ plugins/my-plugin/
 ```
 
 - `api` is exactly `typbase.host.v2`. v1 manifests are rejected.
-- `id` is `local:<name>` or an Atmosphere URI. The `<slug>` a note imports from is
-  the id without the `local:` scheme, so `local:my-plugin` is
-  `/typbase/plugin/my-plugin/`. An Atmosphere id keeps its whole form, because two
-  authors can both publish the same plugin name.
+- `id` is `local:<name>` or a published listing URI, for example
+  `at://did:plc:.../at.typbase.plugin/my-plugin`. The `<slug>` a note imports from
+  is derived from the id, so `local:my-plugin` becomes
+  `/typbase/plugin/my-plugin/`. An Atmosphere id keeps its whole form, because
+  two authors can both publish the same plugin name.
 - `version` is compared against the installed record on every catalog refresh.
   Editing a plugin updates the sidebar and the studio without reopening the
   workspace.
@@ -183,6 +184,59 @@ View patches merge one level deep, so return the complete `undo` and `redo`
 arrays on every edit. A new edit clears `redo`. The stacks cap at 50 entries
 because a cleared board stores every removed record in one entry, and the
 history is written to `local.json` with the rest of the device state.
+
+## Publishing and installing
+
+Typbase plugins can travel as an `at.typbase.plugin` listing plus immutable
+`at.typbase.pluginRelease` records in a publisher's public repo. The listing
+points at the latest release; the release carries the plugin manifest, an
+artifact blob, its SHA-256, size, API version, and capabilities.
+
+Build the artifact with `@typbase/plugin-sdk` (a `.tbplugin` file):
+
+```ts
+import { createPluginBundle } from "@typbase/plugin-sdk";
+
+const bytes = createPluginBundle(manifest, [
+  { path: "main.typ", text: mainSource },
+  { path: "style.css", text: styleSource },
+]);
+```
+
+The manifest id inside a published artifact is the listing URI, not
+`local:...`. The plugin studio's **Publish to Atmosphere** action builds the
+artifact, uploads it, and writes both records from the signed-in account.
+Publishing needs `repo:at.typbase.plugin` and `repo:at.typbase.pluginRelease`
+scopes, so an older session must reconnect once.
+
+Install from a listing URI in the plugin manager. Typbase resolves the
+listing and release from the publisher's PDS, downloads the artifact, verifies
+its size and SHA-256, validates the manifest, shows the requested
+capabilities, and only then writes `plugins/<slug>/` locally. No catalog is
+required.
+
+For a local round trip, run `pnpm dev:pds` in
+`/home/lemuel/Projects/airspace` and point the integration test at the printed
+account:
+
+```sh
+PDS_SERVICE=http://localhost:2583 \
+PDS_ALICE_HANDLE=alice.test \
+PDS_ALICE_PASSWORD=hunter2 \
+pnpm --filter @typbase/web test:unit -- test/pluginRegistry.integration.test.ts
+```
+
+The optional registry in `apps/registry` is a discovery service. It indexes
+configured publisher DIDs and never owns the publishable records. Anyone can
+run their own copy:
+
+```sh
+REGISTRY_PUBLISHERS=did:plc:...,did:web:... pnpm dev:registry
+```
+
+First-party plugins stay in `plugins/` for offline
+first-run availability. They are normal plugins and can be forked and
+published through the same flow.
 
 ## Styling
 

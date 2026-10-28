@@ -26,6 +26,7 @@
     "@replit/codemirror-vim": "^6.4.0",
     "@typbase/codemirror": "workspace:*",
     "@typbase/engine": "workspace:*",
+    "@typbase/plugin-sdk": "workspace:*",
     "@typbase/spaces": "workspace:*",
     "@typbase/storage": "workspace:*",
     "@typbase/typing": "workspace:*",

@@ -48,6 +48,9 @@ jobs:
       - name: 🧠 Typecheck
         run: pnpm typecheck
 
+      - name: 🧪 Unit tests
+        run: pnpm test:unit
+
       - name: 🧪 Test proxy app
         run: pnpm test:proxy
 
@@ -56,6 +59,9 @@ jobs:
 
       - name: 🔨 Build proxy app
         run: pnpm build:proxy
+
+      - name: 🔨 Build registry app
+        run: pnpm build:registry
 
   engine:
     name: 🦀 Engine tests

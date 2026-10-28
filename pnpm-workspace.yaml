@@ -1,6 +1,7 @@
 packages:
   - apps/web
   - apps/proxy
+  - apps/registry
   - packages/*
   - packages/engine/pkg
 

@@ -22,6 +22,8 @@ export const OAUTH_SCOPES: readonly string[] = [
   "space:at.typbase.workspace?authority=*&collection=*",
   "space:at.typbase.workspace?authority=*&manage=create",
   "repo:at.typbase.post",
+  "repo:at.typbase.plugin",
+  "repo:at.typbase.pluginRelease",
   // Site publishing writes the public Wisp manifest and Standard.site
   // discovery records. Domain management goes through Wisp's service XRPC.
   "repo:place.wisp.fs",

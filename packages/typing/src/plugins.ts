@@ -52,7 +52,7 @@ export interface PluginCollectionSchema {
 }
 
 export interface PluginManifest {
-  /** `local:<slug>` or an atproto URI (`at://did/.../plugin/<slug>`). */
+  /** `local:<slug>` or an `at.typbase.plugin` listing URI. */
   id: string;
   name: string;
   version: string;
@@ -75,11 +75,17 @@ export interface PluginInstall {
   id: string;
   version: string;
   enabled: boolean;
-  /** How the source was installed: `bundled` or a folder label. */
+  /** How the source was installed: `bundled`, `local`, or `registry`. */
   source: string;
   installedAt: number;
   /** Manifest JSON, cached so the UI works before sources load. */
   manifest: string;
+  /** Listing URI for a registry install. */
+  origin?: string;
+  /** Immutable release URI pinned by a registry install. */
+  release?: string;
+  /** Artifact checksum, verified before the files were written. */
+  sha256?: string;
 }
 
 /** One plugin instance in the workspace doc's `instances` map. */

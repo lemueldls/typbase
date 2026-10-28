@@ -20,19 +20,19 @@ export interface CatalogPlugin {
 export const UI_LIBRARY_PATH = "/typbase/ui.typ";
 export { uiLibrarySource };
 
-const manifestModules = import.meta.glob("../../../public/plugins/*/plugin.json", {
+const manifestModules = import.meta.glob("../../../../../plugins/*/plugin.json", {
   eager: true,
   query: "?raw",
   import: "default",
 }) as Record<string, string>;
 
-const sourceModules = import.meta.glob("../../../public/plugins/*/**/*.typ", {
+const sourceModules = import.meta.glob("../../../../../plugins/*/**/*.typ", {
   eager: true,
   query: "?raw",
   import: "default",
 }) as Record<string, string>;
 
-const styleModules = import.meta.glob("../../../public/plugins/*/**/*.css", {
+const styleModules = import.meta.glob("../../../../../plugins/*/**/*.css", {
   eager: true,
   query: "?raw",
   import: "default",

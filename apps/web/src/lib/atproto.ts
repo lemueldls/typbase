@@ -650,6 +650,21 @@ export class AtprotoService {
     }
   }
 
+  /** True when the session can write public plugin listings and releases. */
+  async hasPluginPublishingScope(): Promise<boolean> {
+    if (!this.sessionRef) return false;
+    try {
+      const info = await this.sessionRef.getTokenInfo();
+      const scope = String(info.scope);
+
+      return (
+        scope.includes("repo:at.typbase.plugin") && scope.includes("repo:at.typbase.pluginRelease")
+      );
+    } catch {
+      return false;
+    }
+  }
+
   /** Re-runs OAuth so an older session picks up the site scopes. */
   async reauthorize(): Promise<void> {
     const identifier = this.statusDid;
