@@ -10,17 +10,17 @@
 
 :host {
   display: block;
-  color: var(--color-text, #1f2328);
+  color: var(--color-text, #293133);
   font-family: var(--font-sans, system-ui, sans-serif);
   font-size: var(--text-md, 0.875rem);
   line-height: var(--leading-normal, 1.5);
-  accent-color: var(--color-accent, #1e5aa0);
-  caret-color: var(--color-accent, #1e5aa0);
+  accent-color: var(--color-accent, #1f6f6b);
+  caret-color: var(--color-accent, #1f6f6b);
 }
 
 /* Shadow roots do not inherit the document's ::selection rule. */
 ::selection {
-  background: color-mix(in srgb, var(--color-accent, #1e5aa0) 30%, transparent);
+  background: color-mix(in srgb, var(--color-accent, #1f6f6b) 30%, transparent);
 }
 
 * {
@@ -52,7 +52,7 @@ p {
 }
 
 a {
-  color: var(--color-accent, #1e5aa0);
+  color: var(--color-accent, #1f6f6b);
 }
 
 /* Primitives */
@@ -65,8 +65,8 @@ a {
   padding: var(--space-1-5, 0.375rem) var(--space-3, 0.75rem);
   font-family: inherit;
   font-size: var(--text-md, 0.875rem);
-  color: var(--color-text, #1f2328);
-  background: var(--color-surface-2, #f3f4f6);
+  color: var(--color-text, #293133);
+  background: var(--color-surface-2, #f1f3f2);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius-sm, 4px);
   cursor: pointer;
@@ -83,7 +83,7 @@ a {
 
 .tb-button--primary {
   color: var(--color-on-accent, #fff);
-  background: var(--color-accent, #1e5aa0);
+  background: var(--color-accent, #1f6f6b);
   border-color: transparent;
 }
 
@@ -102,13 +102,13 @@ a {
 }
 
 .tb-button--ghost:hover:not(:disabled) {
-  background: var(--color-surface-2, #f3f4f6);
+  background: var(--color-surface-2, #f1f3f2);
 }
 
 .tb-button--selected {
-  color: var(--color-accent, #1e5aa0);
-  border-color: var(--color-accent, #1e5aa0);
-  box-shadow: inset 0 0 0 1px var(--color-accent, #1e5aa0);
+  color: var(--color-accent, #1f6f6b);
+  border-color: var(--color-accent, #1f6f6b);
+  box-shadow: inset 0 0 0 1px var(--color-accent, #1f6f6b);
 }
 
 .tb-button--tiny {
@@ -150,14 +150,14 @@ a {
   padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
   font-family: inherit;
   font-size: var(--text-md, 0.875rem);
-  color: var(--color-text, #1f2328);
+  color: var(--color-text, #293133);
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius-sm, 4px);
 }
 
 .tb-input:focus {
-  outline: 2px solid var(--color-accent, #1e5aa0);
+  outline: 2px solid var(--color-accent, #1f6f6b);
   outline-offset: -1px;
 }
 
@@ -218,7 +218,7 @@ a {
 
 .tb-card {
   padding: var(--space-2, 0.5rem) var(--space-2-5, 0.625rem);
-  background: var(--color-surface-2, #f3f4f6);
+  background: var(--color-surface-2, #f1f3f2);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius-sm, 4px);
 }
@@ -233,7 +233,7 @@ a {
 
 .tb-badge--accent {
   color: var(--color-on-accent, #fff);
-  background: var(--color-accent, #1e5aa0);
+  background: var(--color-accent, #1f6f6b);
 }
 
 .tb-badge--danger {
@@ -279,7 +279,7 @@ a {
   overflow: hidden;
   background:
     radial-gradient(circle, var(--color-border, #e5e7eb) 1px, transparent 1px) 0 0 / 18px 18px,
-    var(--color-surface-2, #f3f4f6);
+    var(--color-surface-2, #f1f3f2);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius-md, 8px);
 }
@@ -306,7 +306,7 @@ a {
 }
 
 .tb-drop:hover {
-  border-color: var(--color-accent, #1e5aa0);
+  border-color: var(--color-accent, #1f6f6b);
 }
 
 .tb-canvas-host {

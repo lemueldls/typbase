@@ -199,7 +199,7 @@ export function mountCanvas(hostElement: HTMLElement, callbacks: CanvasCallbacks
   const eraseWidth = Number(props.eraseWidth) > 0 ? Number(props.eraseWidth) : 18;
   const eraseAction =
     typeof props.eraseAction === "string" && props.eraseAction ? props.eraseAction : null;
-  const brushColor = props.color || "#1f2328";
+  const brushColor = props.color || "#293133";
   const brushWidth = Number(props.width) || 3;
 
   canvas.style.cursor = tool === "erase" ? "cell" : "crosshair";
@@ -215,7 +215,7 @@ export function mountCanvas(hostElement: HTMLElement, callbacks: CanvasCallbacks
     const points = Array.isArray(stroke.points) ? stroke.points : [];
     if (points.length === 0) return;
 
-    context!.strokeStyle = stroke.color || "#1f2328";
+    context!.strokeStyle = stroke.color || "#293133";
     context!.lineWidth = Number(stroke.width) || 3;
     context!.lineCap = "round";
     context!.lineJoin = "round";

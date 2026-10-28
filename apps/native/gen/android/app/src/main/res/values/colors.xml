@@ -8,5 +8,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <!-- Cold-start window and Android 12+ splash; matches the web splash. -->
-    <color name="splash_background">#FFF5EFE6</color>
+    <color name="splash_background">#FFF9F9F8</color>
 </resources>

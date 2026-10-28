@@ -86,7 +86,7 @@ pub fn run() {
 
             #[cfg(desktop)]
             let win_builder = win_builder
-                // .background_color(Color::from_str("#f5efe6").unwrap())
+                .background_color("#f9f9f8".parse::<Color>().unwrap())
                 .title("Typbase")
                 .on_document_title_changed(|window, title| {
                     if !title.is_empty() {
