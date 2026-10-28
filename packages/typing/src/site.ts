@@ -64,6 +64,11 @@ export interface SiteWispSettings {
   /** Account that owns the records. Only that account may deploy. */
   publisherDid: string | null;
   lastDeploy: SiteDeployState | null;
+  /**
+   * SHA-256 per published file path. Synced with the workspace so another
+   * device can reuse Wisp blobs instead of uploading every file again.
+   */
+  fileHashes?: Record<string, string>;
 }
 
 export interface SiteStandardSettings {

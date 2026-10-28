@@ -21,6 +21,7 @@ const CONFIGURED: SiteSettings = {
     domainError: "stale",
     domainDns: { txtName: "txt", txtValue: "value", cnameTarget: "target" },
     publisherDid: "did:plc:old",
+    fileHashes: { "index.html": "hash" },
     lastDeploy: {
       url: "https://notes.example",
       wispUri: "at://did:plc:old/place.wisp.fs/old-key",
@@ -61,6 +62,7 @@ describe("forking a site to another account", () => {
       domainDns: null,
       publisherDid: null,
       lastDeploy: null,
+      fileHashes: {},
     });
     expect(next.standard).toEqual({
       enabled: false,

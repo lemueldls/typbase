@@ -203,7 +203,9 @@ export async function publishSite(
 
   progress({ stage: "upload", message: "Uploading files" });
   const previousHashes =
-    (await options.local?.get<Record<string, string>>(hashKey(did, key))) ?? {};
+    (await options.local?.get<Record<string, string>>(hashKey(did, key))) ??
+    nextSite.wisp.fileHashes ??
+    {};
   const published = await publishWispSite(repo, {
     siteRkey: key,
     files: finalBuild.files.map((file) => ({
@@ -268,6 +270,7 @@ export async function publishSite(
       siteRkey: key,
       publisherDid: did,
       lastDeploy: deploy,
+      fileHashes: published.hashes,
     },
     standard: standard
       ? {
@@ -327,7 +330,7 @@ export async function unpublishSite(
   store.updateSettings({
     site: {
       ...site,
-      wisp: { ...site.wisp, siteRkey: key, lastDeploy: null },
+      wisp: { ...site.wisp, siteRkey: key, lastDeploy: null, fileHashes: {} },
       standard: {
         ...site.standard,
         publicationRkey: null,

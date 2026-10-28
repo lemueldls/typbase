@@ -19,6 +19,7 @@ export function forkSiteSettings(site: SiteSettings, siteRkey: string): SiteSett
       domainDns: null,
       publisherDid: null,
       lastDeploy: null,
+      fileHashes: {},
     },
     standard: {
       ...site.standard,

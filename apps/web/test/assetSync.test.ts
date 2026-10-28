@@ -2,7 +2,7 @@ import type { AssetRecord, AssetRemote, AssetSyncHost } from "@typbase/spaces";
 
 import { AssetSync } from "@typbase/spaces";
 import { hashBytes, sniffMime } from "@typbase/storage";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 class MemoryRemote implements AssetRemote {
   readonly records = new Map<string, AssetRecord>();
@@ -139,9 +139,7 @@ describe("asset sync", () => {
 
     const bytes = encoder.encode("a new image");
     const { hash } = await host.putBlob(bytes);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(remote.records.has(hash)).toBe(true);
+    await vi.waitFor(() => expect(remote.records.has(hash)).toBe(true));
     sync.stop();
   });
 

@@ -335,6 +335,20 @@ export async function publishWispSite(
     encoding?: string;
     base64?: boolean;
   }> = [];
+  const byHash = new Map<
+    string,
+    { blob: Record<string, unknown>; encoding?: string; base64?: boolean }
+  >();
+  for (const [path, hash] of Object.entries(options.fileHashes ?? {})) {
+    const previous = existing.files.get(path);
+    if (previous) {
+      byHash.set(hash, {
+        blob: previous.blob,
+        encoding: previous.encoding,
+        base64: previous.base64,
+      });
+    }
+  }
   let reused = 0;
   let uploadedCount = 0;
   let done = 0;
@@ -344,11 +358,38 @@ export async function publishWispSite(
     hashes[file.name] = hash;
     const previous = existing.files.get(file.name);
     if (previous && options.fileHashes?.[file.name] === hash) {
+      byHash.set(hash, {
+        blob: previous.blob,
+        encoding: previous.encoding,
+        base64: previous.base64,
+      });
       uploaded.push({
         file,
         blob: previous.blob,
         encoding: previous.encoding,
         base64: previous.base64,
+      });
+      reused++;
+      done++;
+      options.onProgress?.({
+        stage: "upload",
+        done,
+        total: options.files.length,
+        uploaded: uploadedCount,
+        reused,
+      });
+      continue;
+    }
+
+    // Different paths can carry identical bytes. Wisp blob refs are content
+    // addressed, so one upload serves every path with that hash.
+    const duplicate = byHash.get(hash);
+    if (duplicate) {
+      uploaded.push({
+        file,
+        blob: duplicate.blob,
+        encoding: duplicate.encoding,
+        base64: duplicate.base64,
       });
       reused++;
       done++;
@@ -371,6 +412,7 @@ export async function publishWispSite(
       current: file.name,
     });
     const blob = await repo.uploadBlob(file.bytes);
+    byHash.set(hash, { blob });
     uploaded.push({ file, blob });
     uploadedCount++;
     done++;

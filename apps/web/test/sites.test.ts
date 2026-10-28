@@ -175,6 +175,18 @@ describe("Wisp publisher", () => {
     expect(second.uploaded).toBe(0);
     expect(repo.uploads).toBe(before);
   });
+
+  it("uploads identical bytes once for different paths", async () => {
+    const repo = new FakeRepo();
+    const result = await publishWispSite(repo, {
+      siteRkey: "duplicates",
+      files: [file("a/page.html", "same bytes"), file("b/page.html", "same bytes")],
+    });
+
+    expect(result.uploaded).toBe(1);
+    expect(result.reused).toBe(1);
+    expect(repo.uploads).toBe(1);
+  });
 });
 
 describe("public repo record reads", () => {
