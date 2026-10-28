@@ -28,7 +28,7 @@
     "switchingTo": "Switching to {name}…",
     "storage": "Opening local storage",
     "workspace": "Loading workspace documents",
-    "atproto": "Checking Atmosphere session",
+    "atproto": "Checking account session",
     "inBackground": "in background",
     "pageCount": "one page | {count} pages",
     "retry": "Retry",

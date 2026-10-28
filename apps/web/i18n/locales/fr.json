@@ -28,7 +28,7 @@
     "switchingTo": "Bascule vers {name}…",
     "storage": "Ouverture du stockage local",
     "workspace": "Chargement des documents",
-    "atproto": "Vérification de la session Atmosphere",
+    "atproto": "Vérification de la session du compte",
     "inBackground": "en arrière-plan",
     "pageCount": "une page | {count} pages",
     "retry": "Réessayer",

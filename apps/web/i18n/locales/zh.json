@@ -28,7 +28,7 @@
     "switchingTo": "正在切换到 {name}…",
     "storage": "正在打开本地存储",
     "workspace": "正在加载工作区文档",
-    "atproto": "正在检查 Atmosphere 会话",
+    "atproto": "正在检查账户会话",
     "inBackground": "后台进行",
     "pageCount": "{count} 个页面 | {count} 个页面",
     "retry": "重试",
