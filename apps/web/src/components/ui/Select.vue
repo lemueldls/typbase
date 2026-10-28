@@ -38,7 +38,7 @@ useBackLayer(open);
       :class="{ 'ui-select__trigger--small': size === 'small' }"
       :aria-label="label"
     >
-      <SelectValue :placeholder="placeholder" />
+      <SelectValue class="ui-select__value" :placeholder="placeholder" />
       <SelectIcon class="ui-select__icon">
         <MsIcon name="keyboard_arrow_down" :size="20" />
       </SelectIcon>
@@ -147,6 +147,12 @@ useBackLayer(open);
   height: var(--control-sm);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1-5);
   font-size: var(--text-sm);
+}
+
+.ui-select__value {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .ui-select__icon {

@@ -11,7 +11,7 @@ import type { ExternalLinkOpener } from "./frames";
 import type { NotebookCell, NotebookOptions } from "./notebook";
 import type { TextRef, TypstRequestHandler } from "./types";
 
-import { rememberDiagnostics, toLintDiagnostics } from "./diagnostics";
+import { mergeTypstDiagnostics, rememberDiagnostics } from "./diagnostics";
 import { frameActiveDecorations, frameIsInactive, installSharedDefs, TypstWidget } from "./frames";
 import { cellIndexAt, notebookRefreshEffect } from "./notebook";
 import { decorateNotebook } from "./notebook-widgets";
@@ -570,5 +570,5 @@ function dispatchDiagnostics(
   state: EditorState,
   view: EditorView,
 ) {
-  view.dispatch(setDiagnostics(state, toLintDiagnostics(typstDiagnostics)));
+  view.dispatch(setDiagnostics(state, mergeTypstDiagnostics(state, typstDiagnostics)));
 }

@@ -1,7 +1,8 @@
 import type { Diagnostic } from "@codemirror/lint";
+import type { EditorState } from "@codemirror/state";
 import type { FileId, TypstDiagnostic, TypstState } from "@typbase/engine";
 
-import { linter } from "@codemirror/lint";
+import { forEachDiagnostic, linter } from "@codemirror/lint";
 import { LRUCache } from "lru-cache";
 
 import type { TextRef, TypstRequestHandler } from "./types";
@@ -16,6 +17,8 @@ import { parseBackticks } from "./highlight";
 const diagnosticsCache = new LRUCache<string, { text: string; diagnostics: TypstDiagnostic[] }>({
   max: 2,
 });
+
+export const TYPST_LINT_MARK = "cm-typst-lint";
 
 export function rememberDiagnostics(
   path: string,
@@ -38,6 +41,7 @@ export function toLintDiagnostics(typstDiagnostics: TypstDiagnostic[]): Diagnost
     to: diagnostic.range.end,
     severity: diagnostic.severity,
     message: diagnostic.message,
+    markClass: TYPST_LINT_MARK,
     renderMessage() {
       const fragment = document.createDocumentFragment();
       const paragraph = document.createElement("p");
@@ -60,6 +64,18 @@ export function toLintDiagnostics(typstDiagnostics: TypstDiagnostic[]): Diagnost
       return fragment;
     },
   }));
+}
+
+export function mergeTypstDiagnostics(
+  state: EditorState,
+  typstDiagnostics: TypstDiagnostic[],
+): Diagnostic[] {
+  const foreign: Diagnostic[] = [];
+  forEachDiagnostic(state, (diagnostic, from, to) => {
+    if (diagnostic.markClass !== TYPST_LINT_MARK) foreign.push({ ...diagnostic, from, to });
+  });
+
+  return [...foreign, ...toLintDiagnostics(typstDiagnostics)];
 }
 
 export interface TypstLinterOptions {
