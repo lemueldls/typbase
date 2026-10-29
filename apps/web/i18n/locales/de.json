@@ -223,7 +223,7 @@
     "uiSizeLarge": "Groß",
     "uiSizeHint": "Skaliert Text, Schaltflächen und Symbole.",
     "appBar": "App-Leiste",
-    "appBarHint": "Der Streifen über den Seiten mit Navigation, Suche und Synchronisierung.",
+    "appBarHint": "Fügt Navigation, Suche und Synchronisierung über den Seiten hinzu.",
     "uiDensity": "Dichte",
     "uiDensityCompact": "Kompakt",
     "uiDensityDefault": "Standard",
@@ -324,7 +324,7 @@
     "syncPlaintext": "Eintragsdaten sind für jedes Mitglied des Spaces Klartext.",
     "syncRelayOff": "Live-Relay offline; Änderungen synchronisieren weiterhin über die PDS.",
     "syncRequiresServer": "Synchronisierung benötigt den App-Server (OAuth-Client-Metadaten). Ein statischer Build hält diesen Arbeitsbereich vollständig lokal.",
-    "systemFontsHint": "Findet installierte Schriften für die Auswahl oder kopiert sie in diesen Arbeitsbereich.",
+    "systemFontsHint": "Installierte Schriften finden oder in diesen Arbeitsbereich kopieren.",
     "typography": "Typografie",
     "ligatures": "Ligaturen",
     "ligaturesHint": "Verbindet Buchstaben wie fi und fl.",
@@ -367,7 +367,7 @@
     "providerKind": "Art",
     "providerName": "Name",
     "publishDefaults": "Standardwerte für öffentliche Beiträge",
-    "publishDefaultsHint": "Werden verwendet, wenn eine Seite im Atmosphere-Netzwerk veröffentlicht wird. Die Website-Veröffentlichung hat ein eigenes Website-Dashboard.",
+    "publishDefaultsHint": "Standardwerte für Seitenbeiträge. Die Website-Veröffentlichung hat ein eigenes Dashboard.",
     "removeProvider": "Entfernen",
     "viewProfile": "Öffentliches Profil ansehen",
     "syncSpace": "Synchronisierungs-Space",
@@ -632,7 +632,7 @@
     "separate": "Jede Seite einzeln schreiben",
     "combined": "Ausgewählte Seiten zu einem Dokument zusammenfassen",
     "empty": "Keine Seiten gefunden.",
-    "hint": "PDF und SVG dauern bei vielen Seiten. Kombinierte Tagesnotizen ergeben ein chronologisches Archiv."
+    "hint": "PDF und SVG können langsam sein. Kombinierte Tagesnotizen ergeben ein chronologisches Archiv."
   },
   "storage": {
     "setupTitle": "Speicherort wählen",

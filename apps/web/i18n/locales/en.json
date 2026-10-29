@@ -223,7 +223,7 @@
     "uiSizeLarge": "Large",
     "uiSizeHint": "Scales text, buttons, and icons.",
     "appBar": "App bar",
-    "appBarHint": "The strip above the pages with navigation, search, and sync.",
+    "appBarHint": "Adds navigation, search, and sync above the pages.",
     "uiDensity": "Density",
     "uiDensityCompact": "Compact",
     "uiDensityDefault": "Default",
@@ -324,7 +324,7 @@
     "syncPlaintext": "Record data is plaintext to every member of the space.",
     "syncRelayOff": "Live relay offline; edits still sync through the PDS.",
     "syncRequiresServer": "Sync requires the app server (OAuth client metadata). Running a static build keeps this workspace fully local.",
-    "systemFontsHint": "Find installed fonts for the pickers, or copy them into this workspace.",
+    "systemFontsHint": "Find installed fonts, or copy them into this workspace.",
     "typography": "Typography",
     "ligatures": "Ligatures",
     "ligaturesHint": "Join letters like fi and fl.",
@@ -368,7 +368,7 @@
     "aiTools": "Let the model search and read notes",
     "aiRepairAttempts": "Repair attempts",
     "publishDefaults": "Public post defaults",
-    "publishDefaultsHint": "Used when a page is published to the Atmosphere. Site publishing has its own Website dashboard.",
+    "publishDefaultsHint": "Defaults for page posts. Site publishing has a separate dashboard.",
     "viewProfile": "View public profile",
     "syncSpace": "Sync space",
     "syncSpaceHint": "A workspace starts on the device where you create it. To use another device, open the same space there.",
@@ -655,7 +655,7 @@
     "separate": "Write each page separately",
     "combined": "Combine selected pages into one document",
     "empty": "No pages match.",
-    "hint": "PDF and SVG take a while for many pages. Daily notes combined make a chronological archive."
+    "hint": "PDF and SVG can be slow. Combined daily notes form a chronological archive."
   },
   "storage": {
     "setupTitle": "Choose storage location",

@@ -223,7 +223,7 @@
     "uiSizeLarge": "Grande",
     "uiSizeHint": "Met à l'échelle texte, boutons et icônes.",
     "appBar": "Barre de l'application",
-    "appBarHint": "La bandeau au-dessus des pages, avec navigation, recherche et synchronisation.",
+    "appBarHint": "Ajoute navigation, recherche et synchronisation au-dessus des pages.",
     "uiDensity": "Densité",
     "uiDensityCompact": "Compacte",
     "uiDensityDefault": "Par défaut",
@@ -324,7 +324,7 @@
     "syncPlaintext": "Les données d'enregistrement sont en clair pour chaque membre de l'espace.",
     "syncRelayOff": "Relais en direct hors ligne ; les modifications se synchronisent toujours via la PDS.",
     "syncRequiresServer": "La synchronisation nécessite le serveur de l'application (métadonnées OAuth). Un build statique garde cet espace entièrement local.",
-    "systemFontsHint": "Trouve les polices installées pour les sélecteurs ou les copie dans cet espace.",
+    "systemFontsHint": "Trouve les polices installées ou copie-les dans cet espace.",
     "typography": "Typographie",
     "ligatures": "Ligatures",
     "ligaturesHint": "Joint les lettres comme fi et fl.",
@@ -367,7 +367,7 @@
     "providerKind": "Type",
     "providerName": "Nom",
     "publishDefaults": "Valeurs par défaut des publications publiques",
-    "publishDefaultsHint": "Utilisées lorsqu'une page est publiée sur Atmosphere. La publication du site dispose de son propre tableau de bord Site web.",
+    "publishDefaultsHint": "Valeurs par défaut des publications. La publication du site a son propre tableau de bord.",
     "removeProvider": "Supprimer",
     "viewProfile": "Voir le profil public",
     "syncSpace": "Espace de synchronisation",
@@ -632,7 +632,7 @@
     "separate": "Écrire chaque page séparément",
     "combined": "Fusionner les pages sélectionnées en un document",
     "empty": "Aucune page ne correspond.",
-    "hint": "PDF et SVG ralentissent avec beaucoup de pages. Les notes quotidiennes combinées forment une archive chronologique."
+    "hint": "PDF et SVG peuvent être lents. Les notes quotidiennes combinées forment une archive chronologique."
   },
   "storage": {
     "setupTitle": "Choisir l'emplacement de stockage",

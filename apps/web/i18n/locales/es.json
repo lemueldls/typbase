@@ -223,7 +223,7 @@
     "uiSizeLarge": "Grande",
     "uiSizeHint": "Escala texto, botones e iconos.",
     "appBar": "Barra de la aplicación",
-    "appBarHint": "La franja sobre las páginas con navegación, búsqueda y sincronización.",
+    "appBarHint": "Añade navegación, búsqueda y sincronización sobre las páginas.",
     "uiDensity": "Densidad",
     "uiDensityCompact": "Compacta",
     "uiDensityDefault": "Predeterminada",
@@ -324,7 +324,7 @@
     "syncPlaintext": "Los datos de registros son texto plano para cada miembro del espacio.",
     "syncRelayOff": "Relé en vivo sin conexión; las ediciones siguen sincronizándose vía PDS.",
     "syncRequiresServer": "La sincronización requiere el servidor de la app (metadatos OAuth). Una compilación estática mantiene este espacio totalmente local.",
-    "systemFontsHint": "Busca fuentes instaladas para los selectores o cópialas a este espacio.",
+    "systemFontsHint": "Busca fuentes instaladas o cópialas a este espacio.",
     "typography": "Tipografía",
     "ligatures": "Ligaduras",
     "ligaturesHint": "Une letras como fi y fl.",
@@ -367,7 +367,7 @@
     "providerKind": "Tipo",
     "providerName": "Nombre",
     "publishDefaults": "Valores predeterminados de publicaciones públicas",
-    "publishDefaultsHint": "Se usan al publicar una página en Atmosphere. La publicación del sitio tiene su propio panel de Sitio web.",
+    "publishDefaultsHint": "Valores predeterminados para publicaciones. La publicación del sitio tiene un panel aparte.",
     "removeProvider": "Eliminar",
     "viewProfile": "Ver perfil público",
     "syncSpace": "Espacio de sincronización",
@@ -632,7 +632,7 @@
     "separate": "Guardar cada página por separado",
     "combined": "Combinar las páginas seleccionadas en un documento",
     "empty": "No hay páginas que coincidan.",
-    "hint": "PDF y SVG tardan con muchas páginas. Las notas diarias combinadas forman un archivo cronológico."
+    "hint": "PDF y SVG pueden tardar. Las notas diarias combinadas forman un archivo cronológico."
   },
   "storage": {
     "setupTitle": "Elegir ubicación de almacenamiento",

@@ -223,7 +223,7 @@
     "uiSizeLarge": "大",
     "uiSizeHint": "缩放文字、按钮和图标。",
     "appBar": "应用栏",
-    "appBarHint": "页面顶部的导航、搜索与同步栏。",
+    "appBarHint": "在页面上方添加导航、搜索和同步。",
     "uiDensity": "密度",
     "uiDensityCompact": "紧凑",
     "uiDensityDefault": "默认",
@@ -324,7 +324,7 @@
     "syncPlaintext": "记录数据对空间每位成员均为明文。",
     "syncRelayOff": "实时中继离线；编辑仍会通过 PDS 同步。",
     "syncRequiresServer": "同步需要应用服务器（OAuth 客户端元数据）。静态构建可让此工作区完全本地运行。",
-    "systemFontsHint": "查找选择器可用的已安装字体，或将它们复制到此工作区。",
+    "systemFontsHint": "查找已安装字体，或复制到此工作区。",
     "typography": "排版",
     "ligatures": "连字",
     "ligaturesHint": "合并 fi、fl 等字母组合。",
@@ -367,7 +367,7 @@
     "providerKind": "类型",
     "providerName": "名称",
     "publishDefaults": "公开帖子默认值",
-    "publishDefaultsHint": "在将页面发布到 Atmosphere 时使用。站点发布有自己的网站面板。",
+    "publishDefaultsHint": "页面发布默认值。站点发布有独立面板。",
     "removeProvider": "移除",
     "viewProfile": "查看公开个人资料",
     "syncSpace": "同步空间",
@@ -632,7 +632,7 @@
     "separate": "每页单独导出",
     "combined": "将所选页面合并为一个文档",
     "empty": "没有匹配的页面。",
-    "hint": "页面多时 PDF 和 SVG 较慢；合并日记可生成按时间排序的合集。"
+    "hint": "PDF 和 SVG 可能较慢。合并日记会形成按时间排序的合集。"
   },
   "storage": {
     "setupTitle": "选择存储位置",

@@ -1599,13 +1599,13 @@ async function renameWorkspace(event: Event) {
                         systemFontsLoading ? $t("settings.loading") : $t("settings.addSystemFonts")
                       }}
                     </UiButton>
-                    <p v-if="systemFontsLoaded" class="settings__ok">
+                    <!-- <p v-if="systemFontsLoaded" class="settings__ok">
                       {{
                         $t("settings.systemFontsLoaded", {
                           count: systemFontFamilies.length,
                         })
                       }}
-                    </p>
+                    </p> -->
                   </template>
 
                   <p v-if="systemFontsError" class="settings__error">
