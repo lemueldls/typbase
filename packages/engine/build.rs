@@ -21,7 +21,10 @@ fn main() {
         println!("cargo:rustc-link-arg=--no-entry");
         println!("cargo:rustc-link-arg=--gc-sections");
         println!("cargo:rustc-link-arg=--strip-all");
-        println!("cargo:rustc-link-arg=-zstack-size=2147000000"); // 2 GiB
+    }
+
+    if is_wasm {
+        println!("cargo:rustc-link-arg=-zstack-size=67108864"); // 64 MiB
     }
 
     // Web-specific features
