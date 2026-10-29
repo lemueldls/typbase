@@ -73,12 +73,15 @@ class CursorFlagWidget extends WidgetType {
   }
 
   toDOM() {
-    const span = document.createElement("span");
-    span.className = "typbase-remote-cursor-flag";
-    span.style.setProperty("--cursor-color", this.color);
-    span.textContent = this.name;
+    const anchor = document.createElement("span");
+    anchor.className = "typbase-remote-cursor-anchor";
+    const flag = document.createElement("span");
+    flag.className = "typbase-remote-cursor-flag";
+    flag.style.setProperty("--cursor-color", this.color);
+    flag.textContent = this.name;
+    anchor.append(flag);
 
-    return span;
+    return anchor;
   }
 
   override ignoreEvent() {

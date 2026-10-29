@@ -982,9 +982,21 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
   border-bottom: 2px solid var(--cursor-color);
 }
 
+.typbase-remote-cursor-anchor {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 1em;
+  height: 1lh;
+  vertical-align: baseline;
+  pointer-events: none;
+}
+
 .typbase-remote-cursor-flag {
   position: absolute;
-  transform: translate(-2px, -100%);
+  left: 0;
+  bottom: 100%;
+  transform: translateX(-2px);
   padding: 0 var(--space-1);
   font-size: var(--text-2xs);
   font-family: var(--font-mono);
