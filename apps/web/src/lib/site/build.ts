@@ -11,7 +11,10 @@ import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
 
 import { isSiteEmbedAllowed } from "./embeds";
 import { buildSiteNavigation, type SiteNavigationGroup } from "./navigation";
+import { renderSiteSocialImage, type SiteSocialFont } from "./ogImage";
 import { siteRkey, siteSlug } from "./slug";
+import { socialImageAlt, socialImagePath } from "./social";
+import { absoluteUrl } from "./urls";
 
 export { siteRkey, siteSlug } from "./slug";
 export type { SiteNavigationPage } from "./navigation";
@@ -50,6 +53,9 @@ export interface SiteBuildPage {
   source: string;
   html: string;
   text: string;
+  /** Absolute social image URL when the build generated one. */
+  ogImage?: string;
+  ogImageAlt?: string;
 }
 
 export interface SiteBuildFile {
@@ -80,6 +86,8 @@ export interface SiteBuild {
   warnings: string[];
   totalBytes: number;
   hash: string;
+  /** Site-level social image URL, when generated. */
+  ogImage?: string;
   standard: {
     publication: {
       url: string;
@@ -102,6 +110,8 @@ export interface SiteBuildOptions {
   inline?: boolean;
   /** Called after each page render for the publish progress UI. */
   onProgress?: (done: number, total: number) => void;
+  /** Generate one card per page, one shared site card, or none. */
+  socialImages?: "page" | "site" | "off";
 }
 
 const RESERVED_PATHS = new Set([
@@ -162,6 +172,100 @@ export async function buildSite(
   const slug = siteSlug(site.slug || name || "site");
   setPublishRequestStore(store);
   const palette = publishThemePalette(settings, { theme: site.theme });
+  const fontBundle = await collectFonts(store);
+  const socialFont = socialFontFor(fontBundle, settings.font);
+  const socialMode = options.socialImages ?? "page";
+  let socialIconFont: SiteSocialFont | undefined;
+  if (baseUrl && socialMode !== "off") {
+    try {
+      socialIconFont = {
+        name: "Material Symbols Rounded",
+        data: await materialSymbolsBytes(),
+        weight: 400,
+      };
+    } catch {
+      // The app icon remains the fallback when the icon font is unavailable.
+    }
+  }
+  const socialFonts = socialIconFont ? [...socialFont.faces, socialIconFont] : socialFont.faces;
+  const socialIconGlyph = socialIconFont
+    ? (settings.icon || "folder").replaceAll("-", "_")
+    : undefined;
+  const socialFiles = new Map<string, Uint8Array>();
+  let socialHost = "typbase.at";
+  if (baseUrl) {
+    try {
+      socialHost = new URL(baseUrl).host;
+    } catch {
+      // Keep the product host for a malformed configured base URL.
+    }
+  }
+
+  let siteOgUrl = "";
+  let siteOgAlt = "";
+  if (baseUrl && socialMode !== "off") {
+    let bytes: Uint8Array | null = null;
+    try {
+      bytes = await renderSiteSocialImage({
+        title: name,
+        description: site.description,
+        siteName: name,
+        palette,
+        host: socialHost,
+        iconGlyph: socialIconGlyph,
+        fontFamily: socialFont.family,
+        fonts: socialFonts,
+      });
+    } catch {
+      // Social cards are optional. Keep the metadata without an image.
+    }
+    if (bytes) {
+      const path = socialImagePath("site", name, site.description, name, palette);
+      socialFiles.set(path, bytes);
+      siteOgUrl = absoluteUrl(baseUrl, `/${path}`);
+      siteOgAlt = socialImageAlt(name, name);
+    }
+  }
+
+  const pageSocial = async (
+    pageId: string,
+    title: string,
+    description: string,
+  ): Promise<{ url?: string; alt?: string }> => {
+    if (!baseUrl || socialMode === "off") return {};
+    if (socialMode === "site") {
+      return siteOgUrl ? { url: siteOgUrl, alt: siteOgAlt } : {};
+    }
+
+    const imageDescription = description;
+    let bytes: Uint8Array | null = null;
+    try {
+      bytes = await renderSiteSocialImage({
+        title,
+        description: imageDescription,
+        siteName: name,
+        palette,
+        host: socialHost,
+        iconGlyph: socialIconGlyph,
+        fontFamily: socialFont.family,
+        fonts: socialFonts,
+      });
+    } catch {
+      // Fall back to the site card when this page cannot be drawn.
+    }
+    if (!bytes) {
+      return siteOgUrl ? { url: siteOgUrl, alt: siteOgAlt } : {};
+    }
+
+    const path = socialImagePath(pageId, title, imageDescription, name, palette);
+    socialFiles.set(path, bytes);
+
+    return {
+      url: absoluteUrl(baseUrl, `/${path}`),
+      alt: socialImageAlt(title, name),
+    };
+  };
+
   const allPages = store.listPages();
   const categories = store.listCategories();
   const included: Array<{
@@ -235,8 +339,9 @@ export async function buildSite(
     const links = rewriteLinks(body, pageUrls, root, warnings);
     const withAssets = await extractImages(links, root, imageFiles);
     const title = pageTitle(config, page);
-    const description = pageDescription(config, page, source, text);
+    const description = pageDescription(config);
     const tags = config.tags ?? page.tags;
+    const social = await pageSocial(page.id, title, description);
     const html = await renderShell({
       site,
       settings,
@@ -251,7 +356,11 @@ export async function buildSite(
       headCss,
       navigation: siteNavigation(included, site, pageUrls, categories),
       currentPageId: page.id,
+      createdAt: page.createdAt,
       updatedAt: page.updatedAt,
+      ogImage: social.url,
+      ogImageAlt: social.alt,
+      ogType: "article",
       noindex: visibility === "unlisted",
       standalone: options.inline,
     });
@@ -272,6 +381,8 @@ export async function buildSite(
       source,
       html,
       text,
+      ogImage: social.url,
+      ogImageAlt: social.alt,
     });
     linksByPage.set(page.id, pageLinks);
     renderedPages++;
@@ -280,6 +391,9 @@ export async function buildSite(
 
   const navigation = siteNavigation(included, site, pageUrls, categories);
   const files: SiteBuildFile[] = [];
+  for (const [path, bytes] of socialFiles) {
+    files.push({ name: path, bytes, mimeType: "image/png" });
+  }
   for (const page of pages) {
     files.push({
       name: page.file,
@@ -297,6 +411,8 @@ export async function buildSite(
       baseUrl,
       navigation,
       pages,
+      ogImage: siteOgUrl || undefined,
+      ogImageAlt: siteOgAlt || undefined,
       standalone: options.inline,
     });
     files.push({
@@ -330,16 +446,11 @@ export async function buildSite(
     });
   }
 
-  const fonts = await collectFonts(store);
-  files.push(...fonts.files, ...imageFiles.values());
+  files.push(...fontBundle.files, ...imageFiles.values());
   if (site.showIcons) {
-    const iconFont = await fetch(iconFontUrl);
-    if (!iconFont.ok) {
-      throw new Error(`Could not load the Material Symbols font (${iconFont.status}).`);
-    }
     files.push({
       name: "fonts/MaterialSymbolsRounded.woff2",
-      bytes: new Uint8Array(await iconFont.arrayBuffer()),
+      bytes: await materialSymbolsBytes(),
       mimeType: siteMime("fonts/MaterialSymbolsRounded.woff2"),
     });
   }
@@ -347,7 +458,7 @@ export async function buildSite(
     site,
     settings,
     palette,
-    fonts: fonts.faces,
+    fonts: fontBundle.faces,
     inline: options.inline,
   });
   files.push({
@@ -428,6 +539,7 @@ export async function buildSite(
     navigation,
     warnings,
     totalBytes,
+    ogImage: siteOgUrl || undefined,
     hash: buildHash(unique, pages),
     standard: {
       publication: {
@@ -589,26 +701,8 @@ function pageTitle(config: SitePageSettings, page: PageMeta): string {
   return config.title?.trim() || page.title;
 }
 
-function pageDescription(
-  config: SitePageSettings,
-  page: PageMeta,
-  source: string,
-  text: string,
-): string {
-  if (config.description?.trim()) return config.description.trim();
-  const paragraph = source
-    .split("\n")
-    .map((line) => line.trim())
-    .find(
-      (line) => line && !line.startsWith("=") && !line.startsWith("#") && !line.startsWith("//"),
-    );
-  const clean = (paragraph || text)
-    .replace(/[*_`$#]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!clean || clean === page.title) return "";
-
-  return clean.length > 280 ? `${clean.slice(0, 277)}...` : clean;
+function pageDescription(config: SitePageSettings): string {
+  return config.description?.trim() ?? "";
 }
 
 function preflightSource(
@@ -774,6 +868,22 @@ function extensionFor(mime: string): string {
   return known?.[0] ?? "bin";
 }
 
+let materialSymbolsPromise: Promise<Uint8Array> | undefined;
+
+async function materialSymbolsBytes(): Promise<Uint8Array> {
+  if (!materialSymbolsPromise) {
+    materialSymbolsPromise = fetch(iconFontUrl).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Could not load the Material Symbols font (${response.status}).`);
+      }
+
+      return new Uint8Array(await response.arrayBuffer());
+    });
+  }
+
+  return materialSymbolsPromise;
+}
+
 async function collectFonts(store: WorkspaceStore): Promise<{
   files: SiteBuildFile[];
   faces: SiteFontFace[];
@@ -809,6 +919,36 @@ async function collectFonts(store: WorkspaceStore): Promise<{
   }
 
   return { files, faces };
+}
+
+function socialFontFor(
+  bundle: { files: SiteBuildFile[]; faces: SiteFontFace[] },
+  family: string,
+): { family: string; faces: SiteSocialFont[] } {
+  const byName = new Map(bundle.files.map((file) => [file.name, file.bytes]));
+  const faces: SiteSocialFont[] = [];
+
+  for (const face of bundle.faces) {
+    if (face.family !== family) continue;
+    const data = byName.get(face.file);
+    if (data) {
+      faces.push({ name: face.family, data, weight: face.weight, style: face.style });
+    }
+  }
+
+  if (faces.length) return { family, faces };
+
+  // A custom family can be configured before its file reaches this device.
+  // Maple Mono is already part of the site bundle, so keep the card readable.
+  for (const face of bundle.faces) {
+    if (face.family !== "Maple Mono") continue;
+    const data = byName.get(face.file);
+    if (data) {
+      faces.push({ name: face.family, data, weight: face.weight, style: face.style });
+    }
+  }
+
+  return { family: "Maple Mono", faces };
 }
 
 function faceForCustom(

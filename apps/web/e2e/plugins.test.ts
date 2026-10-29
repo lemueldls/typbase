@@ -939,6 +939,17 @@ describe("plugin system", async () => {
     const sitePage = site.files.find((file) => file.name === "diagram-export/index.html");
     expect(sitePage?.text).toContain("<svg");
     expect(sitePage?.text).toContain("Node 1");
+    expect(sitePage?.text).toContain(
+      'property="og:image" content="https://example.test/assets/og/',
+    );
+    expect(sitePage?.text).toContain('property="og:site_name" content="My workspace"');
+    expect(sitePage?.text).toContain('name="twitter:card" content="summary_large_image"');
+    // A page without an explicit description must not publish its opening
+    // source paragraph as meta description.
+    expect(sitePage?.text).not.toContain('name="description"');
+    expect(
+      site.files.some((file) => file.name.startsWith("assets/og/") && file.name.endsWith(".png")),
+    ).toBe(true);
 
     // The phone layout keeps the canvas usable by scrolling it sideways and
     // stacks the two inspectors into one column.

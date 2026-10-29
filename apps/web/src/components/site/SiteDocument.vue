@@ -4,6 +4,7 @@ import type { SiteSettings } from "@typbase/typing";
 import type { SiteBuildNavigationGroup } from "~/lib/site/build";
 
 import { PROJECT_URL } from "~/lib/projectLinks";
+import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, ogLocale } from "~/lib/site/social";
 import { absoluteUrl, relativeUrl } from "~/lib/site/urls";
 
 export interface SiteTocEntry {
@@ -27,7 +28,11 @@ const props = defineProps<{
   toc: SiteTocEntry[];
   currentPageId: string;
   workspaceIcon: string;
+  createdAt?: number;
   updatedAt?: number;
+  ogImage?: string;
+  ogImageAlt?: string;
+  ogType?: "article" | "website";
   noindex?: boolean;
 }>();
 
@@ -58,6 +63,14 @@ const topPages = computed(() =>
 const updated = computed(() =>
   props.updatedAt ? new Date(props.updatedAt).toISOString().slice(0, 10) : "",
 );
+const publishedIso = computed(() =>
+  props.createdAt ? new Date(props.createdAt).toISOString() : "",
+);
+const updatedIso = computed(() => (props.updatedAt ? new Date(props.updatedAt).toISOString() : ""));
+const imageAlt = computed(() => props.ogImageAlt || `${props.title} · ${props.name}`);
+const imageWidth = String(OG_IMAGE_WIDTH);
+const imageHeight = String(OG_IMAGE_HEIGHT);
+const locale = computed(() => ogLocale(props.lang));
 </script>
 
 <template>
@@ -69,10 +82,24 @@ const updated = computed(() =>
       <title>{{ documentTitle }}</title>
       <meta v-if="description" name="description" :content="description" />
       <link v-if="canonical" rel="canonical" :href="canonical" />
-      <meta property="og:type" content="article" />
+      <meta property="og:type" :content="ogType || 'article'" />
       <meta property="og:title" :content="title" />
       <meta v-if="description" property="og:description" :content="description" />
       <meta v-if="canonical" property="og:url" :content="canonical" />
+      <meta property="og:site_name" :content="name" />
+      <meta property="og:locale" :content="locale" />
+      <meta v-if="ogImage" property="og:image" :content="ogImage" />
+      <meta v-if="ogImage" property="og:image:type" content="image/png" />
+      <meta v-if="ogImage" property="og:image:width" :content="imageWidth" />
+      <meta v-if="ogImage" property="og:image:height" :content="imageHeight" />
+      <meta v-if="ogImage" property="og:image:alt" :content="imageAlt" />
+      <meta v-if="publishedIso" property="article:published_time" :content="publishedIso" />
+      <meta v-if="updatedIso" property="article:modified_time" :content="updatedIso" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" :content="title" />
+      <meta v-if="description" name="twitter:description" :content="description" />
+      <meta v-if="ogImage" name="twitter:image" :content="ogImage" />
+      <meta v-if="ogImage" name="twitter:image:alt" :content="imageAlt" />
       <meta name="generator" content="Typbase" />
       <link rel="stylesheet" :href="`${root}assets/site.css`" />
       <link

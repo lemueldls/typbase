@@ -9,6 +9,8 @@ import { minifySync } from "rolldown/utils";
 
 const defaultLocale = "en";
 const appDescription = "Local-first knowledge base made for Typst and the Atmosphere.";
+const appUrl = (process.env.NUXT_PUBLIC_APP_URL || "https://typbase.at").replace(/\/+$/, "");
+const appImageUrl = `${appUrl}/og-image.png`;
 const siteCssFile = fileURLToPath(new URL("./src/lib/site/templates/site.css", import.meta.url));
 const siteRuntimeDir = fileURLToPath(new URL("./src/lib/site/templates/runtime", import.meta.url));
 
@@ -119,8 +121,21 @@ export default defineNuxtConfig({
         { property: "og:description", content: appDescription },
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: "Typbase" },
+        { property: "og:url", content: `${appUrl}/` },
+        { property: "og:image", content: appImageUrl },
+        { property: "og:image:type", content: "image/png" },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:image:alt", content: appDescription },
+        { property: "og:locale", content: "en_US" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: "Typbase" },
+        { name: "twitter:description", content: appDescription },
+        { name: "twitter:image", content: appImageUrl },
+        { name: "twitter:image:alt", content: appDescription },
       ],
       link: [
+        { rel: "canonical", href: `${appUrl}/` },
         { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
         { rel: "manifest", href: "/site.webmanifest" },
         { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },

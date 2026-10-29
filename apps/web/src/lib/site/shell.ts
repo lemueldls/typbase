@@ -29,7 +29,11 @@ interface ShellInput {
   headCss: string;
   navigation: SiteBuildNavigationGroup[];
   currentPageId: string;
+  createdAt?: number;
   updatedAt?: number;
+  ogImage?: string;
+  ogImageAlt?: string;
+  ogType?: "article" | "website";
   noindex?: boolean;
   standalone?: boolean;
 }
@@ -56,7 +60,11 @@ export async function renderShell(input: ShellInput): Promise<string> {
     toc,
     currentPageId: input.currentPageId,
     workspaceIcon: (input.settings.icon || "folder").replaceAll("-", "_"),
+    createdAt: input.createdAt,
     updatedAt: input.updatedAt,
+    ogImage: input.ogImage,
+    ogImageAlt: input.ogImageAlt,
+    ogType: input.ogType,
     noindex: input.noindex,
   });
 
@@ -79,6 +87,8 @@ export async function renderHomeIndex(input: {
   baseUrl: string;
   navigation: SiteBuildNavigationGroup[];
   pages: SiteBuildPage[];
+  ogImage?: string;
+  ogImageAlt?: string;
   standalone?: boolean;
 }): Promise<string> {
   const { name, navigation, pages, site } = input;
@@ -113,6 +123,9 @@ ${groups || `<p>${pages.length} page${pages.length === 1 ? "" : "s"} published.<
     headCss: "",
     navigation,
     currentPageId: "",
+    ogImage: input.ogImage,
+    ogImageAlt: input.ogImageAlt,
+    ogType: "website",
     standalone: input.standalone,
   });
 }
