@@ -1,6 +1,6 @@
 {
   "name": "@typbase/plugin-sdk",
-  "version": "0.4.6",
+  "version": "0.4.8",
   "description": "Typbase plugin bundle (.tbplugin) format and authoring helpers.",
   "license": "Apache-2.0",
   "repository": {

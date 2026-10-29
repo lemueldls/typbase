@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.8] - 2026-10-29
+
+### New
+
+- Asset sync and management
+- Plugin SDK and first-party plugins
+- Diagrams plugin
+- Add installation record
+- Open Graph image generation
+
+### Fixed
+
+- Use proxy for native builds
+- File hashes to site settings
+- Lint diagnostics handling
+
 ## [0.4.7] - 2026-10-27
 
 ### New
