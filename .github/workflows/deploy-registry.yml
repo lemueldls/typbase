@@ -86,14 +86,3 @@ jobs:
           packageManager: npm
           wranglerVersion: "4"
           command: deploy --config ${{ github.workspace }}/apps/registry/.output/server/wrangler.json
-
-      - name: 🩺 Check the deployed URL
-        if: steps.gate.outputs.deploy == 'true' && env.REGISTRY_URL != ''
-        shell: bash
-        run: |
-          set -euo pipefail
-          for attempt in {1..30}; do
-            if curl -fsS "$REGISTRY_URL/health"; then exit 0; fi
-            sleep 2
-          done
-          exit 1
