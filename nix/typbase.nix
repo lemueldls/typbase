@@ -52,17 +52,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
     owner = "lemueldls";
     repo = "typbase";
     tag = "typbase-v${finalAttrs.version}";
-    hash = "sha256-DuwtQUWCNQkXyUsL0RsRmbQTbpUNiE676SqUbdyG0dk=";
+    hash = "sha256-Q4eRz/gCMbAzXyW57R97xco7jl2IyX2I6QdixcwINm4=";
   };
 
-  cargoHash = "sha256-2XSKO2QyemzjrNxMxOH+xcAOqFSuUelDJAghaZRdgkQ=";
+  cargoHash = "sha256-ws1va/268VzHbylKwLJctm9k220Ni2ZsI2r4Zrl3PSE=";
 
   buildAndTestSubdir = "apps/native";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     fetcherVersion = 3;
-    hash = "sha256-01G7hDBzPVvT9Vk1VkCyXvRxG9Xuq4g4r9iVE4SLl+U=";
+    hash = "sha256-v8QdYqVIBVN0o6Gua+tYvAXjAiXKyVYXlv4I/ObV8k8=";
   };
 
   nativeBuildInputs = [
