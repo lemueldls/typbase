@@ -741,7 +741,7 @@ export class AtprotoService {
     let cursor: string | undefined;
     do {
       const params = new URLSearchParams({
-        type: WORKSPACE_SPACE_TYPE,
+        spaceType: WORKSPACE_SPACE_TYPE,
         did,
         limit: "100",
       });
@@ -819,7 +819,7 @@ export class AtprotoService {
 
     const params = new URLSearchParams({ space: workspaceSpaceUri(did, id) });
     const response = await session.fetchHandler(
-      `/xrpc/com.atproto.simplespace.getSpace?${params.toString()}`,
+      `/xrpc/com.atproto.space.getSpace?${params.toString()}`,
     );
     if (response.ok) return true;
     if (response.status === 404) return false;

@@ -9,9 +9,10 @@
 
 /**
  * Scopes requested at sign-in, verified against @atproto/oauth-scopes
- * 0.0.0-spaces-alpha-20260913191958 and the PDS's own `assertSpaceScope`
+ * 0.0.0-spaces-alpha-20261029171913 and the PDS's own `assertSpaceScope`
  * checks. `collection=*` covers read/create/update/delete on space records, and
- * `manage=create` is what `com.atproto.simplespace.createSpace` asserts. The
+ * `manage=create` creates a space. `manage=update` covers policy changes and
+ * member management (`com.atproto.memberspace.putMember` and `removeMember`). The
  * wildcard blob scope covers the post HTML/PDF uploads and future assets.
  * Wide by design: access is per user, and a workspace gets its own skey.
  */
@@ -20,7 +21,7 @@ export const OAUTH_SCOPES: readonly string[] = [
   "blob:*/*",
   "space:at.typbase.workspace?authority=*&action=read",
   "space:at.typbase.workspace?authority=*&collection=*",
-  "space:at.typbase.workspace?authority=*&manage=create",
+  "space:at.typbase.workspace?authority=*&manage=create&manage=update",
   "repo:at.typbase.post",
   "repo:at.typbase.plugin",
   "repo:at.typbase.pluginRelease",
