@@ -292,6 +292,15 @@ watch(
             <span v-if="activeHandle" class="sync__handle">@{{ activeHandle }}</span>
             <span class="sync__did">{{ atprotoStatus.did }}</span>
           </div>
+          <UiIconButton
+            class="sync__signout"
+            icon="logout"
+            :size="20"
+            danger
+            :label="signingOut ? $t('settings.syncSigningOut') : $t('settings.syncSignOut')"
+            :disabled="!atprotoReady || accountBusy"
+            @click="onSignOut"
+          />
         </div>
 
         <p v-if="profile?.description" class="sync__bio">{{ profile.description }}</p>
@@ -363,7 +372,7 @@ watch(
                   icon="person_remove"
                   variant="ghost"
                   danger
-                  :size="18"
+                  :size="20"
                   :label="`${$t('settings.accountRemove')} ${accountName(account)}`"
                   :disabled="accountBusy"
                   @click="askRemoveAccount(account)"
@@ -407,11 +416,11 @@ watch(
                 {{ $t("settings.syncImported") }} {{ ago(atprotoStatus.lastImportAt) }}
               </span>
               <span v-if="atprotoStatus.assets.pending" class="sync__status-meta-item">
-                <MsIcon name="attachment" :size="14" />
+                <MsIcon name="photo_library" :size="14" />
                 {{ $t("settings.syncAssetsPending", { count: atprotoStatus.assets.pending }) }}
               </span>
               <span v-else-if="atprotoStatus.assets.lastSyncedAt" class="sync__status-meta-item">
-                <MsIcon name="attachment" :size="14" />
+                <MsIcon name="photo_library" :size="14" />
                 {{
                   $t("settings.syncAssetsSynced", { time: ago(atprotoStatus.assets.lastSyncedAt) })
                 }}
@@ -527,17 +536,6 @@ watch(
             </template>
           </span>
         </p>
-
-        <div class="sync__footer">
-          <UiButton
-            variant="danger"
-            icon="logout"
-            :disabled="!atprotoReady || accountBusy"
-            @click="onSignOut"
-          >
-            {{ signingOut ? $t("settings.syncSigningOut") : $t("settings.syncSignOut") }}
-          </UiButton>
-        </div>
       </template>
     </template>
 
@@ -574,6 +572,12 @@ watch(
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
+}
+
+.sync__signout {
+  flex: none;
+  align-self: flex-start;
+  margin-left: auto;
 }
 
 .sync__avatar {
@@ -915,13 +919,6 @@ watch(
   color: var(--color-accent);
   font-size: var(--text-2xs);
   white-space: nowrap;
-}
-
-.sync__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
 }
 
 .sync__warning {
