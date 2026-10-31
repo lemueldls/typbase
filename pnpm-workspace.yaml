@@ -11,7 +11,7 @@ cargo:
 minimumReleaseAge: 0
 
 allowBuilds:
-  'airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059': true
+  "airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059": true
   core-js: true
   esbuild: true
   onnxruntime-node: true
