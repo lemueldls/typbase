@@ -83,8 +83,6 @@ interface QueuedUpdate {
 
 interface DocSyncState {
   exportedVersion: string | null;
-  /** Version of the newest snapshot this device imported. */
-  importedVersion: string | null;
   /** Update rkeys written since the last snapshot, for compaction cleanup. */
   written: string[];
   /** Snapshot rkeys this device wrote. Each new snapshot supersedes them. */
@@ -170,6 +168,11 @@ export class TypbaseSync {
 
   async start(): Promise<void> {
     await this.load();
+    // A device can have cursors from an earlier session whose clock put its
+    // own updates ahead of another device's settings update. Start with a
+    // full scan so a join or a long-lived workspace cannot miss records that
+    // sort below the saved cursor.
+    this.state.lastFullScanAt = 0;
 
     this.stop();
     this.timer = setInterval(() => void this.tick(), this.options.pollIntervalMs ?? 5000);
@@ -345,17 +348,16 @@ export class TypbaseSync {
         }
         if (!newest || record.rkey > newest) newest = record.rkey;
 
-        const doc = this.docState(record.docId);
+        // Gate on the local document's version, not a remembered snapshot
+        // version. If the app closed before the imported snapshot was flushed,
+        // the saved "imported" version would otherwise skip the update forever
+        // while the local document still lacked it.
         const coveredByLocal = versionCovers(
           await this.host.localVersion(record.docId),
           record.version,
         );
-        const coveredBySnapshot = doc.importedVersion
-          ? versionCovers(doc.importedVersion, record.version)
-          : false;
-        if (!coveredByLocal && !coveredBySnapshot) {
+        if (!coveredByLocal) {
           await this.host.importUpdate(record.docId, base64ToBytes(record.update));
-          doc.importedVersion = record.version;
           changed.add(record.docId);
           imported++;
         }
@@ -383,10 +385,8 @@ export class TypbaseSync {
         }
         if (!newest || record.rkey > newest) newest = record.rkey;
 
-        const doc = this.docState(record.docId);
         if (!versionCovers(await this.host.localVersion(record.docId), record.version)) {
           await this.host.importSnapshot(record.docId, base64ToBytes(record.snapshot));
-          doc.importedVersion = record.version;
           changed.add(record.docId);
           imported++;
         }
@@ -429,7 +429,7 @@ export class TypbaseSync {
   private docState(docId: string): DocSyncState {
     let doc = this.state.docs[docId];
     if (!doc) {
-      doc = { exportedVersion: null, importedVersion: null, written: [], snapshots: [] };
+      doc = { exportedVersion: null, written: [], snapshots: [] };
       this.state.docs[docId] = doc;
     }
 

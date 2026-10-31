@@ -775,7 +775,9 @@ function useWorkspaceState() {
     const reg = await ensureRegistry();
     const existing = await reg.get(clean);
     if (existing) {
-      await switchWorkspace(existing.id);
+      // Reopening a joined workspace must not seed a second local copy of
+      // the workspace document. The remote snapshot supplies its settings.
+      await switchWorkspace(existing.id, { seed: false });
       return existing;
     }
 
