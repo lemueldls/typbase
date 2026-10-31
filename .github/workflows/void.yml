@@ -22,7 +22,7 @@ env:
   XBPS_ALLOW_RESTRICTED: "yes"
   XBPS_CHROOT_CMD: ethereal
   XBPS_ALLOW_CHROOT_BREAKOUT: "yes"
-  WASM_PACK_VERSION: "0.15.0"
+  WASM_PACK_VERSION: "0.15.1"
 
 jobs:
   build:
