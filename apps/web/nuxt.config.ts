@@ -58,6 +58,16 @@ interface DevServer {
   ws: { send(payload: { type: string }): void };
 }
 
+function isUrlOnlyWasm(id: string): boolean {
+  const path = id.replaceAll("\\", "/");
+
+  return (
+    path.endsWith("/engine/pkg/engine_bg.wasm") ||
+    path.endsWith("/@typbase/engine/engine_bg.wasm") ||
+    path.endsWith("/@takumi-rs/wasm/pkg/takumi_wasm_bg.wasm")
+  );
+}
+
 /** Compile the published site's vanilla runtimes from TS modules at build time. */
 function siteRuntimePlugin() {
   return {
@@ -150,6 +160,16 @@ export default defineNuxtConfig({
   vite: {
     plugins: [
       siteRuntimePlugin(),
+      {
+        name: "typbase:wasm-url",
+        apply: "serve",
+        enforce: "pre",
+        load(id) {
+          if (!isUrlOnlyWasm(id)) return null;
+
+          return `export { default } from ${JSON.stringify(`${id}?url`)};`;
+        },
+      },
       {
         name: "typbase:site-css",
         enforce: "pre",
