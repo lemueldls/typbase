@@ -18,6 +18,13 @@ export const VIEWPORT = { width: 1280, height: 800 };
 
 /** One theme per shot, covering the sizing and radius presets. */
 export const SHOT_SETTINGS = {
+  hero: {
+    theme: "dark",
+    themeName: "default",
+    uiSize: "default",
+    uiDensity: "default",
+    uiRadius: "default",
+  },
   "notebook-hero": {
     theme: "light",
     themeName: "default",

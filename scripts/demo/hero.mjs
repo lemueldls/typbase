@@ -53,45 +53,49 @@ async function clickSidebar(page, text) {
 }
 
 /**
- * Puts the caret inside a math expression and waits for the rendered tooltip.
- * The editor is usually scrolled to the bottom after typing, while these
- * equations sit farther up the note, so the selection has to scroll into view.
- * The tooltip is built by the recompile that follows the selection change, so
- * wait for the popup instead of guessing with a fixed pause.
+ * Clicks a rendered block to enter its source, the same way `click-to-source`
+ * does. The Fibonacci note renders in a fixed order: heading, paragraph lines,
+ * then the display equation. The recurrence line is the second paragraph line,
+ * and a point just under a quarter of the way across lands inside its inline
+ * math. The display equation is its own block.
+ *
+ * The tooltip is built by the recompile that follows the click, so wait for
+ * the popup instead of guessing with a fixed pause.
  */
-async function showMathTooltip(page, needle, wait = 1600) {
-  const found = await page.evaluate((text) => {
-    const api = window.__typbase;
-    const doc = api.view.state.doc.toString();
-    const at = doc.indexOf(text);
-    if (at < 0) return null;
+async function showMathTooltip(page, index, xRatio = 0.5, yRatio = 0.5, wait = 1600) {
+  const block = page.locator(".cm-content .typst-render").nth(index);
+  await block.scrollIntoViewIfNeeded().catch(() => {});
+  await pause(page, 300);
 
-    const pos = at + 3;
-    api.view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
-    api.view.focus();
-
-    return pos;
-  }, needle);
-
-  if (found === null) {
-    console.warn(`[warn] no math expression for ${needle}`);
+  const box = await block.boundingBox().catch(() => null);
+  if (!box) {
+    console.warn(`[warn] no rendered block ${index} for the math tooltip`);
 
     return;
   }
 
+  const point = {
+    x: box.x + box.width * xRatio,
+    y: box.y + box.height * yRatio,
+  };
+
+  await moveCursor(page, point.x, point.y, { duration: 420 });
+  await pause(page, 180);
+  await page.mouse.click(point.x, point.y);
+
   await page.waitForSelector(".typst-popup-render", { timeout: 6000 }).catch(() => {
-    console.warn(`[warn] math tooltip for ${needle} did not appear`);
+    console.warn(`[warn] math tooltip for block ${index} did not appear`);
   });
 
-  // Leave the code hover behind and settle beside the popup, so the shot has
-  // one clear tooltip and the cursor has something to do.
+  // Leave the block behind and settle beside the popup, so the shot has one
+  // clear tooltip and the cursor has something to do.
   const tooltip = page.locator(".typst-popup-render").last();
-  const box = (await tooltip.count()) ? await tooltip.boundingBox().catch(() => null) : null;
-  if (box) {
+  const popup = (await tooltip.count()) ? await tooltip.boundingBox().catch(() => null) : null;
+  if (popup) {
     await moveCursor(
       page,
-      Math.min(VIEWPORT.width - 48, box.x + box.width + 28),
-      Math.min(VIEWPORT.height - 48, box.y + box.height - 18),
+      Math.min(VIEWPORT.width - 48, popup.x + popup.width + 28),
+      Math.min(VIEWPORT.height - 48, popup.y + popup.height - 18),
       { duration: 480 },
     );
   }
@@ -130,7 +134,7 @@ async function main() {
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: 2,
-    colorScheme: "light",
+    colorScheme: "dark",
     recordVideo: { dir: RAW, size: VIEWPORT },
   });
   await installChromePreferences(context);
@@ -146,7 +150,7 @@ async function main() {
   page.on("pageerror", (error) => console.log("[pageerror]", String(error).slice(0, 300)));
 
   await boot(page);
-  await applySettings(page, SHOT_SETTINGS["notebook-hero"]);
+  await applySettings(page, SHOT_SETTINGS["hero"]);
 
   const start = Date.now();
 
@@ -209,9 +213,10 @@ async function main() {
     await pause(page, 500);
     // await hoverToken(page, "#count");
 
-    // Math tooltips.
-    await showMathTooltip(page, "phi.alt");
-    await showMathTooltip(page, "F_(n-1)");
+    // Math tooltips. Click the rendered equation block, then the recurrence
+    // line at the point where its inline equation is drawn.
+    await showMathTooltip(page, 4);
+    await showMathTooltip(page, 2, 0.27);
 
     // Inline math at the end of the heading, so the rule just typed styles it.
     await page.evaluate(() => {
@@ -233,6 +238,7 @@ async function main() {
       .first();
     await numbering.scrollIntoViewIfNeeded();
     await clickWithCursor(page, numbering, { pause: 300 });
+    await pause(page, 300);
     await page.keyboard.press("Home");
     await pause(page, 900);
     await page.keyboard.press("Enter");
@@ -274,25 +280,25 @@ async function main() {
     // await page.mouse.wheel(0, 500);
     // await pause(page, 1100);
 
-    // Theme switch: Catppuccin, then dark mode. The settings entry lives in
-    // the sidebar's workspace actions menu, so the clip shows that menu first.
-    await clickWithCursor(page, page.locator('[aria-label="Workspace actions"]').first());
-    await pause(page, 900);
-    await clickWithCursor(page, page.getByRole("menuitem", { name: "Workspace settings" }));
-    await pause(page, 700);
-    await clickWithCursor(
-      page,
-      page.locator(".settings__tab").filter({ hasText: "Appearance" }).first(),
-    );
-    await pause(page, 600);
-    await clickWithCursor(page, page.getByRole("button", { name: "Catppuccin" }));
-    await pause(page, 900);
-    await clickWithCursor(page, page.getByRole("combobox", { name: "Theme mode" }));
-    await pause(page, 400);
-    await clickWithCursor(page, page.getByRole("option", { name: "Dark" }));
-    await pause(page, 1400);
-    await page.keyboard.press("Escape");
-    await pause(page, 700);
+    // // Theme switch: Catppuccin, then dark mode. The settings entry lives in
+    // // the sidebar's workspace actions menu, so the clip shows that menu first.
+    // await clickWithCursor(page, page.locator('[aria-label="Workspace actions"]').first());
+    // await pause(page, 900);
+    // await clickWithCursor(page, page.getByRole("menuitem", { name: "Workspace settings" }));
+    // await pause(page, 700);
+    // await clickWithCursor(
+    //   page,
+    //   page.locator(".settings__tab").filter({ hasText: "Appearance" }).first(),
+    // );
+    // await pause(page, 600);
+    // await clickWithCursor(page, page.getByRole("button", { name: "Melange" }));
+    // await pause(page, 900);
+    // await clickWithCursor(page, page.getByRole("combobox", { name: "Theme mode" }));
+    // await pause(page, 400);
+    // await clickWithCursor(page, page.getByRole("option", { name: "Dark" }));
+    // await pause(page, 1400);
+    // await page.keyboard.press("Escape");
+    // await pause(page, 700);
 
     // Backlinks: follow the daily note's Previous link, show the panel, then
     // open the backlink graph.
