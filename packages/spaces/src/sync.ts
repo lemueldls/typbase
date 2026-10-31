@@ -1,4 +1,10 @@
-import { bytesToBase64, base64ToBytes } from "./base64";
+import { base64ToBytes } from "./base64";
+import {
+  COMPRESSED_RECORD_PREFIX,
+  decodeRecordBytes,
+  encodeRecordBytes,
+  RECORD_COMPRESS_ABOVE,
+} from "./wire";
 
 /**
  * The sync loop. Loro is the merge engine, airspace is the transport: every
@@ -42,7 +48,7 @@ export interface SyncHost {
 export interface SyncUpdate {
   rkey: string;
   docId: string;
-  /** Base64-encoded Loro update bytes. */
+  /** Base64 Loro update bytes, or a `gzip:`-prefixed compressed payload. */
   update: string;
   /** Version vector JSON after the update, for cover checks. */
   version: string;
@@ -52,7 +58,7 @@ export interface SyncUpdate {
 export interface SyncSnapshot {
   rkey: string;
   docId: string;
-  /** Base64-encoded Loro snapshot bytes. */
+  /** Base64 Loro snapshot bytes, or a `gzip:`-prefixed compressed payload. */
   snapshot: string;
   version: string;
   createdAt?: string;
@@ -209,7 +215,7 @@ export class TypbaseSync {
       const snapshot = await this.host.exportSnapshot(docId);
       const rkey = await this.transport.createSnapshot({
         docId,
-        snapshot: bytesToBase64(snapshot.bytes),
+        snapshot: await encodeRecordBytes(snapshot.bytes),
         version: snapshot.version,
         createdAt: this.iso(),
       });
@@ -238,7 +244,7 @@ export class TypbaseSync {
     doc.exportedVersion = latest.version;
     this.state.queue.push({
       docId,
-      update: bytesToBase64(latest.bytes),
+      update: await encodeRecordBytes(latest.bytes),
       version: latest.version,
       createdAt: this.now(),
     });
@@ -257,6 +263,20 @@ export class TypbaseSync {
     try {
       while (this.state.queue.length > 0) {
         const item = this.state.queue[0]!;
+
+        // A queue item written by an older build is plain base64 and may be
+        // over the record cap. Re-encode it here so a stuck update can drain.
+        if (
+          !item.update.startsWith(COMPRESSED_RECORD_PREFIX) &&
+          item.update.length > RECORD_COMPRESS_ABOVE
+        ) {
+          const encoded = await encodeRecordBytes(base64ToBytes(item.update));
+          if (encoded !== item.update) {
+            item.update = encoded;
+            await this.save();
+          }
+        }
+
         const rkey = await this.transport.createUpdate({
           docId: item.docId,
           update: item.update,
@@ -357,7 +377,7 @@ export class TypbaseSync {
           record.version,
         );
         if (!coveredByLocal) {
-          await this.host.importUpdate(record.docId, base64ToBytes(record.update));
+          await this.host.importUpdate(record.docId, await decodeRecordBytes(record.update));
           changed.add(record.docId);
           imported++;
         }
@@ -386,7 +406,7 @@ export class TypbaseSync {
         if (!newest || record.rkey > newest) newest = record.rkey;
 
         if (!versionCovers(await this.host.localVersion(record.docId), record.version)) {
-          await this.host.importSnapshot(record.docId, base64ToBytes(record.snapshot));
+          await this.host.importSnapshot(record.docId, await decodeRecordBytes(record.snapshot));
           changed.add(record.docId);
           imported++;
         }
@@ -411,7 +431,7 @@ export class TypbaseSync {
 
     const rkey = await this.transport.createSnapshot({
       docId,
-      snapshot: bytesToBase64(snapshot.bytes),
+      snapshot: await encodeRecordBytes(snapshot.bytes),
       version: snapshot.version,
       createdAt: this.iso(),
     });

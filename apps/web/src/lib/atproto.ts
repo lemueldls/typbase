@@ -1,7 +1,7 @@
 import type { AssetSyncStatus, OAuthSession } from "@typbase/spaces";
 import type { LocalState, WorkspaceStore } from "@typbase/storage";
 
-import { AssetSync, base64ToBytes, createAssetRemote } from "@typbase/spaces";
+import { AssetSync, createAssetRemote, decodeRecordBytes } from "@typbase/spaces";
 import {
   RelayClient,
   SessionManager,
@@ -802,7 +802,9 @@ export class AtprotoService {
       };
       for (const record of body.records ?? []) {
         if (record.value?.docId !== id || !record.value.snapshot) continue;
-        const name = await workspaceNameFromSnapshot(base64ToBytes(record.value.snapshot));
+        const name = await workspaceNameFromSnapshot(
+          await decodeRecordBytes(record.value.snapshot),
+        );
         if (name) return name;
       }
       cursor = body.cursor;

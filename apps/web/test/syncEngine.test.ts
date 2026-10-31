@@ -1,6 +1,6 @@
 import type { SyncHost, SyncSnapshot, SyncStore, SyncTransport, SyncUpdate } from "@typbase/spaces";
 
-import { TypbaseSync } from "@typbase/spaces";
+import { TypbaseSync, bytesToBase64, decodeRecordBytes } from "@typbase/spaces";
 import { describe, expect, it, vi } from "vitest";
 
 const docId = "workspace";
@@ -35,6 +35,49 @@ function transport(updates: SyncUpdate[]): SyncTransport {
 }
 
 describe("TypbaseSync", () => {
+  it("compresses an oversized queued update before uploading", async () => {
+    const payload = new Uint8Array(90_000).fill(0x61);
+    const sent: Array<Omit<SyncUpdate, "rkey">> = [];
+    const syncHost = host();
+    const sync = new TypbaseSync(
+      syncHost,
+      {
+        get: async () => ({
+          docs: {},
+          queue: [
+            {
+              docId,
+              update: bytesToBase64(payload),
+              version: '{"actor":1}',
+              createdAt: 0,
+            },
+          ],
+          lastUpdateRkey: null,
+          lastSnapshotRkey: null,
+          lastFullScanAt: 0,
+          lastExportAt: 0,
+          lastImportAt: 0,
+        }),
+        set: async () => {},
+      },
+      {
+        ...transport([]),
+        createUpdate: async (record) => {
+          sent.push(record);
+
+          return "new";
+        },
+      },
+    );
+
+    await sync.start();
+    sync.stop();
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.update.startsWith("gzip:")).toBe(true);
+    await expect(decodeRecordBytes(sent[0]!.update)).resolves.toEqual(payload);
+  });
+
   it("scans past a stale cursor on start", async () => {
     const saved: SyncStore = {
       get: async () => ({
