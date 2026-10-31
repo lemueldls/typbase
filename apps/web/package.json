@@ -23,7 +23,7 @@
     "@huggingface/transformers": "^4.2.0",
     "@internationalized/date": "^3.12.4",
     "@intlify/h3": "^2.1.2",
-    "@nuxtjs/i18n": "file:../../vendor/nuxtjs-i18n-10.6.0.tgz",
+    "@nuxtjs/i18n": "https://pkg.pr.new/@nuxtjs/i18n@4166",
     "@replit/codemirror-vim": "^6.4.0",
     "@typbase/codemirror": "workspace:*",
     "@typbase/engine": "workspace:*",
