@@ -889,7 +889,6 @@ useSeoMeta({
   title: () => pageTitle.value,
   ogTitle: () => pageTitle.value,
   ogType: "website",
-  twitterTitle: () => pageTitle.value,
 });
 
 function openPlugin(instanceId: string) {

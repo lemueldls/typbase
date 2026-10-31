@@ -943,7 +943,7 @@ describe("plugin system", async () => {
       'property="og:image" content="https://example.test/assets/og/',
     );
     expect(sitePage?.text).toContain('property="og:site_name" content="My workspace"');
-    expect(sitePage?.text).toContain('name="twitter:card" content="summary_large_image"');
+    expect(sitePage?.text).not.toContain('name="twitter:');
     // A page without an explicit description must not publish its opening
     // source paragraph as meta description.
     expect(sitePage?.text).not.toContain('name="description"');

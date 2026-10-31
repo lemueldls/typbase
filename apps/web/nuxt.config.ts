@@ -128,11 +128,6 @@ export default defineNuxtConfig({
         { property: "og:image:height", content: "630" },
         { property: "og:image:alt", content: appDescription },
         { property: "og:locale", content: "en_US" },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: "Typbase" },
-        { name: "twitter:description", content: appDescription },
-        { name: "twitter:image", content: appImageUrl },
-        { name: "twitter:image:alt", content: appDescription },
       ],
       link: [
         { rel: "canonical", href: `${appUrl}/` },

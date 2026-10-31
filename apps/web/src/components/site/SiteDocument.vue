@@ -95,11 +95,6 @@ const locale = computed(() => ogLocale(props.lang));
       <meta v-if="ogImage" property="og:image:alt" :content="imageAlt" />
       <meta v-if="publishedIso" property="article:published_time" :content="publishedIso" />
       <meta v-if="updatedIso" property="article:modified_time" :content="updatedIso" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" :content="title" />
-      <meta v-if="description" name="twitter:description" :content="description" />
-      <meta v-if="ogImage" name="twitter:image" :content="ogImage" />
-      <meta v-if="ogImage" name="twitter:image:alt" :content="imageAlt" />
       <meta name="generator" content="Typbase" />
       <link rel="stylesheet" :href="`${root}assets/site.css`" />
       <link

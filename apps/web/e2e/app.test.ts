@@ -109,9 +109,7 @@ describe("typbase app", async () => {
     await expect(
       page.locator('head meta[property="og:image"]').getAttribute("content"),
     ).resolves.toMatch(/\/og-image\.png$/);
-    await expect(
-      page.locator('head meta[name="twitter:card"]').getAttribute("content"),
-    ).resolves.toBe("summary_large_image");
+    await expect(page.locator('head meta[name^="twitter:"]').count()).resolves.toBe(0);
 
     await page.locator(".cm-content").click();
     await page.keyboard.press("Control+End");
