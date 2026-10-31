@@ -35,6 +35,12 @@ const emit = defineEmits<{
 
 /** The empty pane's actions need the workspace the chooser left behind. */
 const { workspace: store } = useWorkspace();
+const workspaceName = useWorkspaceValue(
+  store,
+  ["settings"],
+  (workspace) => workspace.getSettings().name,
+  "",
+);
 
 function onCreated(page: PageMeta): void {
   emit("openPage", page.id);
@@ -157,24 +163,25 @@ function onDockKeydown(event: KeyboardEvent): void {
       </PageView>
 
       <div v-else class="app__empty">
-        <slot name="nav-toggle" />
+        <div class="app__empty-toolbar" data-tauri-drag-region="deep">
+          <slot name="nav-toggle" />
+          <!-- <span v-if="store" class="app__empty-toolbar-title">{{ workspaceName }}</span> -->
+        </div>
 
-        <!-- Only reachable with no pages at all, since a workspace that has any
-             always resolves to one. The actions live here rather than pointing
-             at the sidebar, which is collapsed on desktop and a drawer on
-             mobile. -->
-        <div v-if="store" class="app__empty-panel">
-          <MsIcon name="note_stack" :size="44" class="app__empty-mark" />
-          <p class="app__empty-title">{{ $t("empty.title") }}</p>
-          <p class="app__empty-hint">{{ $t("empty.body") }}</p>
+        <div class="app__empty-body">
+          <div v-if="store" class="app__empty-panel">
+            <MsIcon name="note_stack" :size="44" class="app__empty-mark" />
+            <p class="app__empty-title">{{ $t("empty.title") }}</p>
+            <p class="app__empty-hint">{{ $t("empty.body") }}</p>
 
-          <div class="app__empty-actions">
-            <NewPageDialog :store="store" @created="onCreated">
-              <UiButton variant="primary" icon="note_add">{{ $t("sidebar.newPage") }}</UiButton>
-            </NewPageDialog>
-            <UiButton variant="plain" icon="calendar_today" @click="openToday">
-              {{ $t("empty.today") }}
-            </UiButton>
+            <div class="app__empty-actions">
+              <NewPageDialog :store="store" @created="onCreated">
+                <UiButton variant="primary" icon="note_add">{{ $t("sidebar.newPage") }}</UiButton>
+              </NewPageDialog>
+              <UiButton variant="plain" icon="calendar_today" @click="openToday">
+                {{ $t("empty.today") }}
+              </UiButton>
+            </div>
           </div>
         </div>
       </div>
@@ -240,22 +247,39 @@ function onDockKeydown(event: KeyboardEvent): void {
 
 .app__empty {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--color-text-secondary);
+}
+
+.app__empty-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--pane-header-height);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.app__empty-toolbar-title {
+  min-width: 0;
+  overflow: hidden;
+  margin-left: var(--space-2);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app__empty-body {
+  flex: 1;
   display: grid;
   place-content: center;
   justify-items: center;
-  padding: calc(var(--space-6) + var(--safe-top)) calc(var(--space-6) + var(--safe-right))
-    calc(var(--space-6) + var(--safe-bottom)) calc(var(--space-6) + var(--safe-left));
-  color: var(--color-text-secondary);
+  padding: var(--space-6);
   text-align: center;
-}
-
-/* The sidebar toggle is a window control, not part of the centered block: taking
-   it out of flow keeps the panel on the pane's middle. It sits below the
-   status bar in the mobile shell, like the page toolbars. */
-.app__empty .app__nav-toggle {
-  position: absolute;
-  top: calc(var(--space-2) + var(--safe-top));
-  left: calc(var(--space-2) + var(--safe-left));
 }
 
 .app__empty-panel {
