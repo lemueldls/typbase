@@ -860,7 +860,7 @@ describe("typbase app", async () => {
       await page.keyboard.type(" ");
 
       const spaced = await page.evaluate(() => window.__typbase.view!.state.doc.toString());
-      expect(spaced).toContain("#let x = ( )");
+      expect(spaced).toContain("#let x = (  )");
 
       // Enter at the end of the unclosed line takes the indent unit from
       // `indentService`, not from the line above.
