@@ -492,6 +492,7 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
           decorations.push(
             Decoration.replace({
               widget: new TypstWidget(view, frame, locked, fileId, typstState, onExternalLink),
+              typstFrame: true,
             }).range(start, end),
           );
         } else {

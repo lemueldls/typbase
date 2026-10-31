@@ -37,4 +37,20 @@ describe("presenceCursors", () => {
 
     expect(decorations.size).toBe(2);
   });
+
+  it("anchors a cursor inside a replaced frame at the frame start", () => {
+    const state = EditorState.create({ doc: "Hello" });
+    const decorations = buildPresenceDecorations(
+      state,
+      "doc",
+      peers({ docId: "doc", from: 3, to: 3 }),
+      [{ from: 0, to: 5 }],
+    );
+    const ranges: Array<{ from: number; to: number }> = [];
+    decorations.between(0, 5, (from, to) => {
+      ranges.push({ from, to });
+    });
+
+    expect(ranges).toEqual([{ from: 0, to: 0 }]);
+  });
 });

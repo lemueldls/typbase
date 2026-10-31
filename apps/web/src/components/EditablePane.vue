@@ -992,6 +992,18 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
   pointer-events: none;
 }
 
+/* A peer inside a replaced frame has no source text to point at. The flag
+   anchors at the frame start instead of the hidden source end. */
+.typbase-remote-cursor-anchor--block {
+  vertical-align: top;
+}
+
+.typbase-remote-cursor-anchor--block .typbase-remote-cursor-flag {
+  bottom: auto;
+  top: 0;
+  z-index: 3;
+}
+
 .typbase-remote-cursor-flag {
   position: absolute;
   left: 0;

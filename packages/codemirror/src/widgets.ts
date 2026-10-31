@@ -137,7 +137,7 @@ function buildDecorations({
 
     if (frameIsInactive(view, state, start, end)) {
       const widget = new TypstWidget(view, frame, locked, fileId, typstState, openExternal);
-      decorations.push(Decoration.replace({ widget }).range(start, end));
+      decorations.push(Decoration.replace({ widget, typstFrame: true }).range(start, end));
 
       continue;
     }
@@ -362,6 +362,44 @@ function decorate({
     frames,
     active: built.active,
   };
+}
+
+/** A block whose source is replaced by a rendered frame. */
+export interface ReplacedFrame {
+  from: number;
+  to: number;
+}
+
+/**
+ * The frames currently shown as widgets, in document order. A replace
+ * decoration only exists while the frame is inactive, so this is also the set
+ * of ranges where the source text has no DOM to measure against.
+ */
+export function replacedFrames(state: EditorState): ReplacedFrame[] {
+  const decorations = state.field(typstStateField, false);
+  if (!decorations) return [];
+
+  const frames: ReplacedFrame[] = [];
+  decorations.between(0, state.doc.length, (from, to, value) => {
+    if (value.spec?.typstFrame === true) frames.push({ from, to });
+  });
+
+  return frames;
+}
+
+/** The replaced frame containing `pos`, if any. */
+export function replacedFrameAt(state: EditorState, pos: number): ReplacedFrame | null {
+  const decorations = state.field(typstStateField, false);
+  if (!decorations) return null;
+
+  let found: ReplacedFrame | null = null;
+  decorations.between(0, state.doc.length, (from, to, value) => {
+    if (!found && value.spec?.typstFrame === true && pos >= from && pos <= to) {
+      found = { from, to };
+    }
+  });
+
+  return found;
 }
 
 const typstStateEffect = StateEffect.define<{ decorations: DecorationSet }>({});

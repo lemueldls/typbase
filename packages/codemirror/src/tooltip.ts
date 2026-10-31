@@ -5,7 +5,12 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { ViewPlugin } from "@codemirror/view";
 import { showTooltip } from "@codemirror/view";
 
-import { tooltipsStateEffect, tooltipsStateField, typstRecompileEffect } from "./widgets";
+import {
+  replacedFrameAt,
+  tooltipsStateEffect,
+  tooltipsStateField,
+  typstRecompileEffect,
+} from "./widgets";
 
 const tooltipStateEffect = StateEffect.define<Tooltip | null>();
 
@@ -32,15 +37,36 @@ export const tooltipViewPlugin = () =>
         return;
       }
 
+      if (!view.hasFocus) {
+        if (view.state.field(tooltipStateField)) {
+          view.dispatch({ effects: tooltipStateEffect.of(null) });
+        }
+
+        return;
+      }
+
       queueMicrotask(() => {
         if (!view.hasFocus) {
-          view.dispatch({ effects: tooltipStateEffect.of(null) });
+          if (view.state.field(tooltipStateField)) {
+            view.dispatch({ effects: tooltipStateEffect.of(null) });
+          }
 
           return;
         }
 
         const state = view.state;
         const pos = state.selection.main.from;
+
+        // A replaced frame has no source text to anchor to. The equation is
+        // not visible, so a popup would only land at the frame's right edge.
+        if (replacedFrameAt(state, pos)) {
+          if (state.field(tooltipStateField)) {
+            view.dispatch({ effects: tooltipStateEffect.of(null) });
+          }
+
+          return;
+        }
+
         const { tooltips, ranges } = state.field(tooltipsStateField);
 
         if (!tooltips.some(({ range }) => pos >= range.start && pos <= range.end)) {
@@ -78,15 +104,24 @@ export const tooltipViewPlugin = () =>
                 return {
                   dom: container,
                   getCoords(_pos) {
-                    const startCoords = tooltipView.coordsAtPos(start)!;
-                    const endCoords = tooltipView.coordsAtPos(end)!;
+                    const content = tooltipView.contentDOM.getBoundingClientRect();
+                    const startCoords = tooltipView.coordsAtPos(start);
+                    const endCoords = tooltipView.coordsAtPos(end);
+                    const top = Math.max(
+                      content.top,
+                      Math.min(content.bottom, startCoords?.top ?? content.top),
+                    );
+                    const bottom = Math.max(
+                      top,
+                      Math.min(content.bottom, startCoords?.bottom ?? top),
+                    );
+                    const left = Math.max(
+                      content.left,
+                      Math.min(content.right, startCoords?.left ?? content.left),
+                    );
+                    const right = Math.max(left, Math.min(content.right, endCoords?.right ?? left));
 
-                    return {
-                      left: startCoords.left,
-                      right: endCoords.right,
-                      top: startCoords.top,
-                      bottom: endCoords.bottom,
-                    };
+                    return { left, right, top, bottom };
                   },
                 };
               },
