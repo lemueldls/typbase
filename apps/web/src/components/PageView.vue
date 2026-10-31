@@ -798,6 +798,11 @@ onBeforeUnmount(() => {
   unsubscribeStructure?.();
   unsubscribeFontScan?.();
   scanSourceFonts.cancel();
+  // Query JSON and embedded sources live in the shared wasm world. Without
+  // this purge the next workspace can compile the previous workspace's
+  // `#typbase.query("pages")` file before the request channel sees it.
+  requestService?.purge();
+  requestService = undefined;
   void flushText();
 });
 
