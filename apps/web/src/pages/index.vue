@@ -71,6 +71,17 @@ const isDesktop = useMediaQuery("(min-width: 48.0625rem)");
 const nav = useNavHistory();
 const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
 
+/** The pane with no page, plugin, chat, graph, files, or site open. */
+const emptyPane = computed(
+  () =>
+    !currentPageId.value &&
+    !currentPluginId.value &&
+    !currentChatId.value &&
+    !graphOpen.value &&
+    !filesOpen.value &&
+    !siteOpen.value,
+);
+
 const { t } = useI18n();
 
 // Back closes the drawer and the palette before it navigates or leaves.
@@ -1150,7 +1161,7 @@ definePageMeta({ ssr: false });
         <!-- Window-level chrome. Narrow windows keep the mobile layout whole,
              so the bar goes with them rather than eating the editor's height. -->
         <AppBar
-          v-if="isDesktop && appBarVisible && !zen"
+          v-if="isDesktop && (appBarVisible || emptyPane) && !zen"
           :store="workspace"
           :back-label="backLabel"
           :forward-label="forwardLabel"

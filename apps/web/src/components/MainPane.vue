@@ -243,17 +243,19 @@ function onDockKeydown(event: KeyboardEvent): void {
   display: grid;
   place-content: center;
   justify-items: center;
-  padding: var(--space-6);
+  padding: calc(var(--space-6) + var(--safe-top)) calc(var(--space-6) + var(--safe-right))
+    calc(var(--space-6) + var(--safe-bottom)) calc(var(--space-6) + var(--safe-left));
   color: var(--color-text-secondary);
   text-align: center;
 }
 
 /* The sidebar toggle is a window control, not part of the centered block: taking
-   it out of flow keeps the panel on the pane's middle. */
+   it out of flow keeps the panel on the pane's middle. It sits below the
+   status bar in the mobile shell, like the page toolbars. */
 .app__empty .app__nav-toggle {
   position: absolute;
-  top: var(--space-2);
-  left: var(--space-2);
+  top: calc(var(--space-2) + var(--safe-top));
+  left: calc(var(--space-2) + var(--safe-left));
 }
 
 .app__empty-panel {
