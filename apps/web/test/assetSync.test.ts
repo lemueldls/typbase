@@ -58,15 +58,10 @@ class MemoryRemote implements AssetRemote {
 
 class MemoryHost implements AssetSyncHost {
   readonly blobs = new Map<string, Uint8Array>();
-  readonly referenced = new Set<string>();
   private readonly listeners = new Set<(hash: string) => void>();
 
   async listBlobs(): Promise<Array<{ hash: string }>> {
     return [...this.blobs.keys()].map((hash) => ({ hash }));
-  }
-
-  async referencedBlobHashes(): Promise<Set<string>> {
-    return new Set(this.referenced);
   }
 
   async readBlob(hash: string): Promise<Uint8Array | null> {
@@ -120,7 +115,6 @@ describe("asset sync", () => {
     const remote = new MemoryRemote();
     const bytes = encoder.encode("remote bytes");
     const record = await remote.add(bytes, "remote-address");
-    host.referenced.add("remote-address");
     const sync = new AssetSync(host, remote);
 
     await sync.syncNow();
@@ -143,15 +137,15 @@ describe("asset sync", () => {
     sync.stop();
   });
 
-  it("does not download remote blobs nothing references", async () => {
+  it("downloads remote blobs even when nothing references them", async () => {
     const host = new MemoryHost();
     const remote = new MemoryRemote();
-    await remote.add(encoder.encode("unused"), "unused-address");
+    const record = await remote.add(encoder.encode("unused"), "unused-address");
     const sync = new AssetSync(host, remote);
 
     await sync.syncNow();
 
-    expect(host.blobs.size).toBe(0);
+    expect(host.blobs.get(record.hash)).toBeDefined();
   });
 
   it("rejects a remote blob whose hash does not match", async () => {
@@ -159,7 +153,6 @@ describe("asset sync", () => {
     const remote = new MemoryRemote();
     const bytes = encoder.encode("tampered");
     const record = await remote.add(bytes, "wrong-address");
-    host.referenced.add("wrong-address");
     remote.records.delete(record.hash);
     remote.bytes.delete(record.hash);
     record.hash = "0".repeat(64);

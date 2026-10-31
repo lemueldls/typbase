@@ -13,8 +13,6 @@ export interface AssetSyncStatus {
 /** The local side of asset sync. The app implements it over WorkspaceStore. */
 export interface AssetSyncHost {
   listBlobs(): Promise<Array<{ hash: string }>>;
-  /** Blob addresses that pages, settings, or plugin state currently use. */
-  referencedBlobHashes(): Promise<Set<string>>;
   readBlob(hash: string): Promise<Uint8Array | null>;
   putBlob(bytes: Uint8Array): Promise<{ hash: string }>;
   hash(bytes: Uint8Array): Promise<string>;
@@ -41,9 +39,8 @@ function errorMessage(error: unknown): string {
 /**
  * Moves content-addressed blobs between the local workspace and its PDS
  * asset collection. Local writes upload immediately. A full pass uploads
- * missing local blobs and downloads missing remote blobs that a page or the
- * workspace settings reference, so a fresh device gets fonts and images
- * without pulling every orphan the space has ever seen.
+ * missing local blobs and downloads every remote blob the device does not
+ * have, so the asset browser and workspace fonts match on every device.
  */
 export class AssetSync {
   private state: AssetSyncStatus = {
@@ -78,7 +75,7 @@ export class AssetSync {
         this.setState({ error: `Could not upload ${hash}: ${errorMessage(cause)}` });
       });
     });
-    this.timer = setInterval(() => void this.syncNow(), this.options.intervalMs ?? 60_000);
+    this.timer = setInterval(() => void this.syncNow(), this.options.intervalMs ?? 15_000);
     void this.syncNow();
   }
 
@@ -116,11 +113,7 @@ export class AssetSync {
     let downloaded = 0;
 
     try {
-      const [remoteRecords, local, referenced] = await Promise.all([
-        this.remote.list(),
-        this.host.listBlobs(),
-        this.host.referencedBlobHashes(),
-      ]);
+      const [remoteRecords, local] = await Promise.all([this.remote.list(), this.host.listBlobs()]);
       const localAddresses = new Set(local.map((entry) => entry.hash));
       const remoteByAddress = new Map<string, AssetRecord>();
       const remoteHashes = new Set<string>();
@@ -130,7 +123,7 @@ export class AssetSync {
       }
 
       const downloads = [...remoteByAddress.values()].filter(
-        (record) => referenced.has(record.address) && !localAddresses.has(record.address),
+        (record) => !localAddresses.has(record.address),
       );
       const uploads = local.filter((entry) => !remoteByAddress.has(entry.hash));
       this.setState({ pending: downloads.length + uploads.length });
