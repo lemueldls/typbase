@@ -113,7 +113,6 @@ export default defineNuxtConfig({
   srcDir: "src",
   compatibilityDate: "2026-11-01",
   devtools: { enabled: false },
-  future: { compatibilityVersion: 5 },
   modules: ["@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
   css: ["~/assets/css/main.css"],
   app: {
@@ -244,7 +243,7 @@ export default defineNuxtConfig({
     // experimental: { bundledDev: true },
     optimizeDeps: {
       include: [
-        "@atproto/oauth-client-browser",
+        // "@atproto/oauth-client-browser",
         "@codemirror/autocomplete",
         "@codemirror/commands",
         "@codemirror/language",
@@ -253,7 +252,7 @@ export default defineNuxtConfig({
         "@codemirror/state",
         "@codemirror/view",
         "@internationalized/date",
-        "@paralleldrive/cuid2",
+        // "@paralleldrive/cuid2",
         "@replit/codemirror-vim",
         "@tauri-apps/api/app",
         "@tauri-apps/api/core",

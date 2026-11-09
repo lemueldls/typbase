@@ -27,24 +27,24 @@
     "build:registry": "moon run registry:build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^3.0.0-alpha.0",
-    "@tauri-apps/cli": "^3.0.0-alpha.1",
-    "@tauri-apps/plugin-cli": "^3.0.0-alpha.0",
-    "@tauri-apps/plugin-deep-link": "^3.0.0-alpha.0",
-    "@tauri-apps/plugin-opener": "^3.0.0-alpha.0",
-    "@tauri-apps/plugin-process": "^3.0.0-alpha.0",
-    "@tauri-apps/plugin-updater": "^3.0.0-alpha.0"
+    "@tauri-apps/api": "^3.0.0-alpha.3",
+    "@tauri-apps/cli": "^3.0.0-alpha.6",
+    "@tauri-apps/plugin-cli": "^3.0.0-alpha.3",
+    "@tauri-apps/plugin-deep-link": "^3.0.0-alpha.3",
+    "@tauri-apps/plugin-opener": "^3.0.0-alpha.3",
+    "@tauri-apps/plugin-process": "^3.0.0-alpha.3",
+    "@tauri-apps/plugin-updater": "^3.0.0-alpha.3"
   },
   "devDependencies": {
-    "@golar/vue": "^0.1.10",
-    "@moonrepo/cli": "^2.3.4",
+    "@golar/vue": "^0.1.11",
+    "@moonrepo/cli": "^2.6.5",
     "git-cliff": "^2.14.2",
-    "golar": "^0.1.10",
-    "oxfmt": "^0.65.0",
-    "oxlint": "^1.81.0",
-    "oxlint-tsgolint": "^7.0.2001",
-    "playwright": "^1.63.0",
-    "takumi-js": "^2.18.2"
+    "golar": "^0.1.11",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2006",
+    "playwright": "^1.65.0",
+    "takumi-js": "^2.20.0"
   },
   "packageManager": "pnpm@12.6.0"
 }

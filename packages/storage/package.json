@@ -24,7 +24,7 @@
     "loro-crdt": "^1.17.1"
   },
   "devDependencies": {
-    "tsdown": "0.23.0",
-    "typescript": "^5.9.3"
+    "tsdown": "0.23.7",
+    "typescript": "^7.0.2"
   }
 }

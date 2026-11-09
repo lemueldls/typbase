@@ -19,12 +19,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@atproto/oauth-client-browser": "0.0.0-spaces-alpha-20261029171913",
+    "@atproto/oauth-client-browser": "0.5.14",
     "@typbase/typing": "workspace:*",
     "airspace": "github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059"
   },
   "devDependencies": {
-    "tsdown": "0.23.0",
-    "typescript": "^5.9.3"
+    "tsdown": "0.23.7",
+    "typescript": "^7.0.2"
   }
 }
