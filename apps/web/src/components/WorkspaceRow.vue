@@ -99,7 +99,7 @@ const rowStyle = computed(() =>
   align-items: center;
   gap: var(--space-0-5);
   padding-right: var(--space-1);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   transition: background var(--motion-fast);
 }
 

@@ -159,7 +159,7 @@ async function openToday(): Promise<void> {
         <button type="button" class="app-bar__search" @click="showSearch()">
           <MsIcon name="search" :size="18" class="app-bar__search-icon" />
           <span class="app-bar__search-label">{{ $t("nav.search") }}</span>
-          <UiKbd v-if="searchHint" class="app-bar__search-hint">{{ searchHint }}</UiKbd>
+          <!-- <UiKbd v-if="searchHint" class="app-bar__search-hint">{{ searchHint }}</UiKbd> -->
         </button>
       </UiTooltip>
     </div>

@@ -89,7 +89,7 @@ useBackLayer(open);
   text-align: left;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 
@@ -112,9 +112,13 @@ useBackLayer(open);
   color: var(--color-danger);
 }
 
+.menu .menu__danger:hover {
+  background: var(--color-danger-soft);
+}
+
 .menu__separator {
   height: 1px;
-  margin: var(--space-1) 0;
+  margin: var(--space-0-5) 0;
   background: var(--color-border);
 }
 </style>

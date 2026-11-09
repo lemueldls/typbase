@@ -119,7 +119,7 @@ watch([() => props.typstState, () => props.fileId], () => {
   white-space: nowrap;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 

@@ -307,7 +307,7 @@ function statusFor(info: WorkspaceInfo): string {
 
 .ws-menu {
   width: min(320px, calc(100vw - var(--space-8)));
-  padding: var(--space-1-5);
+  /* padding: var(--space-1-5); */
 }
 
 .ws-menu__header {
