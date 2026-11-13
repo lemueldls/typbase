@@ -33,6 +33,7 @@ import {
   useEngineHealth,
   type EngineFailure,
 } from "~/lib/engineHealth";
+import { blocksOf } from "~/lib/engineSyntax";
 import { fontFamiliesInSource } from "~/lib/fonts";
 import { matchesShortcut, shortcutLabel } from "~/lib/keybindings";
 import {
@@ -41,6 +42,7 @@ import {
   type NotebookController,
 } from "~/lib/notebook";
 import { pageContextBinding } from "~/lib/pageContext";
+import { findInPrepared, preparePageBlocks, type PreparedPageBlock } from "~/lib/pageFind";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { revealRequests } from "~/lib/reveal";
@@ -125,6 +127,18 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 useEventListener("keydown", onKeydown, { capture: true });
+
+/** Read mode has no visible editor, so CodeMirror's find panel cannot open. */
+function onFindKeydown(event: KeyboardEvent): void {
+  if (props.modelValue !== "read" || !matchesShortcut(event, "pageFind")) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.repeat) return;
+  openFind();
+}
+
+useEventListener("keydown", onFindKeydown, { capture: true });
 
 const notebookSession = createNotebookSession();
 const notebookController = shallowRef<NotebookController>();
@@ -867,7 +881,7 @@ watch(
 
     mine.consumed = true;
     void nextTick(() => {
-      editorPane.value?.revealRange(mine.from, mine.to);
+      revealInPage(mine.from, mine.to);
     });
   },
   { immediate: true },
@@ -959,6 +973,154 @@ watch(pluginsRevision, () => {
 // Template bindings unwrap refs (":text=\"text\"" passes the string). The
 // editor/preview need the ref objects themselves, and v-bind spread keeps them.
 const sharedState = computed(() => ({ text, prelude }));
+
+const findOpen = ref(false);
+const findQuery = ref("");
+const findActive = ref(0);
+const findPrepared = shallowRef<PreparedPageBlock[]>([]);
+const findBar = useTemplateRef("findBar");
+/** A read-mode reveal that arrived before the preview mounted. */
+const pendingPageReveal = ref<{ from: number; to: number } | null>(null);
+
+const findMatches = computed(() => {
+  const value = findQuery.value.trim();
+  if (!value) return [];
+
+  return findInPrepared(findPrepared.value, value, sharedState.value.text.value);
+});
+
+function prepareFindNow(): void {
+  if (!typstState.value || !ready.value || degraded.value) {
+    findPrepared.value = [];
+
+    return;
+  }
+
+  const source = sharedState.value.text.value;
+  try {
+    findPrepared.value = preparePageBlocks(blocksOf(typstState.value, source), source);
+  } catch {
+    // A failed engine cannot answer, and the bar should stay empty rather than
+    // take the page down with it.
+    findPrepared.value = [];
+  }
+}
+
+const prepareFindDebounced = useDebounceFn(prepareFindNow, 200);
+
+function openFind(): void {
+  if (degraded.value) return;
+
+  if (findOpen.value) {
+    prepareFindNow();
+    void nextTick(() => findBar.value?.focus());
+
+    return;
+  }
+
+  findOpen.value = true;
+  void nextTick(() => findBar.value?.focus());
+}
+
+function closeFind(): void {
+  findOpen.value = false;
+  findQuery.value = "";
+  findPrepared.value = [];
+  findActive.value = 0;
+
+  if (props.modelValue === "read") previewPane.value?.scroller?.focus();
+  else editorPane.value?.view?.focus();
+}
+
+function revealInPage(from: number, to: number): void {
+  if (props.modelValue === "read") {
+    if (!previewPane.value) {
+      pendingPageReveal.value = { from, to };
+
+      return;
+    }
+
+    previewPane.value.revealRange(from, to);
+
+    return;
+  }
+
+  editorPane.value?.revealRange(from, to);
+}
+
+watch(previewPane, (pane) => {
+  const pending = pendingPageReveal.value;
+  if (!pane || !pending) return;
+
+  pendingPageReveal.value = null;
+  pane.revealRange(pending.from, pending.to);
+});
+
+function revealActiveMatch(): void {
+  const match = findMatches.value[findActive.value];
+  if (match) revealInPage(match.from, match.to);
+}
+
+function nextFindMatch(): void {
+  const count = findMatches.value.length;
+  if (!count) return;
+
+  findActive.value = (findActive.value + 1) % count;
+  revealActiveMatch();
+}
+
+function prevFindMatch(): void {
+  const count = findMatches.value.length;
+  if (!count) return;
+
+  findActive.value = (findActive.value - 1 + count) % count;
+  revealActiveMatch();
+}
+
+watch(findQuery, () => {
+  findActive.value = 0;
+});
+
+watch(findMatches, (matches) => {
+  if (!matches.length) {
+    findActive.value = 0;
+
+    return;
+  }
+
+  if (findActive.value >= matches.length) findActive.value = 0;
+  revealActiveMatch();
+});
+
+watch(findOpen, (open) => {
+  if (open) prepareFindNow();
+});
+
+watch(
+  () => sharedState.value.text.value,
+  () => {
+    if (findOpen.value) void prepareFindDebounced();
+  },
+);
+
+watch(
+  () => props.modelValue,
+  (mode) => {
+    if (mode !== "read" && findOpen.value) closeFind();
+  },
+);
+
+watch(
+  () => props.pageId,
+  () => {
+    pendingPageReveal.value = null;
+    if (findOpen.value) closeFind();
+  },
+);
+
+watch(ready, (isReady) => {
+  if (isReady && findOpen.value) prepareFindNow();
+});
 
 // System fonts were installed, so the typeface set changed under the docs.
 watch(renderRevision, () => {
@@ -1296,6 +1458,14 @@ function setCategory(categoryId: string | null): void {
           />
         </UiPopover>
 
+        <UiIconButton
+          v-if="modelValue === 'read'"
+          icon="manage_search"
+          :label="$t('pageView.find')"
+          :disabled="!ready || degraded"
+          @click="openFind"
+        />
+
         <PublishDialog v-if="store" v-model:open="publishOpen" :page-id="pageId" :store="store" />
 
         <ExportDialog
@@ -1392,6 +1562,16 @@ function setCategory(categoryId: string | null): void {
           </UiMenuItem>
 
           <UiMenuItem
+            v-if="modelValue === 'read'"
+            icon="manage_search"
+            :disabled="!ready || degraded"
+            @select="openFind"
+          >
+            <span class="page-view__menu-label">{{ $t("pageView.find") }}</span>
+            <UiKbd class="page-view__menu-key">{{ shortcutLabel("pageFind") }}</UiKbd>
+          </UiMenuItem>
+
+          <UiMenuItem
             v-if="compact && modelValue !== 'read'"
             icon="text_format"
             @select="formatOpen = !formatOpen"
@@ -1476,6 +1656,18 @@ function setCategory(categoryId: string | null): void {
         </UiMenu>
       </div>
     </div>
+
+    <PageFindBar
+      v-if="findOpen && modelValue === 'read'"
+      ref="findBar"
+      :query="findQuery"
+      :count="findMatches.length"
+      :active="findActive"
+      @update:query="findQuery = $event"
+      @next="nextFindMatch"
+      @prev="prevFindMatch"
+      @close="closeFind"
+    />
 
     <NotebookToolbar
       v-if="store && meta?.kind === 'notebook'"

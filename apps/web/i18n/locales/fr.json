@@ -127,7 +127,13 @@
     "publishWorking": "En cours…",
     "dropMedia": "Déposer pour insérer un média",
     "publishOptions": "Options de publication",
-    "saveDefaults": "Enregistrer par défaut"
+    "saveDefaults": "Enregistrer par défaut",
+    "find": "Find in page",
+    "findPlaceholder": "Find in page…",
+    "findCount": "{active} of {count}",
+    "findNoMatches": "No matches",
+    "findPrevious": "Previous match",
+    "findNext": "Next match"
   },
   "toc": {
     "title": "Sommaire",
@@ -497,11 +503,16 @@
     "indexStats": "Index : {docs} pages · {blocks} blocs · {mode}",
     "storagePersistent": "persistant",
     "storageMemory": "en mémoire (sans OPFS/isolation)",
-    "indexingProgress": "Indexation des pages… {docs} sur {total}",
+    "indexingProgress": "Indexation des pages… {done} sur {total}",
     "chipText": "Texte",
     "chipLoading": "Modèle {progress} %",
     "chipLoadingUnknown": "Modèle…",
-    "chipSemantic": "Sémantique"
+    "chipSemantic": "Sémantique",
+    "looseMatches": "No all-word matches. Showing any-word matches.",
+    "resultCount": "{count} result in {pages} page | {count} results in {pages} pages",
+    "rebuildingProgress": "Rebuilding the index… {done} of {total} pages",
+    "retry": "Retry",
+    "checkingIndex": "Checking the index… {done} of {total} pages"
   },
   "calendar": {
     "title": "Notes quotidiennes",

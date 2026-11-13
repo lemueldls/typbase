@@ -127,7 +127,13 @@
     "publishWorking": "Arbeite…",
     "dropMedia": "Zum Einfügen von Medien hier ablegen",
     "publishOptions": "Veröffentlichungsoptionen",
-    "saveDefaults": "Als Standard speichern"
+    "saveDefaults": "Als Standard speichern",
+    "find": "Find in page",
+    "findPlaceholder": "Find in page…",
+    "findCount": "{active} of {count}",
+    "findNoMatches": "No matches",
+    "findPrevious": "Previous match",
+    "findNext": "Next match"
   },
   "toc": {
     "title": "Inhalt",
@@ -497,11 +503,16 @@
     "indexStats": "Index: {docs} Seiten · {blocks} Blöcke · {mode}",
     "storagePersistent": "dauerhaft",
     "storageMemory": "im Speicher (kein OPFS/Isolation)",
-    "indexingProgress": "Seiten werden indiziert… {docs} von {total}",
+    "indexingProgress": "Seiten werden indiziert… {done} von {total}",
     "chipText": "Text",
     "chipLoading": "Modell {progress}%",
     "chipLoadingUnknown": "Modell…",
-    "chipSemantic": "Semantisch"
+    "chipSemantic": "Semantisch",
+    "looseMatches": "No all-word matches. Showing any-word matches.",
+    "resultCount": "{count} result in {pages} page | {count} results in {pages} pages",
+    "rebuildingProgress": "Rebuilding the index… {done} of {total} pages",
+    "retry": "Retry",
+    "checkingIndex": "Checking the index… {done} of {total} pages"
   },
   "calendar": {
     "title": "Tägliche Notizen",

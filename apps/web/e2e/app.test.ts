@@ -125,6 +125,191 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("searches prefixes, phrases, and read-mode finds", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Search target",
+      content: "= Café Search\n\nThe typstical searchable notebook mentions café and cafe.\n",
+    });
+    await showPage(page, id, "write");
+    await page.locator(".cm-content").click();
+
+    // Prefix matching: `typ` finds `typstical`.
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector(".search-palette", { timeout: 30_000 });
+    const input = page.locator(".search-palette input").first();
+    await input.fill("typ");
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll(".search-palette-panel__result")].some((result) =>
+          result.textContent?.includes("typstical"),
+        ),
+      null,
+      { timeout: 60_000 },
+    );
+
+    // A quoted phrase stays exact.
+    await input.fill('"café search"');
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector(".search-palette-panel__result")
+          ?.textContent?.includes("Café Search"),
+      null,
+      { timeout: 30_000 },
+    );
+
+    // One page can return more than one block.
+    await input.fill("cafe");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".search-palette-panel__hits li").length === 2,
+      null,
+      { timeout: 30_000 },
+    );
+
+    // The all-word query has no match, so the any-word fallback runs.
+    await input.fill("typstical nonexistentword");
+    await page.waitForSelector(".search-palette-panel__loose", { timeout: 30_000 });
+    expect(await page.locator(".search-palette-panel__result").first().textContent()).toContain(
+      "typstical",
+    );
+
+    // The reveal range is UTF-16, so an accented match lands on the word.
+    await input.fill("cafe");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".search-palette-panel__hits li").length === 2,
+      null,
+      { timeout: 30_000 },
+    );
+    await page.locator(".search-palette-panel__hits li").first().click();
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+        const text = view && selection ? view.state.sliceDoc(selection.from, selection.to) : "";
+
+        return /caf/i.test(text);
+      },
+      null,
+      { timeout: 30_000 },
+    );
+
+    // A result that switches pages must still place the cursor in the new
+    // editor, not only when the page was already open.
+    const otherId = await createTestPage(page, {
+      title: "Other target",
+      content: "= Other\n\nnothing here\n",
+    });
+    await showPage(page, otherId, "write");
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector(".search-palette", { timeout: 10_000 });
+    await page.locator(".search-palette input").first().fill("typstical");
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll(".search-palette-panel__result")].some((result) =>
+          result.textContent?.includes("typstical"),
+        ),
+      null,
+      { timeout: 30_000 },
+    );
+    await page.locator(".search-palette-panel__result").first().click();
+    await page.waitForFunction((targetId) => window.__typbase.pageId === targetId, id, {
+      timeout: 30_000,
+    });
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+        const text = view && selection ? view.state.sliceDoc(selection.from, selection.to) : "";
+
+        return /typstical/i.test(text);
+      },
+      null,
+      { timeout: 30_000 },
+    );
+
+    // Read mode has its own find bar because the SVG frames have no text nodes.
+    await page.evaluate(() => window.__typbase.setMode?.("read"));
+    await page.waitForSelector(".paged-preview", { timeout: 30_000 });
+    await page.keyboard.press("Control+f");
+    await page.waitForSelector(".page-find", { timeout: 10_000 });
+    await page.locator(".page-find input").fill("café");
+    await page.waitForFunction(
+      () => document.querySelector(".page-find__count")?.textContent?.includes("of"),
+      null,
+      { timeout: 10_000 },
+    );
+    await page.keyboard.press("Enter");
+    await page.waitForSelector(".paged-preview__frame--flash", { timeout: 5_000 });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !document.querySelector(".page-find"), null, {
+      timeout: 5_000,
+    });
+
+    // A global search result stays in read mode and scrolls the preview.
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector(".search-palette", { timeout: 10_000 });
+    await page.locator(".search-palette input").first().fill("cafe");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".search-palette-panel__hits li").length === 2,
+      null,
+      { timeout: 30_000 },
+    );
+    await page.locator(".search-palette-panel__hits li").first().click();
+    await page.waitForSelector(".paged-preview__frame--flash", { timeout: 5_000 });
+    expect(await page.evaluate(() => window.__typbase.mode?.())).toBe("read");
+
+    // The index and its content hashes survive a reload. A warm workspace
+    // still finds the page without reindexing it from scratch.
+    await page.reload({ waitUntil: "load" });
+    // Read mode persists in the URL, so the editor is mounted but hidden.
+    await page.waitForSelector(".cm-editor", { state: "attached", timeout: 120_000 });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async () => {
+            const items = await window.__typbase.searchQuery?.("typstical");
+
+            return items?.some((item) => item.title === "Search target") ?? false;
+          }),
+        { timeout: 60_000 },
+      )
+      .toBe(true);
+
+    // A warm index has no block maps in memory. Clicking a result must still
+    // resolve the source range and place the cursor.
+    await page.evaluate(() => window.__typbase.setMode?.("write"));
+    await page.waitForSelector(".cm-editor", { timeout: 120_000 });
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector(".search-palette", { timeout: 10_000 });
+    await page.locator(".search-palette input").first().fill("typstical");
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll(".search-palette-panel__result")].some((result) =>
+          result.textContent?.includes("typstical"),
+        ),
+      null,
+      { timeout: 30_000 },
+    );
+    await page.locator(".search-palette-panel__result").first().click();
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+        const text = view && selection ? view.state.sliceDoc(selection.from, selection.to) : "";
+
+        return /typstical/i.test(text);
+      },
+      null,
+      { timeout: 30_000 },
+    );
+
+    await page.close();
+  });
+
   it("writes the current storage layout", async () => {
     const page = await createPage();
     await openApp(page);

@@ -7,6 +7,7 @@ import type { AiProvider } from "~/lib/ai/providers";
 import type { BundleCheckResult, BundleTextFile } from "~/lib/bundleCheck";
 import type { ExportOptions } from "~/lib/exportPage";
 import type { WorkspaceExportOptions } from "~/lib/exportWorkspace";
+import type { SearchResultItem, SearchStatus } from "~/lib/search";
 
 /** A built export bundle, reduced to the files a test can read. */
 export interface ExportBundle {
@@ -68,6 +69,10 @@ export interface TypbaseTestApi {
   graphNodePoint: ((id: string) => { x: number; y: number } | null) | null;
   /** Source page ids that link the given page, for link/backlink checks. */
   backlinksFor: ((pageId: string) => string[]) | null;
+  /** Search index status, for e2e checks. */
+  searchStatus: (() => SearchStatus | null) | null;
+  /** Run a search query directly, for e2e checks. */
+  searchQuery: ((text: string) => Promise<SearchResultItem[]>) | null;
   /** Create a chat thread and return its id. */
   newChat: ((pageId?: string | null) => Promise<string>) | null;
   /** Send a chat message and wait for the reply flow to settle. */
@@ -136,6 +141,8 @@ export const testApi: TypbaseTestApi = {
   graphStats: null,
   graphNodePoint: null,
   backlinksFor: null,
+  searchStatus: null,
+  searchQuery: null,
   newChat: null,
   sendChat: null,
   chatMessages: null,

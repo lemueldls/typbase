@@ -67,6 +67,38 @@ declare global {
       openGraph(): void;
       graphStats(): { nodes: number; edges: number } | null;
       backlinksFor(pageId: string): string[];
+      searchStatus(): {
+        ready: boolean;
+        mode: "opfs" | "memory" | "starting";
+        docs: number;
+        blocks: number;
+        semantic: boolean;
+        vecReady: boolean;
+        model: "idle" | "downloading" | "ready" | "error";
+        modelProgress: number | null;
+        error: string | null;
+        indexError: string | null;
+        indexing: {
+          done: number;
+          total: number;
+          reason: "checking" | "startup" | "rebuild";
+        } | null;
+      } | null;
+      searchQuery(text: string): Promise<
+        Array<{
+          docId: string;
+          path: string;
+          title: string;
+          blockIndex: number;
+          kind: string;
+          snippet: Array<{ text: string; match: boolean }>;
+          rawRange: { from: number; to: number } | null;
+          offsets: Array<[number, number]>;
+          bm25: number | null;
+          semantic: number | null;
+          score: number;
+        }>
+      >;
       newChat(pageId?: string | null): Promise<string>;
       sendChat(threadId: string, text: string): Promise<void>;
       chatMessages(

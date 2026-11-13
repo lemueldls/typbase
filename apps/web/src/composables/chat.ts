@@ -140,9 +140,9 @@ function useChatState() {
     const manager = search.value;
     if (manager) {
       deps.search = async (query: string) => {
-        const hits = await manager.query(query, 8);
+        const { items } = await manager.query(query, 8);
 
-        return hits.map((hit) => ({
+        return items.map((hit) => ({
           pageId: hit.docId,
           title: hit.title,
           text: hit.snippet.map((segment) => segment.text).join(""),

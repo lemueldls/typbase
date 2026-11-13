@@ -127,7 +127,13 @@
     "publishWorking": "处理中…",
     "dropMedia": "拖放以插入素材",
     "publishOptions": "发布选项",
-    "saveDefaults": "保存为默认值"
+    "saveDefaults": "保存为默认值",
+    "find": "Find in page",
+    "findPlaceholder": "Find in page…",
+    "findCount": "{active} of {count}",
+    "findNoMatches": "No matches",
+    "findPrevious": "Previous match",
+    "findNext": "Next match"
   },
   "toc": {
     "title": "目录",
@@ -497,11 +503,16 @@
     "indexStats": "索引：{docs} 个页面 · {blocks} 个块 · {mode}",
     "storagePersistent": "持久化",
     "storageMemory": "内存中（无 OPFS/隔离）",
-    "indexingProgress": "正在索引页面… {docs}/{total}",
+    "indexingProgress": "正在索引页面… {done}/{total}",
     "chipText": "文本",
     "chipLoading": "模型 {progress}%",
     "chipLoadingUnknown": "模型…",
-    "chipSemantic": "语义"
+    "chipSemantic": "语义",
+    "looseMatches": "No all-word matches. Showing any-word matches.",
+    "resultCount": "{count} result in {pages} page | {count} results in {pages} pages",
+    "rebuildingProgress": "Rebuilding the index… {done} of {total} pages",
+    "retry": "Retry",
+    "checkingIndex": "Checking the index… {done} of {total} pages"
   },
   "calendar": {
     "title": "每日笔记",

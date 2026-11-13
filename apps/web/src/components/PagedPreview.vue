@@ -118,6 +118,11 @@ const frames = ref<SvgRangedFrame[]>([]);
  *  before the next compile lands. */
 const framesText = ref("");
 const rendering = ref(false);
+/** Frame index with the find-bar flash, cleared after the animation. */
+const flashIndex = ref<number | null>(null);
+let flashTimer: ReturnType<typeof setTimeout> | undefined;
+/** A reveal that arrived before the first render landed. */
+const pendingReveal = shallowRef<{ from: number; to: number } | null>(null);
 
 const renderNow = async () => {
   if (!props.typstState || !scroller.value || scroller.value.offsetParent === null) return;
@@ -327,6 +332,55 @@ function frameStyle(entry: PlacedFrame): Record<string, string> {
   };
 }
 
+/**
+ * Scrolls the frame that contains a source range into view and flashes it.
+ *
+ * The frames are glyph outlines, so an exact word cannot be highlighted
+ * without a text layer. The frame is the smallest rendered unit that maps
+ * back to a source range.
+ */
+function revealRange(from: number, to: number): boolean {
+  void to;
+  const placed = layout.value.placed;
+  if (placed.length === 0) {
+    pendingReveal.value = { from, to };
+    return true;
+  }
+
+  let index = placed.findIndex(
+    (entry) => from >= entry.frame.range.start && from < entry.frame.range.end,
+  );
+  if (index === -1) index = placed.findIndex((entry) => entry.frame.range.start >= from);
+  if (index === -1) index = placed.length - 1;
+
+  const entry = placed[index];
+  if (!entry) return false;
+
+  scroller.value?.scrollTo({ top: Math.max(0, entry.top - 12), behavior: "smooth" });
+  flashIndex.value = index;
+  if (flashTimer) clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => {
+    flashIndex.value = null;
+  }, 900);
+
+  return true;
+}
+
+watch(
+  () => layout.value.placed.length,
+  () => {
+    const pending = pendingReveal.value;
+    if (!pending) return;
+
+    pendingReveal.value = null;
+    void nextTick(() => revealRange(pending.from, pending.to));
+  },
+);
+
+onBeforeUnmount(() => {
+  if (flashTimer) clearTimeout(flashTimer);
+});
+
 /** Frame geometry measured from the DOM. Keeps scroll sync honest. */
 interface FrameLayout {
   /** Cumulative top offsets in px. */
@@ -350,7 +404,7 @@ function getFrameLayout(): FrameLayout {
   return { tops, topsEnd: tops.at(-1) ?? 0, ranges };
 }
 
-defineExpose({ scroller, getFrameLayout });
+defineExpose({ scroller, getFrameLayout, revealRange });
 </script>
 
 <template>
@@ -358,6 +412,7 @@ defineExpose({ scroller, getFrameLayout });
     ref="scroller"
     class="paged-preview"
     :class="{ 'paged-preview--measure': contentWidth !== 'full' }"
+    tabindex="-1"
     @click="onPreviewClick"
   >
     <div v-if="rendering" class="paged-preview__status">rendering...</div>
@@ -368,6 +423,7 @@ defineExpose({ scroller, getFrameLayout });
           :key="index"
           :data-frame="index"
           class="paged-preview__frame"
+          :class="{ 'paged-preview__frame--flash': flashIndex === index }"
           :style="frameStyle(entry)"
         >
           <!-- eslint-disable-next-line vue/no-v-html -- the wasm engine produced this SVG markup -->
@@ -464,5 +520,23 @@ defineExpose({ scroller, getFrameLayout });
   display: block;
   width: var(--frame-w) !important;
   height: var(--frame-h) !important;
+}
+
+.paged-preview__frame--flash {
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  box-shadow: 0 0 0 2px var(--color-accent);
+  animation: paged-preview-flash 0.9s var(--ease-out);
+}
+
+.paged-preview:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+@keyframes paged-preview-flash {
+  from {
+    background: color-mix(in srgb, var(--color-accent) 34%, transparent);
+  }
 }
 </style>

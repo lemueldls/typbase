@@ -5,6 +5,7 @@ import type { IndexedBlock, IndexStatus, SearchHit } from "~/workers/index.worke
 
 import { useTypst } from "~/composables/typst";
 import { blocksOf } from "~/lib/engineSyntax";
+import { contentHash, rawEndForByte, utf16ByteOffsets, utf16MapForBlock } from "~/lib/searchText";
 
 /**
  * Search manager: starts the index worker connection, feeds it flattened
@@ -29,8 +30,25 @@ export interface SearchResultItem {
   snippet: SnippetSegment[];
   /** Raw source range for the best hit in the block. */
   rawRange: { from: number; to: number } | null;
+  /** FTS offsets within the block's plain text, in UTF-8 bytes. */
+  offsets: Array<[number, number]>;
   bm25: number | null;
   semantic: number | null;
+  /** Fused rank score, higher is better. */
+  score: number;
+}
+
+/** A text query and whether it needed the any-word fallback. */
+export interface SearchQueryResult {
+  items: SearchResultItem[];
+  loose: boolean;
+}
+
+/** Progress of the startup check, the first index pass, or a manual rebuild. */
+export interface IndexProgress {
+  done: number;
+  total: number;
+  reason: "checking" | "startup" | "rebuild";
 }
 
 export interface SearchStatus {
@@ -47,11 +65,13 @@ export interface SearchStatus {
   error: string | null;
   /** Last index worker failure. Indexing is broken while this is set. */
   indexError: string | null;
+  /** Set while the startup sweep or a rebuild is running. */
+  indexing: IndexProgress | null;
 }
 
 const INDEX_DEBOUNCE_MS = 2000;
 const QUERY_TIMEOUT_MS = 8000;
-const MAX_HITS = 24;
+const MAX_HITS = 40;
 /** Ceiling for one embedding call. The first one downloads the model. */
 const EMBED_TIMEOUT_MS = 120_000;
 /** Backoff between index worker load attempts. Vite's optimizer needs a moment. */
@@ -73,13 +93,21 @@ export class SearchManager {
   private embedSeq = 0;
   private embedPending = new Map<number, (vectors: number[][] | null) => void>();
   private pendingDocs = new Set<string>();
-  private indexMaps = new Map<string, Map<number, Uint8Array>>();
+  private indexMaps = new Map<string, Map<number, Uint32Array>>();
+  /** Source text per indexed page, for turning a match end into an offset. */
+  private indexedText = new Map<string, string>();
   /** Blocks from the last upsert, waiting for the worker's row ids. */
   private blocksByDoc = new Map<string, IndexedBlock[]>();
   private blockIds = new Map<string, number[]>();
   /** Last indexed `PageMeta.updatedAt`, so settings writes don't re-embed. */
   private indexedAt = new Map<string, number>();
+  /** Content fingerprint the worker stored for each page. */
+  private indexedHash = new Map<string, string>();
+  /** The worker has answered with its page list. */
+  private indexedReady = false;
   private indexErrors = new Map<string, string>();
+  /** Set while the startup sweep or a rebuild runs. */
+  private initialSweep: "startup" | "rebuild" | null = null;
   // FTS offsets are UTF-8 byte offsets. Snippets need the decoded text back.
   private encoder = new TextEncoder();
   private decoder = new TextDecoder();
@@ -97,6 +125,7 @@ export class SearchManager {
     modelProgress: null,
     error: null,
     indexError: null,
+    indexing: null,
   };
   private listeners = new Set<() => void>();
   private typst: Promise<TypstState> | undefined;
@@ -125,24 +154,13 @@ export class SearchManager {
       // event, and re-embedding the workspace on a theme change would be
       // wasteful, so only pages whose metadata actually moved get indexed.
       this.refreshSettings();
-
-      const live = new Set<string>();
-      for (const page of this.store.listPages()) {
-        live.add(page.id);
-        if (this.indexedAt.get(page.id) !== page.updatedAt) this.markDirty(page.id);
-      }
-      // Pages that disappeared still have index rows. Marking them dirty
-      // routes through the delete branch in `indexDoc`.
-      for (const docId of this.indexedAt.keys()) {
-        if (!live.has(docId)) this.markDirty(docId);
-      }
+      this.markChanged();
       this.emit();
     });
 
-    // Initial sweep: index every doc the first time, cursors live in the
-    // store's local state? No: search freshness is per-device honest by
-    // re-indexing anything that changed since the last local build.
-    await this.markAllDirty();
+    // The worker reports what it already has. Only changed or missing pages
+    // are indexed, so a warm workspace opens without a full rebuild.
+    this.syncIndexed();
   }
 
   /** Creates the index worker and hands it the database name. */
@@ -166,13 +184,18 @@ export class SearchManager {
    * restart starts empty: drop what was indexed and rebuild it.
    */
   private async restartWorker(attempt: number): Promise<void> {
+    this.indexedReady = false;
     this.indexedAt.clear();
+    this.indexedHash.clear();
+    this.indexedText.clear();
     this.blockIds.clear();
     this.blocksByDoc.clear();
     this.indexMaps.clear();
     this.indexErrors.clear();
     this.syncIndexError();
+    this.initialSweep = null;
     this.statusValue.ready = false;
+    this.statusValue.indexing = null;
     this.emit();
 
     const delay = WORKER_RETRY_DELAYS[attempt];
@@ -186,11 +209,80 @@ export class SearchManager {
 
     await new Promise((resolve) => setTimeout(resolve, delay));
     this.startWorker(attempt + 1);
-    await this.markAllDirty();
+    this.syncIndexed();
   }
 
-  private async markAllDirty(): Promise<void> {
-    for (const docId of await this.store.listDocIds()) this.markDirty(docId);
+  /** Asks the worker for the pages it already holds. */
+  private syncIndexed(): void {
+    this.worker?.postMessage({ type: "indexed" });
+  }
+
+  /** Marks pages whose metadata moved and pages the index still has. */
+  private markChanged(): void {
+    if (!this.indexedReady) return;
+
+    const live = new Set<string>();
+
+    for (const page of this.store.listPages()) {
+      live.add(page.id);
+      if (this.indexedAt.get(page.id) !== page.updatedAt) this.markDirty(page.id);
+    }
+
+    for (const docId of this.indexedAt.keys()) {
+      if (!live.has(docId)) this.markDirty(docId);
+    }
+  }
+
+  /**
+   * Compares every page's current text with the hash the worker stored. This
+   * is what catches text edited while the app was closed, since page text does
+   * not move `PageMeta.updatedAt`.
+   */
+  private async markStartupChanged(): Promise<void> {
+    const worker = this.worker;
+    const pages = this.store.listPages();
+    const live = new Set<string>();
+
+    if (pages.length > 0) {
+      this.statusValue.indexing = { done: 0, total: pages.length, reason: "checking" };
+      this.emit();
+    }
+
+    for (const [index, page] of pages.entries()) {
+      if (this.worker !== worker) return;
+
+      live.add(page.id);
+      try {
+        const text = await this.store.loadPageText(page.id);
+        if (
+          this.indexedAt.get(page.id) !== page.updatedAt ||
+          this.indexedHash.get(page.id) !== contentHash(text)
+        ) {
+          this.markDirty(page.id);
+        }
+      } catch {
+        this.markDirty(page.id);
+      }
+
+      this.statusValue.indexing = { done: index + 1, total: pages.length, reason: "checking" };
+      this.emit();
+    }
+
+    if (this.worker !== worker) return;
+
+    for (const docId of this.indexedHash.keys()) {
+      if (!live.has(docId)) this.markDirty(docId);
+    }
+
+    const total = this.pendingDocs.size;
+    this.initialSweep = total > 0 ? "startup" : null;
+    this.statusValue.indexing = total > 0 ? { done: 0, total, reason: "startup" } : null;
+    this.emit();
+  }
+
+  /** Marks every page for a rebuild after the worker has wiped its tables. */
+  private markAllPagesDirty(): void {
+    for (const page of this.store.listPages()) this.markDirty(page.id);
   }
 
   private markDirty(docId: string): void {
@@ -229,13 +321,35 @@ export class SearchManager {
   private async flushIndex(): Promise<void> {
     const batch = [...this.pendingDocs];
     this.pendingDocs.clear();
+    if (batch.length === 0) {
+      this.initialSweep = null;
 
+      return;
+    }
+
+    const reason = this.initialSweep;
     this.typst ??= useTypst();
     const typstState = await this.typst;
 
-    for (const docId of batch) {
+    if (reason) {
+      this.statusValue.indexing = { done: 0, total: batch.length, reason };
+      this.emit();
+    }
+
+    for (const [index, docId] of batch.entries()) {
       // eslint-disable-next-line no-await-in-loop
       await this.indexDoc(docId, typstState);
+
+      if (reason) {
+        this.statusValue.indexing = { done: index + 1, total: batch.length, reason };
+        this.emit();
+      }
+    }
+
+    if (reason) {
+      this.initialSweep = null;
+      this.statusValue.indexing = null;
+      this.emit();
     }
 
     // The worker tracks the doc/block counts. Ask for a fresh status once the
@@ -254,6 +368,8 @@ export class SearchManager {
     if (!page) {
       this.worker?.postMessage({ type: "delete", docId });
       this.indexMaps.delete(docId);
+      this.indexedText.delete(docId);
+      this.indexedHash.delete(docId);
       this.blockIds.delete(docId);
       this.blocksByDoc.delete(docId);
       this.indexedAt.delete(docId);
@@ -261,15 +377,18 @@ export class SearchManager {
     }
 
     const text = await this.store.loadPageText(docId);
+    const hash = contentHash(text);
 
     const blocks = blocksOf(typstState, text) as unknown as IndexedBlock[];
-    const maps = new Map<number, Uint8Array>();
+    const byteOffsets = utf16ByteOffsets(text);
+    const maps = new Map<number, Uint32Array>();
     for (const [i, block] of blocks.entries()) {
-      const map = new Uint8Array(new Uint32Array(block.map).buffer);
-      maps.set(i, map);
+      maps.set(i, utf16MapForBlock(block, text, byteOffsets));
     }
     this.indexMaps.set(docId, maps);
+    this.indexedText.set(docId, text);
     this.indexedAt.set(docId, page.updatedAt);
+    this.indexedHash.set(docId, hash);
     // The worker answers with the row ids of the blocks it stored. The
     // embedding pass needs those, so it starts from the "upserted" reply.
     this.blocksByDoc.set(docId, blocks);
@@ -280,6 +399,7 @@ export class SearchManager {
       path: page.path,
       title: page.title,
       updatedAt: page.updatedAt,
+      contentHash: hash,
       blocks,
     });
   }
@@ -410,28 +530,30 @@ export class SearchManager {
   }
 
   /** Full-text + optional semantic query, fused by reciprocal rank fusion. */
-  async query(text: string, limit = MAX_HITS): Promise<SearchResultItem[]> {
-    if (!this.worker) return [];
+  async query(text: string, limit = MAX_HITS): Promise<SearchQueryResult> {
+    if (!this.worker) return { items: [], loose: false };
 
     const query = text.trim();
-    if (!query) return [];
+    if (!query) return { items: [], loose: false };
 
-    const ftsHits = await this.queryWorker<SearchHit[]>("query", {
+    const textResult = await this.queryWorker<SearchHit[]>("query", {
       type: "query",
       text: query,
-      limit: MAX_HITS,
+      limit,
     });
+    const ftsHits = textResult.hits;
 
     let semanticHits: SearchHit[] = [];
     const mode = searchQueryMode(this.statusValue);
     if (mode === "hybrid") {
       const vectors = await this.requestVectors([query]);
       if (vectors?.[0]) {
-        semanticHits = await this.queryWorker<SearchHit[]>("semantic-query", {
+        const semantic = await this.queryWorker<SearchHit[]>("semantic-query", {
           type: "semantic-query",
           vector: vectors[0],
-          limit: MAX_HITS,
+          limit,
         });
+        semanticHits = semantic.hits;
       }
     } else if (mode === "loading" && this.statusValue.model === "idle") {
       // Warm the model without delaying the text results. The next
@@ -441,21 +563,28 @@ export class SearchManager {
 
     const fused = this.fuse(ftsHits, semanticHits, limit);
 
-    return fused.map((hit) => this.toItem(hit));
+    return {
+      items: fused.map((hit) => this.toItem(hit)),
+      loose: textResult.loose,
+    };
   }
 
-  private queryWorker<T>(channel: "query" | "semantic-query", request: unknown): Promise<T> {
+  private queryWorker<T>(
+    channel: "query" | "semantic-query",
+    request: unknown,
+  ): Promise<{ hits: T; loose: boolean }> {
     return new Promise((resolve) => {
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const finish = (value: T) => {
+      const finish = (hits: T, loose = false) => {
         clearTimeout(timer);
         this.worker!.removeEventListener("message", onMessage);
-        resolve(value);
+        resolve({ hits, loose });
       };
       const onMessage = (event: MessageEvent) => {
         const message = event.data as {
           type?: string;
           hits?: T;
+          loose?: boolean;
           error?: string;
           requestType?: string;
         };
@@ -471,7 +600,7 @@ export class SearchManager {
           return;
         }
 
-        finish(message.hits as T);
+        finish(message.hits as T, message.loose ?? false);
       };
       // A stopped or crashed worker would otherwise leave the palette on
       // "Searching..." forever.
@@ -549,19 +678,30 @@ export class SearchManager {
     return segments;
   }
 
-  private toItem(hit: SearchHit & { snippet: SnippetSegment[] }): SearchResultItem {
+  private toItem(
+    hit: SearchHit & { snippet: SnippetSegment[]; combined: number },
+  ): SearchResultItem {
     let rawRange: SearchResultItem["rawRange"] = null;
     const [first] = hit.offsets;
     const maps = this.indexMaps.get(hit.docId);
     if (first && maps) {
       const map = maps.get(hit.blockIndex);
       if (map) {
-        const u32 = new Uint32Array(map.buffer, map.byteOffset, map.byteLength / 4);
-        const from = u32[Math.min(first[0], u32.length - 1)];
-        const to = u32[Math.min(first[1] - 1, u32.length - 1)];
-        if (from !== undefined && to !== undefined) {
-          rawRange = { from, to: to + 1 };
-        }
+        const text = this.indexedText.get(hit.docId) ?? "";
+        const from = map[first[0]];
+        const to = rawEndForByte(map, text, first[1]);
+        if (from !== undefined && to > from) rawRange = { from, to };
+      }
+    }
+
+    // Semantic hits have no FTS offsets. Reveal the block they came from
+    // instead of opening the page with no visible location.
+    if (!rawRange) {
+      const map = maps?.get(hit.blockIndex);
+      if (map && map.length > 1) {
+        const from = map[0];
+        const to = map[map.length - 1];
+        if (from !== undefined && to !== undefined && to > from) rawRange = { from, to };
       }
     }
 
@@ -573,9 +713,69 @@ export class SearchManager {
       kind: hit.kind,
       snippet: hit.snippet,
       rawRange,
+      offsets: hit.offsets,
       bm25: hit.bm25,
       semantic: hit.semantic ?? null,
+      score: hit.combined,
     };
+  }
+
+  /**
+   * Resolves a hit's source range on demand. A warm index has no block maps
+   * in memory, so the first click parses the page instead of opening it with
+   * no cursor or highlight.
+   */
+  async resolveRange(item: SearchResultItem): Promise<{ from: number; to: number } | null> {
+    if (item.rawRange) return item.rawRange;
+
+    let text = this.indexedText.get(item.docId);
+    let maps = this.indexMaps.get(item.docId);
+
+    if (!text || !maps) {
+      try {
+        text = await this.store.loadPageText(item.docId);
+        this.typst ??= useTypst();
+        const typstState = await this.typst;
+        const blocks = blocksOf(typstState, text) as unknown as IndexedBlock[];
+        const byteOffsets = utf16ByteOffsets(text);
+        maps = new Map<number, Uint32Array>();
+        for (const [index, block] of blocks.entries()) {
+          maps.set(index, utf16MapForBlock(block, text, byteOffsets));
+        }
+        this.indexMaps.set(item.docId, maps);
+        this.indexedText.set(item.docId, text);
+      } catch {
+        return null;
+      }
+    }
+
+    if (!text || !maps) return null;
+
+    const map = maps.get(item.blockIndex);
+    if (!map) return null;
+
+    const [first] = item.offsets;
+    if (first) {
+      const from = map[first[0]];
+      const to = rawEndForByte(map, text, first[1]);
+      if (from !== undefined && to > from) {
+        item.rawRange = { from, to };
+
+        return item.rawRange;
+      }
+    }
+
+    if (map.length > 1) {
+      const from = map[0];
+      const to = map[map.length - 1];
+      if (from !== undefined && to !== undefined && to > from) {
+        item.rawRange = { from, to };
+
+        return item.rawRange;
+      }
+    }
+
+    return null;
   }
 
   async rebuild(): Promise<void> {
@@ -588,10 +788,38 @@ export class SearchManager {
     this.syncIndexError();
     this.worker?.postMessage({ type: "wipe" });
     this.indexMaps.clear();
+    this.indexedText.clear();
     this.blocksByDoc.clear();
     this.blockIds.clear();
     this.indexedAt.clear();
-    for (const docId of await this.store.listDocIds()) this.markDirty(docId);
+    this.indexedHash.clear();
+
+    const pages = this.store.listPages().length;
+    this.initialSweep = pages > 0 ? "rebuild" : null;
+    this.statusValue.indexing = pages > 0 ? { done: 0, total: pages, reason: "rebuild" } : null;
+    this.emit();
+    this.markAllPagesDirty();
+  }
+
+  /** Restarts the index worker after a load failure. */
+  restart(): void {
+    this.worker?.terminate();
+    this.worker = undefined;
+    this.indexedReady = false;
+    this.indexedAt.clear();
+    this.indexedHash.clear();
+    this.indexedText.clear();
+    this.blockIds.clear();
+    this.blocksByDoc.clear();
+    this.indexMaps.clear();
+    this.indexErrors.clear();
+    this.syncIndexError();
+    this.initialSweep = null;
+    this.statusValue.ready = false;
+    this.statusValue.indexing = null;
+    this.emit();
+    this.startWorker();
+    this.syncIndexed();
   }
 
   /** Terminates both workers. Called when the shared composable disposes. */
@@ -600,16 +828,25 @@ export class SearchManager {
     this.worker = undefined;
     this.embedWorker?.terminate();
     this.embedWorker = undefined;
+    this.initialSweep = null;
+    this.statusValue.indexing = null;
   }
 
   private handleWorkerMessage(message: {
     type: string;
     status?: IndexStatus;
+    pages?: Array<{ docId: string; updatedAt: number; hash: string }>;
     blockIds?: number[];
     docId?: string;
     requestType?: string;
     error?: string;
   }): void {
+    if (message.type === "indexed" && message.pages) {
+      this.indexedAt = new Map(message.pages.map((page) => [page.docId, page.updatedAt]));
+      this.indexedHash = new Map(message.pages.map((page) => [page.docId, page.hash]));
+      this.indexedReady = true;
+      void this.markStartupChanged();
+    }
     if (message.type === "status" && message.status) {
       this.statusValue.ready = true;
       this.statusValue.mode = message.status.mode;

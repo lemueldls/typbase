@@ -181,7 +181,7 @@ function setZen(value: boolean): void {
   }
 }
 
-const { ensure: ensureSearch } = useSearch();
+const { ensure: ensureSearch, search: searchManager, status: searchStatus } = useSearch();
 const chat = useChat();
 const appUpdates = useAppUpdates();
 
@@ -362,6 +362,13 @@ watch(
 
 testApi.openPage = (id) => openPage(id);
 testApi.setMode = (value) => void setMode(value as ViewModeId);
+testApi.searchStatus = () => searchStatus.value;
+testApi.searchQuery = async (text) => {
+  const manager =
+    searchManager.value ?? (workspace.value ? await ensureSearch(workspace.value) : null);
+
+  return (await manager?.query(text))?.items ?? [];
+};
 testApi.openGraph = () => openGraph();
 testApi.openChat = (threadId) => openChat(threadId ?? undefined);
 testApi.newChat = async (pageId) => (await chat.startThread({ pageId: pageId ?? null })).id;

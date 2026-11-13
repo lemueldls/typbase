@@ -47,22 +47,31 @@ const results = ref<SearchResultItem[]>([]);
 const recent = ref<RecentItem[]>([]);
 const active = ref(0);
 const searching = ref(false);
+const loose = ref(false);
 const panel = ref<"results" | "settings">("results");
 
 /** Hits grouped by page, ordered by each page's best hit. */
 const groups = computed<HitGroup[]>(() => {
   const map = new Map<string, HitGroup>();
-  let index = 0;
   for (const hit of results.value) {
     let group = map.get(hit.docId);
     if (!group) {
       group = { pageId: hit.docId, path: hit.path, title: hit.title, hits: [] };
       map.set(hit.docId, group);
     }
-    group.hits.push({ hit, index: index++ });
+    group.hits.push({ hit, index: 0 });
   }
 
-  return [...map.values()];
+  const list = [...map.values()];
+  for (const group of list) group.hits.sort((a, b) => b.hit.score - a.hit.score);
+  list.sort((a, b) => (b.hits[0]?.hit.score ?? 0) - (a.hits[0]?.hit.score ?? 0));
+
+  let index = 0;
+  for (const group of list) {
+    for (const entry of group.hits) entry.index = index++;
+  }
+
+  return list;
 });
 
 /** Flat hit order, matching the `index` on each entry. */
@@ -126,15 +135,29 @@ const indexStats = computed(() => {
   });
 });
 
-/** Thin bar while the first index build is still filling in. */
+/** Progress reported by the manager while it indexes or rebuilds. */
 const indexProgress = computed(() => {
-  const s = status.value;
-  if (!s || s.indexError) return null;
-  const total = props.store.listPages().length;
-  if (total === 0 || (s.ready && s.docs >= total)) return null;
-  const docs = Math.min(s.docs, total);
+  const progress = status.value?.indexing;
+  if (!progress || status.value?.indexError) return null;
 
-  return { docs, total, percent: Math.round((docs / total) * 100) };
+  return {
+    ...progress,
+    percent: progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0,
+  };
+});
+
+const indexingLabel = computed(() => {
+  const progress = status.value?.indexing;
+  if (!progress) return "";
+
+  const key =
+    progress.reason === "checking"
+      ? "palette.checkingIndex"
+      : progress.reason === "rebuild"
+        ? "palette.rebuildingProgress"
+        : "palette.indexingProgress";
+
+  return t(key, { done: progress.done, total: progress.total });
 });
 
 const modelDraft = ref(settings.value.embeddingModel);
@@ -156,25 +179,38 @@ const root = useTemplateRef("root");
 const resultsEl = useTemplateRef("resultsEl");
 
 const runSearch = useDebounceFn(async (value: string) => {
+  // A debounced call can land after the input was cleared or changed.
+  if (value !== query.value) return;
+
   const s = search.value;
-  if (s) {
-    searching.value = true;
-    try {
-      results.value = await s.query(value);
-      active.value = 0;
-    } finally {
-      searching.value = false;
-    }
-  } else {
+  if (!s) {
     results.value = [];
     searching.value = false;
+    loose.value = false;
+
+    return;
+  }
+
+  searching.value = true;
+  try {
+    const result = await s.query(value);
+    // A slow query must not replace the results for a newer input.
+    if (value !== query.value) return;
+
+    results.value = result.items;
+    loose.value = result.loose;
+    active.value = 0;
+  } finally {
+    if (value === query.value) searching.value = false;
   }
 }, 220);
 
 watch(query, (value) => {
   active.value = 0;
+  loose.value = false;
   if (!value.trim()) {
     results.value = [];
+    searching.value = false;
     return;
   }
 
@@ -261,12 +297,13 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
-function openEntry(item: SearchResultItem | RecentItem) {
+async function openEntry(item: SearchResultItem | RecentItem) {
   if ("docId" in item) {
+    const range = item.rawRange ?? (await search.value?.resolveRange(item)) ?? null;
     emit("open", {
       pageId: item.docId,
-      from: item.rawRange?.from,
-      to: item.rawRange?.to,
+      from: range?.from,
+      to: range?.to,
     });
   } else {
     emit("open", { pageId: item.pageId });
@@ -316,6 +353,11 @@ async function resetModel() {
 async function rebuildIndex() {
   await (search.value ?? (await ensure(props.store))).rebuild();
 }
+
+async function retryIndex() {
+  const manager = search.value ?? (await ensure(props.store));
+  manager.restart();
+}
 </script>
 
 <template>
@@ -347,13 +389,32 @@ async function rebuildIndex() {
         {{ $t("palette.searching") }}
       </span>
 
-      <UiProgress
+      <div
         v-if="indexProgress"
-        class="search-palette-panel__progress"
-        :value="indexProgress.percent"
-      />
+        class="search-palette-panel__indexing"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="search-palette-panel__indexing-label">{{ indexingLabel }}</span>
+        <UiProgress
+          class="search-palette-panel__progress"
+          :value="indexProgress.percent"
+          :aria-label="indexingLabel"
+        />
+      </div>
+
+      <div v-if="status?.indexError" class="search-palette-panel__error" role="alert">
+        <span>{{ $t("palette.indexError", { error: status.indexError }) }}</span>
+        <UiButton size="small" variant="ghost" @click="retryIndex">
+          {{ $t("palette.retry") }}
+        </UiButton>
+      </div>
 
       <div class="search-palette-panel__body">
+        <p v-if="loose && query.trim() && groups.length" class="search-palette-panel__loose">
+          {{ $t("palette.looseMatches") }}
+        </p>
+
         <div
           v-if="query.trim() && groups.length"
           id="search-results"
@@ -417,16 +478,11 @@ async function rebuildIndex() {
           </ul>
         </template>
 
-        <p
-          v-else-if="query.trim() && status?.indexError"
-          class="search-palette-panel__hint search-palette-panel__hint--error"
-        >
-          {{ $t("palette.indexError", { error: status.indexError }) }}
+        <p v-else-if="query.trim() && indexProgress" class="search-palette-panel__hint">
+          {{ indexingLabel }}
         </p>
         <p v-else-if="query.trim() && !status?.ready" class="search-palette-panel__hint">
-          {{
-            indexProgress ? $t("palette.indexingProgress", indexProgress) : $t("palette.indexing")
-          }}
+          {{ $t("palette.indexing") }}
         </p>
         <p v-else-if="searching" class="search-palette-panel__hint">
           {{ $t("palette.searching") }}
@@ -442,7 +498,16 @@ async function rebuildIndex() {
           {{ $t("palette.hintKeys") }}
         </span>
         <span class="search-palette-panel__actions">
-          <!-- <UiTooltip :text="chipTooltip" side="top">
+          <span v-if="query.trim() && results.length" class="search-palette-panel__count">
+            {{
+              $t(
+                "palette.resultCount",
+                { count: results.length, pages: groups.length },
+                results.length,
+              )
+            }}
+          </span>
+          <UiTooltip :text="chipTooltip" side="top">
             <button
               type="button"
               class="button button--ghost search-palette-panel__mode"
@@ -451,6 +516,7 @@ async function rebuildIndex() {
                 'search-palette-panel__mode--error': status?.model === 'error',
               }"
               :aria-disabled="!vecReady && !semantic"
+              :aria-pressed="semantic"
               @click="toggleSemantic(!semantic)"
             >
               <MsIcon
@@ -458,9 +524,9 @@ async function rebuildIndex() {
                 :size="16"
                 :class="{ 'search-palette-panel__spinner': status?.model === 'downloading' }"
               />
-              {{ chipLabel }}
+              <span class="search-palette-panel__mode-label">{{ chipLabel }}</span>
             </button>
-          </UiTooltip> -->
+          </UiTooltip>
           <UiIconButton
             icon="tune"
             :label="$t('palette.settings')"
@@ -468,13 +534,6 @@ async function rebuildIndex() {
             :size="20"
             @click="showSettings"
           />
-          <!-- <UiIconButton
-            icon="close"
-            :label="$t('palette.close')"
-            variant="ghost"
-            :size="20"
-            @click="emit('close')"
-          /> -->
         </span>
       </footer>
     </template>
@@ -523,6 +582,19 @@ async function rebuildIndex() {
         <div class="search-palette-panel__divider" />
 
         <p class="search-palette-panel__hint">{{ indexStats }}</p>
+        <div
+          v-if="indexProgress"
+          class="search-palette-panel__indexing"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="search-palette-panel__indexing-label">{{ indexingLabel }}</span>
+          <UiProgress
+            class="search-palette-panel__progress"
+            :value="indexProgress.percent"
+            :aria-label="indexingLabel"
+          />
+        </div>
         <p
           v-if="status?.indexError"
           class="search-palette-panel__hint search-palette-panel__hint--error"
@@ -570,13 +642,47 @@ async function rebuildIndex() {
   }
 }
 
+.search-palette-panel__indexing {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-2-5) var(--space-1);
+}
+
+.search-palette-panel__indexing-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
 .search-palette-panel__progress {
   flex: none;
-  margin: var(--space-1) var(--space-1-5) 0;
+  margin: 0;
 }
 
 .search-palette-panel__progress--inline {
   margin: 0;
+}
+
+.search-palette-panel__error {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 var(--space-2) var(--space-1);
+  padding: var(--space-1-5) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 32%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.search-palette-panel__loose {
+  margin: var(--space-1) var(--space-2-5) 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .search-palette-panel__body {
@@ -626,11 +732,21 @@ async function rebuildIndex() {
   padding-left: var(--space-3);
 }
 
+.search-palette-panel__count {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 .search-palette-panel__mode {
   /* Same control height and rhythm as the footer's icon buttons. */
   height: var(--control-md);
   padding: 0 var(--space-2);
   color: var(--color-text-secondary);
+}
+
+.search-palette-panel__mode-label {
+  white-space: nowrap;
 }
 
 .search-palette-panel__mode--on {
@@ -796,7 +912,12 @@ async function rebuildIndex() {
   }
 
   .search-palette-panel__footer {
+    flex-wrap: wrap;
     padding-bottom: var(--space-1);
+  }
+
+  .search-palette-panel__mode-label {
+    display: none;
   }
 }
 </style>

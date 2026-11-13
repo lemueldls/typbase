@@ -1,6 +1,8 @@
 import sqlite3InitModule from "sqlite-wasm-vec";
 import sqliteWasmUrl from "sqlite-wasm-vec/sqlite3.wasm?url";
 
+import { buildSearchQuery } from "../lib/searchQuery";
+
 /**
  * Search index worker. Owns `index.sqlite` (OPFS when cross-origin isolation
  * allows it, memory otherwise) with FTS5 plus an optional sqlite-vec table
@@ -49,6 +51,7 @@ type WorkerRequest =
       path: string;
       title: string;
       updatedAt: number;
+      contentHash: string;
       blocks: IndexedBlock[];
     }
   | { type: "delete"; docId: string }
@@ -56,16 +59,20 @@ type WorkerRequest =
   | { type: "semantic-query"; vector: number[]; limit: number }
   | { type: "put-vector"; blockId: number; vector: number[] }
   | { type: "vectors-for"; docId: string }
+  | { type: "indexed" }
   | { type: "status" }
   | { type: "wipe" };
 
 type WorkerResponse = {
   id?: number;
-  type: "status" | "query" | "semantic-query" | "vectors" | "upserted" | "error";
+  type: "status" | "query" | "semantic-query" | "vectors" | "upserted" | "indexed" | "error";
   status?: IndexStatus;
   hits?: SearchHit[];
+  /** The strict query found nothing and these hits use the OR fallback. */
+  loose?: boolean;
   blockIds?: number[];
   docId?: string;
+  pages?: Array<{ docId: string; updatedAt: number; hash: string }>;
   vectors?: Array<{ blockId: number; vector: number[] }>;
   /** Request type that failed. Lets `queryWorker` resolve its callers. */
   requestType?: string;
@@ -83,6 +90,9 @@ let vecReady = false;
 
 /** bge-small embedding width. The vec table is declared with it. */
 const VECTOR_DIM = 384;
+
+/** Blocks returned per page, so a page with many matches does not fill the list. */
+const MAX_HITS_PER_PAGE = 3;
 
 async function ensureDb(dbName: string): Promise<void> {
   if (db) return;
@@ -106,7 +116,7 @@ async function ensureDb(dbName: string): Promise<void> {
   opened.exec(`
     CREATE TABLE IF NOT EXISTS pages(
       doc_id TEXT PRIMARY KEY, path TEXT NOT NULL, title TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL, content_hash TEXT NOT NULL DEFAULT ''
     );
     CREATE TABLE IF NOT EXISTS blocks(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,6 +128,14 @@ async function ensureDb(dbName: string): Promise<void> {
     CREATE INDEX IF NOT EXISTS blocks_doc ON blocks(doc_id);
     CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(plain);
   `);
+
+  // The index is a rebuildable cache. Existing databases predate the content
+  // hash column, so add it and let the startup check reindex their pages.
+  const columns = opened.selectArrays("PRAGMA table_info(pages)");
+  if (!columns.some((row) => row[1] === "content_hash")) {
+    opened.exec("ALTER TABLE pages ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''");
+  }
+
   try {
     // The OPFS VFS has no shared memory, so WAL is not available there. The
     // default journal is fine for a rebuildable cache. Keep this separate
@@ -162,10 +180,16 @@ async function handle(request: WorkerRequest): Promise<void> {
           bind: [request.docId],
         });
         db.exec(
-          "INSERT INTO pages(doc_id, path, title, updated_at) VALUES(?, ?, ?, ?) " +
-            "ON CONFLICT(doc_id) DO UPDATE SET path=excluded.path, title=excluded.title, updated_at=excluded.updated_at",
+          "INSERT INTO pages(doc_id, path, title, updated_at, content_hash) VALUES(?, ?, ?, ?, ?) " +
+            "ON CONFLICT(doc_id) DO UPDATE SET path=excluded.path, title=excluded.title, updated_at=excluded.updated_at, content_hash=excluded.content_hash",
           {
-            bind: [request.docId, request.path, request.title, request.updatedAt],
+            bind: [
+              request.docId,
+              request.path,
+              request.title,
+              request.updatedAt,
+              request.contentHash,
+            ],
           },
         );
         for (const [i, block] of request.blocks.entries()) {
@@ -214,61 +238,20 @@ async function handle(request: WorkerRequest): Promise<void> {
       break;
     }
     case "query": {
-      const escaped = request.text.replace(/["']/g, " ");
-      const terms = escaped.trim().split(/\s+/).filter(Boolean).slice(0, 8);
-      if (terms.length === 0) {
+      const parsed = buildSearchQuery(request.text);
+      if (!parsed) {
         post({ type: "query", hits: [] });
         break;
       }
-      const match = `"${terms.join('" "')}"`;
-      // No `offsets()` in this sqlite build. `highlight()` marks the matches
-      // with control characters and the marker positions give the same range.
-      const rows = db.selectArrays(
-        `SELECT b.doc_id, b.block_index, b.kind, b.plain, b.range_start, b.range_end,
-                bm25(fts) AS score, highlight(fts, 0, char(2), char(3)) AS marked
-         FROM fts JOIN blocks b ON b.id = fts.rowid
-         WHERE fts MATCH ?
-         ORDER BY score LIMIT ?`,
-        [match, request.limit],
-      );
-      const hitMap = new Map<string, SearchHit>();
-      for (const row of rows) {
-        const [docId, blockIndex, kind, plain, rangeStart, rangeEnd, score, marked] = row as [
-          string,
-          number,
-          string,
-          string,
-          number,
-          number,
-          number,
-          string,
-        ];
-        const existing = hitMap.get(docId);
-        const offsets = offsetsFromHighlight(String(marked));
-        const hit: SearchHit = {
-          docId: String(docId),
-          path: "",
-          title: "",
-          blockIndex: Number(blockIndex),
-          kind: String(kind),
-          plain: String(plain),
-          rangeStart: Number(rangeStart),
-          rangeEnd: Number(rangeEnd),
-          offsets,
-          bm25: Number(score),
-        };
-        if (!existing || existing.bm25 > hit.bm25) {
-          const meta = db.selectArrays("SELECT path, title FROM pages WHERE doc_id = ?", [docId]);
-          const m = meta[0];
-          hit.path = String(m?.[0] ?? "");
-          hit.title = String(m?.[1] ?? "");
-          hitMap.set(docId, hit);
-        }
+
+      let hits = queryHits(parsed.strict, request.limit);
+      let loose = false;
+      if (hits.length === 0 && parsed.loose) {
+        hits = queryHits(parsed.loose, request.limit);
+        loose = hits.length > 0;
       }
 
-      // Keep the single best block per page, richer across pages.
-      const hits = [...hitMap.values()].sort((a, b) => a.bm25 - b.bm25).slice(0, request.limit);
-      post({ type: "query", hits });
+      post({ type: "query", hits, loose });
       break;
     }
     case "semantic-query": {
@@ -341,6 +324,18 @@ async function handle(request: WorkerRequest): Promise<void> {
       post({ type: "vectors", vectors });
       break;
     }
+    case "indexed": {
+      const rows = db.selectArrays("SELECT doc_id, updated_at, content_hash FROM pages");
+      post({
+        type: "indexed",
+        pages: rows.map((row) => ({
+          docId: String(row[0]),
+          updatedAt: Number(row[1]),
+          hash: String(row[2] ?? ""),
+        })),
+      });
+      break;
+    }
     case "wipe": {
       db.exec("DELETE FROM fts; DELETE FROM blocks; DELETE FROM pages; DELETE FROM vec;");
       break;
@@ -350,6 +345,52 @@ async function handle(request: WorkerRequest): Promise<void> {
       break;
     }
   }
+}
+
+/** Hits for one MATCH expression, at most three blocks per page. */
+function queryHits(match: string, limit: number): SearchHit[] {
+  // `bm25()` cannot run inside a window function, so the score is computed in
+  // the CTE and the row number reads it from there.
+  const rows = db!.selectArrays(
+    `WITH scored AS (
+       SELECT b.doc_id, b.block_index, b.kind, b.plain, b.range_start, b.range_end,
+              p.path, p.title, bm25(fts) AS score,
+              highlight(fts, 0, char(2), char(3)) AS marked
+       FROM fts
+       JOIN blocks b ON b.id = fts.rowid
+       JOIN pages p ON p.doc_id = b.doc_id
+       WHERE fts MATCH ?
+     )
+     SELECT * FROM (
+       SELECT *, ROW_NUMBER() OVER (PARTITION BY doc_id ORDER BY score) AS rn
+       FROM scored
+     )
+     WHERE rn <= ?
+     ORDER BY score
+     LIMIT ?`,
+    [match, MAX_HITS_PER_PAGE, limit],
+  );
+
+  const hits: SearchHit[] = [];
+  for (const row of rows) {
+    const [docId, blockIndex, kind, plain, rangeStart, rangeEnd, path, title, score, marked] =
+      row as [string, number, string, string, number, number, string, string, number, string];
+
+    hits.push({
+      docId: String(docId),
+      path: String(path),
+      title: String(title),
+      blockIndex: Number(blockIndex),
+      kind: String(kind),
+      plain: String(plain),
+      rangeStart: Number(rangeStart),
+      rangeEnd: Number(rangeEnd),
+      offsets: offsetsFromHighlight(String(marked)),
+      bm25: Number(score),
+    });
+  }
+
+  return hits;
 }
 
 function status(): IndexStatus {

@@ -27,6 +27,12 @@ export interface KeyboardShortcut {
  */
 export const APPLICATION_SHORTCUTS: KeyboardShortcut[] = [
   { id: "search", group: "application", keys: { default: "Mod+K" }, labelKey: "nav.search" },
+  {
+    id: "pageFind",
+    group: "application",
+    keys: { default: "Mod+F" },
+    labelKey: "pageView.find",
+  },
   { id: "save", group: "application", keys: { default: "Mod+S" }, labelKey: "shortcuts.savePage" },
   {
     id: "export",

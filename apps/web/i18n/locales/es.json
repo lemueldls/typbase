@@ -127,7 +127,13 @@
     "publishWorking": "Trabajando…",
     "dropMedia": "Suelta para insertar medios",
     "publishOptions": "Opciones de publicación",
-    "saveDefaults": "Guardar como predeterminados"
+    "saveDefaults": "Guardar como predeterminados",
+    "find": "Find in page",
+    "findPlaceholder": "Find in page…",
+    "findCount": "{active} of {count}",
+    "findNoMatches": "No matches",
+    "findPrevious": "Previous match",
+    "findNext": "Next match"
   },
   "toc": {
     "title": "Contenido",
@@ -497,11 +503,16 @@
     "indexStats": "Índice: {docs} páginas · {blocks} bloques · {mode}",
     "storagePersistent": "persistente",
     "storageMemory": "en memoria (sin OPFS/aislamiento)",
-    "indexingProgress": "Indexando páginas… {docs} de {total}",
+    "indexingProgress": "Indexando páginas… {done} de {total}",
     "chipText": "Texto",
     "chipLoading": "Modelo {progress}%",
     "chipLoadingUnknown": "Modelo…",
-    "chipSemantic": "Semántica"
+    "chipSemantic": "Semántica",
+    "looseMatches": "No all-word matches. Showing any-word matches.",
+    "resultCount": "{count} result in {pages} page | {count} results in {pages} pages",
+    "rebuildingProgress": "Rebuilding the index… {done} of {total} pages",
+    "retry": "Retry",
+    "checkingIndex": "Checking the index… {done} of {total} pages"
   },
   "calendar": {
     "title": "Notas diarias",
