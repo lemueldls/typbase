@@ -271,7 +271,7 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
 /** Settings tab ids. Each one maps to a panel below. */
 type SettingsTab = "general" | "appearance" | "editor" | "content" | "ai" | "sync" | "export";
 
-/** Section rail. Icons carry the scan on phones, where labels can truncate. */
+/** Section rail. Icons make the rail scannable on phones, where labels can truncate. */
 const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string; keywords?: string }> = [
   {
     id: "general",
@@ -483,10 +483,10 @@ function openShortcuts(): void {
   shortcuts.show();
 }
 
-// Typst sources that drive page structure: the daily template placeholders
+// Typst sources that define page structure: the daily template placeholders
 // (see WorkspaceStore.createDailyNote) and the workspace prelude appended to
 // every compile. Both sync through settings like everything else.
-// UiSelect drives the settings selects. Each computed maps to a store write.
+// UiSelect backs the settings selects. Each computed maps to a store write.
 const localeOptions = computed<SelectOption[]>(() => [
   { value: "auto", label: t("settings.languageAuto") },
   { value: "en", label: "English" },
@@ -2350,7 +2350,7 @@ async function renameWorkspace(event: Event) {
   opacity: 0.75;
 }
 
-/* The file input is driven by the label button around it. */
+/* The label button around it opens the file input. */
 .settings__font-input {
   display: none;
 }

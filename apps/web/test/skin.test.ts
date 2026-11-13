@@ -122,7 +122,7 @@ describe("skin schema", () => {
 });
 
 describe("workspace defaults", () => {
-  it("carries the provenance defaults", () => {
+  it("has the provenance defaults", () => {
     expect(DEFAULT_SETTINGS.themeProvenance.source).toBeNull();
   });
 });

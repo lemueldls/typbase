@@ -168,7 +168,7 @@ function measureWidth(): number {
   const scrollerEl = scroller.value;
   if (!scrollerEl) return 0;
 
-  // The inner column carries the padding and the optional max width, so its
+  // The inner column has the padding and the optional max width, so its
   // border box is exactly the space a frame draws in. The scroller reserves
   // its scrollbar, so this width does not toggle with the content and set off
   // another compile.
@@ -229,7 +229,7 @@ watch(
 );
 
 /** Editor line height in px. The editor scroller uses 1.4 with the document
- *  text size, which `--doc-text-size` carries. */
+ *  text size, which `--doc-text-size` sets. */
 function editorLineHeight(): number {
   if (typeof document === "undefined") return 22.4;
 

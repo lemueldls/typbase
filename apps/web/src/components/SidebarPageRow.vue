@@ -137,7 +137,7 @@ async function copyId(): Promise<void> {
 </template>
 
 <style>
-/* The held row is a card in the hand: the drag takes it out of the flow and
+/* The dragged row is a card in the hand: the drag takes it out of the flow and
    follows the pointer, and this makes it read as lifted. The slight shrink
    leaves the open slot visible around it. */
 .sidebar__item--drag {

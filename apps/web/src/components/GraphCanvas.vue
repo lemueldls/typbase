@@ -46,7 +46,7 @@ const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 4;
 /** Fit-to-view stops here so a two-node graph does not fill the pane. */
 const FIT_MAX_ZOOM = 1.35;
-/** Auto labels hold until this zoom. Below it the halo text is unreadable. */
+/** Auto labels stay hidden until this zoom. Below it the halo text is unreadable. */
 const AUTO_LABEL_ZOOM = 0.7;
 /** Pointer travel under this counts as a click, not a drag. */
 const CLICK_SLOP = 6;

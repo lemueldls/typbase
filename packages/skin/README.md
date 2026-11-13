@@ -10,7 +10,7 @@ The typed theme contract for Typbase.
 - The color math used by the app and the published site (`expandSeeds`,
   `normalizeCssColor`, `mixHex`).
 
-A skin carries two complete palettes, geometry, and typography. It has no CSS,
+A skin has two complete palettes, geometry, and typography. It has no CSS,
 fonts, images, or Typst source.
 
 JSON Schemas live in `schema/` and are served by the app at

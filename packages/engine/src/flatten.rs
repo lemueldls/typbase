@@ -64,7 +64,7 @@ pub struct EquationSpan {
 pub struct CellSpan {
     /// `"prose"`, `"code"`, `"log"`, or `"hidden"`.
     pub kind: String,
-    /// `name=` from the attribute line, when it carries one.
+    /// `name=` from the attribute line, when it has one.
     pub name: Option<String>,
     /// Attribute line range, excluding the newline. Both zero on a cell that
     /// began at a heading and on the implicit cell above the first boundary.
@@ -372,7 +372,7 @@ fn section_span(call: &FuncCall, node: &LinkedNode, text: &str) -> Option<Sectio
     let kind = kind?;
 
     // The content block sits directly inside the Args node (after the parens).
-    // Its Markup child carries the content range. AST wrappers do not expose
+    // Its Markup child has the content range. AST wrappers do not expose
     // ranges, so walk with LinkedNode directly.
     let mut content_range = None;
     for arg_list in node.children() {
@@ -496,7 +496,7 @@ pub fn extract_cells_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<Ce
     let linked = LinkedNode::new(root);
 
     // A boundary is a line start, the kind it declares, and whether it declared
-    // one at all (a heading carries no attribute, so it is always prose).
+    // one at all (a heading has no attribute, so it is always prose).
     struct Boundary {
         line_start: usize,
         attribute: Option<CellAttribute>,
@@ -505,7 +505,7 @@ pub fn extract_cells_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<Ce
     let mut boundaries: Vec<Boundary> = Vec::new();
 
     for child in linked.children() {
-        // A heading carries no attribute, so `None` here means "prose". A
+        // A heading has no attribute, so `None` here means "prose". A
         // comment has to name a known kind or it is just a comment.
         let attribute = match child.kind() {
             SyntaxKind::Heading => None,

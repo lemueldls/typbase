@@ -10,7 +10,7 @@ use crate::tests::harness;
 
 const SPEC: &str = "@preview/mylib:0.1.0";
 
-/// A minimal Universe package. Real tarballs carry a leading `.` directory
+/// A minimal Universe package. Real tarballs have a leading `.` directory
 /// entry and file paths relative to the package root.
 fn package_tarball() -> Vec<u8> {
     package_tarball_with("#let answer = 42\n")

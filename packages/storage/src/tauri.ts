@@ -2,7 +2,7 @@ import type { StorageBackend, StorageEntryStat } from "./backend";
 
 /**
  * Storage through the Tauri shell's Rust commands (`apps/native/src/storage.rs`).
- * The Rust side owns the active root (app data, device documents, or a picked
+ * The Rust side tracks the active root (app data, device documents, or a picked
  * folder) and all paths cross the IPC boundary relative to it, so nothing in
  * the webview ever handles an absolute path except to display it.
  *
@@ -113,7 +113,7 @@ export class TauriBackend implements StorageBackend {
   }
 
   /**
-   * Watches through the Rust `notify` watcher. The event payload carries the
+   * Watches through the Rust `notify` watcher. The event payload includes the
    * watched root so events that race a workspace switch are dropped.
    */
   async watch(path: string, listener: (relativePath: string) => void): Promise<() => void> {

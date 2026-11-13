@@ -60,7 +60,7 @@ const CHANNEL_DESKTOP_PACKAGE_MANAGED: &str = "desktop-package-managed";
 #[cfg(not(any(target_os = "android", desktop)))]
 const CHANNEL_UNSUPPORTED: &str = "unsupported";
 
-/// The package manager that owns this installation, when it can be found from
+/// The package manager that installed this app, when it can be found from
 /// the executable's path. `command` is a copyable hint, not something the app
 /// runs itself.
 #[derive(Clone, Debug, Serialize)]
@@ -81,7 +81,7 @@ pub struct UpdateChannelInfo {
     manager: Option<PackageManagerInfo>,
 }
 
-/// Registers the Kotlin `UpdaterPlugin` that owns the installer intent, the
+/// Registers the Kotlin `UpdaterPlugin` that handles the installer intent, the
 /// install-unknown-apps settings flow, and the Play Core update. Android only.
 /// There is no Kotlin half on other targets.
 #[cfg(target_os = "android")]
@@ -133,9 +133,9 @@ pub async fn update_channel<R: Runtime>(app: AppHandle<R>) -> Result<UpdateChann
 }
 
 /// A distro build can blank the updater endpoints, but release `.deb` and
-/// `.rpm` files also get repackaged by distro maintainers. Probe the owning
-/// package database too, and treat anything it owns as package-managed even
-/// when the bundled updater has endpoints.
+/// `.rpm` files also get repackaged by distro maintainers. Probe the package
+/// database for the installed package too, and treat anything it reports as
+/// package-managed even when the bundled updater has endpoints.
 #[cfg(desktop)]
 fn desktop_channel<R: Runtime>(app: &AppHandle<R>, owned: bool) -> String {
     let has_endpoints = app
@@ -352,7 +352,7 @@ fn command_output(program: &str, args: &[&str]) -> Option<String> {
 }
 
 /// Installs from Google Play get Play Core updates. Everything else (direct APK,
-/// sideload managers like Obtainium) gets the manifest-driven updater.
+/// sideload managers like Obtainium) gets the updater that reads the release manifest.
 #[cfg(target_os = "android")]
 fn android_channel<R: Runtime>(app: &AppHandle<R>) -> Result<String, String> {
     let installer = {

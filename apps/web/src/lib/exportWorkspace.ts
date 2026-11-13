@@ -235,7 +235,7 @@ export async function buildWorkspaceExport(
       scaleMode: scalePages ? "none" : "text",
     });
 
-    // A combined document is one compile, so each page carries its own
+    // A combined document is one compile, so each page gets its own
     // `note` in a scoped block instead of a shared binding.
     const wrapper = (source: string, position: number, scale: boolean): string => {
       const page = pages[position];

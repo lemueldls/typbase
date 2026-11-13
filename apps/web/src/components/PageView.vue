@@ -304,9 +304,9 @@ let recovering = false;
 
 /**
  * One automatic rebuild per failure burst, and only for an out-of-memory
- * abort: the OOM trace lands in the memoized call body where comemo holds no
+ * abort: the OOM trace lands in the memoized call body where comemo has no
  * lock, so the same module instance is safe to rebuild. Anything else goes
- * straight to `failed`, because a lock held at abort time would hang the next
+ * straight to `failed`, because a lock left behind at abort time would hang the next
  * wasm call and JS cannot time out a synchronous call. Manual retries bypass
  * the breaker.
  */
@@ -1160,7 +1160,7 @@ function jumpToHeading(heading: { from: number; to: number }): void {
   onPreviewJump(heading);
 }
 
-// Page-toolbar actions that are worth a chord. The app-level registry owns the
+// Page-toolbar actions that are worth a chord. The app-level registry defines the
 // key specs; the handlers live here because both panels are PageView state.
 onCapturedKey(
   (event) => matchesShortcut(event, "links"),

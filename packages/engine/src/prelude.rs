@@ -2,7 +2,7 @@
 //! every compile prepends.
 //!
 //! `TYPBASE_LIB` is inserted into the world once at construction and imported
-//! by the generated prelude as `typbase`. It carries `query`, `page-link`,
+//! by the generated prelude as `typbase`. It exports `query`, `page-link`,
 //! `embed`, and `section`. The prelude also binds `theme`, `note`,
 //! and the host values under `sys.inputs`. `style_prelude` builds the canonical
 //! document style (theme, body text, headings, links, strokes, math and raw
@@ -24,7 +24,7 @@ use crate::{bindings::TypstFileId, source::RenderTarget, state::TypstState, them
 // `query` loads JSON the JS side synthesizes on demand (file request
 // `/typbase/query/<kind>.json`). `embed` includes another page's source
 // (source request `/typbase/src/<id>.typ`). Filters ride in the path because
-// the request channel only carries paths, so keep filter values slug-safe.
+// the request channel only passes paths, so keep filter values slug-safe.
 //
 // The prelude around this module defines `theme` (the resolved palette),
 // `note` (the compiling page's own data), and the host values under

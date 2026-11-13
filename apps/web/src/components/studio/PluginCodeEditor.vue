@@ -2,7 +2,7 @@
 /**
  * Standalone CodeMirror editor for the plugin studio. Typst files get the
  * engine-free scanner from @typbase/codemirror, so editing works even when
- * the wasm engine is down. Cmd/Ctrl+S emits `save`. The page owns writes.
+ * the wasm engine is down. Cmd/Ctrl+S emits `save`. The page handles writes.
  */
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";

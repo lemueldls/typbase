@@ -401,7 +401,7 @@ const vimCompartment = new Compartment();
 let vimEnabled = Boolean(props.editor?.vim);
 
 /** A capped, centered writing column instead of the full pane. The class
- *  drives the CSS; the engine reads the resulting width from the scroller. */
+ *  sets the CSS; the engine reads the resulting width from the scroller. */
 const measureColumn = computed(() => props.editor?.contentWidth !== "full");
 
 const editorDisplaySignature = computed(() =>
@@ -672,7 +672,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
   animation: editable-pane-drop-in var(--motion-fast);
 }
 
-/* Insertion line: rides the pointer's line and carries the hint chip, so the
+/* Insertion line: rides the pointer's line and shows the hint chip, so the
    text marks where the media lands instead of floating at the pane top. */
 .editable-pane__drop-line {
   position: absolute;

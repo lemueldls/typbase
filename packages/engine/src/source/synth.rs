@@ -103,7 +103,7 @@ pub fn sync_source_context(
 ) -> SynthResult {
     // A compile with the same raw text and prelude rebuilds nothing. Restore
     // the pristine sources and map that recovery may have rewritten, then
-    // hand back the cached structure. The prelude carries the pane width,
+    // hand back the cached structure. The prelude includes the pane width,
     // theme, fonts, and text size, so every setting change is a miss.
     //
     // The check reads the cached input text, not the world's raw source: the
@@ -233,7 +233,7 @@ struct SynthBuild {
 ///
 /// List items, enum items, term items, and labels are copied unwrapped rather
 /// than block-wrapped, because boxing them changes how they sit relative to
-/// their siblings. The three item kinds also own the compiled spacing down to
+/// their siblings. The three item kinds also receive the compiled spacing down to
 /// the next item (see `SynthBlock::list_item`).
 ///
 /// ## Inline items
@@ -346,7 +346,7 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
 /// and the error-recovery filter treats a diagnostic inside either as a math
 /// error.
 ///
-/// A document with no `$` cannot hold an equation, and the byte scan is three
+/// A document with no `$` cannot contain an equation, and the byte scan is three
 /// orders of magnitude cheaper than the walk it skips.
 fn deep_equation_ranges(text: &str, root: &LinkedNode) -> Vec<Range<usize>> {
     if !text.as_bytes().contains(&b'$') {

@@ -14,7 +14,7 @@ export interface GraphNode {
   kind: PageKind;
   categoryId: string | null;
   tags: string[];
-  /** Daily notes are pages. The flag drives the label tooltip. */
+  /** Daily notes are pages. The flag controls the label tooltip. */
   daily: boolean;
   /** Undirected degree in the filtered graph. */
   degree: number;

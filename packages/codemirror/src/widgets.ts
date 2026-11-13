@@ -445,7 +445,7 @@ export const typstViewPlugin = (
   options: TypstViewPluginOptions = {},
 ) =>
   ViewPlugin.define((_view) => {
-    // A freshly created view's first update never carries doc/selection/focus
+    // A freshly created view's first update never has doc/selection/focus
     // changes, and resize() reports false when the pane width already matches
     // the stored one. That happens whenever the view is rebuilt for a mode
     // switch (write -> source -> write): without this flag the render never

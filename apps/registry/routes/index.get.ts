@@ -75,7 +75,7 @@ export default defineHandler(async () => {
 </head>
 <body>
   <h1>Typbase registry</h1>
-  <p>Publishers own their records and release blobs. This catalog indexes ${catalog.publishers.length} publisher(s). Install a plugin or apply a theme by pasting its listing URI into Typbase.</p>
+  <p>Publishers keep their records and release blobs. This catalog indexes ${catalog.publishers.length} publisher(s). Install a plugin or apply a theme by pasting its listing URI into Typbase.</p>
   <h2>Themes</h2>
   ${themeCards || "<p>No themes are indexed yet. Set <code>REGISTRY_PUBLISHERS</code> to comma-separated DIDs.</p>"}
   <h2>Plugins</h2>

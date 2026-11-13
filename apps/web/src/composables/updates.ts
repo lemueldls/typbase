@@ -19,7 +19,7 @@ export type UpdateStatus =
 
 /**
  * One update state for the whole app: the boot check, the Settings row, and
- * the dialog all read and drive this shared instance.
+ * the dialog all read and change this shared instance.
  */
 export const useAppUpdates = createSharedComposable(() => {
   const channel = ref<UpdateChannel>("unsupported");

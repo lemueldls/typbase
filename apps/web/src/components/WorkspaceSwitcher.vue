@@ -25,7 +25,7 @@ const {
   onReorder: (ids) => void reorderWorkspaces(ids),
 });
 
-/** The open slot, sized to the held row. */
+/** The open slot, sized to the dragged row. */
 const workspaceGapStyle = computed(() => ({ height: `${workspaceRowHeight.value ?? 0}px` }));
 
 /** Moves one workspace a slot; the registry array is the order. */

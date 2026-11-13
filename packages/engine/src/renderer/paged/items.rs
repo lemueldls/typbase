@@ -376,7 +376,7 @@ pub fn chunk_by_items_with_blocks(
                 if !marked_errors.marks.is_empty() {
                     // The marks fix the equation. Unmappable errors belong to
                     // other blocks, so they keep the whole-note range here
-                    // rather than holding up the marked render.
+                    // rather than delaying the marked render.
                     diagnostics.extend(TypstDiagnostic::from_diagnostics_with_fallback(
                         unmappable.into_iter().collect(),
                         context,
@@ -425,7 +425,7 @@ pub fn chunk_by_items_with_blocks(
                     // nothing to restore here. The pristine synth was never
                     // touched.
                     //
-                    // The marked chunks carry the red markers, so their overlays
+                    // The marked chunks have the red markers, so their overlays
                     // come from the walk that produced them rather than from this
                     // frame's own, which is empty: this iteration took the `Err`
                     // arm and never walked a document.
@@ -513,14 +513,14 @@ pub fn chunk_by_items_with_blocks(
     }
 }
 
-/// Builds one overlay chunk per equation, holding the frame items the editor
+/// Builds one overlay chunk per equation, with the frame items the editor
 /// pops up while the cursor is inside that equation.
 ///
 /// The two halves of the answer come from different places, because no single
 /// one has both:
 ///
 /// - **Which items belong to an equation** is a layout fact, so it comes from
-///   the tag stack's overlays. A `let`-bound equation's items carry the spans of
+///   the tag stack's overlays. A `let`-bound equation's items have the spans of
 ///   its definition while being laid out at each use, so matching items by source
 ///   range files them under the definition and leaves every equation that uses
 ///   the binding with an overlay missing that content. An overlay also claims
@@ -535,7 +535,7 @@ pub fn chunk_by_items_with_blocks(
 /// An equation that was never laid out (a binding nothing uses) has no overlay,
 /// and one that failed to compile is not in a successful document at all.
 ///
-/// A `focus` caret keeps only the equation holding it. Every equation's overlay
+/// A `focus` caret keeps only the equation that contains it. Every equation's overlay
 /// is a rendered SVG, and an editor shows at most one, so building all of them
 /// spends the whole note's math budget on keystrokes that display none of it.
 fn equation_tooltips(
@@ -594,7 +594,7 @@ fn equation_tooltips(
     }
 
     // Every item goes to the overlay it was laid out inside and to each of that
-    // overlay's ancestors, so an overlay owns everything its own rendering drew.
+    // overlay's ancestors, so an overlay collects everything its own rendering drew.
     // One pass, and the nesting falls out of the walk. No equation is laid out
     // inside another today (an interpolated one reuses frames that were built
     // with no tag of their own), so the ancestor list is normally just the one

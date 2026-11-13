@@ -254,7 +254,7 @@ export async function buildQueryJson(
 
   const pages = store.listPages().filter((page) => !scope?.pageIds || scope.pageIds.has(page.id));
   const daily = pages.filter((page) => page.path.startsWith("daily/"));
-  // Single-segment filters carry the value in filterName (e.g. sections/<id>).
+  // Single-segment filters put the value in filterName (e.g. sections/<id>).
   const filterValue = query.filterValue ?? query.filterName;
 
   switch (query.kind) {

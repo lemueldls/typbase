@@ -192,7 +192,7 @@ impl TagStack {
 
     /// The overlays opened so far, in layout order, each with the tag span it
     /// was opened from. The caller resolves those spans, because it is the only
-    /// one holding the world they belong to.
+    /// one with access to the world they belong to.
     pub(super) fn overlays(&self) -> &[(Option<usize>, Span)] {
         &self.overlays
     }

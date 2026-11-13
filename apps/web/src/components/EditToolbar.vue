@@ -233,7 +233,7 @@ function run(item: ToolbarItem) {
   background: var(--color-border);
 }
 
-/* Page-link autocomplete: width only. UiCombobox owns the surface, input,
+/* Page-link autocomplete: width only. UiCombobox provides the surface, input,
    list, and empty state, so only the picker's width differs from the base. */
 .combobox.edit-toolbar__picker {
   width: min(280px, calc(100vw - var(--space-8)));

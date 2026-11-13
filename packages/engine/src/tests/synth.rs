@@ -94,7 +94,7 @@ fn nested_equations_are_recorded_with_dollar_bounds() {
         .collect();
 
     // The heading, two list items, a term item, a content block, and the
-    // equation holding a nested introspectable element.
+    // equation with a nested introspectable element.
     assert_eq!(result.equation_ranges.len(), 6, "found {found:#?}");
     assert!(
         found
@@ -251,7 +251,7 @@ fn highlight_between_syncs_does_not_hit_the_early_out() {
     );
 }
 
-/// The prelude carries the pane width, theme, fonts, and text size, so any of
+/// The prelude includes the pane width, theme, fonts, and text size, so any of
 /// those changing must rebuild instead of hitting the early-out.
 #[test]
 fn prelude_changes_rebuild_the_synth() {

@@ -43,7 +43,7 @@ export interface SkinTypography {
 }
 
 /**
- * A complete skin. Published themes carry this object in a release record.
+ * A complete skin. Published themes include this object in a release record.
  * It is resolved data: both palettes are explicit, so applying a theme does
  * not depend on the app's named-theme registry.
  */

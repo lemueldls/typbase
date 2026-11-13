@@ -2,7 +2,7 @@
 //!
 //! ## Architecture
 //!
-//! The central type is [`state::TypstState`], which owns a
+//! The central type is [`state::TypstState`], which contains a
 //! [`world::TypstWorld`] and a collection of per-note
 //! [`source::context::SourceContext`] values. JavaScript creates a single
 //! `TypstState`, registers fonts into it, then calls
@@ -11,17 +11,17 @@
 //!
 //! ## Module layout
 //!
-//! - [`state::TypstState`] owns the world and the contexts, plus the
-//!   font/theme/file/package setters the host drives. [`state::RenderContext`]
+//! - [`state::TypstState`] contains the world and the contexts, plus the
+//!   font/theme/file/package setters the host calls. [`state::RenderContext`]
 //!   hands a renderer the world and one note without the rest of the state.
 //! - [`renderer::paged`] is the chunked SVG pipeline (editor) and the SVG and
 //!   PDF exports. [`renderer::html`] is the inline frames renderer and
 //!   [`renderer::html::document`] the full-document HTML render. The
 //!   `#[wasm_bindgen]` entry points live next to the code they call.
-//! - [`prelude`] holds the app stdlib module and the generated document style.
+//! - [`prelude`] contains the app stdlib module and the generated document style.
 //! - [`flatten`] and [`links`] are syntax-level passes: flattened block text,
 //!   section spans, notebook cells, and the app's link calls.
-//! - [`source`] holds the raw/pristine-synth/render-source model.
+//! - [`source`] contains the raw/pristine-synth/render-source model.
 //! - [`world`] implements Typst's `World` and collects the file and package
 //!   requests a compile could not answer.
 //!
@@ -56,7 +56,7 @@
 //! content mode where `_` and `$` are syntax again. Unclosed delimiters are
 //! repaired before the first compile, so they never de-render the note.
 //!
-//! Errors that carry no span in the note at all, like package code failing
+//! Errors that have no span in the note at all, like package code failing
 //! after `context` deferral, get bisected instead: recovery compiles prefixes
 //! of the blocks and blanks the first one that fails, so a broken package call
 //! takes down its own block rather than the whole page. The blamed block's raw

@@ -10,7 +10,7 @@ import { initTypstState, installPayload, payloadKey, requestKey } from "./typstW
 
 /**
  * Worker entry for dynamic link resolution. One warm `TypstState` compiles
- * the pages the index asks for: the rendered HTML carries the anchors a query
+ * the pages the index asks for: the rendered HTML has the anchors a query
  * loop produced, and `extractPageTargets` turns them into page ids. Requests
  * resolve through the main thread. A purge drops the cached query files when
  * workspace data moves.

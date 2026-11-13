@@ -1,14 +1,14 @@
 # Themes
 
 A theme is typed data, not code. It changes colors, geometry, and typography
-family names. It cannot carry CSS, HTML, fonts, images, or Typst source.
+family names. It cannot include CSS, HTML, fonts, images, or Typst source.
 
 Themes live on the publisher's PDS. The registry is an optional index. The app
 can apply a theme from its listing URI without the registry.
 
 ## The skin
 
-`@typbase/skin` owns the shape and the validator. A skin has:
+`@typbase/skin` defines the shape and the validator. A skin has:
 
 - `schema`: `typbase.skin.v1`.
 - `palette.light` and `palette.dark`: complete `ThemePaletteTokens` maps.

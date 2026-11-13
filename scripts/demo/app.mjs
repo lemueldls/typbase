@@ -5,7 +5,7 @@ import { seedWorkspace } from "./seed.mjs";
 /**
  * Shared plumbing for the demo capture scripts. Both the stills
  * (`capture.mjs`) and the clips (`clips.mjs`) boot the same seeded workspace
- * and drive it through the dev-only `window.__typbase` handle.
+ * and control it through the dev-only `window.__typbase` handle.
  */
 
 export const APP = process.env.DEMO_APP_URL ?? "http://127.0.0.1:3000";
@@ -70,7 +70,7 @@ export async function installChromePreferences(context) {
  * A fake pointer for the clips: Playwright video does not render the real
  * cursor. The overlay follows `mousemove`, and `moveCursor` below dispatches
  * real moves over time, so the pointer glides instead of teleporting. The press
- * scale and ripple are CSS, driven by real mousedown/mouseup events.
+ * scale and ripple are CSS, triggered by real mousedown/mouseup events.
  */
 export async function installCursor(context) {
   await context.addInitScript(() => {
@@ -392,7 +392,7 @@ export async function tokenPoint(page, text) {
   }, text);
 }
 
-/** Moves the pointer over a token and holds it there for a hover popup. */
+/** Moves the pointer over a token and keeps it there for a hover popup. */
 export async function hoverToken(page, text, wait = 1200) {
   const point = await tokenPoint(page, text);
   if (!point) return false;

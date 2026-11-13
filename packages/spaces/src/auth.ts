@@ -23,7 +23,7 @@ import { createBrowserOAuth } from "airspace/oauth/browser";
  * metadata document, which is why desktop dev needs `NUXT_PUBLIC_APP_URL` set
  * even though the webview loads the dev server. airspace's browser entrypoint
  * always emits a web client with a redirect under the app origin, so the
- * native flow drives `@atproto/oauth-client-browser` directly.
+ * native flow calls `@atproto/oauth-client-browser` directly.
  *
  * A local dev origin gets an RFC 8252 loopback client id (`http://localhost`
  * plus redirect and scope params) because the metadata document has to live
@@ -194,7 +194,7 @@ export class SessionManager {
 
   /**
    * Restores a persisted session (or completes a login callback if the URL
-   * carries oauth params). Returns null when nobody is signed in.
+   * has oauth params). Returns null when nobody is signed in.
    */
   async restore(webCallback?: URLSearchParams): Promise<OAuthSession | null> {
     if (this.restoring) return null;

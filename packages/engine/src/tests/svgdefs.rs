@@ -108,7 +108,7 @@ fn frames_carry_no_definitions_of_their_own() {
     for frame in render(PARAGRAPHS).frames {
         assert!(
             !frame.render.svg.contains("<defs"),
-            "a frame still carries its own definitions",
+            "a frame still has its own definitions",
         );
     }
 }
@@ -131,12 +131,12 @@ fn tooltip_frames_keep_their_definitions() {
         .tooltips
         .iter()
         .find(|frame| frame.render.svg.contains("<defs"))
-        .expect("an equation tooltip should still carry its definitions");
+        .expect("an equation tooltip should still have its definitions");
 
     for id in referenced(&tooltip.render.svg) {
         assert!(
             declared(tooltip.render.svg.as_str()).contains(id),
-            "a tooltip references a definition it does not carry: {id}",
+            "a tooltip references a definition it does not have: {id}",
         );
     }
 }

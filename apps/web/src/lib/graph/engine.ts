@@ -139,7 +139,7 @@ export function hitTestGraph<Node extends LayoutNode>(
   return best;
 }
 
-/** d3 links may still carry ids before the simulation binds them to nodes. */
+/** d3 links may still have ids before the simulation binds them to nodes. */
 export function linkEndpoints<Node extends LayoutNode>(
   link: LayoutLink<Node>,
   byId: Map<string, Node>,

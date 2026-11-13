@@ -19,7 +19,7 @@
  * - `svg` keeps `display: inline`. The icon font is laid out as text, and
  *   forcing a block would break every glyph alignment.
  * - Heading *size* and *weight* stay. The engine's HTML reaches the document as
- *   bare `h1`-`h6` (`chat-message__render`), where the scale carries meaning.
+ *   bare `h1`-`h6` (`chat-message__render`), where the scale has meaning.
  *   Only the margins go, which is the part chrome was actually fighting.
  */
 

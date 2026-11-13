@@ -232,7 +232,7 @@ impl TypstState {
 
     #[wasm_bindgen(js_name = "removeFile")]
     pub fn remove_file(&mut self, id: &TypstFileId) {
-        // For a note, drop the context and every source file it owns. Leaving
+        // For a note, drop the context and every source file it created. Leaving
         // the raw and render files behind used to leak one entry per closed
         // note. Plain project files (requests the caller satisfied by hand)
         // have no context and are removed as-is.
@@ -262,7 +262,7 @@ impl TypstState {
         for entry in entries {
             let mut file = entry.map_err(|error| JsValue::from_str(&error.to_string()))?;
 
-            // Directory entries (the leading `.` in Universe tarballs) carry
+            // Directory entries (the leading `.` in Universe tarballs) have
             // no content and would insert an empty source at the root.
             if !file.header().entry_type().is_file() {
                 continue;
@@ -325,7 +325,7 @@ impl TypstState {
     }
 
     /// The families a font file declares, so an upload can be filed under the
-    /// name the font itself carries. Empty when the bytes are not a font.
+    /// name the font itself declares. Empty when the bytes are not a font.
     #[must_use]
     #[wasm_bindgen(js_name = "fontFamilies")]
     pub fn font_families(bytes: Vec<u8>) -> Vec<String> {
@@ -543,7 +543,7 @@ impl TypstState {
     ///
     /// The editor can be one keystroke ahead of the last compile: typing at
     /// the end of a block puts the cursor past the text the engine still
-    /// holds. Returning `None` there cancels the IDE query, which reads as
+    /// contains. Returning `None` there cancels the IDE query, which reads as
     /// "no completion at the end of a block". Clamping keeps the query alive
     /// with the context from the previous keystroke.
     fn raw_cursor_byte(source: &Source, cursor_utf16: usize) -> usize {
@@ -985,7 +985,7 @@ pub struct RenderContext<'a> {
 /// Result of `TypstState::check_index`: a self-test of the source maps.
 #[derive(Tsify, Serialize, Deserialize)]
 pub struct IndexCheckReport {
-    /// True when every checked invariant held.
+    /// True when every checked invariant passed.
     pub ok: bool,
     /// How many positions were sampled for each direction.
     pub checked: u32,

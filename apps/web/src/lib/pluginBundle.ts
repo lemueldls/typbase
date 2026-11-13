@@ -20,7 +20,7 @@ export async function pluginProjectFiles(
   return files;
 }
 
-/** One line for a bundle README, naming what the bundle carries. */
+/** One line for a bundle README, naming what the bundle contains. */
 export function pluginBundleSummary(): string | null {
   const slugs = pluginSlugs();
   if (!slugs.length) return null;

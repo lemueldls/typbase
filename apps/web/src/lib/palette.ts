@@ -7,7 +7,7 @@ export { expandSeeds, mixHex, normalizeCssColor, parseColor, type RgbTriple } fr
 /**
  * `ThemeColors` slots in constructor order, named the way Typst reads them.
  * The order here is the contract between the Rust struct and paletteSlots.
- * `overlay` is chrome-only (it carries alpha), so it is not a renderer slot.
+ * `overlay` is chrome-only (it has alpha), so it is not a renderer slot.
  */
 export const THEME_COLOR_KEYS = [
   "surface",

@@ -23,7 +23,7 @@ import { WORKSPACE_TOOLS, runWorkspaceTool, type ToolContext } from "./tools";
 import { buildRepairPrompt, hasErrors, toChatDiagnostics, summarizeDiagnostics } from "./verify";
 
 /**
- * The chat runtime. It owns the loop that makes a model reply trustworthy:
+ * The chat runtime. It runs the loop that makes a model reply trustworthy:
  * stream tokens into a message, give the model read-only tools for grounding,
  * compile the finished source with the engine, and run bounded repair turns
  * until the pristine compile is clean.

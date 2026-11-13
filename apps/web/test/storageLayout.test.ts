@@ -67,7 +67,7 @@ describe("migrateLayout", () => {
 });
 
 describe("isSourceChange", () => {
-  it("accepts page sources and rejects app-owned paths", () => {
+  it("accepts page sources and rejects app-managed paths", () => {
     expect(isSourceChange("pages/foo.typ")).toBe(true);
     expect(isSourceChange("daily/2026-09-22.typ")).toBe(true);
     expect(isSourceChange("notes/deep/nested.typ")).toBe(true);

@@ -227,7 +227,7 @@ pub struct RenderHtmlResult {
     /// Diagnostics and warnings produced during rendering.
     pub diagnostics: Vec<TypstDiagnostic>,
     /// Requests the caller must satisfy before re-rendering (query JSON,
-    /// embedded pages). The editor's `compileHTML` carries them too, but the
+    /// embedded pages). The editor's `compileHTML` includes them too, but the
     /// publish worker needs them on this path.
     pub requests: Vec<TypstRequest>,
 }

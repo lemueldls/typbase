@@ -2,7 +2,7 @@
 //
 // CI deploys files only. `wispctl deploy --spa`/`--directory` replaces the
 // whole settings record, which would drop the COOP/COEP headers the app needs
-// for cross-origin isolation, so this script owns that record instead. It
+// for cross-origin isolation, so this script writes that record instead. It
 // runs after the deploy and talks to the PDS directly with an app password.
 // The wisp firehose picks the change up like any other settings update.
 //

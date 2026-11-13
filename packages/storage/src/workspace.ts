@@ -181,8 +181,8 @@ function firstHeading(text: string): string | undefined {
 const SOURCE_HASHES_KEY = "sourceHashes";
 
 /**
- * Directories the app owns inside a workspace. Page paths never enter them:
- * `state/` holds the CRDT snapshots, `typbase/` the generated project view,
+ * Directories the app manages inside a workspace. Page paths never enter them:
+ * `state/` stores the CRDT snapshots, `typbase/` the generated project view,
  * `blobs/` content-addressed media, and `artifacts/` is only claimed in
  * export bundles, which reuse page paths.
  */
@@ -207,7 +207,7 @@ export function pluginPath(workspaceId: string, instanceId: string): string {
 
 /**
  * True when a workspace-relative path is a page source: a visible `.typ` file
- * outside the app-owned roots. Backends pass raw change paths here, so the
+ * outside the app-managed roots. Backends pass raw change paths here, so the
  * same rule answers "is this event worth a sync pass". Kept in step with the
  * Rust filter in `apps/native/src/storage.rs`.
  */
@@ -498,7 +498,7 @@ export class WorkspaceStore {
       // Hidden entries are never page content (a `.git` a user dropped in, or
       // anything the app may hide later).
       if (name.startsWith(".")) continue;
-      // The app-owned roots are not page content: `typbase/` is generated,
+      // The app-managed roots are not page content: `typbase/` is generated,
       // `state/` and `blobs/` are internal, `artifacts/` exists in exports.
       if (!relative && (RESERVED_ROOTS as readonly string[]).includes(name)) continue;
 

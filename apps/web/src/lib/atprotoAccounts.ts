@@ -25,8 +25,8 @@ function defaultStorage(): AccountStorage | null {
 }
 
 /**
- * Read the saved account summaries. The OAuth client owns the sessions; this
- * list only carries the profile fields the account switcher needs before a
+ * Read the saved account summaries. The OAuth client keeps the sessions. This
+ * list only has the profile fields the account switcher needs before a
  * session is restored.
  */
 export function readAccounts(storage: AccountStorage | null = defaultStorage()): AtprotoAccount[] {

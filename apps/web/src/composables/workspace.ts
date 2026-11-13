@@ -76,7 +76,7 @@ class StorageSetupPending extends Error {
 
 // Boot progress. The load gate waits only for storage + the workspace doc.
 // The atproto session boots in the background (bootAtproto) bounded by a
-// timeout, so a slow OAuth init can never hold the editor hostage.
+// timeout, so a slow OAuth init can never stall the editor.
 
 export type BootStepId = "storage" | "workspace" | "atproto";
 

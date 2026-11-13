@@ -48,7 +48,7 @@ export function createNotebookSession(): NotebookSession {
 
 /**
  * Splits one compile's output per cell, the same way the widget does: a frame
- * belongs to the cell holding its start, a diagnostic to the cell whose content
+ * belongs to the cell that contains its start, a diagnostic to the cell whose content
  * range its span falls in.
  */
 export function splitCellOutputs(

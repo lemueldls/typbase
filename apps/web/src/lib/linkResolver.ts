@@ -7,7 +7,7 @@ import { resolveRequestPayloads, type RequestPayload } from "~/lib/typstRequests
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
 
 /**
- * Dynamic-link resolver client. One warm worker owns a `TypstState` and
+ * Dynamic-link resolver client. One warm worker runs a `TypstState` and
  * compiles pages on demand: the link index asks for a page, the worker renders
  * it and returns the `typbase://page/` targets its links point at. Compiles
  * are serialized so one page at a time keeps the wasm heap steady, and a

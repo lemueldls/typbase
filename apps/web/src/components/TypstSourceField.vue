@@ -63,7 +63,7 @@ const fieldTheme = EditorView.theme({
     backgroundColor: "color-mix(in srgb, var(--color-accent) 30%, transparent)",
   },
   // The editor scales headings up. A settings field keeps its line height, so
-  // only the colors carry over.
+  // only the colors apply.
   ".typ-heading, .typ-heading-level-1, .typ-heading-level-2, .typ-heading-level-3, .typ-heading-level-4, .typ-heading-level-5, .typ-heading-level-6":
     {
       fontSize: "inherit",

@@ -381,7 +381,7 @@ export async function publishWispSite(
       continue;
     }
 
-    // Different paths can carry identical bytes. Wisp blob refs are content
+    // Different paths can have identical bytes. Wisp blob refs are content
     // addressed, so one upload serves every path with that hash.
     const duplicate = byHash.get(hash);
     if (duplicate) {

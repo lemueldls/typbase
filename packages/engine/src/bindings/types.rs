@@ -55,7 +55,7 @@ impl TypstDiagnostic {
     /// Like [`Self::from_diagnostics`], but errors that map to no span in the
     /// note are reported against `fallback` instead of the whole note.
     ///
-    /// Package errors raised after `context` deferral carry no user span, so
+    /// Package errors raised after `context` deferral have no user span, so
     /// recovery blames the block it isolated and passes that block's raw range
     /// here. `None` keeps the whole-note range.
     pub fn from_diagnostics_with_fallback(
@@ -111,8 +111,8 @@ impl TypstDiagnostic {
 }
 
 /// Path and 1-based line for a diagnostic span that points outside the
-/// context's own compile sources, for example a plugin module. Owned spans
-/// keep `file: none`. The caller already maps their range into the note.
+/// context's own compile sources, for example a plugin module. Spans inside
+/// the note keep `file: none`. The caller already maps their range into the note.
 fn foreign_site(
     span: DiagSpan,
     context: &SourceContext,

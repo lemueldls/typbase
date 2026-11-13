@@ -5,7 +5,7 @@ import { formatAgo } from "~/lib/format";
 /**
  * The engine's health, with the wasm heap that usually explains it.
  *
- * The bar always carries the readout: a healthy engine shows a quiet heap size,
+ * The bar always shows the readout: a healthy engine shows a quiet heap size,
  * and a broken one shows the same number in the warning colour. Clicking opens a
  * panel with the rest, and the panel refreshes while it is open: the heap only
  * moves when something compiles, so polling a visible panel keeps the number

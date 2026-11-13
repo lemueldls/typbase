@@ -2,77 +2,22 @@
 
 Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphere](https://atproto.com/).
 
-[![A one-minute walkthrough: inline editing, workspace queries, math, themes, and backlinks.](docs/images/hero.gif)](https://github.com/user-attachments/assets/a98af25e-abe5-4b74-94e3-7542cd0b30b3)
-
-## What is Typst and the Atmosphere?
-
-**[Typst](https://typst.app)** is a document language. You write plain text with markup, math, and small programs, and Typst formats it into PDF or HTML. It works like a compiler rather than a word processor: the file is the source and the page is the output. Typbase treats a note as a Typst document, so pages, queries, math, exports, and plugin interfaces all share the same language.
-
-**The [Atmosphere](https://atproto.com)** is an open network of accounts and apps built on the AT Protocol. Your account is portable instead of belonging to one app. Its data lives in a personal data server (PDS), and apps you authorize can read or write it. For Typbase this means optional sync, publishing, and plugins can travel with your account rather than with one installation.
+[![A one-minute walkthrough: inline editing, workspace queries, math, themes, and backlinks.](docs/images/hero.gif)](https://github.com/user-attachments/assets/73947cb2-b571-4d00-b01e-5e09c0a17465)
 
 ## Features
 
-- **Inline WYSIWYG:** Compiled output replaces the source as you type. Split edit and read views come with it.
-- **Notebook pages:** Create a page as a notebook and its source splits into cells on `//%` attribute lines.
-- **The workspace as data:** `#typbase.query` and `#typbase.page-link` read pages, categories, daily notes, and sections from inside a document.
-- **Plugin system in Typst:** Extend the app with sidebar widgets, panes, and floating windows written in the same language as your notes.
-- **Standalone output:** Export HTML, PDF, SVG, or a compilable Typst project. The exported project is plain `.typ` with the library, resolved data, and plugin modules it needs.
-- **Local-first:** Browser or desktop storage, content-addressed media, and optional sync and live collaboration through the Atmosphere. Publish a page as a public post, or publish the entire workspace as a website.
+- **Inline WYSIWYG:** Compiled output replaces the source as you type, with split and read views beside it.
+- **Workspace queries:** `#typbase.query` reads pages, categories, daily notes, backlinks, and sections, and `#typbase.page-link` links any page by id.
+- **Notebook pages:** `//%` lines split a page into prose, code, log, and hidden cells.
+- **Plugins in Typst:** Sidebar widgets, panes, and floating windows written in the same language as your notes.
+- **Local-first:** OPFS or native storage, content-addressed media, and optional atproto sync, collaboration, page posts, and site publishing.
+- **Portable output:** Export HTML, PDF, SVG, or a compilable Typst project with the library, data, and plugins it needs.
 
-## Technologies
+## What is Typst and the Atmosphere?
 
-- [Nuxt](https://nuxt.com) 5 (nightly) for the application framework.
-- [CodeMirror](https://codemirror.net) 6 for the editor with [Harper](https://writewithharper.com) integration.
-- [Typst](https://typst.app) 0.15 compiled to WebAssembly for the engine.
-- [Loro](https://loro.dev) CRDTs for collaborative editing.
-- [Nitro](https://nitro.build) and [unifont](https://unifont.dev) for live relay and font proxy.
-- [airspace](https://getair.space) using the [Atmosphere](https://atproto.com) for storage and sync.
-- [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) for search.
-- [Tauri](https://tauri.app) 3 (alpha) for desktop and mobile builds.
-- [pnpm](https://pnpm.io) and [moonrepo](https://moonrepo.dev) for workspace management.
+**[Typst](https://typst.app)** is a document language. You write plain text with markup, math, and small programs, and Typst compiles it into PDF or HTML. Typbase treats a note as a Typst document, so pages, queries, math, exports, and plugin interfaces all share the same language.
 
-## Inspirations
-
-- [Typst](https://typst.app) for the language and the idea that documents can be queried as data.
-- [Notion](https://www.notion.com) and [Obsidian](https://obsidian.md) for the product shape: daily notes, categories, backlinks, and files on disk.
-- [Mnemo](https://github.com/lemueldls/mnemo), the earlier Typst WYSIWYG editor whose editor and engine were extracted into Typbase.
-- [The LEAST Private Operating System Ever Created](https://www.youtube.com/watch?v=M_720LesVg4) for reflective systems where everything is inspectable.
-- [Dynamic Documents as Personal Software](https://www.youtube.com/watch?v=MccJdr61xnc) for documents that run their own code.
-- [PlayBook: A Programmable Paper Notebook](https://www.youtube.com/watch?v=GurWDZ8ENpA) for programmable notebook pages.
-
-## Self-Hosting
-
-### Prerequisites
-
-- Node 26+
-- pnpm 12+
-- Rust with the `wasm32-unknown-unknown` target.
-
-### Development
-
-```sh
-pnpm install
-pnpm dev
-```
-
-The static app runs on its own. An optional live relay and font API proxy can also run using `pnpm dev:proxy` in a second terminal, and set with `NUXT_PUBLIC_PROXY_URL=http://localhost:3001` if you want live rooms.
-
-### Production
-
-```sh
-pnpm install
-pnpm build
-pnpm preview
-```
-
-To host the relay and font proxy, build the companion service separately:
-
-```sh
-pnpm build:proxy
-node apps/proxy/.output/server/index.mjs
-```
-
-Set `NUXT_PUBLIC_PROXY_URL` to the companion service origin when building the web app.
+**The [Atmosphere](https://atproto.com)** is an open network of accounts and apps built on the AT Protocol. Your account is portable instead of belonging to one app. Its data lives in a personal data server (PDS) that authorized apps can read or write, so Typbase's sync, publishing, and plugins travel with your account rather than one installation.
 
 ## Installation
 
@@ -124,6 +69,55 @@ Most phones use `arm64-v8a`, older 32-bit devices use `armeabi-v7a`, and emulato
 
 <!-- - **Google Play:** Play handles the download and the in-app prompt. -->
 <!-- - **Obtainium:** Point it at the [GitHub repository](https://github.com/lemueldls/typbase) and it tracks releases; the in-app check still works. -->
+
+## Technologies
+
+<!-- - **App:** [Nuxt](https://nuxt.com) 5 (nightly) with Vue 3 handles routes, server metadata, and the app UI in the browser and native shells. -->
+
+- **Engine:** [Typst](https://typst.app) 0.15 compiled to WebAssembly, turns notes into HTML, SVG, and PDF and answers IDE queries.
+- **Editor:** [CodeMirror](https://codemirror.net) 6 runs the Typst mode, inline frames, and autocomplete, with [Harper](https://writewithharper.com) for spellcheck.
+- **Sync:** [Loro](https://loro.dev) CRDTs and [airspace](https://getair.space) over the [AT Protocol](https://atproto.com) handle workspace docs, presence, and assets.
+- **Publishing:** [Wisp](https://wisp.place) hosts the generated site, and [Standard.site](https://standard.site) defines its publication records.
+- **Search:** [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) provide full-text and optional vector search in the browser.
+- **Desktop and mobile:** [Tauri](https://tauri.app) 3 (alpha) supplies filesystem access, system fonts, deep links, and the native updater.
+
+<!-- - **Services:** [Nitro](https://nitro.build) runs the live relay, and [unifont](https://unifont.dev) backs the font proxy. -->
+
+## Self-Hosting
+
+### Prerequisites
+
+- Node 26+
+- pnpm 12+
+- Rust with the `wasm32-unknown-unknown` target.
+
+### Development
+
+The workspace uses pnpm for packages and moonrepo for tasks.
+
+```sh
+pnpm install
+pnpm dev
+```
+
+The static app runs on its own. An optional live relay and font API proxy can also run using `pnpm dev:proxy` in a second terminal, and set with `NUXT_PUBLIC_PROXY_URL=http://localhost:3001` if you want live rooms.
+
+### Production
+
+```sh
+pnpm install
+pnpm build
+pnpm preview
+```
+
+To host the relay and font proxy, build the companion service separately:
+
+```sh
+pnpm build:proxy
+node apps/proxy/.output/server/index.mjs
+```
+
+Set `NUXT_PUBLIC_PROXY_URL` to the companion service origin when building the web app.
 
 ## License
 

@@ -73,7 +73,7 @@ export function attachPluginSurface(
       }
     | undefined;
   // A drag ends with a click. The host drops that click so a movable element
-  // can also carry a select action without selecting itself after every drag.
+  // can also have a select action without selecting itself after every drag.
   let suppressClickUntil = 0;
 
   function parseArgs(element: Element): Record<string, unknown> {
@@ -108,7 +108,7 @@ export function attachPluginSurface(
   }
 
   /**
-   * One element can carry a chain: `data-tb-chain` is a JSON array of
+   * One element can have a chain: `data-tb-chain` is a JSON array of
    * `{ name, args }`. Every entry dispatches in order with the same form
    * fields, which is how a button inserts content and closes its window in
    * one click.
@@ -245,7 +245,7 @@ export function attachPluginSurface(
       moving = undefined;
       suppressClickUntil = moved ? performance.now() + 500 : 0;
       if (actionName && moved) {
-        // Static args carry the record id, but x/y win over any stale ones.
+        // Static args include the record id, but x/y win over any stale ones.
         options.onAction({
           id: newId(),
           name: actionName,

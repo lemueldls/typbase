@@ -4,7 +4,7 @@
  * the patches the render returns. These shapes are what the app, the storage
  * layer, and (later) atproto records all speak.
  *
- * One `PluginInstance` owns one data doc and contributes every surface its
+ * One `PluginInstance` has one data doc and contributes every surface its
  * manifest declares, so a calendar's sidebar widget and its pane read the
  * same events. Installing a plugin twice gives two independent instances.
  */
@@ -96,7 +96,7 @@ export interface PluginInstance {
   title: string;
   /** Material Symbol name. Empty means the manifest icon or a default. */
   icon: string;
-  /** Plugin-owned instance config as JSON. */
+  /** Per-instance plugin config as JSON. */
   config: string;
   createdAt: number;
 }

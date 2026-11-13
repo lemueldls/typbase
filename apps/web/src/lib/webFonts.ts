@@ -64,7 +64,7 @@ export function listWebFonts(apiBase: string): Promise<string[]> {
 
 /**
  * Provider categories for the families that publish one. unifont does not
- * carry these, and the selector needs them to separate monospace families
+ * provide these, and the selector needs them to separate monospace families
  * whose names do not say "Mono".
  */
 export function webFontCategories(apiBase: string): Promise<Map<string, string>> {

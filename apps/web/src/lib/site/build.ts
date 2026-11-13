@@ -898,7 +898,7 @@ async function collectFonts(store: WorkspaceStore): Promise<{
     const file = `fonts/${name}`;
     files.push({ name: file, bytes: font.bytes, mimeType: siteMime(file) });
 
-    // The file carries the real weight and style. Filename guesses put every
+    // The file has the real weight and style. Filename guesses put every
     // Iosevka face in a family at 400 normal, so the browser picked one file
     // for the whole page, often an italic or semibold face.
     const detected = fontFacesOf(font.bytes);

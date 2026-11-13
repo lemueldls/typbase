@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = withDefaults(
   defineProps<{
-    /** Current value, which drives the indicator width. */
+    /** Current value, which sets the indicator width. */
     value: number;
     max?: number;
   }>(),

@@ -114,7 +114,7 @@ const rowStyle = computed(() =>
   background: var(--color-accent-soft);
 }
 
-/* The held row is a card in the hand: the drag takes it out of the flow and
+/* The dragged row is a card in the hand: the drag takes it out of the flow and
    follows the pointer, and this makes it read as lifted. */
 .ws-row--drag {
   z-index: 2;
@@ -183,7 +183,7 @@ const rowStyle = computed(() =>
 }
 
 /* The row's menu button: revealed on hover/focus and tinted like the row
-   surface instead of carrying its own button chrome. */
+   surface instead of adding its own button chrome. */
 .ws-row .ws-row__more {
   flex: none;
   opacity: 0;

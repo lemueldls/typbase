@@ -2,12 +2,12 @@
 // them as vector curves inside a note, wrapped in a `typbase://plugin/<id>`
 // link so clicking the drawing opens this window.
 //
-// The window surface owns the canvas. Colors come from `ctx.theme`, so the
+// The window surface renders the canvas. Colors come from `ctx.theme`, so the
 // swatches follow the workspace palette.
 //
-// Undo history is device-local view state. Each entry holds the state ops that
+// Undo history is device-local view state. Each entry stores the state ops that
 // undo and redo it, so replaying an entry is the whole undo implementation.
-// A stroke carries a `seq` because collection records come back in map order,
+// A stroke has a `seq` because collection records come back in map order,
 // which is not insertion order.
 
 #import "/typbase/lib.typ" as typbase
@@ -50,7 +50,7 @@
   )
 }
 
-// An entry carries both directions. Undo pops it from `undo`, applies `undo`,
+// An entry has both directions. Undo pops it from `undo`, applies `undo`,
 // and moves it to `redo`. Redo does the reverse.
 #let history-entry(label, undo, redo) = (label: label, undo: undo, redo: redo)
 

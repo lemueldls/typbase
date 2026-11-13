@@ -3,7 +3,7 @@
 //   lists every ligature the shipped woff2 knows, so the search index can
 //   never show an icon the font can't render.
 // - `metadata.json` (Google's font metadata, copied from the material-symbols
-//   repo) carries the tag synonyms that make text search useful ("house"
+//   repo) has the tag synonyms that make text search useful ("house"
 //   finds `home`).
 // Only names present in both make it out. Tags for icons outside our glyph
 // version would break rendering, so they are dropped.

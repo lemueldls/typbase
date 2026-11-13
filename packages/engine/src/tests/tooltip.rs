@@ -104,7 +104,7 @@ fn a_nested_introspectable_element_keeps_one_overlay() {
     let nested = fixture
         .source
         .find("#strong")
-        .expect("fixture holds the nested element");
+        .expect("fixture has the nested element");
     let matching: Vec<_> = render
         .tooltips
         .iter()
@@ -226,7 +226,7 @@ fn a_caret_renders_only_the_equation_under_it() {
 }
 
 /// A `let`-bound equation is laid out at each use, and the items it produces
-/// carry the spans of its *definition*. Grouping items by source range therefore
+/// have the spans of its *definition*. Grouping items by source range therefore
 /// filed them under the definition and left the equation doing the using with an
 /// overlay missing that content, so the popup showed `sum_(k=0)^n` and then a gap.
 ///

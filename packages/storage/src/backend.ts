@@ -205,7 +205,7 @@ export class DirectoryHandleBackend implements StorageBackend {
     const name = segments.at(-1)!;
     const handle = await dir.getFileHandle(name, { create: true });
     const writable = await handle.createWritable();
-    // Copy into an ArrayBuffer-owned view. TS 5.9 types reject generic
+    // Copy into a view backed by an ArrayBuffer. TS 5.9 types reject generic
     // Uint8Array views on the write API.
     await writable.write(new Uint8Array(data).buffer);
     await writable.close();

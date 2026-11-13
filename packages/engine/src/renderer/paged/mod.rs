@@ -29,7 +29,7 @@ pub struct PagedRender {
     pub chunks: Vec<FrameItemsChunk>,
     /// Tooltips for the rendered content.
     pub tooltips: Vec<FrameItemsChunk>,
-    /// The equation overlays this render walked, with the items each owns. The
+    /// The equation overlays this render walked, with the items that belong to each. The
     /// error-recovery path re-renders through [`items::chunk_by_items_with_blocks`],
     /// so the tooltips have to be built from the render that produced the chunks
     /// they sit next to, not from the one that asked for them.
@@ -41,7 +41,7 @@ pub struct PagedRender {
 }
 
 /// One equation overlay opened by an introspectable `equation` tag, with the
-/// items it owns.
+/// items that belong to it.
 #[derive(Debug, Clone)]
 pub struct EquationOverlay {
     /// The overlay this one was laid out inside, if any.
@@ -86,7 +86,7 @@ pub struct BoundFrameItem {
     /// The innermost equation overlay this item was laid out inside, if any.
     ///
     /// This is a layout fact, not a source one. A `let`-bound equation's items
-    /// carry the *definition's* spans while being laid out at each use, so
+    /// have the *definition's* spans while being laid out at each use, so
     /// [`range`](Self::range) cannot say which equation they belong to. The
     /// tag stack can, and an equation's overlay also claims the items of every
     /// overlay nested in it.

@@ -35,7 +35,7 @@ function useLinksState() {
     if (index.value && index.value.workspaceId !== store.workspaceId) reset();
     if (index.value) return index.value;
 
-    // Keep only the active workspace's index. The others hold every page's
+    // Keep only the active workspace's index. The others contain every page's
     // records for as long as the app lives.
     dropLinkIndexes(store.workspaceId);
     const instance = getLinkIndex(store);

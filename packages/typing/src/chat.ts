@@ -4,12 +4,12 @@
  * map in the workspace doc plus one Loro doc per thread, so they are
  * local-first and sync through the same registry.
  *
- * Only assistant messages carry Typst source. Everything a model writes is
+ * Only assistant messages have Typst source. Everything a model writes is
  * compiled by the engine before it counts as verified, which is what the
  * status and diagnostics fields record.
  */
 
-/** Who wrote a message. Only "assistant" turns hold model output. */
+/** Who wrote a message. Only "assistant" turns contain model output. */
 export type ChatRole = "user" | "assistant";
 
 /**

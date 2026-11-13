@@ -7,7 +7,7 @@ export type UpdateChannel =
   | "android-sideload"
   | "unsupported";
 
-/** The package manager that owns the executable, when the shell finds one. */
+/** The package manager that installed the executable, when the shell finds one. */
 export interface PackageManagerInfo {
   id: string;
   /** Copyable update command. The app never runs it. */
@@ -27,11 +27,11 @@ export interface UpdateInfo {
   /** Changelog body, plain text. */
   notes?: string;
   date?: string;
-  /** Download size in bytes. The Android manifest carries it per ABI. */
+  /** Download size in bytes. The Android manifest lists it per ABI. */
   size?: number;
-  /** Play owns the download and install UI. */
+  /** Play handles the download and install UI. */
   play?: boolean;
-  /** The package manager owns the install, so the app only shows instructions. */
+  /** The package manager runs the install, so the app only shows instructions. */
   managed?: boolean;
   manager?: PackageManagerInfo;
 }
@@ -94,7 +94,7 @@ async function tauriCore() {
   return import("@tauri-apps/api/core");
 }
 
-/** Which updater this install should use, plus the owning package manager. */
+/** Which updater this install should use, plus the package manager that installed the app. */
 export async function updateChannelInfo(): Promise<UpdateChannelInfo> {
   if (!isTauri()) return { channel: "unsupported", currentVersion: "" };
 

@@ -1,6 +1,6 @@
 /**
  * The `canvas` host component. Plugins hand it strokes as data and an action
- * name; the host owns the pointer handling, the bitmap, and the eraser hit
+ * name; the host handles pointers, the bitmap, and the eraser hit
  * test. Erasing is geometry, so it stays here instead of asking a Typst
  * surface to measure every point against every pointer sample.
  *

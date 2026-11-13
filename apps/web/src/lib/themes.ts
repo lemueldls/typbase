@@ -481,7 +481,7 @@ function prefersDarkScheme(): boolean {
 }
 
 /**
- * Stored custom palettes can predate the current token set or carry syntax no
+ * Stored custom palettes can predate the current token set or contain syntax no
  * parser downstream understands. Normalize what we can. Unknown keys merge
  * over the base as usual.
  */
@@ -494,7 +494,7 @@ function normalizeCustom(custom: Partial<ThemePaletteTokens>): Partial<ThemePale
   ) as Partial<ThemePaletteTokens>;
 }
 
-/** The workspace font settings that also drive the app chrome. */
+/** The workspace font settings that also style the app chrome. */
 export interface AppFontSettings {
   font?: string | null;
   mathFont?: string | null;
@@ -553,7 +553,7 @@ export function themeCssVars(
     vars["--font-math"] = stacks.math;
   }
 
-  // Size presets multiply the token scale. tokens.css carries the fallbacks.
+  // Size presets multiply the token scale. tokens.css defines the fallbacks.
   const scale = skinUiScale({
     size: settings?.uiSize ?? "default",
     density: settings?.uiDensity ?? "default",
@@ -565,7 +565,7 @@ export function themeCssVars(
   // The editor and the rendered headings follow the document text size. The
   // engine gets the same number for compiled output.
   vars["--doc-text-size"] = `${settings?.textSize ?? 16}px`;
-  // The source text carries the same OpenType features the engine applies, so
+  // The source text uses the same OpenType features the engine applies, so
   // toggling ligatures does not make the source and the render disagree.
   vars["--doc-font-features"] = fontFeatureSettings(settings?.typography);
 

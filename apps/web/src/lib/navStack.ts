@@ -4,7 +4,7 @@
  * The browser will not say whether an entry exists ahead of the cursor, so a
  * back *and forward* control needs the app to remember what it pushed. The
  * browser stays the source of truth: this only records where each entry is, and
- * every entry carries its mirror index in `history.state` so a traversal can be
+ * every entry stores its mirror index in `history.state` so a traversal can be
  * placed without tracking a direction.
  *
  * Pure on purpose. `history` and the route live in `useNavHistory`, and an

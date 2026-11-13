@@ -6,8 +6,8 @@ import { createTypstState, replaceTypstState } from "~/composables/typst";
  * Panic recovery for the wasm compiler. On wasm32-unknown-unknown a Rust
  * panic aborts the instance (no unwinding), so every call into a dead
  * `TypstState` throws a trap. The only safe move is to build a fresh state
- * and remount everything that talked to the old one. `PageView` owns that
- * remount. This module owns the fresh instance + the singleton swap.
+ * and remount everything that talked to the old one. `PageView` handles that
+ * remount. This module handles the fresh instance and the singleton swap.
  */
 
 export interface EngineFailureInfo {

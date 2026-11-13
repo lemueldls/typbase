@@ -7,7 +7,7 @@
 //!
 //! ## Why segments
 //!
-//! Segments tile the target text and carry the source coordinates they came
+//! Segments tile the target text and store the source coordinates they came
 //! from. That makes both lookups total and monotone by construction:
 //!
 //! - [`SourceMap::forward`] walks source positions through the copies and
@@ -886,7 +886,7 @@ mod tests {
         assert_eq!(map.forward(1, Side::After), 3);
         assert_eq!(map.backward(0), 0);
         assert_eq!(map.backward(2), 0);
-        // At the boundary the following copy owns the position.
+        // At the boundary the following copy takes the position.
         assert_eq!(map.backward(3), 1);
         assert_eq!(map.backward(4), 2);
         assert!(map.validate().is_empty());

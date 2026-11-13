@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Floating plugin windows. The host owns the frame, geometry, stacking, and
+ * Floating plugin windows. The host manages the frame, geometry, stacking, and
  * close button, so plugin authors never position fixed elements. Geometry
  * lives in device-local state (pluginWindows), not the synced plugin doc.
  */

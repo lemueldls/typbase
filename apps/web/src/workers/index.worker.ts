@@ -73,7 +73,7 @@ type WorkerResponse = {
 };
 
 type Sqlite3 = Awaited<ReturnType<typeof sqlite3InitModule>>;
-// sqlite3.oo1.DB is the constructor. The instance is what we hold.
+// sqlite3.oo1.DB is the constructor. The instance is what we keep.
 type SqliteDb = InstanceType<Sqlite3["oo1"]["DB"]>;
 
 let sqlite3: Sqlite3 | undefined;

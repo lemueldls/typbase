@@ -63,7 +63,7 @@ plugins/my-plugin/
   workspace.
 - A field marked `optional: true` may be omitted. An absent required field is
   reported as missing rather than as a type error, and an `append` is checked
-  for the fields it left out while a `merge` only carries what it changes.
+  for the fields it left out while a `merge` only sends the fields it changes.
 - `hostComponents` may only name components the host implements, today `canvas`.
   An unknown name is rejected when the manifest is parsed, so the mistake shows
   up in the studio rather than as a missing element in a surface.
@@ -144,7 +144,7 @@ is the content and the other two are patch fields:
 | `theme`                  | resolved palette tokens under camelCase names             |
 | `locale`, `now`, `today` | render environment                                        |
 
-`ctx.theme` carries the workspace palette (`text`, `textSecondary`, `accent`,
+`ctx.theme` is the workspace palette (`text`, `textSecondary`, `accent`,
 `accentSoft`, `surface`, `surface2`, `red`, `orange`, `yellow`, `green`,
 `cyan`, `blue`, `violet`, `code`, ...) as hex strings. Use it for values that
 leave Typst, like canvas stroke colors; the CSS variables below cover the rest.
@@ -185,13 +185,13 @@ exports, and published sites.
 
 `canvas` draws the strokes it is given and, in erase mode, hit-tests the
 pointer path against them. Every stroke needs an `id` so the eraser can name
-what it touched, and one action carries the ids. The drawing plugin is the
+what it touched, and one action includes the ids. The drawing plugin is the
 reference.
 
 ## Undo history
 
 History is device-local, so it belongs in `ctx.view`, not in the synced
-collections. One entry holds the ops that undo and redo one edit, and
+collections. One entry stores the ops that undo and redo one edit, and
 replaying the entry is the whole undo step. The drawing plugin's
 `history.undo` pops the last entry from `view.undo`, applies `entry.undo`,
 and pushes the entry onto `view.redo`.
@@ -205,7 +205,7 @@ history is written to `local.json` with the rest of the device state.
 
 Typbase plugins can travel as an `at.typbase.plugin` listing plus immutable
 `at.typbase.pluginRelease` records in a publisher's public repo. The listing
-points at the latest release; the release carries the plugin manifest, an
+points at the latest release. The release includes the plugin manifest, an
 artifact blob, its SHA-256, size, API version, and capabilities.
 
 Build the artifact with `@typbase/plugin-sdk` (a `.tbplugin` file):
@@ -243,7 +243,7 @@ pnpm --filter @typbase/web test:unit -- test/pluginRegistry.integration.test.ts
 ```
 
 The optional registry in `apps/registry` is a discovery service. It indexes
-configured publisher DIDs and never owns the publishable records. Anyone can
+configured publisher DIDs and never stores the publishable records. Anyone can
 run their own copy:
 
 ```sh
@@ -309,14 +309,14 @@ and alias it, rather than pulling one function into the note's namespace:
 The host serves plugin modules under `/typbase/plugin/<slug>/`, so the same
 sources compile in the app and in the generated project. `<slug>` is
 `ctx.plugin.slug`, which is the manifest id without a `local:` scheme, so a note
-carrying the embed keeps working after the plugin is forked or renamed.
+with the embed keeps working after the plugin is forked or renamed.
 
 ## The studio
 
 `/plugins` (also reachable from the plugin manager) edits local plugins:
 file list, Typst editor, manifest validation, live preview per surface, an
 action dispatcher, state/view inspection, and per-plugin logs. Compile errors
-that map into a plugin file carry `file:line` and open that file at the line.
+that map into a plugin file include `file:line` and open that file at the line.
 Bundled plugins are read-only until forked into `plugins/<slug>/`.
 
 ## Authoring outside the app

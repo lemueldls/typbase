@@ -749,7 +749,7 @@ fn equation_chunks_keep_their_own_box() {
 
 /// The editor's syntax-highlight field rewrites the world's raw source in the
 /// transaction, before the plugin's compile microtask. That must not make the
-/// sync reuse the previous text: the stale blocks carry the old ranges, and a
+/// sync reuse the previous text: the stale blocks have the old ranges, and a
 /// replace decoration built from them hides the text that followed the block.
 #[test]
 fn highlight_between_compiles_keeps_frame_ranges_current() {

@@ -234,7 +234,7 @@ export interface PublishedPlugin {
 
 /**
  * Publishes a plugin listing and release to the signed-in account's public
- * repo. The artifact is already built, and its manifest must carry the listing
+ * repo. The artifact is already built, and its manifest must have the listing
  * URI as its id.
  */
 export async function publishPlugin(

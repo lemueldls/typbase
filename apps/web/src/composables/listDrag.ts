@@ -1,7 +1,7 @@
 import type { Ref } from "vue";
 
 /**
- * Pointer-driven list reordering. The caller tags each item with
+ * Pointer-based list reordering. The caller tags each item with
  * `itemSelector`, hands over the container element, and gets back the state a
  * drop needs. A mouse drag starts after a few pixels of movement; a touch drag
  * starts after a short hold, so a swipe still scrolls the list. On release the
@@ -15,7 +15,7 @@ import type { Ref } from "vue";
 export interface ListDragOptions {
   /** Selector for the draggable items inside the container. */
   itemSelector: string;
-  /** The element holding the items, resolved when a drag starts. */
+  /** The element that contains the items, resolved when a drag starts. */
   container: () => HTMLElement | null;
   /** Item ids in DOM order. */
   ids: () => readonly string[];
@@ -27,7 +27,7 @@ export interface ListDragState {
   /** Id of the item under the pointer, or null. */
   dragging: Ref<string | null>;
   /**
-   * Index in the caller's own list where the gap element belongs, with the held
+   * Index in the caller's own list where the gap element belongs, with the dragged
    * row still counted. The caller renders an empty element there, sized from
    * `rowHeight` and tagged `data-drag-gap` so the drag can measure past its own
    * reflow.
@@ -62,7 +62,7 @@ export function useListDrag(options: ListDragOptions): ListDragState {
   let startX = 0;
   let startY = 0;
   let lastY = 0;
-  /** The held card's box at drag start, so it can keep its place in the row. */
+  /** The dragged card's box at drag start, so it can keep its place in the row. */
   let cardLeft = 0;
   let cardWidth = 0;
   /** Pointer Y less the card's top, so the row stays grabbed where it was. */
@@ -72,8 +72,8 @@ export function useListDrag(options: ListDragOptions): ListDragState {
   let guarding = false;
 
   /**
-   * Where the gap element goes in the caller's list. The held row stays in the
-   * DOM (it is only out of the flow), so a slot past the held row's own place
+   * Where the gap element goes in the caller's list. The dragged row stays in the
+   * DOM (it is only out of the flow), so a slot past the dragged row's own place
    * sits one row further along.
    */
   const gapIndex = computed<number | null>(() => {
@@ -115,7 +115,7 @@ export function useListDrag(options: ListDragOptions): ListDragState {
 
   /**
    * Insertion slot for a pointer position, counted over the rows the drag is not
-   * holding. Every row from the open gap down is measured where it would sit with
+   * moving. Every row from the open gap down is measured where it would sit with
    * the gap closed, otherwise the gap pushes its own target out of reach and the
    * slot flips back and forth as the pointer crosses a row.
    */
@@ -130,7 +130,7 @@ export function useListDrag(options: ListDragOptions): ListDragState {
     for (let index = 0; index < list.length; index += 1) {
       if (index === from) continue;
 
-      // The held row is out of the flow, so every row after it sits one up, and
+      // The dragged row is out of the flow, so every row after it sits one up, and
       // the open gap pushes everything from its own seat down.
       const seat = index < from ? index : index - 1;
       const rect = list[index]!.getBoundingClientRect();
@@ -168,7 +168,7 @@ export function useListDrag(options: ListDragOptions): ListDragState {
   }
 
   /**
-   * The held row leaves the flow and rides the pointer, the way a card in a hand
+   * The dragged row leaves the flow and rides the pointer, the way a card in a hand
    * would, so the list closes up behind it instead of keeping an empty seat. The
    * offsets are relative to the offset parent, which keeps this correct inside a
    * transformed popover as well as the plain sidebar.
@@ -228,7 +228,7 @@ export function useListDrag(options: ListDragOptions): ListDragState {
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onCancel);
-    // Put the held row back in the flow while its index is still known.
+    // Put the dragged row back in the flow while its index is still known.
     const held = row();
     if (held) {
       held.style.position = "";
@@ -277,7 +277,7 @@ export function useListDrag(options: ListDragOptions): ListDragState {
     stop();
     if (!id || !wasDragging || target === null) return;
 
-    // The slot counts the rows the drag is not holding, so the held id goes
+    // The slot counts the rows the drag is not moving, so the dragged id goes
     // straight into it.
     const rest = [...options.ids()].filter((entry) => entry !== id);
     rest.splice(target, 0, id);

@@ -13,7 +13,7 @@
 //     surface([ ... ], ..patch)
 //   }
 //
-// Every interactive element carries data-tb-* attributes. The sandbox runtime
+// Every interactive element has data-tb-* attributes. The sandbox runtime
 // turns clicks and field values into actions. Colors come from `ctx.theme`
 // (camelCase palette tokens: text, textSecondary, accent, accentSoft, red,
 // orange, yellow, green, cyan, blue, violet, code, ...).
@@ -239,9 +239,9 @@
 
 
 // Free-positioned element inside `board`. The runtime moves it live and sends
-// x/y on drop, merged with `args` (carry the record id there). `attrs` adds
+// x/y on drop, merged with `args` (put the record id there). `attrs` adds
 // wrapper attributes such as a select action; the wrapper receives the click
-// because it owns pointer capture during a drag.
+// because it takes pointer capture during a drag.
 #let movable(action, x: 0, y: 0, body: [], args: (:), attrs: (:)) = html.elem(
   "div",
   attrs: (
@@ -346,7 +346,7 @@
 
 // Streaming call: the host writes the growing text into record `id`'s `field`
 // (and `<field>Status` = streaming/done/error) while the model answers, so the
-// surface re-renders live. The final `field` holds the validated text for
+// surface re-renders live. The final `field` contains the validated text for
 // `format: "typst"`.
 #let ai-stream(
   label,

@@ -1,7 +1,7 @@
 import type { SiteSettings } from "@typbase/typing";
 
 /**
- * Drops the account-owned parts of a site before another publisher takes over.
+ * Drops the account-specific parts of a site before another publisher takes over.
  * Pages, design, and the Wisp endpoint stay. The previous deployment, domain
  * claim, and Standard.site record keys do not: they live in the old account's
  * repo and cannot be reused by the new one. The old site is left untouched.

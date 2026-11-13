@@ -12,7 +12,7 @@ withDefaults(
   { align: "end", side: "bottom", sideOffset: 4 },
 );
 
-/** Optional so menus that close themselves on select can be driven too. */
+/** Optional so menus that close themselves on select can be controlled too. */
 const open = defineModel<boolean>("open", { default: false });
 
 useBackLayer(open);

@@ -61,7 +61,7 @@ export interface SiteWispSettings {
   domainError: string;
   /** DNS records Wisp returned for a pending custom domain. */
   domainDns: { txtName: string; txtValue: string; cnameTarget: string } | null;
-  /** Account that owns the records. Only that account may deploy. */
+  /** Account that publishes the site. Only that account may deploy. */
   publisherDid: string | null;
   lastDeploy: SiteDeployState | null;
   /**

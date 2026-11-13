@@ -4,7 +4,7 @@ import type { PageMeta } from "@typbase/typing";
 import { dailyDate, dailyNeighbors } from "~/lib/dailyNav";
 
 /**
- * The page a compile belongs to, as Typst data. The prelude carries it as
+ * The page a compile belongs to, as Typst data. The prelude provides it as
  * `note`, so a note renders its own title, path, and daily
  * neighbors without creation-time placeholder substitution and without the
  * file cache a query would need. Every compile surface builds the binding for

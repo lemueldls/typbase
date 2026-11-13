@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 /// app's resolved `ThemePaletteTokens` one to one (plus derived `on-*` text
 /// colors), so a single token set styles both the chrome and rendered pages.
 /// The dict keys in [`fmt::Display`] are the kebab-case token names Typst
-/// code reads. `overlay` stays chrome-only: it carries alpha and Rgb cannot.
+/// code reads. `overlay` stays chrome-only: it has alpha and Rgb cannot.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize)]
 #[wasm_bindgen]

@@ -228,7 +228,7 @@ fn strip_defs(svg: &str, blocks: &[Range<usize>]) -> String {
 ///
 /// One scan for the next close and then a name match. Asking `find` for each tag
 /// instead would rescan everything after the current element once per element,
-/// and a frame's definitions hold twenty-odd of them, which cost more than the
+/// and a frame's definitions contain twenty-odd of them, which cost more than the
 /// deduplication saves on a short note.
 fn split_def_elements(inner: &str) -> Vec<&str> {
     let mut elements = Vec::new();

@@ -306,7 +306,7 @@ export class LinkIndex {
    */
   private stale = new Set<string>();
   /**
-   * Surface -> the pages it wants resolved. The union drives the queue. A
+   * Surface -> the pages it wants resolved. The union is the queue. A
    * null set means every pending page, which the panel needs because backlinks
    * come from pages it does not know yet.
    */

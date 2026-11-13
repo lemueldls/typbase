@@ -17,7 +17,7 @@ export interface BundleTextFile {
 export interface BundleCheckResult {
   /** Messages from error-severity diagnostics. */
   errors: string[];
-  /** Request paths the compile wanted and the bundle did not carry. */
+  /** Request paths the compile wanted and the bundle did not include. */
   missing: string[];
   /** Whether the entry file was in the bundle at all. */
   foundEntry: boolean;
@@ -57,7 +57,7 @@ async function withFonts<T>(use: (state: TypstState) => Promise<T>): Promise<T> 
 
 /**
  * Compiles `entry` with only the bundle's files in the world. The exported
- * source already carries the prelude inline, so the prelude argument is empty.
+ * source already has the prelude inline, so the prelude argument is empty.
  */
 export async function compileBundle(
   files: BundleTextFile[],

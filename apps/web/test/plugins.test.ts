@@ -139,7 +139,7 @@ describe("validatePatch", () => {
     expect(result.patch.state).toEqual([]);
   });
 
-  it("carries view patches through untouched", () => {
+  it("passes view patches through untouched", () => {
     const result = validatePatch({ view: { selected: "2026-09-26" } }, manifest);
 
     expect(result.errors).toEqual([]);
@@ -193,7 +193,7 @@ describe("validatePatch", () => {
       expect(result.errors).toEqual(['field "events.title" is not a string']);
     });
 
-    // A merge only carries what it changes, so it must not demand the whole
+    // A merge only includes what it changes, so it must not demand the whole
     // record again.
     it("lets a merge omit every field it is not touching", () => {
       const result = validatePatch(

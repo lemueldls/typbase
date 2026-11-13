@@ -56,7 +56,7 @@ export function removeCustomFont(fonts: readonly CustomFont[], family: string): 
   return fonts.filter((font) => font.family !== family);
 }
 
-/** The bytes of every uploaded face this device actually holds. */
+/** The bytes of every uploaded face this device actually has. */
 export async function customFontPayloads(store: WorkspaceStore): Promise<FontPayload[]> {
   const payloads: FontPayload[] = [];
 
@@ -76,7 +76,7 @@ export async function customFontPayloads(store: WorkspaceStore): Promise<FontPay
  */
 const installed = new WeakMap<TypstState, Set<string>>();
 
-/** Installs every uploaded face this device holds into one wasm instance. */
+/** Installs every uploaded face this device has into one wasm instance. */
 export async function installCustomFonts(
   typstState: TypstState,
   store: WorkspaceStore,

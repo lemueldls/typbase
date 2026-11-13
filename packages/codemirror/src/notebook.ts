@@ -27,7 +27,7 @@ export function hasOutput(kind: NotebookCellType): boolean {
 
 export interface NotebookCell {
   kind: NotebookCellType;
-  /** `name=` from the attribute line, when it carries one. */
+  /** `name=` from the attribute line, when it has one. */
   name?: string | null;
   marker_start: number;
   marker_end: number;
@@ -87,7 +87,7 @@ export interface NotebookCompileResult {
 export interface NotebookOptions {
   /** Cells for a document text. The host reads them from the engine. */
   cells: (text: string) => NotebookCell[];
-  /** Per-cell state. The host owns it. */
+  /** Per-cell state. The host manages it. */
   state?: (index: number) => NotebookCellState | undefined;
   labels?: NotebookLabels;
   /** Fires whenever the extension re-extracts cells. */
@@ -100,7 +100,7 @@ export interface NotebookOptions {
   onCompile?: (result: NotebookCompileResult) => void;
   /** A cell's state changed and the decorations need a rebuild. */
   onStateChange?: () => void;
-  /** A command from the rail's overflow menu, so the app owns the actions. */
+  /** A command from the rail's overflow menu, so the app handles the actions. */
   onCommand?: (command: string, index: number) => void;
   /** Read-only pages show cells without source or chrome. */
   readOnly?: () => boolean;

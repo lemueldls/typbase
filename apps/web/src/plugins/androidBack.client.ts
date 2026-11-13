@@ -1,7 +1,7 @@
 import { isTauri } from "@typbase/storage";
 
 /**
- * Android hardware back. The webview's history drives the app: back closes the
+ * Android hardware back. The webview's history is the app's navigation: back closes the
  * top overlay or returns to the previous page, and only exits at the root.
  */
 export default defineNuxtPlugin(() => {

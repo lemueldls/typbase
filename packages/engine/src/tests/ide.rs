@@ -134,7 +134,7 @@ fn autocomplete_follows_a_synced_keystroke() {
     let mut state = harness::state();
     let id = harness::page(&mut state, "ide_source_sync");
 
-    // A render, which is what leaves the engine holding `before`.
+    // A render, which is what leaves the engine with `before`.
     let render = harness::compile(&mut state, &id, before);
     assert!(render.document.is_some());
 
@@ -198,7 +198,7 @@ fn syncing_sources_requests_nothing() {
 
 /// Field completion traces the expression, and a trace is a recompile of the
 /// note's source rather than a lookup in the last rendered document. So it reads
-/// whatever text the sources hold, which before a source sync was the text of the
+/// whatever text the sources contain, which before a source sync was the text of the
 /// last render. Renaming the binding between the two texts decides the list, and
 /// the field name is a dictionary key so it cannot come from anywhere else.
 ///
@@ -253,7 +253,7 @@ fn field_completion_follows_a_synced_keystroke() {
 /// document it reads has to be the one from that render. The editor's lint source
 /// compiles the same note for diagnostics, and it used to store its document in
 /// the same slot: in split mode the linter runs at 400ms against the preview's
-/// 160ms, so the slot ended up holding a document from text nobody was looking
+/// 160ms, so the slot ended up with a document from text nobody was looking
 /// at, and a click resolved against the wrong layout.
 #[test]
 fn a_diagnostics_pass_leaves_the_painted_document_alone() {

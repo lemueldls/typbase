@@ -60,7 +60,7 @@ describe("navStack", () => {
     expect(stack.next).toBeUndefined();
   });
 
-  it("places a traversal from the index the entry carries", () => {
+  it("places a traversal from the index stored on the entry", () => {
     const stack = createNavStack();
     stack.record(page("a"));
     stack.record(page("b"), { append: true });

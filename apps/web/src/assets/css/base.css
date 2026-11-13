@@ -27,7 +27,7 @@ body {
 }
 
 /* Set by the list drag while a reorder is live: no text selection, and the
-   cursor reads as "holding something". */
+   cursor reads as "dragging something". */
 body.is-reordering {
   user-select: none;
   cursor: grabbing;

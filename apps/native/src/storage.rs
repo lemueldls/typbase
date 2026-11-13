@@ -324,7 +324,7 @@ pub async fn storage_export(path: String) -> Result<Option<String>, String> {
 
 /// Saves arbitrary bytes through the native save dialog. Returns the chosen
 /// path, or null when cancelled. The suggested file name rides in a header
-/// because a raw-bytes invoke cannot carry named arguments.
+/// because a raw-bytes invoke cannot pass named arguments.
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn export_save_file<R: Runtime>(
@@ -499,7 +499,7 @@ pub fn storage_watch<R: Runtime>(
 ) -> Result<(), String> {
     let root = state.resolve(&path)?;
     // A fresh workspace may not have flushed its first snapshot yet. The
-    // watcher owns the directory from here on.
+    // watcher takes over the directory from here on.
     if let Err(error) = fs::create_dir_all(&root) {
         return Err(format!("failed to create {}: {error}", root.display()));
     }
@@ -551,7 +551,7 @@ pub fn storage_unwatch(watch: State<'_, WatchState>, path: String) {
 }
 
 /// Watcher filter: visible `.typ`, `.css`, and `.json` files outside the
-/// app-owned roots. JS classifies events into page sources and plugin
+/// app-managed roots. JS classifies events into page sources and plugin
 /// authoring files (`isSourceChange`/`isPluginChange` in
 /// `packages/storage/src/workspace.ts`).
 #[allow(clippy::case_sensitive_file_extension_comparisons)] // both sides match lowercase extensions

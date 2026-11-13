@@ -1,7 +1,7 @@
 # Typbase registry
 
 A small, self-hostable catalog for plugins and themes published as AT Protocol
-records. The registry does not own accounts, records, or release bytes.
+records. The registry does not host accounts, records, or release bytes.
 Publishers write `at.typbase.plugin`, `at.typbase.pluginRelease`,
 `at.typbase.theme`, and `at.typbase.themeRelease` records to their own PDS.
 This service only resolves and displays what it is configured to index.

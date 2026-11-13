@@ -266,7 +266,7 @@ export type ThemePaletteToken = (typeof THEME_PALETTE_TOKEN_KEYS)[number];
  */
 export type ThemePaletteTokens = Record<ThemePaletteToken, string>;
 
-/** A custom theme carries a complete palette for each mode. */
+/** A custom theme has a complete palette for each mode. */
 export interface CustomThemePalettes {
   light: ThemePaletteTokens;
   dark: ThemePaletteTokens;
@@ -302,7 +302,7 @@ export interface InstalledPackage {
 
 /**
  * A lint the user silenced with "Ignore". Harper's context hash is a u64, so
- * it does not fit a JS number, so `hash` carries the exact decimal digits.
+ * it does not fit a JS number, so `hash` stores the exact decimal digits.
  */
 export interface IgnoredSpellcheckLint {
   hash: string;
@@ -324,14 +324,14 @@ export interface WorkspaceSettings {
   homePageId: string | null;
   /**
    * Typst source for newly created daily notes. Plain Typst: the prelude's
-   * `note` carries the note's title, date, and daily neighbors at
+   * `note` provides the note's title, date, and daily neighbors at
    * compile time, so nothing is substituted when the note is created.
    */
   dailyNoteTemplate: string;
   /**
    * User prelude appended after the generated one on every compile (editor,
    * previews, published pages). This is the escape hatch for custom styling
-   * and Typst-driven views. Theme/fonts stay in their own settings.
+   * and views written in Typst. Theme/fonts stay in their own settings.
    */
   pagePrelude: string;
   /** UI language and date formatting locale. "auto" follows the browser. */
@@ -531,7 +531,7 @@ export interface GraphSettings {
   showOrphans: boolean;
   /** Only pages in this category. Null shows every category. */
   categoryId: string | null;
-  /** Only pages carrying this tag. Null shows every tag. */
+  /** Only pages with this tag. Null shows every tag. */
   tag: string | null;
   /** When node labels render. Hovered and selected nodes always label. */
   labels: "auto" | "always" | "never";

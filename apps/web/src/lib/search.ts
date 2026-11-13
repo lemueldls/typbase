@@ -7,7 +7,7 @@ import { useTypst } from "~/composables/typst";
 import { blocksOf } from "~/lib/engineSyntax";
 
 /**
- * Search manager: owns the index worker connection, feeds it flattened
+ * Search manager: starts the index worker connection, feeds it flattened
  * blocks from the wasm syntax pass, and answers palette queries with a
  * hybrid (BM25 + optional semantic) merge. Indexing is incremental off the
  * store's commit batches, debounced, one transaction per page.
@@ -162,7 +162,7 @@ export class SearchManager {
 
   /**
    * The dev server's dependency optimizer can invalidate the worker module
-   * while it loads (a 504 for the stale URL). The worker owns the index, so a
+   * while it loads (a 504 for the stale URL). The worker has the index, so a
    * restart starts empty: drop what was indexed and rebuild it.
    */
   private async restartWorker(attempt: number): Promise<void> {
@@ -238,14 +238,14 @@ export class SearchManager {
       await this.indexDoc(docId, typstState);
     }
 
-    // The worker owns the doc/block counts. Ask for a fresh status once the
+    // The worker tracks the doc/block counts. Ask for a fresh status once the
     // batch is in so the settings panel reflects the index.
     this.worker?.postMessage({ type: "status" });
   }
 
   private async indexDoc(docId: string, typstState: TypstState): Promise<void> {
     if (docId === this.store.workspaceId) {
-      // The workspace doc holds metadata, not page content. Pages index it.
+      // The workspace doc has metadata, not page content. Pages index it.
       await this.indexWorkspaceMeta(typstState);
       return;
     }
@@ -392,7 +392,7 @@ export class SearchManager {
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         // The first call downloads the model, so give it room. A wedged load
-        // would otherwise hold the indexing pass open forever.
+        // would otherwise keep the indexing pass open forever.
         this.embedPending.delete(id);
         resolve(null);
       }, EMBED_TIMEOUT_MS);
@@ -434,7 +434,7 @@ export class SearchManager {
         });
       }
     } else if (mode === "loading" && this.statusValue.model === "idle") {
-      // Warm the model without holding up the text results. The next
+      // Warm the model without delaying the text results. The next
       // keystroke can fuse once it reports ready.
       if (this.ensureEmbedWorker()) void this.requestVectors([query]);
     }

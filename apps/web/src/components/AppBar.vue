@@ -31,7 +31,7 @@ const shortcuts = useShortcutsDialog();
 const settings = useSettingsDialog();
 const appUpdates = useAppUpdates();
 
-/** reka's menubar root holds the value of whichever menu is open. */
+/** reka's menubar root stores the value of whichever menu is open. */
 const openMenu = ref("");
 const newPageOpen = ref(false);
 const workspaceExportOpen = ref(false);

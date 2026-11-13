@@ -19,9 +19,9 @@ pub struct SystemFontFace {
     /// Human-readable styles, e.g. "Regular, Bold Italic".
     pub style: String,
     pub monospaced: bool,
-    /// Any face carries an OpenType MATH table.
+    /// Any face has an OpenType MATH table.
     pub math: bool,
-    /// Every face carries MATH, so the file is a math font, not a text font.
+    /// Every face has MATH, so the file is a math font, not a text font.
     pub math_only: bool,
     /// Any face covers basic Latin letters, filtering out symbol/emoji fonts.
     pub text: bool,

@@ -1,5 +1,5 @@
 /**
- * The host-owned components a plugin surface may mount, by the name it puts in
+ * The host components a plugin surface may mount, by the name it puts in
  * `data-tb-component`.
  */
 export const HOST_COMPONENTS = ["canvas"] as const;

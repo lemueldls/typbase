@@ -6,7 +6,7 @@ describe("createId", () => {
     expect(createId()).toMatch(/^[a-z][a-z0-9]{15}$/);
   });
 
-  it("redraws when the scope already holds the id", () => {
+  it("redraws when the scope already has the id", () => {
     let draws = 0;
     const id = createId(() => {
       draws += 1;

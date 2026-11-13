@@ -104,7 +104,7 @@ async function showMathTooltip(page, index, xRatio = 0.5, yRatio = 0.5, wait = 1
 }
 
 /**
- * Screen point of a graph node once its position holds still, so a click
+ * Screen point of a graph node once its position settles, so a click
  * lands after the refit tween instead of chasing it. Null when the node is
  * not on the canvas.
  */

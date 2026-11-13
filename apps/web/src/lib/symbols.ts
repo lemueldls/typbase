@@ -62,7 +62,7 @@ export interface SymbolSearchResult {
  * Text search over icon names. Matches the underscored id, the title-cased name,
  * the font metadata synonyms ("house" finds `home`), and per-word prefixes
  * ("cal" finds "calendar_month"). The grid renders `limit` entries at most.
- * `total` carries the full count so the picker can say when the list was cut.
+ * `total` is the full count so the picker can say when the list was cut.
  */
 export function searchSymbols(query: string, limit = 300): SymbolSearchResult {
   const needle = query.trim().toLowerCase();

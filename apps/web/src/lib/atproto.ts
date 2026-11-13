@@ -276,7 +276,7 @@ export class AtprotoService {
       this.removeStoredAccount(did);
       // A failed user-initiated switch leaves the active account in place, so
       // the panel shows the error next to the list. A sign-out fallback has no
-      // active account to carry that message.
+      // active account to show that message.
       if (!this.statusDid) {
         this.setError(`Account switch failed: ${String(error)}`);
         this.emit();
@@ -491,7 +491,7 @@ export class AtprotoService {
     // makes every device do one full scan instead of trusting cursors from the
     // old model. `v2` opened pre-metadata page docs, which fixed pages coming
     // in empty on a freshly joined workspace. The DID keeps a switch from
-    // carrying the old account's cursors and pending queue into the new space.
+    // moving the old account's cursors and pending queue into the new space.
     const syncStatePrefix = `sync:${WORKSPACE_SPACE_TYPE}:v2:${memberDid}:`;
     const syncStore = {
       get: (key: string) => this.local.get(`${syncStatePrefix}${key}`),
@@ -516,7 +516,7 @@ export class AtprotoService {
     }
 
     // Once per account and space: push a snapshot of every doc so a fresh
-    // device has a starting point, then send only deltas. The flag carries
+    // device has a starting point, then send only deltas. The flag records
     // the space type, so another space starts its own bootstrap.
     const bootstrapFlag = `synced:${memberDid}:${this.store.workspaceId}:${WORKSPACE_SPACE_TYPE}`;
     if (!(await this.local.get<boolean>(bootstrapFlag))) {

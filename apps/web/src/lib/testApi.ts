@@ -22,7 +22,7 @@ export interface WorkspaceExportBundle {
 
 /**
  * Dev-only handles for the demo capture script and e2e tests. Components write
- * into this object as they mount, so a script can drive the app without
+ * into this object as they mount, so a script can control the app without
  * reaching into the DOM for state. Production builds never expose it.
  */
 export interface TypbaseTestApi {

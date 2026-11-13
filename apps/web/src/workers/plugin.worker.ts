@@ -11,7 +11,7 @@ import type { PluginCompileRequest, PluginCompileResponse } from "~/lib/plugins/
 import { compileSurface } from "~/lib/plugins/compile";
 
 /**
- * Worker entry: owns one TypstState for plugin surfaces. The host posts every
+ * Worker entry: runs one TypstState for plugin surfaces. The host posts every
  * source and the JSON context with each request. Compiles never touch the
  * editor's wasm instance. Crashes are reported back with a stack before the
  * worker dies, so the host can fall back and the plugin lab can show why.

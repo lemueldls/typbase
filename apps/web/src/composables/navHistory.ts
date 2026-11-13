@@ -13,7 +13,7 @@ import { backLayerDepth } from "./backNavigation";
  * not say whether an entry exists ahead of the cursor, which a forward control
  * has to know.
  *
- * Each entry the app writes carries its mirror index in `history.state`
+ * Each entry the app writes stores its mirror index in `history.state`
  * (`typbaseIndex`), so a traversal places itself without tracking a direction.
  * An overlay entry from `backNavigation` spreads the state it was pushed from
  * and marks itself `typbaseLayer`: it inherits the index it borrowed and is
@@ -27,7 +27,7 @@ const previousQuery = ref<NavQuery | undefined>(undefined);
 const nextQuery = ref<NavQuery | undefined>(undefined);
 
 function publish(): void {
-  // An open overlay owns an entry of its own, so back has somewhere to go even
+  // An open overlay takes an entry of its own, so back has somewhere to go even
   // when the app itself has no history yet.
   canBack.value = stack.canBack || backLayerDepth().value > 0;
   canForward.value = stack.canForward;

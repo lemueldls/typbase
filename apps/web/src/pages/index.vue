@@ -372,7 +372,7 @@ testApi.setAiStub = (provider) => {
 };
 
 // Section metadata should stay fresh even without the editor being open:
-// the store's page changes drive a re-extract on every page switch.
+// the store's page changes trigger a re-extract on every page switch.
 watch(currentPageId, async (id) => {
   setPluginCurrentPage(id || null);
   if (!id || !workspace.value) return;
@@ -458,7 +458,7 @@ function afterBoot(): void {
     }
   }
 
-  // Normalize the URL so the first entry carries the resolved state, and back
+  // Normalize the URL so the first entry stores the resolved state, and back
   // from a later page then restores this one instead of an empty query.
   syncRoute("replace");
 
@@ -585,7 +585,7 @@ function reloadApp(): void {
   window.location.reload();
 }
 
-/** Retries a boot that failed. The splash carries the reason; this is the way out. */
+/** Retries a boot that failed. The splash shows the reason; this is the way out. */
 async function retryBoot(): Promise<void> {
   retryingBoot.value = true;
   try {
@@ -922,7 +922,7 @@ function openPlugin(instanceId: string) {
   if (!instanceId) return;
 
   // Window-only plugins (drawing) float. Pane plugins take the main pane. A
-  // local plugin's manifest may not be in the catalog yet, so hold the id and
+  // local plugin's manifest may not be in the catalog yet, so keep the id and
   // retry when it arrives instead of opening a blank pane.
   const kinds = plugins.surfacesOf(instanceId).map((surface) => surface.kind);
   if (!kinds.length) {
@@ -1475,7 +1475,7 @@ definePageMeta({ ssr: false });
   overflow: hidden;
 }
 
-/* The shell is a column: the app bar, then the panes. The content div owns the
+/* The shell is a column: the app bar, then the panes. The content div controls the
    dim and the inert state while a workspace switches, which its children used to
    cover when it was `display: contents`. */
 .app__content {

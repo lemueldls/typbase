@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Plugin e2e: installs bundled plugins through the dev-only handle and drives
+ * Plugin e2e: installs bundled plugins through the dev-only handle and exercises
  * their surfaces without touching the UI. Verifies the v2 wrapper compiles,
  * that one instance shares its data doc across surfaces, that windows mount
  * through the host, and that a broken local source lands in the error state.
@@ -187,7 +187,7 @@ describe("plugin system", async () => {
     await page.waitForSelector(".plugin-window canvas.tb-canvas", { timeout: 30_000 });
 
     // Top-level blocks get host spacing: the drawing returns two panels and
-    // the second one carries the surface gap.
+    // the second one has the surface gap.
     const gap = await page.evaluate(() => {
       const host = document.querySelector(".plugin-window .plugin-surface");
       const surface = host?.shadowRoot?.querySelector("#tb-root .tb-surface");
@@ -406,7 +406,7 @@ describe("plugin system", async () => {
     await openApp(page);
 
     // The drawing wraps its board in a `typbase://plugin/<id>` link, so clicking
-    // the drawing in a note is the way back to the window that owns it. That is
+    // the drawing in a note is the way back to the window it belongs to. That is
     // the whole point of the link: the embed is a view of the instance's data,
     // and the data is edited in the plugin.
     const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:drawing"));
@@ -452,13 +452,13 @@ describe("plugin system", async () => {
     await page.close();
   });
 
-  it("carries plugin sources into an exported bundle", async () => {
+  it("includes plugin sources in an exported bundle", async () => {
     const page = await createPage();
     await openApp(page);
 
-    // A note that carries the embed the insert action writes. The note is never
+    // A note that has the embed the insert action writes. The note is never
     // opened, so nothing in the app has compiled it and no request has asked for
-    // the plugin module: the bundle carries it without being told to.
+    // the plugin module: the bundle includes it without being told to.
     const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:drawing"));
     await page.evaluate(
       (id) =>
@@ -492,7 +492,7 @@ describe("plugin system", async () => {
       "typbase/plugin/drawing/main.typ",
     );
     // The embed reads the instance's records, which live in a doc a compiler
-    // cannot open, so the bundle has to carry them as query JSON too.
+    // cannot open, so the bundle has to include them as query JSON too.
     expect(names, "bundle is missing the plugin data").toContain(
       `typbase/query/plugin-data/${instanceId}.json`,
     );
@@ -733,7 +733,7 @@ describe("plugin system", async () => {
       instanceId,
     );
 
-    // The surface carries the reason, so the button is not simply dead.
+    // The surface shows the reason, so the button is not simply dead.
     await page.waitForFunction(
       (id) => window.__typbase.pluginStatus(id, "pane") === "error",
       instanceId,
@@ -920,7 +920,7 @@ describe("plugin system", async () => {
       pageId,
     );
     // The call throws when renderPdf produces no bytes. The text bundle does
-    // not carry the PDF itself, so the project entry is the readable artifact.
+    // not include the PDF itself, so the project entry is the readable artifact.
     expect(pdf.files.some((file) => file.name.endsWith(".typ"))).toBe(true);
 
     // A public page may render the diagram because the plugin declares

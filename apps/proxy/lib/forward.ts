@@ -46,7 +46,7 @@ async function forward(event: ProxyEvent, endpoint: Endpoint): Promise<Response>
     });
   }
 
-  // Only the content type is carried over; nothing else the upstream sends is ours to replay.
+  // Only the content type is passed on; nothing else the upstream sends is ours to replay.
   return new Response(await response.arrayBuffer(), {
     headers: { "content-type": response.headers.get("content-type") ?? "application/octet-stream" },
   });

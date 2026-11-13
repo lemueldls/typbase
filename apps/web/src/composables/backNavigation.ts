@@ -4,7 +4,7 @@
  * open, so the Android back button, the browser back button, and the iOS
  * swipe close the top overlay before they leave the app or the page.
  *
- * Each layer owns one entry:
+ * Each layer takes one entry:
  * - opening pushes it,
  * - back closes the layer (the traversal already consumed the entry),
  * - closing from the UI goes back once to consume it,
@@ -86,7 +86,7 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
 
         closing = false;
         removeEntry(entry);
-        // A newer layer owns the current entry. Leaving ours behind costs one
+        // A newer layer has taken the current entry. Leaving ours behind costs one
         // extra back but must not pop theirs.
         if (stack.length > 0) return;
 
@@ -110,12 +110,12 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
   return { push: arm };
 }
 
-/** True while an overlay owns a history entry. */
+/** True while an overlay has a history entry. */
 export function hasBackLayer(): boolean {
   return stack.length > 0;
 }
 
-/** How many overlays own an entry right now. Reactive, unlike `hasBackLayer`. */
+/** How many overlays have an entry right now. Reactive, unlike `hasBackLayer`. */
 export function backLayerDepth(): Ref<number> {
   return layerDepth;
 }

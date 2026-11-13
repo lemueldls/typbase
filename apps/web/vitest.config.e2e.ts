@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 /**
- * End-to-end suite: boots the real Nuxt dev server and drives Chromium through
+ * End-to-end suite: boots the real Nuxt dev server and controls Chromium through
  * Playwright (via `@nuxt/test-utils/e2e`). The tests reach into the app only
  * through the dev-only handle in `src/lib/testApi.ts`.
  *

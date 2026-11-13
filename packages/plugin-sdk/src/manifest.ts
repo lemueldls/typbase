@@ -201,7 +201,7 @@ function fieldVerdict(
     (type === "datetime" &&
       typeof value === "string" &&
       /^\d{4}-\d{2}-\d{2}([T ].*)?$/.test(value)) ||
-    // `json` takes anything the record can hold, including null and arrays.
+    // `json` takes anything the record can contain, including null and arrays.
     type === "json";
 
   return ok ? { ok: true } : { ok: false, message: `is not a ${type}` };

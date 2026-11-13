@@ -91,7 +91,7 @@ function syncHarper(
         try {
           await worker.importIgnoredLints(nextIgnored);
         } catch (cause) {
-          // Harper owns this format. A shape change must not take spelling down.
+          // Harper defines this format. A shape change must not take spelling down.
           console.error("[spellcheck] ignored lints import failed:", cause);
         }
         appliedIgnored = nextIgnored;

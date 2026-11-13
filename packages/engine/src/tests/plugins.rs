@@ -140,7 +140,7 @@ fn calendar_surface_compiles_and_emits_a_patch() {
         html.contains("event.create"),
         "create action missing from: {html}"
     );
-    // The action render carries the appended record in its patch. The UI
+    // The action render includes the appended record in its patch. The UI
     // itself stays pre-patch until the host rerenders.
     assert!(
         html.contains("&quot;op&quot;: &quot;append&quot;"),
@@ -210,7 +210,7 @@ fn drawing_surface_compiles_with_theme_colors_and_a_chain() {
         "canvas component missing from: {html}"
     );
 
-    // The snippet a note carries: the module aliased, addressed through the slug
+    // The snippet in a note: the module aliased, addressed through the slug
     // from the context rather than a hardcoded path. The code block is
     // syntax-highlighted, so strip the spans and assert on the text.
     let mut text = html.clone();

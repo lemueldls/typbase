@@ -2,7 +2,7 @@
 //!
 //! A missing closer makes the parser swallow the rest of the document and the
 //! compile fails with "unclosed delimiter" no matter how many blocks get
-//! blanked: blanking the block that holds the error removes the text the user
+//! blanked: blanking the block that contains the error removes the text the user
 //! is trying to write. The fix is to close the delimiter.
 //!
 //! The repair runs on the raw text before the render synth is built, so the

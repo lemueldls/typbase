@@ -377,7 +377,7 @@ function paletteColor(palette: ThemePaletteTokens, key: (typeof THEME_COLOR_KEYS
 }
 
 /**
- * Typst's HTML export has no page to carry the fill, so the chosen palette's
+ * Typst's HTML export has no page to apply the fill to, so the chosen palette's
  * surface and text colors are applied to the document root. Without this a
  * dark palette renders light text on the browser's white background.
  */

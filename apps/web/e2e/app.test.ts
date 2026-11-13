@@ -380,7 +380,7 @@ describe("typbase app", async () => {
     await showPage(page, id, "write");
     await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
 
-    // Put the caret in the code cell so its line carries the active class.
+    // Put the caret in the code cell so its line has the active class.
     await page.locator(".cm-content").click();
     await page.waitForSelector(".cm-line.tb-cell-active", { timeout: 30_000 });
     await page.waitForTimeout(500);
@@ -657,7 +657,7 @@ describe("typbase app", async () => {
     const page = await createPage();
     await openApp(page);
 
-    // Prose plus a heading, so the frame set holds a few dozen distinct glyphs
+    // Prose plus a heading, so the frame set has a few dozen distinct glyphs
     // and a lot of repetition across the frames.
     const id = await createTestPage(page, {
       title: "Glyph defs",
@@ -673,7 +673,7 @@ describe("typbase app", async () => {
     });
 
     // The engine writes each glyph outline once for the whole frame set and hands
-    // it over, and the frames reference it. A frame carrying a `use` whose id
+    // it over, and the frames reference it. A frame with a `use` whose id
     // nothing in the document declares draws nothing at all, with no error
     // anywhere, so the ids are checked in the DOM rather than trusted.
     const report = await page.evaluate(() => {
@@ -1730,7 +1730,7 @@ describe("typbase app", async () => {
     await showPage(page, id, "write");
 
     const openPicker = async (): Promise<void> => {
-      // Wide panes carry a toolbar trigger, while narrow ones hide it in the
+      // Wide panes have a toolbar trigger, while narrow ones hide it in the
       // overflow menu.
       const trigger = page.locator('[aria-label="Assets"]').first();
       if ((await trigger.count()) > 0) {
@@ -1762,7 +1762,7 @@ describe("typbase app", async () => {
     );
 
     // Copy shows a toast. Clipboard access can be blocked, in which case the
-    // fallback toast carries the reference text.
+    // fallback toast shows the reference text.
     await openPicker();
     await page.locator('.asset-dialog [aria-label="Asset actions"]').first().click();
     await page.getByRole("menuitem", { name: "Copy reference" }).click();
@@ -1843,7 +1843,7 @@ describe("typbase app", async () => {
         timeout: 30_000,
       })
       .toMatchObject({ local: true });
-    // "Dock host" has no links, so the local graph holds only its root.
+    // "Dock host" has no links, so the local graph has only its root.
     await expect
       .poll(() => page.evaluate(() => window.__typbase.graphStats()?.nodes ?? 0), {
         timeout: 30_000,
@@ -1927,7 +1927,7 @@ describe("typbase app", async () => {
     });
     await showPage(page, firstId, "write");
 
-    // The initial entry carries the resolved page, so back has somewhere to go.
+    // The initial entry stores the resolved page, so back has somewhere to go.
     expect(new URL(page.url()).searchParams.get("page")).toBe(firstId);
 
     await page.evaluate((id) => window.__typbase.openPage(id), secondId);
@@ -2303,7 +2303,7 @@ describe("typbase app", async () => {
     const text = await page.evaluate(() => window.__typbase.view?.state.doc.toString() ?? "");
     expect(text.startsWith("vim start")).toBe(true);
 
-    // Back in normal mode: the mode line names the active mode and carries the
+    // Back in normal mode: the mode line names the active mode and shows the
     // cursor position; the block cursor uses the workspace accent.
     await expect
       .poll(() => page.locator(".editable-pane__status").textContent())
@@ -2509,7 +2509,7 @@ describe("typbase app", async () => {
     const before = await labels.allInnerTexts();
     expect(before.length).toBeGreaterThan(2);
 
-    // The last row lands in the gap the drag opens above the first one. The held
+    // The last row lands in the gap the drag opens above the first one. The dragged
     // row leaves the flow, so the list keeps the height it had at rest.
     const listHeight = () =>
       page.evaluate(() => {

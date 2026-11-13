@@ -83,7 +83,7 @@ export const wispDomainRequest = createWispDomainRequest();
 
 /**
  * Builds the site from the workspace and publishes it to the signing account's
- * public repo. Wisp owns the hosting records; Standard.site owns discovery.
+ * public repo. Wisp handles the hosting records. Standard.site handles discovery.
  * The Wisp manifest is written last, so a failure before that leaves the
  * previous site serving.
  */

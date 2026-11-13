@@ -24,7 +24,7 @@ export function installSharedDefs(defs: string | null | undefined): void {
   if (!defs) return;
 
   if (!sharedDefs || !sharedDefs.isConnected) {
-    // An `<svg>` wrapper sized to nothing, holding a real `<defs>`, so the
+    // An `<svg>` wrapper sized to nothing, with a real `<defs>` inside, so the
     // installed markup is the same shape the exporter writes into a frame.
     const host = document.createElementNS(SVG_NS, "svg");
     host.setAttribute("width", "0");
@@ -96,7 +96,7 @@ export function syncFrameContainer(container: HTMLElement, frame: SvgRangedFrame
   container.setHTMLUnsafe(frame.render.svg);
 }
 
-/** Fresh frame container for widgets that own their DOM (notebook outputs). */
+/** Fresh frame container for widgets that manage their own DOM (notebook outputs). */
 export function createFrameContainer(frame: SvgRangedFrame): HTMLElement {
   const container = document.createElement("div");
 
@@ -194,7 +194,7 @@ export function frameIsInactive(
  * the source stays visible with the frame's height reserved, so the pane does
  * not jump between render and source. Matches the inline WYSIWYG behavior.
  *
- * `lineHeights` carries measured source heights from the remeasure pass. When
+ * `lineHeights` has measured source heights from the remeasure pass. When
  * it is absent the view still reports the widget's height for those lines.
  */
 export function frameActiveDecorations(
@@ -248,7 +248,7 @@ export class TypstWidget extends WidgetType {
     const cached = containerCache.get(frame.render.hash);
 
     // The content hash does not include pane width, so a reused container may
-    // hold a frame laid out for a wider pane. Refresh its markup when the
+    // contain a frame laid out for a wider pane. Refresh its markup when the
     // geometry differs, so resizing the editor reflows the inline preview.
     if (cached?.isConnected) {
       this.container = cached;

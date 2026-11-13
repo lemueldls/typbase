@@ -12,7 +12,7 @@
  * - everything else same-origin is stale-while-revalidate.
  * - Atmosphere requests, the relay, and the OAuth metadata documents are never cached.
  *
- * The cache name carries the build id from `_nuxt/builds/latest.json`. Install
+ * The cache name includes the build id from `_nuxt/builds/latest.json`. Install
  * writes the resolved name to IndexedDB, activate publishes it and drops the
  * older caches. Publishing on activate (not install) means the outgoing worker
  * keeps serving its own cache until the last tab closes, so nothing calls
