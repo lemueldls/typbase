@@ -1,0 +1,42 @@
+{
+  "name": "@typbase/cli",
+  "version": "0.4.8",
+  "description": "Verify and publish Typbase themes and plugins.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lemueldls/typbase"
+  },
+  "bin": {
+    "typbase": "./dist/index.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "publishConfig": {
+    "main": "./dist/index.mjs",
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "build-dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@typbase/plugin-sdk": "workspace:*",
+    "@typbase/skin": "workspace:*",
+    "@typbase/spaces": "workspace:*",
+    "@typbase/typing": "workspace:*",
+    "@types/node": "^26.6.6",
+    "airspace": "github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059",
+    "tsdown": "0.23.7",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

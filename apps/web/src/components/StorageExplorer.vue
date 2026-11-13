@@ -165,11 +165,11 @@ async function deleteWorkspaceEntry(info: WorkspaceInfo): Promise<void> {
 
 async function reveal(relative: string): Promise<void> {
   try {
-    const [{ revealItemInDir }, { resolveStoragePath, tauriStorageState }] = await Promise.all([
+    const [{ revealItemsInDir }, { resolveStoragePath, tauriStorageState }] = await Promise.all([
       import("@tauri-apps/plugin-opener"),
       import("@typbase/storage"),
     ]);
-    await revealItemInDir(resolveStoragePath(await tauriStorageState(), relative));
+    await revealItemsInDir(resolveStoragePath(await tauriStorageState(), relative));
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }

@@ -121,8 +121,8 @@ export default defineNuxtConfig({
       meta: [
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "description", content: appDescription },
-        { name: "theme-color", content: "#f9f9f8", media: "(prefers-color-scheme: light)" },
-        { name: "theme-color", content: "#18191a", media: "(prefers-color-scheme: dark)" },
+        { name: "theme-color", content: "#ebebea", media: "(prefers-color-scheme: light)" },
+        { name: "theme-color", content: "#0d0e0f", media: "(prefers-color-scheme: dark)" },
         { name: "mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-title", content: "Typbase" },
@@ -281,6 +281,7 @@ export default defineNuxtConfig({
       nativeAppUrl: "",
       pdsUrl: "",
       proxyUrl: process.env.NODE_ENV === "development" ? "http://localhost:3001" : "",
+      registryUrl: process.env.NODE_ENV === "development" ? "http://localhost:3002" : "",
     },
   },
   nitro: {

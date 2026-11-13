@@ -8,7 +8,7 @@ export default defineHandler(async () => {
   return {
     publishers: catalog.publishers,
     warnings: catalog.warnings,
-    plugins: catalog.entries.map((entry) => ({
+    plugins: catalog.plugins.map((entry) => ({
       uri: entry.uri,
       publisher: entry.publisher,
       name: entry.listing.name,

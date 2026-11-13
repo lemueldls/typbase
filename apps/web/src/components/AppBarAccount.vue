@@ -89,7 +89,7 @@ const label = computed(() => {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+  box-shadow: var(--shadow-2);
   animation: ui-overlay-fade-in var(--motion-fast);
 }
 

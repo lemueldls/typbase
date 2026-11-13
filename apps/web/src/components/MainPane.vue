@@ -12,20 +12,18 @@ defineProps<{
   graphOpen?: boolean;
   filesOpen?: boolean;
   siteOpen?: boolean;
-  /** Desktop side dock: a thread shown beside the main pane. */
-  dockChatId?: string | null;
+  linksOpen: boolean;
   modelValue: ViewModeId;
 }>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", mode: ViewModeId): void;
+  (e: "update:linksOpen", open: boolean): void;
   (e: "openPage", id: string): void;
   (e: "openPlugin", id: string): void;
   (e: "closePlugin"): void;
   (e: "openThread", id: string): void;
   (e: "closeChat"): void;
-  (e: "closeDock"): void;
-  (e: "expandDock"): void;
   (e: "openGraph"): void;
   (e: "closeGraph"): void;
   (e: "openFiles"): void;
@@ -52,43 +50,6 @@ async function openToday(): Promise<void> {
 
   const page = await store.value.createDailyNote(todayISO());
   emit("openPage", page.id);
-}
-
-/** Dock width in px, persisted like the sidebar's layout. */
-const dockWidth = useLocalStorage("typbase:dockWidth", 380);
-
-function clampDock(width: number): number {
-  return Math.min(620, Math.max(280, width));
-}
-
-/** The dock handle is a plain pointer drag, like the editor's split handle. */
-function startDockDrag(event: PointerEvent): void {
-  event.preventDefault();
-  const target = event.currentTarget as HTMLElement;
-  const startX = event.clientX;
-  const startWidth = dockWidth.value;
-  target.setPointerCapture(event.pointerId);
-
-  const onMove = (move: PointerEvent) => {
-    dockWidth.value = clampDock(startWidth - (move.clientX - startX));
-  };
-
-  const onUp = () => {
-    target.releasePointerCapture(event.pointerId);
-    target.removeEventListener("pointermove", onMove);
-    target.removeEventListener("pointerup", onUp);
-  };
-
-  target.addEventListener("pointermove", onMove);
-  target.addEventListener("pointerup", onUp);
-}
-
-function onDockKeydown(event: KeyboardEvent): void {
-  const step = event.key === "ArrowLeft" ? 24 : event.key === "ArrowRight" ? -24 : 0;
-  if (!step) return;
-
-  event.preventDefault();
-  dockWidth.value = clampDock(dockWidth.value + step);
 }
 </script>
 
@@ -152,7 +113,9 @@ function onDockKeydown(event: KeyboardEvent): void {
         :key="pageId"
         :page-id="pageId"
         :model-value="modelValue"
+        :links-open="linksOpen"
         @update:model-value="emit('update:modelValue', $event)"
+        @update:links-open="emit('update:linksOpen', $event)"
         @open-page="emit('openPage', $event)"
         @open-plugin="emit('openPlugin', $event)"
         @open-graph="emit('openGraph')"
@@ -186,30 +149,6 @@ function onDockKeydown(event: KeyboardEvent): void {
         </div>
       </div>
     </div>
-
-    <template v-if="dockChatId">
-      <div
-        class="app__resize-handle main-pane__handle"
-        role="separator"
-        aria-orientation="vertical"
-        tabindex="0"
-        :aria-label="$t('chat.resizeDock')"
-        @pointerdown="startDockDrag"
-        @keydown="onDockKeydown"
-      />
-
-      <ChatPane
-        :key="dockChatId"
-        class="main-pane__dock"
-        :style="{ width: `${dockWidth}px` }"
-        :thread-id="dockChatId"
-        docked
-        @close="emit('closeDock')"
-        @expand="emit('expandDock')"
-        @open-page="emit('openPage', $event)"
-        @open-thread="emit('openThread', $event)"
-      />
-    </template>
   </div>
 </template>
 
@@ -234,17 +173,6 @@ function onDockKeydown(event: KeyboardEvent): void {
   min-height: 0;
 }
 
-.main-pane__dock {
-  flex: 0 0 auto;
-  min-width: 0;
-  max-width: 60%;
-  border-left: 1px solid var(--color-border);
-}
-
-.main-pane__handle {
-  height: 100%;
-}
-
 .app__empty {
   flex: 1;
   display: flex;
@@ -258,9 +186,8 @@ function onDockKeydown(event: KeyboardEvent): void {
   align-items: center;
   gap: var(--space-2);
   min-height: var(--pane-header-height);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  padding: var(--pane-header-pad-x);
+  background: var(--color-surface-2);
 }
 
 .app__empty-toolbar-title {

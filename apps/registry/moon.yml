@@ -4,6 +4,7 @@ layer: "application"
 
 dependsOn:
   - "spaces"
+  - "skin"
 
 tasks:
   dev:
@@ -14,6 +15,9 @@ tasks:
 
   build:
     command: "pnpm nitro build"
+    deps:
+      - "spaces:build"
+      - "skin:build"
     inputs:
       - "routes/**/*"
       - "lib/**/*"
@@ -23,6 +27,8 @@ tasks:
       - "/pnpm-lock.yaml"
       - "/pnpm-workspace.yaml"
       - "$REGISTRY_*"
+      - "project://spaces"
+      - "project://skin"
     outputs:
       - ".output/**/*"
 

@@ -11,7 +11,7 @@ withDefaults(
     icon?: MaterialSymbol;
     disabled?: boolean;
     pressed?: boolean;
-    /** "plain" is the default bordered button and "ghost" is borderless. */
+    /** "ghost" is the default borderless button; "plain" adds a border. */
     variant?: "plain" | "ghost" | "primary";
     /** Colors the button as destructive (red icon and hover tint). */
     danger?: boolean;
@@ -19,7 +19,7 @@ withDefaults(
     size?: number;
     tooltipSide?: "top" | "right" | "bottom" | "left";
   }>(),
-  { variant: "plain", danger: false, size: 20, tooltipSide: "bottom" },
+  { variant: "ghost", danger: false, size: 20, tooltipSide: "bottom" },
 );
 </script>
 
@@ -33,6 +33,7 @@ withDefaults(
         'button--ghost': variant === 'ghost',
         'button--primary': variant === 'primary',
         'button--danger-icon': danger,
+        'button--icon-muted': variant !== 'primary' && !danger,
       }"
       :aria-label="label"
       :aria-pressed="pressed"

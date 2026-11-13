@@ -40,8 +40,8 @@ useBackLayer(open);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
-  z-index: 90;
+  box-shadow: var(--shadow-2);
+  z-index: var(--z-menu);
   display: flex;
   flex-direction: column;
 }
@@ -65,7 +65,7 @@ useBackLayer(open);
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-md);
-  border-radius: var(--radius-sm);
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-1)));
   outline: none;
   cursor: pointer;
 }
@@ -89,7 +89,7 @@ useBackLayer(open);
   text-align: left;
   background: transparent;
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-1)));
   cursor: pointer;
 }
 

@@ -9,6 +9,8 @@ projects:
   storage: "packages/storage"
   spaces: "packages/spaces"
   plugin-sdk: "packages/plugin-sdk"
+  skin: "packages/skin"
+  cli: "packages/cli"
 
 defaultProject: "web"
 

@@ -43,8 +43,32 @@ const loaded = ref(false);
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
-/** Desktop side dock: the chat sits beside the main pane instead of replacing it. */
+/** Desktop auxiliary rail: chat and links sit beside the main pane. */
 const dockChatId = ref<string | null>(null);
+const linksOpen = useLocalStorage("typbase:linksPanel", false);
+const auxSide = useLocalStorage<"left" | "right">("typbase:auxSide", "right");
+const auxActive = ref<"chat" | "links">("chat");
+const auxPanels = computed<Array<"chat" | "links">>(() => {
+  const panels: Array<"chat" | "links"> = [];
+  if (dockChatId.value) panels.push("chat");
+  if (linksOpen.value && currentPageId.value) panels.push("links");
+
+  return panels;
+});
+const auxPanel = computed<"chat" | "links" | null>(() =>
+  auxPanels.value.includes(auxActive.value) ? auxActive.value : (auxPanels.value[0] ?? null),
+);
+
+watch(dockChatId, (id) => {
+  if (id) auxActive.value = "chat";
+});
+watch(linksOpen, (open) => {
+  if (open) auxActive.value = "links";
+});
+watch(auxPanels, (panels) => {
+  if (!panels.includes(auxActive.value) && panels[0]) auxActive.value = panels[0];
+});
+
 const graphOpen = ref(false);
 const filesOpen = ref(false);
 const siteOpen = ref(false);
@@ -65,8 +89,10 @@ const { open: settingsOpen } = useSettingsDialog();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
- *  mirrors `--breakpoint-md` in tokens.css (mobile <= 48rem, desktop above). */
-const isDesktop = useMediaQuery("(min-width: 48.0625rem)");
+ *  mirrors `--breakpoint-lg` in tokens.css (mobile <= 56rem, desktop above). */
+const isDesktop = useMediaQuery("(min-width: 56.0625rem)");
+/** Inline auxiliary panels need the wider shell. Below this they float. */
+const isWide = useMediaQuery("(min-width: 72rem)");
 
 const nav = useNavHistory();
 const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
@@ -85,7 +111,7 @@ const switchingName = computed(
 /** Desktop sidebar widths in px. The splitter is px-sized and persists its
  *  layout, so the default is also what the expand button falls back to. */
 const SIDEBAR_WIDTH = 300;
-const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MIN_WIDTH = 260;
 const SIDEBAR_MAX_WIDTH = 480;
 
 /** Desktop sidebar collapse. Reka-ui persists the collapsed layout, so the
@@ -1054,6 +1080,23 @@ function closeDock() {
   syncRoute("replace");
 }
 
+function onLinksOpen(open: boolean) {
+  linksOpen.value = open;
+}
+
+function closeAuxPanel(panel: "chat" | "links") {
+  if (panel === "chat") closeDock();
+  else linksOpen.value = false;
+}
+
+function closeActiveAux() {
+  if (auxPanel.value) closeAuxPanel(auxPanel.value);
+}
+
+function moveAux(side: "left" | "right") {
+  if (auxSide.value !== side) auxSide.value = side;
+}
+
 /** Moves the docked thread into the main pane. */
 function expandDock() {
   const id = dockChatId.value;
@@ -1167,12 +1210,13 @@ definePageMeta({ ssr: false });
           <SplitterGroup
             v-if="isDesktop"
             direction="horizontal"
-            auto-save-id="typbase:sidebar"
+            auto-save-id="typbase:layout-v3"
             class="app__splitter"
           >
             <SplitterPanel
               ref="navPanel"
               class="app__nav-panel"
+              :class="{ 'app__nav-panel--collapsed': sidebarCollapsed }"
               size-unit="px"
               :default-size="SIDEBAR_WIDTH"
               :min-size="SIDEBAR_MIN_WIDTH"
@@ -1203,7 +1247,39 @@ definePageMeta({ ssr: false });
               :aria-label="$t('sidebar.resizeSidebar')"
             />
 
-            <SplitterPanel class="app__main-panel" :default-size="76">
+            <SplitterPanel
+              v-if="auxPanel && auxSide === 'left' && isWide"
+              class="app__aux-panel"
+              size-unit="px"
+              :default-size="360"
+              :min-size="320"
+              :max-size="620"
+            >
+              <AuxiliaryRail
+                :side="auxSide"
+                :panels="auxPanels"
+                :active="auxPanel ?? 'chat'"
+                :chat-id="dockChatId"
+                :page-id="currentPageId"
+                :store="workspace"
+                @update:active="auxActive = $event"
+                @close-panel="closeAuxPanel"
+                @close="closeActiveAux"
+                @expand-chat="expandDock"
+                @open-thread="openChat"
+                @open-page="openPage"
+                @open-graph="openGraph(true)"
+                @move="moveAux"
+              />
+            </SplitterPanel>
+
+            <SplitterResizeHandle
+              v-if="auxPanel && auxSide === 'left' && isWide"
+              class="app__resize-handle"
+              :aria-label="$t('aux.title')"
+            />
+
+            <SplitterPanel class="app__main-panel">
               <div class="app__main">
                 <MainPane
                   :page-id="currentPageId"
@@ -1212,16 +1288,15 @@ definePageMeta({ ssr: false });
                   :graph-open="graphOpen"
                   :files-open="filesOpen"
                   :site-open="siteOpen"
-                  :dock-chat-id="isDesktop ? dockChatId : null"
+                  :links-open="linksOpen"
                   :model-value="mode"
                   @update:model-value="setMode"
+                  @update:links-open="onLinksOpen"
                   @open-page="openPage"
                   @open-plugin="openPlugin"
                   @close-plugin="closePlugin"
                   @open-thread="openChat"
                   @close-chat="closeChat"
-                  @close-dock="closeDock"
-                  @expand-dock="expandDock"
                   @open-graph="openGraph(true)"
                   @close-graph="graphOpen = false"
                   @close-files="closeFiles"
@@ -1240,6 +1315,38 @@ definePageMeta({ ssr: false });
                   </template>
                 </MainPane>
               </div>
+            </SplitterPanel>
+
+            <SplitterResizeHandle
+              v-if="auxPanel && auxSide === 'right' && isWide"
+              class="app__resize-handle"
+              :aria-label="$t('aux.title')"
+            />
+
+            <SplitterPanel
+              v-if="auxPanel && auxSide === 'right' && isWide"
+              class="app__aux-panel"
+              size-unit="px"
+              :default-size="360"
+              :min-size="320"
+              :max-size="620"
+            >
+              <AuxiliaryRail
+                :side="auxSide"
+                :panels="auxPanels"
+                :active="auxPanel ?? 'chat'"
+                :chat-id="dockChatId"
+                :page-id="currentPageId"
+                :store="workspace"
+                @update:active="auxActive = $event"
+                @close-panel="closeAuxPanel"
+                @close="closeActiveAux"
+                @expand-chat="expandDock"
+                @open-thread="openChat"
+                @open-page="openPage"
+                @open-graph="openGraph(true)"
+                @move="moveAux"
+              />
             </SplitterPanel>
           </SplitterGroup>
 
@@ -1280,8 +1387,10 @@ definePageMeta({ ssr: false });
                 :graph-open="graphOpen"
                 :files-open="filesOpen"
                 :site-open="siteOpen"
+                :links-open="linksOpen"
                 :model-value="mode"
                 @update:model-value="setMode"
+                @update:links-open="onLinksOpen"
                 @open-page="openPage"
                 @open-plugin="openPlugin"
                 @close-plugin="closePlugin"
@@ -1306,20 +1415,35 @@ definePageMeta({ ssr: false });
             </div>
           </template>
 
+          <AuxiliaryRail
+            v-if="auxPanel && !(isDesktop && isWide)"
+            :side="auxSide"
+            :panels="auxPanels"
+            :active="auxPanel ?? 'chat'"
+            :chat-id="dockChatId"
+            :page-id="currentPageId"
+            :store="workspace"
+            floating
+            @update:active="auxActive = $event"
+            @close-panel="closeAuxPanel"
+            @close="closeActiveAux"
+            @expand-chat="expandDock"
+            @open-thread="openChat"
+            @open-page="openPage"
+            @open-graph="openGraph(true)"
+            @move="moveAux"
+          />
+
           <PluginWindows />
 
-          <!-- The app bar is hidden in focus mode, so the way out floats over
-               the page instead. -->
-          <button
+          <UiIconButton
             v-if="zen"
-            type="button"
+            variant="ghost"
             class="app__zen-exit"
-            :aria-label="$t('zen.exit')"
-            :title="$t('zen.exit')"
+            icon="fullscreen_exit"
+            :label="$t('zen.exit')"
             @click="setZen(false)"
-          >
-            <MsIcon name="fullscreen_exit" :size="20" />
-          </button>
+          />
         </div>
 
         <SearchPalette
@@ -1359,12 +1483,16 @@ definePageMeta({ ssr: false });
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--island-gap);
+  padding: var(--island-gap);
 }
 
 .app__body {
   flex: 1;
   min-height: 0;
   display: flex;
+  /* padding: var(--island-gap); */
+  gap: var(--island-gap);
 }
 
 /* Focus mode: the page keeps the window. The app bar and the sidebar are
@@ -1383,22 +1511,8 @@ definePageMeta({ ssr: false });
   position: fixed;
   top: calc(var(--space-2) + var(--safe-top));
   right: calc(var(--space-2) + var(--safe-right));
-  z-index: 80;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-md);
-  height: var(--control-md);
-  color: var(--color-text-secondary);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
-  cursor: pointer;
+  z-index: var(--z-menu);
   opacity: 0.5;
-  transition:
-    opacity var(--motion-fast),
-    color var(--motion-fast);
 }
 
 .app__zen-exit:hover,
@@ -1413,7 +1527,7 @@ definePageMeta({ ssr: false });
   position: fixed;
   top: calc(var(--space-3-5) + var(--safe-top));
   left: 50%;
-  z-index: 90;
+  z-index: var(--z-toast);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1422,7 +1536,7 @@ definePageMeta({ ssr: false });
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+  box-shadow: var(--shadow-2);
   pointer-events: none;
   animation: app-switching-in var(--motion-fast);
   transform: translateX(-50%);
@@ -1485,6 +1599,25 @@ definePageMeta({ ssr: false });
 .app__splitter {
   flex: 1;
   min-width: 0;
+  gap: 0;
+}
+
+.app__nav-panel,
+.app__main-panel,
+.app__aux-panel {
+  background: var(--color-surface);
+  border: var(--island-border);
+  border-radius: var(--island-radius);
+  box-shadow: var(--island-shadow);
+  overflow: hidden;
+}
+
+.app__nav-panel--collapsed,
+.app__nav-panel[data-state="collapsed"] {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .app__nav-panel .sidebar {
@@ -1496,8 +1629,8 @@ definePageMeta({ ssr: false });
 }
 
 .app__resize-handle {
-  width: 6px;
-  flex: 0 0 6px;
+  width: var(--island-gap);
+  flex: 0 0 var(--island-gap);
   position: relative;
   cursor: col-resize;
   outline: none;
@@ -1506,19 +1639,20 @@ definePageMeta({ ssr: false });
 .app__resize-handle::before {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: var(--space-4);
+  bottom: var(--space-4);
   left: 50%;
   transform: translateX(-50%);
-  width: 1px;
-  background: var(--color-border);
+  width: 0;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width var(--motion-fast);
 }
 
 .app__resize-handle:hover::before,
 .app__resize-handle:focus-visible::before,
 .app__resize-handle[data-resize-handle-active]::before {
   width: 3px;
-  background: var(--color-accent);
 }
 
 /* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
@@ -1542,19 +1676,39 @@ definePageMeta({ ssr: false });
   background: var(--color-surface-2);
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 56rem) {
   .app__main .app__nav-toggle {
     display: inline-flex;
+  }
+
+  .app__content {
+    padding: 0;
+    gap: 0;
+  }
+
+  .app__main {
+    padding-top: var(--safe-top);
+  }
+
+  .app__nav-panel,
+  .app__main-panel,
+  .app__aux-panel {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .app__nav {
     position: fixed;
     inset: 0 auto 0 0;
-    z-index: 60;
+    z-index: var(--z-drawer);
     width: min(84vw, 320px);
     transform: translateX(-100%);
+    background: var(--color-surface);
     transition: transform var(--motion-base);
-    box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+    box-shadow: var(--shadow-3);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    overflow: hidden;
   }
 
   .app__nav--open {
@@ -1565,16 +1719,29 @@ definePageMeta({ ssr: false });
     display: block;
     position: fixed;
     inset: 0;
-    z-index: 55;
+    z-index: var(--z-drawer-backdrop);
     background: var(--color-overlay);
     border: none;
   }
 }
 
+.app__content--zen {
+  padding: 0;
+  gap: 0;
+}
+
+.app__content--zen .app__nav-panel,
+.app__content--zen .app__main-panel,
+.app__content--zen .app__aux-panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .app__splash {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-splash);
   display: grid;
   place-content: center;
   justify-items: center;

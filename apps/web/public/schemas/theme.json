@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://typbase.at/schemas/theme.json",
+  "title": "Typbase theme file",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "name", "skin"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": "typbase.theme.v1" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "description": { "type": "string", "maxLength": 2000 },
+    "license": { "type": "string", "maxLength": 100 },
+    "tags": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "type": "string", "maxLength": 40 }
+    },
+    "forkedFrom": { "type": "string", "maxLength": 2000 },
+    "skin": { "$ref": "https://typbase.at/schemas/skin.json" }
+  }
+}

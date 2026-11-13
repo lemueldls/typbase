@@ -734,7 +734,7 @@ async function rebuildIndex() {
 
 .search-palette-panel__result {
   padding: var(--space-2) var(--space-2-5);
-  border-radius: var(--radius-sm);
+  border-radius: max(0px, calc(var(--radius-lg) - var(--space-2)));
   cursor: pointer;
 }
 
@@ -792,6 +792,7 @@ async function rebuildIndex() {
 @media (max-width: 40rem) {
   .search-palette-panel__result {
     padding: var(--space-3);
+    border-radius: max(0px, calc(var(--radius-lg) - var(--space-3)));
   }
 
   .search-palette-panel__footer {

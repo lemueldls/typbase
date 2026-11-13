@@ -66,7 +66,7 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-3) var(--space-3) 0;
+  padding: var(--row-pad-y) var(--row-pad-x) 0;
 }
 
 .settings-section__title {

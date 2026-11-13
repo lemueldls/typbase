@@ -28,6 +28,7 @@
     "@typbase/codemirror": "workspace:*",
     "@typbase/engine": "workspace:*",
     "@typbase/plugin-sdk": "workspace:*",
+    "@typbase/skin": "workspace:*",
     "@typbase/spaces": "workspace:*",
     "@typbase/storage": "workspace:*",
     "@typbase/typing": "workspace:*",

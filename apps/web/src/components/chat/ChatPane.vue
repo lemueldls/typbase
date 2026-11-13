@@ -261,6 +261,7 @@ function applySuggestion(text: string): void {
       </UiTooltip> -->
 
       <div class="chat-pane__actions">
+        <slot name="rail-actions" />
         <UiMenu v-model:open="threadMenuOpen">
           <template #trigger>
             <UiIconButton icon="history" :label="$t('chat.threads')" />
@@ -354,6 +355,7 @@ function applySuggestion(text: string): void {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -361,9 +363,8 @@ function applySuggestion(text: string): void {
   display: flex;
   align-items: center;
   min-height: var(--pane-header-height);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  padding: var(--pane-header-pad-x);
+  background: var(--color-surface-2);
 }
 
 .chat-pane__title {
@@ -428,8 +429,32 @@ function applySuggestion(text: string): void {
   white-space: nowrap;
 }
 
+/* .chat-pane--docked .chat-pane__actions .button--icon {
+  width: var(--control-sm);
+  height: var(--control-sm);
+} */
+
+.chat-pane--docked .chat-composer__row {
+  flex-wrap: wrap;
+}
+
+.chat-pane--docked .chat-composer__field {
+  flex: 1 1 7rem;
+  min-width: 0;
+}
+
+.chat-pane--docked .chat-composer__field--model {
+  flex: 1 1 9rem;
+  min-width: 0;
+}
+
+.chat-pane--docked .chat-composer__spacer {
+  display: none;
+}
+
 .chat-pane__body {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -442,6 +467,7 @@ function applySuggestion(text: string): void {
   display: grid;
   justify-items: center;
   gap: var(--space-2);
+  max-width: 100%;
   margin: auto;
   color: var(--color-text-secondary);
   text-align: center;

@@ -59,7 +59,7 @@ function onRowClick(event: MouseEvent) {
   grid-template-columns: minmax(0, 1fr) minmax(0, 13rem);
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-3);
+  padding: var(--row-pad-y) var(--row-pad-x);
   scroll-margin-block: var(--space-4);
 }
 
@@ -140,17 +140,6 @@ function onRowClick(event: MouseEvent) {
 }
 
 @container settings-panels (max-width: 38rem) {
-  .settings-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-2);
-  }
-
-  .settings-row__control {
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 48rem) {
   .settings-row {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);

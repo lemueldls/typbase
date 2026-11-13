@@ -1,0 +1,47 @@
+language: "typescript"
+stack: "frontend"
+layer: "library"
+
+dependsOn:
+  - "typing"
+
+tasks:
+  build:
+    command: "pnpm build"
+    deps:
+      - "typing:build"
+    inputs:
+      - "src/**/*"
+      - "tsconfig.json"
+      - "tsdown.config.ts"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "project://typing"
+    outputs:
+      - "dist/**/*"
+
+  build-dev:
+    command: "pnpm build-dev"
+    deps:
+      - "typing:build"
+    options:
+      runInCI: false
+      persistent: true
+    inputs:
+      - "src/**/*"
+      - "tsconfig.json"
+      - "tsdown.config.ts"
+      - "package.json"
+      - "/pnpm-lock.yaml"
+      - "project://typing"
+    outputs:
+      - "dist/**/*"
+
+  typecheck:
+    command: "pnpm typecheck"
+    inputs:
+      - "src/**/*"
+      - "tsconfig.json"
+      - "tsdown.config.ts"
+      - "package.json"
+      - "/pnpm-lock.yaml"

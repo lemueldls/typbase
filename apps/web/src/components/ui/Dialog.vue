@@ -61,7 +61,7 @@ const contentAttrs = computed(() => ({
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-overlay);
   background: var(--color-overlay);
 }
 
@@ -73,12 +73,12 @@ const contentAttrs = computed(() => ({
   width: min(420px, calc(100vw - var(--space-8)));
   max-height: calc(100dvh - var(--space-16) - var(--safe-top) - var(--safe-bottom));
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: var(--dialog-pad);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.2);
-  z-index: 75;
+  box-shadow: var(--shadow-3);
+  z-index: var(--z-dialog);
 }
 
 .dialog-overlay,
@@ -100,11 +100,11 @@ const contentAttrs = computed(() => ({
    portaled content mounts in open order, so a dialog that opened first would
    otherwise sit above it. Below selects (90), toasts (95), and tooltips (100). */
 .dialog-overlay--top {
-  z-index: 80;
+  z-index: var(--z-dialog-top);
 }
 
 .dialog--top {
-  z-index: 85;
+  z-index: calc(var(--z-dialog-top) + 5);
 }
 
 .dialog__description {

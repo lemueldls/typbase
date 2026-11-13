@@ -706,6 +706,21 @@ export class AtprotoService {
     }
   }
 
+  /** True when the session can write public theme listings and releases. */
+  async hasThemePublishingScope(): Promise<boolean> {
+    if (!this.sessionRef) return false;
+    try {
+      const info = await this.sessionRef.getTokenInfo();
+      const scope = String(info.scope);
+
+      return (
+        scope.includes("repo:at.typbase.theme") && scope.includes("repo:at.typbase.themeRelease")
+      );
+    } catch {
+      return false;
+    }
+  }
+
   /** Re-runs OAuth so an older session picks up the site scopes. */
   async reauthorize(): Promise<void> {
     const identifier = this.statusDid;

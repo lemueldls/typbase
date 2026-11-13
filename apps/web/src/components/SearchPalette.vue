@@ -47,7 +47,7 @@ function onDrawerOpen(open: boolean) {
 .search-palette {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: var(--z-menu);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -67,7 +67,7 @@ function onDrawerOpen(open: boolean) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 70px rgb(0 0 0 / 0.3);
+  box-shadow: var(--shadow-3);
   padding: var(--space-2);
   animation: search-palette-rise var(--motion-fast);
 }
@@ -88,7 +88,7 @@ function onDrawerOpen(open: boolean) {
 .search-palette__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: var(--z-menu);
   background: var(--color-overlay);
   animation: search-palette-fade var(--motion-fast);
 }
@@ -100,7 +100,7 @@ function onDrawerOpen(open: boolean) {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
-  z-index: 91;
+  z-index: var(--z-dialog);
   display: flex;
   flex-direction: column;
   /* Same reasoning as the desktop box: a stable height beats resizing under
@@ -113,7 +113,7 @@ function onDrawerOpen(open: boolean) {
   border: 1px solid var(--color-border);
   border-bottom: 0;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 -18px 50px rgb(0 0 0 / 0.3);
+  box-shadow: var(--shadow-3);
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
   transition: transform var(--motion-slow);
   animation: search-palette-sheet-in var(--motion-slow) both;

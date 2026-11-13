@@ -266,6 +266,32 @@ export type ThemePaletteToken = (typeof THEME_PALETTE_TOKEN_KEYS)[number];
  */
 export type ThemePaletteTokens = Record<ThemePaletteToken, string>;
 
+/** A custom theme carries a complete palette for each mode. */
+export interface CustomThemePalettes {
+  light: ThemePaletteTokens;
+  dark: ThemePaletteTokens;
+}
+
+/** How a published skin came into the workspace. */
+export interface ThemeProvenance {
+  /** Listing URI, e.g. `at://did/at.typbase.theme/nord`. */
+  source: string | null;
+  version: string | null;
+  schema: string | null;
+  /** Original listing when this skin was imported or applied as a fork. */
+  forkedFrom: string | null;
+  /** True after the local skin diverges from the applied release. */
+  modified: boolean;
+}
+
+export const DEFAULT_THEME_PROVENANCE: ThemeProvenance = {
+  source: null,
+  version: null,
+  schema: null,
+  forkedFrom: null,
+  modified: false,
+};
+
 /** Workspace settings stored in the workspace doc's `settings` map. */
 /** A Typst package installed in the workspace, synced with the settings. */
 export interface InstalledPackage {
@@ -335,8 +361,10 @@ export interface WorkspaceSettings {
   theme: ThemeMode;
   /** Named theme from the registry ("default", "catppuccin", "custom", ...). */
   themeName: string;
-  /** Token map for the "custom" theme (or a complete override for any theme). */
-  themeCustom: ThemePaletteTokens | null;
+  /** Complete light and dark palettes for the "custom" theme. */
+  themeCustom: CustomThemePalettes | null;
+  /** Provenance for a skin applied from a published theme. */
+  themeProvenance: ThemeProvenance;
   /** Interface sizing, synced with the workspace like the theme. */
   uiSize: UiSize;
   uiDensity: UiDensity;
@@ -413,6 +441,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   theme: "auto",
   themeName: "default",
   themeCustom: null,
+  themeProvenance: DEFAULT_THEME_PROVENANCE,
   uiSize: "default",
   uiDensity: "default",
   uiRadius: "default",

@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
   font-size: var(--text-sm);
   color: var(--color-danger);
   background: var(--color-danger-soft);
-  border-radius: var(--radius-md);
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-1-5)));
 }
 
 .plugin-surface__error-text {

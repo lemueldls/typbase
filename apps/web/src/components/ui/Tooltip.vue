@@ -31,7 +31,7 @@ withDefaults(
 <style>
 .ui-tooltip {
   /* Above every other layer: selects (90), the palette (90/91), toasts (95). */
-  z-index: 100;
+  z-index: var(--z-tooltip);
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-sm);
   line-height: var(--leading-tight);
@@ -39,7 +39,7 @@ withDefaults(
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
+  box-shadow: var(--shadow-2);
 }
 
 .ui-tooltip__arrow {

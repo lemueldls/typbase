@@ -1,4 +1,3 @@
-import type { OAuthSession } from "@atproto/oauth-client-browser";
 import type { PluginManifest } from "@typbase/typing";
 import type { DidString, RecordOf } from "airspace";
 
@@ -239,7 +238,7 @@ export interface PublishedPlugin {
  * URI as its id.
  */
 export async function publishPlugin(
-  session: OAuthSession,
+  session: NonNullable<Parameters<typeof createAirspace>[0]["session"]>,
   did: string,
   input: {
     slug: string;

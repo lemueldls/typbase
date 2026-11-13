@@ -427,7 +427,7 @@ defineExpose({ scroller, getFrameLayout });
 }
 
 .paged-preview__inner {
-  padding: var(--space-4) var(--space-5) var(--space-12);
+  padding: var(--pane-body-pad) var(--space-5) var(--space-12);
 }
 
 /* Same column as the editor, so switching modes does not move the text. The
@@ -444,7 +444,7 @@ defineExpose({ scroller, getFrameLayout });
   min-height: 100%;
 }
 
-@media (max-width: 48rem) {
+@container page-view (max-width: 48rem) {
   .paged-preview__inner {
     padding: var(--space-3) var(--space-3) var(--space-8);
   }

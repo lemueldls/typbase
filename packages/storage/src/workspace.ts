@@ -722,13 +722,27 @@ export class WorkspaceStore {
     settings.customFonts = Array.isArray(customFonts) ? customFonts : [];
     const themeName = map.get("themeName");
     settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
-    const themeCustom = decodeSetting<WorkspaceSettings["themeCustom"] | null>(
-      map.get("themeCustom"),
-    );
-    settings.themeCustom =
-      themeCustom && typeof themeCustom === "object" && Object.keys(themeCustom).length > 0
-        ? themeCustom
-        : DEFAULT_SETTINGS.themeCustom;
+    const themeCustom = decodeSetting<unknown>(map.get("themeCustom"));
+    if (themeCustom && typeof themeCustom === "object" && !Array.isArray(themeCustom)) {
+      const value = themeCustom as Record<string, unknown>;
+      if (value.light && value.dark) {
+        settings.themeCustom = themeCustom as WorkspaceSettings["themeCustom"];
+      } else if (Object.keys(value).length > 0) {
+        // A palette from before the light/dark split. Keep it usable in both
+        // modes until the editor writes the new shape.
+        const legacy = themeCustom as NonNullable<WorkspaceSettings["themeCustom"]>["light"];
+        settings.themeCustom = { light: legacy, dark: legacy };
+      } else {
+        settings.themeCustom = DEFAULT_SETTINGS.themeCustom;
+      }
+    } else {
+      settings.themeCustom = DEFAULT_SETTINGS.themeCustom;
+    }
+
+    settings.themeProvenance = {
+      ...DEFAULT_SETTINGS.themeProvenance,
+      ...decodeSetting<Partial<WorkspaceSettings["themeProvenance"]>>(map.get("themeProvenance")),
+    };
 
     const installedPackages = decodeSetting<WorkspaceSettings["installedPackages"] | null>(
       map.get("installedPackages"),
@@ -767,6 +781,7 @@ export class WorkspaceStore {
       else if (key === "graph") map.set("graph", encodeSetting(value));
       else if (key === "typography") map.set("typography", encodeSetting(value));
       else if (key === "themeCustom") map.set("themeCustom", encodeSetting(value));
+      else if (key === "themeProvenance") map.set(key, encodeSetting(value));
       else if (
         key === "installedPackages" ||
         key === "customFonts" ||

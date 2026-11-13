@@ -108,7 +108,7 @@ withDefaults(
   height: var(--switch-thumb);
   background: var(--color-surface);
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  box-shadow: var(--shadow-1);
   transform-origin: left center;
   /* The spring easing overshoots a hair and settles. */
   transition: transform var(--motion-spring);

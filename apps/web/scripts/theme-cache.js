@@ -26,7 +26,7 @@
 
     root.dataset.theme = "dark";
     root.style.colorScheme = "dark";
-    root.style.backgroundColor = "#1b1d21";
+    root.style.backgroundColor = "#0d0e0f";
   } catch {
     // Leave the document default if matchMedia is unavailable.
   }

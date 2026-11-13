@@ -98,6 +98,15 @@ withDefaults(
   line-height: var(--leading-none);
 }
 
+.button--icon-muted {
+  color: var(--color-text-secondary);
+}
+
+.button--icon[aria-pressed="true"] {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
 .button .ms-icon {
   flex: none;
 }
@@ -142,7 +151,11 @@ withDefaults(
   }
 
   .button--ghost:hover {
-    background: var(--color-surface-2);
+    background: var(--color-surface-3);
+  }
+
+  .button--icon-muted:hover:not(:disabled) {
+    color: var(--color-text);
   }
 
   .button--danger-icon:hover {

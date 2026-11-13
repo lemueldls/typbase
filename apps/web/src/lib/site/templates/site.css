@@ -80,7 +80,7 @@ samp {
 pre {
   background: var(--site-code);
   border: 1px solid var(--site-border);
-  border-radius: 8px;
+  border-radius: var(--site-radius-md);
   padding: 1rem;
   overflow: auto;
   font-size: 0.875rem;
@@ -88,7 +88,7 @@ pre {
 
 code {
   background: var(--site-code);
-  border-radius: 4px;
+  border-radius: var(--site-radius-xs);
   padding: 0.1em 0.3em;
 }
 
@@ -265,7 +265,7 @@ math {
   overflow: auto;
   background: var(--site-surface);
   border: 1px solid var(--site-border);
-  border-radius: 10px;
+  border-radius: var(--site-radius-lg);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
   padding: 0.35rem;
 }
@@ -280,7 +280,7 @@ math {
 .site-search__results a {
   display: block;
   padding: 0.5rem 0.6rem;
-  border-radius: 6px;
+  border-radius: max(0px, calc(var(--site-radius-lg) - 0.35rem));
   color: var(--site-text);
 }
 
@@ -499,7 +499,7 @@ body[data-nav="none"] .site-sidebar {
   display: block;
   padding: 0.25rem 0.5rem;
   /* margin-left: -0.5rem; */
-  border-radius: 5px;
+  border-radius: var(--site-radius-xs);
   color: var(--site-muted);
   font-size: 0.9rem;
   overflow: hidden;
@@ -611,7 +611,7 @@ body[data-nav="none"] .site-sidebar {
 
 .site-page .tb-surface {
   border: 1px solid var(--site-border);
-  border-radius: 10px;
+  border-radius: var(--site-radius-lg);
   padding: 1rem;
 }
 

@@ -1785,10 +1785,9 @@ function copy(value: string): Promise<void> {
 .site-view__header {
   width: 100%;
   min-height: var(--pane-header-height);
-  padding: var(--space-2) calc(var(--space-2) + var(--safe-right)) var(--space-2)
-    calc(var(--space-2) + var(--safe-left));
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) calc(var(--pane-header-pad-x) + var(--safe-right)) var(--space-2)
+    calc(var(--pane-header-pad-x) + var(--safe-left));
+  background: var(--color-surface-2);
 }
 
 .site-view__header-inner {

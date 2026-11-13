@@ -11,4 +11,5 @@ export * from "./pluginRegistry";
 export * from "./relay";
 export * from "./sites";
 export * from "./sync";
+export * from "./themeRegistry";
 export * from "./wire";

@@ -55,10 +55,12 @@ import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 const props = defineProps<{
   pageId: string;
   modelValue: ViewModeId;
+  linksOpen: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", mode: ViewModeId): void;
+  (e: "update:linksOpen", open: boolean): void;
   (e: "openPage", id: string): void;
   (e: "openPlugin", instanceId: string): void;
   (e: "openGraph"): void;
@@ -93,7 +95,10 @@ const pageError = ref<string>();
 const ready = ref(false);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
-const linksOpen = useLocalStorage("typbase:linksPanel", false);
+const linksOpen = computed({
+  get: () => props.linksOpen,
+  set: (open: boolean) => emit("update:linksOpen", open),
+});
 const assetsOpen = ref(false);
 const exportOpen = ref(false);
 const publishOpen = ref(false);
@@ -1576,15 +1581,6 @@ function setCategory(categoryId: string | null): void {
         @jump="onPreviewJump"
       />
     </div>
-
-    <LinksPanel
-      v-if="linksOpen && store"
-      :page-id="pageId"
-      :store="store"
-      @open-page="emit('openPage', $event)"
-      @open-graph="emit('openGraph')"
-      @close="linksOpen = false"
-    />
   </div>
 </template>
 
@@ -1607,9 +1603,8 @@ function setCategory(categoryId: string | null): void {
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
   min-height: var(--pane-header-height);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  padding: var(--pane-header-pad-x);
+  background: var(--color-surface-2);
 }
 
 /* The outline popover has no surface of its own, like the other menu-shaped
@@ -1677,8 +1672,7 @@ function setCategory(categoryId: string | null): void {
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-1);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-surface-2);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -1742,6 +1736,7 @@ function setCategory(categoryId: string | null): void {
 
 .page-view__mode:hover {
   color: var(--color-text);
+  /* background: var(--color-surface-3); */
 }
 
 .page-view__mode:disabled {
@@ -1752,7 +1747,7 @@ function setCategory(categoryId: string | null): void {
 .page-view__mode--active {
   color: var(--color-text);
   background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  box-shadow: var(--shadow-1);
 }
 
 .page-view__mode-label {
@@ -1895,7 +1890,7 @@ function setCategory(categoryId: string | null): void {
 
 /* Split view stacks on phones: side-by-side panes would give each ~190px.
    The horizontal drag handle is hidden; editors/previews scroll on their own. */
-@media (max-width: 48rem) {
+@container page-view (max-width: 48rem) {
   .page-view__body--split {
     grid-template-columns: 100%;
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);

@@ -719,7 +719,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
   background: var(--color-surface);
   border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
   border-radius: var(--radius-full);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+  box-shadow: var(--shadow-2);
   white-space: nowrap;
 }
 

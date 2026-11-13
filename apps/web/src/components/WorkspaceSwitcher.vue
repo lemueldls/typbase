@@ -289,6 +289,10 @@ function statusFor(info: WorkspaceInfo): string {
   border-radius: var(--radius-sm);
 }
 
+.ws-screen__list > li .ws-row {
+  border-radius: 0;
+}
+
 .ws-screen__hint {
   color: var(--color-text-secondary);
   text-align: center;

@@ -62,9 +62,8 @@ const hasWindow = computed(() =>
   align-items: center;
   gap: var(--space-2);
   min-height: var(--pane-header-height);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--pane-header-pad-x) var(--space-3);
+  background: var(--color-surface-2);
 }
 
 .plugin-view__title {

@@ -389,7 +389,7 @@ function formatSize(bytes: number): string {
 .picker__menu .button {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  box-shadow: var(--shadow-1);
 }
 
 .picker__thumb {
@@ -400,7 +400,7 @@ function formatSize(bytes: number): string {
   overflow: hidden;
   color: var(--color-text-secondary);
   background: var(--color-surface);
-  border-radius: var(--radius-sm);
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-1-5)));
 }
 
 .picker__thumb img {

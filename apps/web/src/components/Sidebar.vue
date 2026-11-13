@@ -643,8 +643,7 @@ function onCreated(page: PageMeta) {
   height: 100%;
   min-height: 0;
   padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: transparent;
 }
 
 /* Matches the page toolbar's min-height so the app chrome lines up. */
@@ -655,7 +654,7 @@ function onCreated(page: PageMeta) {
   gap: var(--space-2);
   min-height: var(--pane-header-height);
   padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
 }
 
 .sidebar__workspace {
@@ -677,7 +676,7 @@ function onCreated(page: PageMeta) {
 
 .sidebar__workspace:hover,
 .sidebar__workspace[data-state="open"] {
-  background: var(--color-surface-2);
+  background: var(--color-surface-3);
 }
 
 .sidebar__icon {

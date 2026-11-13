@@ -8,6 +8,7 @@ dependsOn:
   - "storage"
   - "spaces"
   - "plugin-sdk"
+  - "skin"
 
 tasks:
   dev:
@@ -51,6 +52,7 @@ tasks:
       - "project://storage"
       - "project://spaces"
       - "project://plugin-sdk"
+      - "project://skin"
     outputs:
       - ".output/**/*"
 
@@ -85,6 +87,7 @@ tasks:
       - "project://storage"
       - "project://spaces"
       - "project://plugin-sdk"
+      - "project://skin"
     outputs:
       - ".output/**/*"
 

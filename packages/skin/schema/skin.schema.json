@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://typbase.at/schemas/skin.json",
+  "title": "Typbase skin",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "palette", "geometry", "typography"],
+  "properties": {
+    "schema": {
+      "const": "typbase.skin.v1"
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light", "dark"],
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/palette"
+        },
+        "dark": {
+          "$ref": "#/$defs/palette"
+        }
+      }
+    },
+    "geometry": {
+      "$ref": "#/$defs/geometry"
+    },
+    "typography": {
+      "$ref": "#/$defs/typography"
+    }
+  },
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "surface2",
+        "surface3",
+        "border",
+        "borderStrong",
+        "text",
+        "textSecondary",
+        "accent",
+        "accentSoft",
+        "ok",
+        "okSoft",
+        "warning",
+        "warningSoft",
+        "danger",
+        "dangerSoft",
+        "info",
+        "infoSoft",
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "cyan",
+        "blue",
+        "violet",
+        "code",
+        "overlay"
+      ],
+      "properties": {
+        "surface": {
+          "$ref": "#/$defs/color"
+        },
+        "surface2": {
+          "$ref": "#/$defs/color"
+        },
+        "surface3": {
+          "$ref": "#/$defs/color"
+        },
+        "border": {
+          "$ref": "#/$defs/color"
+        },
+        "borderStrong": {
+          "$ref": "#/$defs/color"
+        },
+        "text": {
+          "$ref": "#/$defs/color"
+        },
+        "textSecondary": {
+          "$ref": "#/$defs/color"
+        },
+        "accent": {
+          "$ref": "#/$defs/color"
+        },
+        "accentSoft": {
+          "$ref": "#/$defs/color"
+        },
+        "ok": {
+          "$ref": "#/$defs/color"
+        },
+        "okSoft": {
+          "$ref": "#/$defs/color"
+        },
+        "warning": {
+          "$ref": "#/$defs/color"
+        },
+        "warningSoft": {
+          "$ref": "#/$defs/color"
+        },
+        "danger": {
+          "$ref": "#/$defs/color"
+        },
+        "dangerSoft": {
+          "$ref": "#/$defs/color"
+        },
+        "info": {
+          "$ref": "#/$defs/color"
+        },
+        "infoSoft": {
+          "$ref": "#/$defs/color"
+        },
+        "red": {
+          "$ref": "#/$defs/color"
+        },
+        "orange": {
+          "$ref": "#/$defs/color"
+        },
+        "yellow": {
+          "$ref": "#/$defs/color"
+        },
+        "green": {
+          "$ref": "#/$defs/color"
+        },
+        "cyan": {
+          "$ref": "#/$defs/color"
+        },
+        "blue": {
+          "$ref": "#/$defs/color"
+        },
+        "violet": {
+          "$ref": "#/$defs/color"
+        },
+        "code": {
+          "$ref": "#/$defs/color"
+        },
+        "overlay": {
+          "$ref": "#/$defs/color"
+        }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["size", "density", "radius"],
+      "properties": {
+        "size": {
+          "enum": ["small", "default", "large"]
+        },
+        "density": {
+          "enum": ["compact", "default", "spacious"]
+        },
+        "radius": {
+          "enum": ["square", "default", "round"]
+        }
+      }
+    },
+    "typography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["font", "mathFont", "codeFont", "textSize", "ligatures", "kerning"],
+      "properties": {
+        "font": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "mathFont": {
+          "type": ["string", "null"],
+          "maxLength": 200
+        },
+        "codeFont": {
+          "type": ["string", "null"],
+          "maxLength": 200
+        },
+        "textSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 32
+        },
+        "ligatures": {
+          "type": "boolean"
+        },
+        "kerning": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

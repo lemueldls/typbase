@@ -1,5 +1,6 @@
 import type { SiteSettings, ThemePaletteTokens, WorkspaceSettings } from "@typbase/typing";
 
+import { uiScale } from "@typbase/skin";
 import graphScriptCode from "virtual:typbase-graph-script";
 import siteCss from "virtual:typbase-site-css";
 import siteScriptCode from "virtual:typbase-site-script";
@@ -195,7 +196,11 @@ export function siteStyles(input: {
 }): string {
   const { palette, settings, fonts } = input;
   const dark = isDark(palette.surface);
-  const radiusScale = { square: 0.25, default: 1, round: 1.5 }[settings.uiRadius ?? "default"];
+  const radiusScale = uiScale({
+    size: "default",
+    density: "default",
+    radius: settings.uiRadius ?? "default",
+  }).radius;
   const fontFaces = fonts
     .map(
       (face) =>
@@ -223,7 +228,11 @@ ${iconFont}
   --site-accent-soft:${palette.accentSoft};
   --site-code:${palette.code};
   --site-radius-scale:${radiusScale};
-  --site-control-radius:calc(1rem * var(--site-radius-scale));
+  --site-radius-xs:calc(0.25rem * var(--site-radius-scale));
+  --site-radius-sm:calc(0.375rem * var(--site-radius-scale));
+  --site-radius-md:calc(0.5rem * var(--site-radius-scale));
+  --site-radius-lg:calc(0.75rem * var(--site-radius-scale));
+  --site-control-radius:var(--site-radius-sm);
   --site-text-font:"${textFont}",ui-sans-serif,system-ui,sans-serif;
   --site-code-font:"${codeFont}",ui-monospace,SFMono-Regular,monospace;
   --site-math-font:"${mathFont}",serif;

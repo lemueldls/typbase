@@ -53,10 +53,10 @@ const describedBy = computed(() => (props.description ? {} : { "aria-describedby
 
 <style>
 .dialog-overlay--confirm {
-  z-index: 86;
+  z-index: calc(var(--z-dialog-top) + 1);
 }
 
 .dialog--confirm {
-  z-index: 89;
+  z-index: calc(var(--z-dialog-top) + 4);
 }
 </style>

@@ -33,9 +33,8 @@ const emit = defineEmits<{ (e: "close"): void }>();
   align-items: center;
   gap: var(--space-2);
   min-height: var(--pane-header-height);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  padding: var(--pane-header-pad-x);
+  background: var(--color-surface-2);
 }
 
 .files-view__title {

@@ -1,4 +1,5 @@
 import type {
+  CustomThemePalettes,
   ThemeMode,
   ThemePaletteTokens,
   ThemeSeeds,
@@ -9,6 +10,7 @@ import type {
 } from "@typbase/typing";
 
 import { ThemeColors } from "@typbase/engine";
+import { backdropFor, fontStacks, themeCssVar, uiScale as skinUiScale } from "@typbase/skin";
 
 import { expandSeeds, normalizeCssColor } from "./palette";
 import { themeColorsFromPalette } from "./rendererPalette";
@@ -407,12 +409,13 @@ export interface ResolvedTheme {
 export function resolveLightTheme(settings: {
   theme: ThemeMode;
   themeName?: string;
-  themeCustom?: ThemePaletteTokens | null;
+  themeCustom?: CustomThemePalettes | null;
 }): ResolvedTheme {
   const def = themeById(settings.themeName ?? "default") ?? null;
   const fallback = THEMES[0]!;
   const seeds = def?.variants.light ?? fallback.variants.light ?? fallback.variants.dark;
-  const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
+  const custom =
+    settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom?.light ?? {}) : {};
 
   return {
     palette: {
@@ -436,7 +439,7 @@ export function resolveLightTheme(settings: {
 export function resolveTheme(settings: {
   theme: ThemeMode;
   themeName?: string;
-  themeCustom?: ThemePaletteTokens | null;
+  themeCustom?: CustomThemePalettes | null;
 }): ResolvedTheme {
   const preferDark =
     settings.theme === "dark" || (settings.theme === "auto" && prefersDarkScheme());
@@ -461,7 +464,8 @@ export function resolveTheme(settings: {
     mode = "light";
   }
 
-  const custom = settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom ?? {}) : {};
+  const custom =
+    settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom?.[mode] ?? {}) : {};
 
   return {
     palette: { ...expandSeeds(seeds, mode), ...normalizeCustom(custom) },
@@ -508,54 +512,19 @@ export interface AppChromeSettings extends AppFontSettings {
   typography?: TypographySettings;
 }
 
-/** Preset to multiplier for the three scale variables in tokens.css. */
-const UI_SIZE_SCALE: Record<UiSize, number> = { small: 0.9, default: 1, large: 1.15 };
-const UI_DENSITY_SCALE: Record<UiDensity, number> = {
-  compact: 0.875,
-  default: 1,
-  spacious: 1.125,
-};
-const UI_RADIUS_SCALE: Record<UiRadius, number> = { square: 0.25, default: 1, round: 1.5 };
+export { fontStacks, themeCssVar };
 
 export function uiScale(settings?: Pick<AppChromeSettings, "uiSize" | "uiDensity">): {
   size: number;
   density: number;
 } {
-  return {
-    size: UI_SIZE_SCALE[settings?.uiSize ?? "default"],
-    density: UI_DENSITY_SCALE[settings?.uiDensity ?? "default"],
-  };
-}
+  const scale = skinUiScale({
+    size: settings?.uiSize ?? "default",
+    density: settings?.uiDensity ?? "default",
+    radius: "default",
+  });
 
-function cssFamily(family: string): string {
-  // Family names are user data. Quote and escape so a stray quote cannot
-  // break the declaration.
-  return `"${family.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
-}
-
-/** CSS font stacks for the chrome, mirroring the renderer's font settings. */
-export function fontStacks(settings: AppFontSettings): {
-  sans: string;
-  mono: string;
-  math: string;
-} {
-  const text = settings.font?.trim();
-  const code = settings.codeFont?.trim() || text;
-  const math = settings.mathFont?.trim() || text;
-  const family = (value?: string) => (value ? cssFamily(value) : null);
-  const join = (...parts: Array<string | null>) =>
-    parts.filter((part): part is string => !!part).join(", ");
-
-  return {
-    sans: join(family(text), "ui-sans-serif", "system-ui", "sans-serif"),
-    mono: join(family(code), "ui-monospace", "SFMono-Regular", "Menlo", "monospace"),
-    math: join(family(math), family("New Computer Modern Math"), "serif"),
-  };
-}
-
-/** Token key to CSS custom property: `surface2` -> `--color-surface-2`. */
-export function themeCssVar(token: string): string {
-  return `--color-${token.replace(/([a-z])([A-Z0-9])/g, "$1-$2").toLowerCase()}`;
+  return { size: scale.size, density: scale.density };
 }
 
 /** Applies the resolved tokens to <html> (CSS custom properties + data attrs). */
@@ -585,16 +554,22 @@ export function themeCssVars(
   }
 
   // Size presets multiply the token scale. tokens.css carries the fallbacks.
-  const scale = uiScale(settings);
+  const scale = skinUiScale({
+    size: settings?.uiSize ?? "default",
+    density: settings?.uiDensity ?? "default",
+    radius: settings?.uiRadius ?? "default",
+  });
   vars["--ui-size"] = String(scale.size);
   vars["--ui-density"] = String(scale.density);
-  vars["--ui-radius"] = String(UI_RADIUS_SCALE[settings?.uiRadius ?? "default"]);
+  vars["--ui-radius"] = String(scale.radius);
   // The editor and the rendered headings follow the document text size. The
   // engine gets the same number for compiled output.
   vars["--doc-text-size"] = `${settings?.textSize ?? 16}px`;
   // The source text carries the same OpenType features the engine applies, so
   // toggling ligatures does not make the source and the render disagree.
   vars["--doc-font-features"] = fontFeatureSettings(settings?.typography);
+
+  vars["--color-backdrop"] = backdropFor(resolved.palette, resolved.mode);
 
   return vars;
 }
@@ -633,7 +608,10 @@ export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSet
 const THEME_CACHE_KEY = "typbase:themeCache";
 
 type CachedThemeSettings = Parameters<typeof resolveTheme>[0] &
-  AppChromeSettings & { vars?: Record<string, string>; mode?: "light" | "dark" };
+  AppChromeSettings & {
+    vars?: Record<string, string>;
+    mode?: "light" | "dark";
+  };
 
 export function cacheThemeSettings(settings: CachedThemeSettings): void {
   try {

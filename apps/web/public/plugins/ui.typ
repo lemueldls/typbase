@@ -94,6 +94,33 @@
   name,
 )
 
+#let icon-button(
+  name,
+  action: none,
+  actions: (),
+  args: (:),
+  label: "",
+  disabled: false,
+) = {
+  let attrs = (
+    type: "button",
+    class: "tb-icon-button",
+    title: label,
+    "aria-label": label,
+  )
+  if action != none { attrs += action-attrs(action, args: args) }
+  if actions.len() > 0 { attrs.insert("data-tb-chain", json.encode(actions)) }
+  if disabled { attrs.insert("disabled", "disabled") }
+
+  html.elem("button", attrs: attrs, icon(name))
+}
+
+#let link(label, action, args: (:)) = html.elem(
+  "button",
+  attrs: (type: "button", class: "tb-link") + action-attrs(action, args: args),
+  label,
+)
+
 #let field(title, name, value: "", placeholder: "", kind: "text", commit: "change") = html.elem(
   "label",
   attrs: (class: "tb-field"),

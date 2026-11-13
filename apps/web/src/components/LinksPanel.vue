@@ -8,6 +8,8 @@ import { requestReveal } from "~/lib/reveal";
 const props = defineProps<{
   pageId: string;
   store: WorkspaceStore;
+  /** Fill a side rail instead of the page's bottom panel. */
+  rail?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -79,7 +81,7 @@ function mentionCount(group: BacklinkGroup): string {
 </script>
 
 <template>
-  <section class="links" :aria-label="t('links.title')">
+  <section class="links" :class="{ 'links--rail': rail }" :aria-label="t('links.title')">
     <header class="links__header">
       <MsIcon name="link" :size="20" />
       <span class="links__title">{{ t("links.title") }}</span>
@@ -91,6 +93,7 @@ function mentionCount(group: BacklinkGroup): string {
         {{ t("links.resolving", { count: status?.pending ?? 0 }) }}
       </span> -->
       <div class="links__actions">
+        <slot name="rail-actions" />
         <UiIconButton
           icon="hub"
           :label="t('links.openGraph')"
@@ -99,7 +102,7 @@ function mentionCount(group: BacklinkGroup): string {
           @click="emit('openGraph')"
         />
         <UiIconButton
-          icon="keyboard_arrow_down"
+          icon="close"
           :label="t('links.collapse')"
           variant="ghost"
           :size="20"
@@ -193,6 +196,19 @@ function mentionCount(group: BacklinkGroup): string {
   min-height: 0;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
+}
+
+.links--rail {
+  height: 100%;
+  border-top: 0;
+}
+
+.links--rail .links__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.links--rail .links__counts {
+  display: none;
 }
 
 .links__header {

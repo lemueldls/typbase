@@ -1,19 +1,21 @@
-# Typbase plugin registry
+# Typbase registry
 
-A small, self-hostable catalog for plugins published as AT Protocol records.
-The registry does not own accounts, records, or plugin bytes. Publishers write
-`at.typbase.plugin` and `at.typbase.pluginRelease` records to their own PDS.
+A small, self-hostable catalog for plugins and themes published as AT Protocol
+records. The registry does not own accounts, records, or release bytes.
+Publishers write `at.typbase.plugin`, `at.typbase.pluginRelease`,
+`at.typbase.theme`, and `at.typbase.themeRelease` records to their own PDS.
 This service only resolves and displays what it is configured to index.
 
 ## Run
 
-Set the publishers whose plugin listings should appear:
+Set the publishers whose listings should appear:
 
 ```sh
 REGISTRY_PUBLISHERS=did:plc:...,did:web:... pnpm dev:registry
 ```
 
-Then open `http://localhost:3002`. The JSON catalog is at `/api/plugins`.
+Then open `http://localhost:3002`. The catalog is at `/api/plugins` and
+`/api/themes`.
 
 ## Deploy
 
@@ -22,10 +24,12 @@ The registry needs outbound access to the publishers' PDS hosts.
 
 ## Trust
 
-The registry verifies that a listed release points back at its listing and
+The registry verifies that a release points back at its listing. For plugins it
 reports the release artifact checksum. The Typbase app downloads the artifact
 from the publisher's PDS and verifies its size and SHA-256 again before
-installing. The registry is discovery, not an authority.
+installing. For themes it validates the skin with `@typbase/skin`, checks the
+canonical hash, and generates preview colors. The registry is discovery, not an
+authority.
 
 ## Deploy
 
@@ -41,4 +45,5 @@ The Worker URL is normally
 the exact deployed origin, including a custom domain if one is attached.
 
 The `checks` CI job also builds the Node server and calls `/health` and
-`/api/plugins` before the registry is deployed.
+`/api/plugins` before the registry is deployed. `/api/themes` is available for
+the app theme browser.

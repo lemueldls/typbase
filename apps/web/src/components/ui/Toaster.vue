@@ -62,7 +62,7 @@ function onOpenChange(id: string, open: boolean) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.18);
+  box-shadow: var(--shadow-2);
 }
 
 .ui-toast--danger {
@@ -122,7 +122,7 @@ function onOpenChange(id: string, open: boolean) {
   position: fixed;
   right: calc(var(--space-4) + var(--safe-right));
   bottom: calc(var(--space-4) + var(--safe-bottom));
-  z-index: 95;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

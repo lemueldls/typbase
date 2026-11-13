@@ -318,3 +318,25 @@ file list, Typst editor, manifest validation, live preview per surface, an
 action dispatcher, state/view inspection, and per-plugin logs. Compile errors
 that map into a plugin file carry `file:line` and open that file at the line.
 Bundled plugins are read-only until forked into `plugins/<slug>/`.
+
+## Authoring outside the app
+
+The app's studio is the full authoring environment. The CLI checks and
+publishes the same files for editors and CI:
+
+```sh
+typbase plugin init my-plugin
+typbase plugin verify my-plugin
+typbase plugin build my-plugin
+typbase plugin publish my-plugin --identifier you.bsky.social
+```
+
+The manifest and bundle validators live in `@typbase/plugin-sdk`, so the app,
+the registry, and the CLI reject the same input. `plugin build` writes
+`dist/<slug>.tbplugin`. `plugin publish` rewrites `local:<slug>` to
+`at://<did>/at.typbase.plugin/<slug>`, rebuilds the bundle with that id, and
+writes the immutable release plus the listing.
+
+Publishing uses `--password`/`ATP_PASSWORD` and `--service`/`ATP_SERVICE`. Use
+an app password, not the account password. The default service is
+`https://bsky.social`.

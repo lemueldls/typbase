@@ -158,7 +158,7 @@ function endDrag(): void {
 .plugin-windows {
   position: fixed;
   inset: 0;
-  z-index: 45;
+  z-index: var(--z-floating);
   pointer-events: none;
 }
 
@@ -170,7 +170,7 @@ function endDrag(): void {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.22);
+  box-shadow: var(--shadow-3);
   overflow: hidden;
 }
 
@@ -181,7 +181,6 @@ function endDrag(): void {
   min-height: var(--pane-header-height);
   padding: 0 var(--space-2) 0 var(--space-3);
   background: var(--color-surface-2);
-  border-bottom: 1px solid var(--color-border);
   cursor: grab;
   touch-action: none;
   user-select: none;

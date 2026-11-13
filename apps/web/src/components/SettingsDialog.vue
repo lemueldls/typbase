@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import type {
   AiProviderSettings,
   AiSettings,
+  CustomThemePalettes,
   EditorContentWidth,
   SpellcheckMode,
   SplitScrollMode,
@@ -17,7 +18,11 @@ import type {
 import type { MaterialSymbol } from "material-symbols";
 
 import { isTauri } from "@typbase/storage";
-import { THEME_PALETTE_TOKEN_KEYS } from "@typbase/typing";
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_THEME_PROVENANCE,
+  THEME_PALETTE_TOKEN_KEYS,
+} from "@typbase/typing";
 
 import type { ComboboxOption } from "~/components/ui/Combobox.vue";
 import type { SelectOption } from "~/components/ui/Select.vue";
@@ -134,7 +139,7 @@ function togglePdf(value: boolean) {
 // the colors currently on screen instead of an empty map.
 const customSwatch = computed(() => {
   const base = resolveTheme({ ...settings.value, themeName: "default" }).palette;
-  const custom = settings.value.themeCustom;
+  const custom = settings.value.themeCustom?.light;
 
   return {
     background: custom?.surface ?? base.surface,
@@ -148,10 +153,26 @@ const themeOptions = computed(() => [
   { id: CUSTOM_THEME_ID, label: t("settings.custom"), swatch: customSwatch.value },
 ]);
 
+function customPalettes(): CustomThemePalettes {
+  return {
+    light: resolveTheme({ ...settings.value, theme: "light" }).palette,
+    dark: resolveTheme({ ...settings.value, theme: "dark" }).palette,
+  };
+}
+
 function selectTheme(id: string) {
-  const patch: Partial<WorkspaceSettings> = { themeName: id };
+  const patch: Partial<WorkspaceSettings> = {
+    themeName: id,
+    themeProvenance: {
+      source: null,
+      version: null,
+      schema: null,
+      forkedFrom: null,
+      modified: false,
+    },
+  };
   if (id === CUSTOM_THEME_ID && !settings.value.themeCustom) {
-    patch.themeCustom = { ...resolveTheme(settings.value).palette };
+    patch.themeCustom = customPalettes();
   }
 
   props.store.updateSettings(patch);
@@ -161,21 +182,72 @@ function selectTheme(id: string) {
   bumpRenderRevision();
 }
 
+/** Which palette the custom editor is changing. */
+const paletteMode = ref<"light" | "dark">(resolveTheme(settings.value).mode);
+
+const paletteModeOptions = computed<SelectOption[]>(() => [
+  { value: "light", label: t("settings.light") },
+  { value: "dark", label: t("settings.dark") },
+]);
+
 /** Draft palette while the custom editor is open. Null for named themes. */
 const paletteDraft = ref<ThemePaletteTokens | null>(null);
 
 function syncPaletteDraft(): void {
   paletteDraft.value =
     settings.value.themeName === CUSTOM_THEME_ID
-      ? { ...resolveTheme(settings.value).palette }
+      ? {
+          ...(settings.value.themeCustom?.[paletteMode.value] ??
+            resolveTheme(settings.value).palette),
+        }
       : null;
 }
 
 watch(
-  () => [settings.value.themeName, settings.value.theme, settings.value.themeCustom] as const,
+  () =>
+    [
+      settings.value.themeName,
+      settings.value.theme,
+      settings.value.themeCustom,
+      paletteMode.value,
+    ] as const,
   syncPaletteDraft,
   { immediate: true, deep: true },
 );
+
+function markThemeModified(): void {
+  const provenance = settings.value.themeProvenance;
+  if (!provenance.source || provenance.modified) return;
+  props.store.updateSettings({
+    themeProvenance: { ...provenance, modified: true },
+  });
+}
+
+function onThemeApplied(): void {
+  applyTheme(props.store.getSettings());
+  bumpRenderRevision();
+  syncPaletteDraft();
+}
+
+function resetAppearance(): void {
+  props.store.updateSettings({
+    theme: DEFAULT_SETTINGS.theme,
+    themeName: DEFAULT_SETTINGS.themeName,
+    themeCustom: DEFAULT_SETTINGS.themeCustom,
+    uiSize: DEFAULT_SETTINGS.uiSize,
+    uiDensity: DEFAULT_SETTINGS.uiDensity,
+    uiRadius: DEFAULT_SETTINGS.uiRadius,
+    font: DEFAULT_SETTINGS.font,
+    mathFont: DEFAULT_SETTINGS.mathFont,
+    codeFont: DEFAULT_SETTINGS.codeFont,
+    textSize: DEFAULT_SETTINGS.textSize,
+    typography: DEFAULT_SETTINGS.typography,
+    themeProvenance: DEFAULT_THEME_PROVENANCE,
+  });
+  applyTheme(props.store.getSettings());
+  bumpRenderRevision();
+  syncPaletteDraft();
+}
 
 /** "surface2" -> "Surface 2", "borderStrong" -> "Border Strong". */
 function tokenLabel(key: string): string {
@@ -187,7 +259,11 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
 
   const next = { ...paletteDraft.value, [key]: value };
   paletteDraft.value = next;
-  props.store.updateSettings({ themeCustom: next });
+  const current = settings.value.themeCustom ?? customPalettes();
+  props.store.updateSettings({
+    themeCustom: { ...current, [paletteMode.value]: next },
+  });
+  markThemeModified();
   applyTheme(props.store.getSettings());
   bumpRenderRevision();
 }
@@ -551,6 +627,7 @@ const uiSize = computed({
   get: () => settings.value.uiSize ?? "default",
   set: (value: string) => {
     props.store.updateSettings({ uiSize: value as UiSize });
+    markThemeModified();
     applyTheme(props.store.getSettings());
   },
 });
@@ -565,6 +642,7 @@ const uiDensity = computed({
   get: () => settings.value.uiDensity ?? "default",
   set: (value: string) => {
     props.store.updateSettings({ uiDensity: value as UiDensity });
+    markThemeModified();
     applyTheme(props.store.getSettings());
   },
 });
@@ -579,6 +657,7 @@ const uiRadius = computed({
   get: () => settings.value.uiRadius ?? "default",
   set: (value: string) => {
     props.store.updateSettings({ uiRadius: value as UiRadius });
+    markThemeModified();
     applyTheme(props.store.getSettings());
   },
 });
@@ -734,6 +813,7 @@ const textSize = computed<number | null>({
     if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return;
 
     props.store.updateSettings({ textSize: size });
+    markThemeModified();
     // Push the size into the wasm space context before the render revision
     // triggers recompiles. The structure-change echo re-applies it anyway.
     void applyWorkspaceStyleToTypst(workspaceId.value, props.store).then(() => {
@@ -774,6 +854,7 @@ async function updateFont(patch: {
   codeFont?: string | null;
 }) {
   props.store.updateSettings(patch);
+  markThemeModified();
 }
 
 const fontUploadError = ref("");
@@ -855,12 +936,14 @@ function setLigatures(value: boolean): void {
   props.store.updateSettings({
     typography: { ...settings.value.typography, ligatures: value },
   });
+  markThemeModified();
 }
 
 function setKerning(value: boolean): void {
   props.store.updateSettings({
     typography: { ...settings.value.typography, kerning: value },
   });
+  markThemeModified();
 }
 
 async function renameWorkspace(event: Event) {
@@ -1358,6 +1441,13 @@ async function renameWorkspace(event: Event) {
                 anchor="custom-palette"
                 stacked
               >
+                <div class="palette-mode">
+                  <UiSelect
+                    v-model="paletteMode"
+                    :options="paletteModeOptions"
+                    :label="$t('settings.customPaletteMode')"
+                  />
+                </div>
                 <div class="palette-grid">
                   <ColorFieldRoot
                     v-for="key in THEME_PALETTE_TOKEN_KEYS"
@@ -1376,6 +1466,14 @@ async function renameWorkspace(event: Event) {
                   </ColorFieldRoot>
                 </div>
               </SettingsRow>
+
+              <!-- <SettingsRow
+                :label="$t('settings.publishedThemes')"
+                :hint="$t('settings.publishedThemesHint')"
+                anchor="published-themes"
+              >
+                <ThemeBrowser :store="store" @applied="onThemeApplied" />
+              </SettingsRow> -->
             </SettingsSection>
 
             <SettingsSection
@@ -1625,6 +1723,22 @@ async function renameWorkspace(event: Event) {
                 </UiButton>
               </SettingsRow>
             </SettingsSection>
+
+            <!-- <SettingsSection
+              :title="$t('settings.sectionReset')"
+              :hint="$t('settings.sectionResetHint')"
+              anchor="reset"
+            >
+              <SettingsRow
+                :label="$t('settings.resetAppearance')"
+                :hint="$t('settings.resetAppearanceHint')"
+                anchor="reset-appearance"
+              >
+                <UiButton variant="danger" size="small" @click="resetAppearance">
+                  {{ $t("settings.resetAppearanceButton") }}
+                </UiButton>
+              </SettingsRow>
+            </SettingsSection> -->
           </section>
 
           <section v-show="activeTab === 'ai'" class="settings__tabpanel" data-settings-tab="ai">
@@ -1836,7 +1950,7 @@ async function renameWorkspace(event: Event) {
   flex-direction: column;
   width: min(62rem, calc(100vw - var(--space-8)));
   height: min(48rem, calc(100dvh - var(--space-16)));
-  padding: var(--space-5);
+  padding: var(--dialog-pad);
   overflow: hidden;
 }
 
@@ -2130,7 +2244,7 @@ async function renameWorkspace(event: Event) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+  box-shadow: var(--shadow-2);
   z-index: 90;
   animation: ui-overlay-fade-in var(--motion-fast);
 }
@@ -2384,6 +2498,12 @@ async function renameWorkspace(event: Event) {
 /* Custom palette editor: one row per token with a color swatch, name, and
    value field. ColorSwatch paints through --reka-color-swatch-color, and the
    checkerboard below it shows through translucent values. */
+.palette-mode {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
 .palette-grid {
   display: flex;
   flex-direction: column;

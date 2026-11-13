@@ -191,10 +191,9 @@ async function openToday(): Promise<void> {
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
   gap: var(--space-2);
-  height: var(--app-bar-height);
-  padding: 0 var(--space-1);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  /* height: var(--app-bar-height); */
+  /* padding: 0 var(--space-2); */
+  /* background: var(--color-surface); */
 }
 
 .app-bar__side {

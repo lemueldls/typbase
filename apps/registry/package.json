@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@typbase/skin": "workspace:*",
     "@typbase/spaces": "workspace:*",
     "nitro": "3.0.261103-rc"
   },

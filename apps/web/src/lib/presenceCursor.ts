@@ -1,4 +1,4 @@
-import type { EditorState, Extension } from "@codemirror/state";
+import type { EditorState, Extension, Range } from "@codemirror/state";
 import type { ReplacedFrame } from "@typbase/codemirror";
 
 import { StateEffect } from "@codemirror/state";
@@ -58,7 +58,7 @@ export function buildPresenceDecorations(
   peers: Map<string, PresencePeer>,
   frames: readonly ReplacedFrame[] = replacedFrames(state),
 ): DecorationSet {
-  const decorations = [];
+  const decorations: Range<Decoration>[] = [];
   const blockPeers = new Map<number, PresenceLabel[]>();
 
   for (const [peer, data] of peers) {
