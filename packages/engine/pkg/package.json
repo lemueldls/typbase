@@ -1,7 +1,7 @@
 {
   "name": "@typbase/engine",
   "type": "module",
-  "description": "Local-first knowledge base made for Typst and the Atmosphere.",
+  "description": "Typst compiler and IDE engine for Typbase, compiled to WebAssembly.",
   "version": "0.4.8",
   "license": "Apache-2.0",
   "repository": {
@@ -19,10 +19,10 @@
     "./snippets/*"
   ],
   "keywords": [
-    "atproto",
-    "knowledge-base",
-    "note-taking",
-    "rust",
-    "typst"
+    "typst",
+    "wasm",
+    "compiler",
+    "editor",
+    "ide"
   ]
 }

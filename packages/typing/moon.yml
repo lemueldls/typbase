@@ -8,6 +8,7 @@ tasks:
     inputs:
       - "src/**/*"
       - "tsconfig.json"
+      - "tsdown.config.ts"
       - "package.json"
       - "/pnpm-lock.yaml"
     outputs:
@@ -21,6 +22,7 @@ tasks:
     inputs:
       - "src/**/*"
       - "tsconfig.json"
+      - "tsdown.config.ts"
       - "package.json"
       - "/pnpm-lock.yaml"
     outputs:

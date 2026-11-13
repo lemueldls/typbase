@@ -3,18 +3,22 @@ stack: "frontend"
 layer: "library"
 dependsOn:
   - "typing"
+  - "skin"
 
 tasks:
   build:
     command: "pnpm build"
     deps:
       - "typing:build"
+      - "skin:build"
     inputs:
       - "src/**/*"
       - "tsconfig.json"
+      - "tsdown.config.ts"
       - "package.json"
       - "/pnpm-lock.yaml"
       - "project://typing"
+      - "project://skin"
     outputs:
       - "dist/**/*"
 
@@ -25,11 +29,14 @@ tasks:
       persistent: true
     deps:
       - "typing:build"
+      - "skin:build"
     inputs:
       - "src/**/*"
       - "tsconfig.json"
+      - "tsdown.config.ts"
       - "package.json"
       - "/pnpm-lock.yaml"
       - "project://typing"
+      - "project://skin"
     outputs:
       - "dist/**/*"

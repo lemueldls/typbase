@@ -12,6 +12,7 @@ tasks:
     inputs:
       - "src/**/*"
       - "tsconfig.json"
+      - "tsdown.config.ts"
       - "package.json"
       - "/pnpm-lock.yaml"
       - "project://engine"
@@ -28,6 +29,7 @@ tasks:
     inputs:
       - "src/**/*"
       - "tsconfig.json"
+      - "tsdown.config.ts"
       - "package.json"
       - "/pnpm-lock.yaml"
       - "project://engine"

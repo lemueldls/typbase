@@ -46,8 +46,29 @@ jobs:
       - name: 🔨 Build shared packages
         run: pnpm packages:build
 
+      - name: 📦 Check publish manifests
+        run: pnpm check:packages
+
       - name: 📦 Publish @typbase/engine
-        run: pnpm -C packages/engine/pkg publish --no-git-checks --provenance --access public
+        run: pnpm -C packages/engine/pkg publish --no-git-checks --provenance
+
+      - name: 📦 Publish @typbase/typing
+        run: pnpm -C packages/typing publish --no-git-checks --provenance
+
+      - name: 📦 Publish @typbase/skin
+        run: pnpm -C packages/skin publish --no-git-checks --provenance
+
+      - name: 📦 Publish @typbase/plugin-sdk
+        run: pnpm -C packages/plugin-sdk publish --no-git-checks --provenance
+
+      - name: 📦 Publish @typbase/storage
+        run: pnpm -C packages/storage publish --no-git-checks --provenance
+
+      - name: 📦 Publish @typbase/spaces
+        run: pnpm -C packages/spaces publish --no-git-checks --provenance
 
       - name: 📦 Publish @typbase/codemirror
         run: pnpm -C packages/codemirror publish --no-git-checks --provenance
+
+      - name: 📦 Publish @typbase/cli
+        run: pnpm -C packages/cli publish --no-git-checks --provenance

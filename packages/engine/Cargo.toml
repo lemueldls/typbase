@@ -3,9 +3,9 @@ name = "engine"
 
 # authors.workspace = true
 categories.workspace = true
-description.workspace = true
+description = "Typst compiler and IDE engine for Typbase, compiled to WebAssembly."
 edition.workspace = true
-keywords.workspace = true
+keywords = ["typst", "wasm", "compiler", "editor", "ide"]
 license.workspace = true
 repository.workspace = true
 version.workspace = true

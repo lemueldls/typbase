@@ -253,6 +253,9 @@ importers:
 
   apps/registry:
     dependencies:
+      '@typbase/skin':
+        specifier: workspace:*
+        version: link:../../packages/skin
       '@typbase/spaces':
         specifier: workspace:*
         version: link:../../packages/spaces
@@ -314,6 +317,9 @@ importers:
       '@typbase/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
+      '@typbase/skin':
+        specifier: workspace:*
+        version: link:../../packages/skin
       '@typbase/spaces':
         specifier: workspace:*
         version: link:../../packages/spaces
@@ -388,6 +394,33 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/cli:
+    devDependencies:
+      '@typbase/plugin-sdk':
+        specifier: workspace:*
+        version: link:../plugin-sdk
+      '@typbase/skin':
+        specifier: workspace:*
+        version: link:../skin
+      '@typbase/spaces':
+        specifier: workspace:*
+        version: link:../spaces
+      '@typbase/typing':
+        specifier: workspace:*
+        version: link:../typing
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      airspace:
+        specifier: github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059
+        version: https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059(@atproto/oauth-client-browser@0.5.14)
+      tsdown:
+        specifier: 0.23.7
+        version: 0.23.7(@vue/language-core@3.3.13)(typescript@7.0.2)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/codemirror:
     dependencies:
       '@codemirror/autocomplete':
@@ -440,11 +473,27 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/skin:
+    dependencies:
+      '@typbase/typing':
+        specifier: workspace:*
+        version: link:../typing
+    devDependencies:
+      tsdown:
+        specifier: 0.23.7
+        version: 0.23.7(@vue/language-core@3.3.13)(typescript@7.0.2)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/spaces:
     dependencies:
       '@atproto/oauth-client-browser':
         specifier: 0.5.14
         version: 0.5.14
+      '@typbase/skin':
+        specifier: workspace:*
+        version: link:../skin
       '@typbase/typing':
         specifier: workspace:*
         version: link:../typing

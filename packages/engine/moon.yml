@@ -4,9 +4,10 @@ layer: "library"
 
 tasks:
   build-dev:
-    script: "printf '{}' > pkg/package.json && wasm-pack build --dev --target web --scope typbase ."
+    script: "printf '{}' > pkg/package.json && wasm-pack build --dev --target web --scope typbase . && cp README.md pkg/README.md"
     inputs:
       - "Cargo.toml"
+      - "README.md"
       - "pkg/package.json"
       - "src/**/*"
       - "!src/tests/fixtures/**/*"
@@ -17,9 +18,10 @@ tasks:
       - "pkg/**/*"
 
   build:
-    script: "printf '{}' > pkg/package.json && wasm-pack build --release --target web --scope typbase ."
+    script: "printf '{}' > pkg/package.json && wasm-pack build --release --target web --scope typbase . && cp README.md pkg/README.md"
     inputs:
       - "Cargo.toml"
+      - "README.md"
       - "pkg/package.json"
       - "src/**/*"
       - "!src/tests/fixtures/**/*"

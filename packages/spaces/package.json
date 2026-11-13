@@ -7,11 +7,36 @@
     "type": "git",
     "url": "https://github.com/lemueldls/typbase"
   },
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./plugin-registry": "./src/pluginRegistry.ts"
+    "./plugin-registry": "./src/pluginRegistry.ts",
+    "./theme-registry": "./src/themeRegistry.ts"
+  },
+  "publishConfig": {
+    "main": "./dist/index.mjs",
+    "types": "./src/index.ts",
+    "exports": {
+      ".": {
+        "types": "./src/index.ts",
+        "default": "./dist/index.mjs"
+      },
+      "./plugin-registry": {
+        "types": "./src/pluginRegistry.ts",
+        "default": "./dist/pluginRegistry.mjs"
+      },
+      "./theme-registry": {
+        "types": "./src/themeRegistry.ts",
+        "default": "./dist/themeRegistry.mjs"
+      }
+    },
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "build": "tsdown",
@@ -20,6 +45,7 @@
   },
   "dependencies": {
     "@atproto/oauth-client-browser": "0.5.14",
+    "@typbase/skin": "workspace:*",
     "@typbase/typing": "workspace:*",
     "airspace": "github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059"
   },

@@ -54,6 +54,12 @@ jobs:
       - name: 🧪 Test proxy app
         run: pnpm test:proxy
 
+      - name: 🔨 Build shared packages
+        run: pnpm packages:build
+
+      - name: 📦 Check publish manifests
+        run: pnpm check:packages
+
       - name: 🔨 Build web app
         run: pnpm build
 
