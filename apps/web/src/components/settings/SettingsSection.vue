@@ -20,7 +20,7 @@ defineProps<{
   >
     <header v-if="title || hint" class="settings-section__header">
       <h3 v-if="title" class="settings-section__title">{{ title }}</h3>
-      <p v-if="hint" class="settings-section__hint">{{ hint }}</p>
+      <!-- <p v-if="hint" class="settings-section__hint">{{ hint }}</p> -->
     </header>
 
     <div class="settings-section__rows">
@@ -66,14 +66,15 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-3) var(--space-3) var(--space-1);
+  padding: var(--space-3) var(--space-3) 0;
 }
 
 .settings-section__title {
   margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
 }
 
 .settings-section__hint {

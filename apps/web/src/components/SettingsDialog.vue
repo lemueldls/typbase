@@ -1925,7 +1925,7 @@ async function renameWorkspace(event: Event) {
   container-name: settings-panels;
   container-type: inline-size;
   min-height: 0;
-  padding-right: var(--space-1);
+  /* padding-right: var(--space-1); */
   /* padding-bottom: var(--space-4); */
   overflow-y: auto;
 }

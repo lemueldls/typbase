@@ -59,7 +59,7 @@ function onRowClick(event: MouseEvent) {
   grid-template-columns: minmax(0, 1fr) minmax(0, 13rem);
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-2-5) var(--space-3);
+  padding: var(--space-3);
   scroll-margin-block: var(--space-4);
 }
 
