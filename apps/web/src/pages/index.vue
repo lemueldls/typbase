@@ -100,7 +100,7 @@ const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
 const { t } = useI18n();
 
 // Back closes the drawer and the palette before it navigates or leaves.
-useBackLayer(navOpen);
+const navLayer = useBackLayer(navOpen);
 useBackLayer(paletteOpen, hidePalette);
 
 /** Name of the workspace being opened, for the switching pill. */
@@ -738,6 +738,19 @@ function takeLayerHistory(): "push" | "replace" {
   return "replace";
 }
 
+/**
+ * Closes the drawer and consumes its history entry. A menu inside the drawer
+ * sits on top of it, so `takeLayerHistory()` only consumes the menu. Without
+ * this, the drawer's watcher calls `history.back()` after the new pane opens
+ * and the browser closes it again.
+ */
+function closeNavLayer(): void {
+  if (!navOpen.value) return;
+
+  navLayer.consume();
+  navOpen.value = false;
+}
+
 // Back/forward or a pasted link changes the open pane under us.
 watch(viewQuery, (raw) => {
   if (!loaded.value) return;
@@ -860,7 +873,7 @@ watch(dataRevision, () => {
 
 function openPage(id: string) {
   const historyMode = takeLayerHistory();
-  navOpen.value = false; // drawer interactions close after selection
+  closeNavLayer(); // drawer interactions close after selection
   currentPluginId.value = null; // opening a page leaves the other panes
   currentChatId.value = null;
   graphOpen.value = false;
@@ -882,7 +895,7 @@ async function openToday(): Promise<void> {
 
 /** Sidebar and toolbar search buttons: close the drawer, open the palette. */
 function openSearch() {
-  navOpen.value = false;
+  closeNavLayer();
   showPalette();
 }
 
@@ -918,7 +931,7 @@ useSeoMeta({
 });
 
 function openPlugin(instanceId: string) {
-  navOpen.value = false;
+  closeNavLayer();
   if (!instanceId) return;
 
   // Window-only plugins (drawing) float. Pane plugins take the main pane. A
@@ -961,7 +974,7 @@ watch(
 /** The sidebar opens the workspace graph. The links panel roots it at the page. */
 function openGraph(rootAtPage = false) {
   const historyMode = takeLayerHistory();
-  navOpen.value = false;
+  closeNavLayer();
   setZen(false);
   currentPluginId.value = null;
   currentChatId.value = null;
@@ -988,7 +1001,7 @@ function closeGraph() {
 /** The storage browser takes the main pane, like the graph. */
 function openFiles() {
   const historyMode = takeLayerHistory();
-  navOpen.value = false;
+  closeNavLayer();
   setZen(false);
   currentPluginId.value = null;
   currentChatId.value = null;
@@ -1006,7 +1019,7 @@ function closeFiles() {
 /** The website builder dashboard. */
 function openSite() {
   const historyMode = takeLayerHistory();
-  navOpen.value = false;
+  closeNavLayer();
   setZen(false);
   currentPluginId.value = null;
   currentChatId.value = null;
@@ -1033,7 +1046,7 @@ function closePlugin() {
  */
 function openChat(threadId?: string | null) {
   const historyMode = takeLayerHistory();
-  navOpen.value = false;
+  closeNavLayer();
   setZen(false);
 
   const open = (id: string) => {

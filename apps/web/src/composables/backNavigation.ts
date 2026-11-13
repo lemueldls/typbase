@@ -35,6 +35,8 @@ function removeEntry(entry: LayerEntry): void {
 export interface BackLayerHandle {
   /** Arms a fresh entry for a layer that is still open (see the window layer). */
   push(): void;
+  /** Marks this layer's entry as consumed by a navigation and removes it. */
+  consume(): void;
 }
 
 export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerHandle {
@@ -107,7 +109,7 @@ export function useBackLayer(open: Ref<boolean>, close?: () => void): BackLayerH
     // lands on it and re-renders the same state.
   });
 
-  return { push: arm };
+  return { push: arm, consume: () => entry.consume() };
 }
 
 /** True while an overlay has a history entry. */

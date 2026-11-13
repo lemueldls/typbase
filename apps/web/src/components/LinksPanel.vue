@@ -83,7 +83,7 @@ function mentionCount(group: BacklinkGroup): string {
 <template>
   <section class="links" :class="{ 'links--rail': rail }" :aria-label="t('links.title')">
     <header class="links__header">
-      <MsIcon name="link" :size="20" />
+      <!-- <MsIcon name="link" :size="20" /> -->
       <span class="links__title">{{ t("links.title") }}</span>
       <span class="links__counts">
         {{ t("links.countOutgoing", { count: records.length }) }} ·
@@ -215,14 +215,15 @@ function mentionCount(group: BacklinkGroup): string {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
+  min-height: var(--pane-header-height);
+  padding: var(--pane-header-pad-x);
+  background: var(--color-surface-2);
 }
 
 .links__title {
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: 600;
+  margin-left: var(--space-2);
   color: var(--color-text);
 }
 

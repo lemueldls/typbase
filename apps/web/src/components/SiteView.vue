@@ -2814,10 +2814,10 @@ function copy(value: string): Promise<void> {
 }
 
 @container site-view (max-width: 52rem) {
-  .site-view__header-inner {
+  /* .site-view__header-inner {
     align-items: flex-start;
     flex-wrap: wrap;
-  }
+  } */
 
   .site-view__heading {
     flex: 1 1 0;

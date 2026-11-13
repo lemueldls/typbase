@@ -2021,6 +2021,29 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("keeps the website dashboard open when it is picked from the drawer menu", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 420, height: 800 });
+    await openApp(page);
+
+    await page.locator(".app__nav-toggle").click();
+    await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
+    await page
+      .locator(".sidebar__header-actions")
+      .getByRole("button", { name: "Workspace actions" })
+      .click();
+    await page.getByRole("menuitem", { name: "Website settings" }).click();
+
+    await page.waitForSelector(".site-view", { timeout: 30_000 });
+    // The drawer's entry used to call history.back() after the site route, so
+    // the dashboard opened and immediately closed again.
+    await page.waitForTimeout(250);
+    expect(await page.locator(".site-view").count()).toBe(1);
+    expect(await page.evaluate(() => new URL(location.href).searchParams.get("view"))).toBe("site");
+
+    await page.close();
+  });
+
   it("moves an existing page into a category from its row menu", async () => {
     const page = await createPage();
     await openApp(page);
