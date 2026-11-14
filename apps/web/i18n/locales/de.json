@@ -1113,5 +1113,203 @@
     "unpublishConfirm": "Remove this theme listing from your PDS? The local skin stays applied.",
     "unpublished": "Theme listing removed.",
     "search": "Search themes"
+  },
+  "account": {
+    "titleSignIn": "Anmelden oder Konto erstellen",
+    "titleCreate": "Konto erstellen",
+    "titlePermissions": "Worauf Typbase zugreifen kann",
+    "titleAccounts": "Dein Konto",
+    "titleData": "Was Typbase schreibt",
+    "signInIntro": "Synchronisiere deine Notizen und veröffentliche sie.",
+    "addAnotherIntro": "Füge ein weiteres Konto zum Synchronisieren und Veröffentlichen hinzu.",
+    "createAccount": "Konto erstellen",
+    "or": "oder",
+    "alreadyHave": "Du hast schon ein Konto?",
+    "addAnother": "Weiteres Konto hinzufügen",
+    "handle": "Dein Handle",
+    "handlePlaceholder": "du.bsky.social",
+    "continue": "Weiter",
+    "checking": "Wird geprüft…",
+    "authorize": "Typbase autorisieren",
+    "authorizing": "Anbieter wird geöffnet…",
+    "back": "Zurück",
+    "notReady": "Die Kontoanmeldung ist gerade nicht verfügbar. Versuche es gleich noch einmal.",
+    "worksWith": "Dein Konto funktioniert auch mit {apps}.",
+    "whatWrites": "Was Typbase schreibt",
+    "withoutAccount": "Typbase ohne Konto verwenden",
+    "createIntro": "Ein Konto für Typbase, Bluesky und andere Apps.",
+    "createWithBluesky": "Konto bei Bluesky erstellen",
+    "providerNote": "Wir öffnen die Registrierungsseite von Bluesky.",
+    "chooseProvider": "Anderen Anbieter wählen",
+    "moreProviders": "Du brauchst einen anderen Anbieter?",
+    "moreProvidersLink": "Kontoanbieter durchsuchen",
+    "alreadyHaveAccount": "Ich habe schon ein Konto",
+    "continueTo": "Weiter zu {host}",
+    "providerRedirect": "Du schließt die Anmeldung bei {domain} ab. Komm danach hierher zurück.",
+    "passwordNote": "Typbase sieht dein Passwort nie.",
+    "hostOpened": "Konto erstellt? Melde dich mit dem Handle an, den du gewählt hast.",
+    "iCreated": "Ich habe mein Konto erstellt",
+    "permissionsIntro": "Typbase fragt {handle} nach diesen Berechtigungen.",
+    "yourAccount": "dein Konto",
+    "permissionsTogether": "Typbase fragt diese Berechtigungen derzeit zusammen ab. Feinere Einstellungen sind geplant.",
+    "technicalDetails": "Technische Details",
+    "scopeIdentity": "Dich anmelden",
+    "scopeIdentityBody": "Lies dein Handle, dein Profil und deinen Kontostatus.",
+    "scopeSync": "Deine Notizen synchronisieren",
+    "scopeSyncBody": "Speichere Arbeitsbereichsdaten und Medien in einem privaten Arbeitsbereich. Nur Mitglieder können sie lesen.",
+    "scopePages": "Seiten veröffentlichen",
+    "scopePagesBody": "Schreibe einen öffentlichen Seitenbeitrag, wenn du eine Seite veröffentlichst.",
+    "scopeSite": "Eine Website veröffentlichen",
+    "scopeSiteBody": "Schreibe die öffentliche Website und ihre Verzeichniseinträge und verwalte ihre Domain.",
+    "scopeExtensions": "Plugins und Themes veröffentlichen",
+    "scopeExtensionsBody": "Schreibe öffentliche Plugin- und Theme-Einträge und -Veröffentlichungen.",
+    "scopeInstall": "Installationsdatensatz",
+    "scopeInstallBody": "Schreibe einen öffentlichen Datensatz mit Plattform und Zeitstempeln. Kein Arbeitsbereichsinhalt.",
+    "viewProfile": "Profil ansehen",
+    "otherAccounts": "Andere Konten",
+    "addAccount": "Konto hinzufügen",
+    "switchHint": "Beim Wechseln ändert sich das Konto für Synchronisierung und Veröffentlichung.",
+    "switch": "Wechseln",
+    "switching": "Wird gewechselt…",
+    "noOtherAccounts": "Keine weiteren Konten auf diesem Gerät.",
+    "signOut": "Abmelden",
+    "signingOut": "Wird abgemeldet…",
+    "lastUsed": "Zuletzt verwendet {time}",
+    "installDeleted": "Installationsdatensatz gelöscht",
+    "manage": "Konto verwalten",
+    "menuLabel": "Konto",
+    "signIn": "Anmelden",
+    "appBarSignedOut": "Melde dich an, um zu synchronisieren und zu veröffentlichen.",
+    "remove": "Entfernen",
+    "removeTitle": "Konto entfernen",
+    "removeConfirm": "{name} von diesem Gerät entfernen? Das Konto bleibt bei seinem Anbieter und kann erneut hinzugefügt werden.",
+    "createOn": "Konto bei {host} erstellen"
+  },
+  "dataLabel": {
+    "intro": "Das ist die Kurzfassung. Jede Zeile sagt, was gespeichert wird, wer es sehen kann und wie du es entfernst.",
+    "groups": {
+      "device": {
+        "title": "Auf diesem Gerät",
+        "intro": "Diese Daten bleiben im Browser- oder App-Speicher. Sie gehen nicht an dein Konto."
+      },
+      "workspace": {
+        "title": "In deinem Konto, mit dem Arbeitsbereich geteilt",
+        "intro": "Dies wird in einem privaten Arbeitsbereich gespeichert. Nur Mitglieder des Arbeitsbereichs können es lesen. Der Kontoanbieter und der Arbeitsbereichsdienst können es technisch lesen, und es ist nicht Ende-zu-Ende verschlüsselt."
+      },
+      "public": {
+        "title": "Öffentlich in deinem Konto",
+        "intro": "Jeder kann das lesen. Das Löschen eines Datensatzes entfernt ihn aus deinem Konto, aber andere Apps oder Archive haben ihn möglicherweise schon kopiert."
+      },
+      "thirdParty": {
+        "title": "An andere Dienste gesendet",
+        "intro": "Diese Anfragen verlassen Typbase und gehen an den in der jeweiligen Zeile genannten Dienst."
+      }
+    },
+    "visibility": {
+      "device": "Auf dem Gerät",
+      "workspace": "Arbeitsbereich",
+      "public": "Öffentlich",
+      "thirdParty": "Anderer Dienst"
+    },
+    "entries": {
+      "tokens": {
+        "title": "Anmelde-Token",
+        "body": "Sitzungs-Token und die Schlüssel des OAuth-Clients. Sie halten dich auf diesem Gerät angemeldet.",
+        "removal": "Melde dich ab oder entferne das Konto."
+      },
+      "aiKeys": {
+        "title": "Schlüssel für KI-Anbieter",
+        "body": "Schlüssel für OpenAI-kompatible Dienste, Anthropic oder Ollama. Sie werden nie synchronisiert.",
+        "removal": "Entferne den Anbieter in Einstellungen → KI."
+      },
+      "settings": {
+        "title": "Einstellungen und Oberflächenzustand",
+        "body": "Theme, Schriften, Editor-Einstellungen, offene Panels und Positionen von Plugin-Fenstern.",
+        "removal": "Lösche die Websitedaten oder setze den Arbeitsbereich zurück."
+      },
+      "localWorkspace": {
+        "title": "Lokaler Arbeitsbereich",
+        "body": "Seiten, Medien und Plugin-Daten werden zuerst hier gespeichert. Die Synchronisierung ist optional.",
+        "removal": "Setze den Arbeitsbereich in Einstellungen → Speicher zurück."
+      },
+      "workspaceChanges": {
+        "title": "Änderungen am Arbeitsbereich",
+        "body": "Seiten, Einstellungen, Chat-Threads und Plugin-Zustand werden als Änderungen synchronisiert.",
+        "removal": "Lösche die Arbeitsbereichsdaten aus deinem Konto oder entferne den Arbeitsbereich."
+      },
+      "pageDrafts": {
+        "title": "Seitenentwürfe",
+        "body": "Eine Seite beginnt als Entwurf im Arbeitsbereich, bevor du sie veröffentlichst.",
+        "removal": "Lösche den Entwurf oder die Arbeitsbereichsdaten."
+      },
+      "media": {
+        "title": "Medien",
+        "body": "Hochgeladene Bilder, Schriften und Dateien mit Dateityp und Größe.",
+        "removal": "Lösche das Asset oder die Arbeitsbereichsdaten."
+      },
+      "publishedPages": {
+        "title": "Veröffentlichte Seiten",
+        "body": "Das HTML, PDF, den Titel, die Zusammenfassung, Tags und den Quelltext der Seite.",
+        "removal": "Veröffentliche die Seite nicht mehr."
+      },
+      "publishedSite": {
+        "title": "Veröffentlichte Website",
+        "body": "Die Dateien, Einstellungen und Assets der Website, die Wisp ausliefert.",
+        "removal": "Veröffentliche die Website im Website-Dashboard nicht mehr."
+      },
+      "siteDiscovery": {
+        "title": "Website-Verzeichnis",
+        "body": "Veröffentlichungs- und Dokumentdatensätze, mit denen andere Apps die Website finden.",
+        "removal": "Veröffentliche die Website nicht mehr."
+      },
+      "pluginListings": {
+        "title": "Plugin-Einträge",
+        "body": "Plugin-Beschreibung, Version und Bundle.",
+        "removal": "Lösche die Datensätze vorerst mit einem atproto-Client."
+      },
+      "themeListings": {
+        "title": "Theme-Einträge",
+        "body": "Theme-Datei, Version und Prüfsumme.",
+        "removal": "Veröffentliche das Theme im Theme-Browser nicht mehr."
+      },
+      "installRecord": {
+        "title": "Installationsdatensatz",
+        "body": "Ein Datensatz, der sagt, dass dieses Konto Typbase installiert hat. Er enthält die Plattform und Zeitstempel. Er enthält keinen Arbeitsbereichsinhalt und keine Geräte-ID.",
+        "removal": "Lösche den Datensatz. Typbase schreibt ihn auf diesem Gerät nicht erneut."
+      },
+      "aiProviders": {
+        "title": "KI-Anbieter",
+        "body": "Wenn du eine Chat-Nachricht sendest, sendet Typbase den Prompt und den ausgewählten Seitenkontext an den konfigurierten Anbieter. Schlüssel bleiben auf diesem Gerät.",
+        "removal": "Wechsle den Anbieter oder schalte KI aus."
+      },
+      "fontRequests": {
+        "title": "Schriftanfragen",
+        "body": "Beim Durchsuchen von Webschriften fragt Typbase den Schrift-Proxy und den Schriftanbieter nach den Dateien. Der Proxy sieht die Anfrage. Es wird kein Arbeitsbereichsinhalt gesendet.",
+        "removal": "Verwende lokale Schriften."
+      },
+      "typstPackages": {
+        "title": "Typst-Pakete",
+        "body": "Beim Installieren eines Pakets werden Index und Tarball von packages.typst.org heruntergeladen.",
+        "removal": "Entferne das Paket."
+      },
+      "accountServices": {
+        "title": "Konto- und Website-Dienste",
+        "body": "Typbase spricht mit deinem Kontoanbieter, dem Live-Relay, dem öffentlichen Profildienst, Wisp und Standard.site. Diese Dienste sehen die Anfragen, die zum Synchronisieren und Veröffentlichen nötig sind.",
+        "removal": "Melde dich ab oder widerrufe Typbase auf der Kontoseite deines Anbieters."
+      }
+    },
+    "notCollectedTitle": "Nicht erfasst",
+    "notCollected": {
+      "analytics": "Keine Produktanalyse und keine Tracking-Pixel.",
+      "deviceId": "Keine Geräte-ID im Installationsdatensatz.",
+      "contact": "Keine Kontaktliste, kein Standort und kein Leseverlauf.",
+      "workspace": "Kein Arbeitsbereichsinhalt im Installationsdatensatz.",
+      "ads": "Keine Werbe-IDs."
+    },
+    "removeLabel": "Entfernen:",
+    "deleteInstall": "Installationsdatensatz löschen",
+    "note": "Das Löschen eines Datensatzes entfernt ihn aus deinem Konto. Andere Apps oder Archive haben ihn möglicherweise vorher kopiert.",
+    "browse": "Du kannst Datensätze ansehen und löschen auf",
+    "technicalDetails": "Technische Details"
   }
 }

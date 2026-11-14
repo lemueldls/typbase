@@ -19,6 +19,53 @@ interface AppViewProfile {
 
 const PUBLIC_APPVIEW = "https://public.api.bsky.app";
 
+/** A typeahead result. The AppView only indexes accounts it knows about. */
+export interface ActorSuggestion {
+  did: string;
+  handle: string;
+  displayName: string | null;
+  avatar: string | null;
+}
+
+interface AppViewSuggestion {
+  did?: string;
+  handle?: string;
+  displayName?: string;
+  avatar?: string;
+}
+
+/**
+ * Suggest accounts by handle prefix. This is the public AppView's typeahead, so
+ * an account on a PDS the AppView has not indexed simply returns no suggestion.
+ * The full handle still resolves on submit.
+ */
+export async function searchPublicActors(query: string): Promise<ActorSuggestion[]> {
+  const value = query.trim();
+  if (value.length < 2) return [];
+
+  try {
+    const response = await fetch(
+      `${PUBLIC_APPVIEW}/xrpc/app.bsky.actor.searchActorsTypeahead?q=${encodeURIComponent(value)}&limit=5`,
+    );
+    if (!response.ok) return [];
+    const body = (await response.json()) as { actors?: AppViewSuggestion[] };
+    const actors = Array.isArray(body.actors) ? body.actors : [];
+
+    return actors
+      .filter((actor): actor is AppViewSuggestion & { did: string; handle: string } =>
+        Boolean(actor.did && actor.handle),
+      )
+      .map((actor) => ({
+        did: actor.did,
+        handle: actor.handle,
+        displayName: actor.displayName?.trim() || null,
+        avatar: actor.avatar ?? null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Read an account's public profile. The AppView is optional: an account on a
  * PDS that is not indexed there still has a handle, and callers fall back to

@@ -1113,5 +1113,203 @@
     "unpublishConfirm": "Remove this theme listing from your PDS? The local skin stays applied.",
     "unpublished": "Theme listing removed.",
     "search": "Search themes"
+  },
+  "account": {
+    "titleSignIn": "登录或创建账户",
+    "titleCreate": "创建账户",
+    "titlePermissions": "Typbase 可以访问什么",
+    "titleAccounts": "你的账户",
+    "titleData": "Typbase 会写入什么",
+    "signInIntro": "同步并发布你的笔记。",
+    "addAnotherIntro": "添加另一个账户用于同步和发布。",
+    "createAccount": "创建账户",
+    "or": "或",
+    "alreadyHave": "已有账户？",
+    "addAnother": "添加另一个账户",
+    "handle": "你的用户名",
+    "handlePlaceholder": "you.bsky.social",
+    "continue": "继续",
+    "checking": "检查中…",
+    "authorize": "授权 Typbase",
+    "authorizing": "正在打开提供商…",
+    "back": "返回",
+    "notReady": "账户登录暂时不可用。请稍后再试。",
+    "worksWith": "你的账户也可用于 {apps}。",
+    "whatWrites": "Typbase 会写入什么",
+    "withoutAccount": "不登录直接使用 Typbase",
+    "createIntro": "一个账户，用于 Typbase、Bluesky 和其他应用。",
+    "createWithBluesky": "使用 Bluesky 创建账户",
+    "providerNote": "我们将打开 Bluesky 的注册页面。",
+    "chooseProvider": "选择其他提供商",
+    "moreProviders": "需要其他提供商？",
+    "moreProvidersLink": "浏览账户提供商",
+    "alreadyHaveAccount": "我已有账户",
+    "continueTo": "继续前往 {host}",
+    "providerRedirect": "你将在 {domain} 完成注册。完成后回到这里登录。",
+    "passwordNote": "Typbase 永远不会看到你的密码。",
+    "hostOpened": "已创建账户？用你选择的用户名登录。",
+    "iCreated": "我已创建账户",
+    "permissionsIntro": "Typbase 将向 {handle} 请求这些权限。",
+    "yourAccount": "你的账户",
+    "permissionsTogether": "Typbase 目前会一起请求这些权限。更细的控制正在计划中。",
+    "technicalDetails": "技术细节",
+    "scopeIdentity": "登录",
+    "scopeIdentityBody": "读取你的用户名、个人资料和账户状态。",
+    "scopeSync": "同步你的笔记",
+    "scopeSyncBody": "将工作区数据和媒体保存到私有工作区。只有成员可以读取。",
+    "scopePages": "发布页面",
+    "scopePagesBody": "发布页面时写入公开的页面帖子。",
+    "scopeSite": "发布网站",
+    "scopeSiteBody": "写入公开网站及其目录条目，并管理其域名。",
+    "scopeExtensions": "发布插件和主题",
+    "scopeExtensionsBody": "写入公开的插件和主题条目及版本。",
+    "scopeInstall": "安装记录",
+    "scopeInstallBody": "写入一条包含平台和时间戳的公开记录。不含工作区内容。",
+    "viewProfile": "查看个人资料",
+    "otherAccounts": "其他账户",
+    "addAccount": "添加账户",
+    "switchHint": "切换会更改用于同步和发布的账户。",
+    "switch": "切换",
+    "switching": "正在切换…",
+    "noOtherAccounts": "此设备上没有其他账户。",
+    "signOut": "退出登录",
+    "signingOut": "正在退出…",
+    "lastUsed": "上次使用：{time}",
+    "installDeleted": "安装记录已删除",
+    "manage": "管理账户",
+    "menuLabel": "账户",
+    "signIn": "登录",
+    "appBarSignedOut": "登录后可同步和发布。",
+    "remove": "移除",
+    "removeTitle": "移除账户",
+    "removeConfirm": "从此设备移除 {name}？账户仍保留在其提供商处，可以再次添加。",
+    "createOn": "使用 {host} 创建账户"
+  },
+  "dataLabel": {
+    "intro": "这是简要版本。每一行说明保存了什么、谁可以看到，以及如何删除。",
+    "groups": {
+      "device": {
+        "title": "在此设备上",
+        "intro": "这些数据保存在浏览器或应用存储中，不会进入你的账户。"
+      },
+      "workspace": {
+        "title": "在你的账户中，与工作区共享",
+        "intro": "这些数据保存在私有工作区中。只有工作区成员可以读取。账户提供商和工作区服务在技术上可以读取，且没有端到端加密。"
+      },
+      "public": {
+        "title": "账户中的公开数据",
+        "intro": "任何人都可以读取。删除记录会将其从你的账户中移除，但其他应用或存档可能已经复制。"
+      },
+      "thirdParty": {
+        "title": "发送到其他服务",
+        "intro": "这些请求会离开 Typbase，发往每一行中列出的服务。"
+      }
+    },
+    "visibility": {
+      "device": "设备上",
+      "workspace": "工作区",
+      "public": "公开",
+      "thirdParty": "其他服务"
+    },
+    "entries": {
+      "tokens": {
+        "title": "登录令牌",
+        "body": "会话令牌和 OAuth 客户端的密钥。它们让你在此设备上保持登录。",
+        "removal": "退出登录或移除账户。"
+      },
+      "aiKeys": {
+        "title": "AI 提供商密钥",
+        "body": "用于 OpenAI 兼容服务、Anthropic 或 Ollama 的密钥。它们永远不会同步。",
+        "removal": "在设置 → AI 中移除提供商。"
+      },
+      "settings": {
+        "title": "设置和界面状态",
+        "body": "主题、字体、编辑器设置、打开的面板以及插件窗口位置。",
+        "removal": "清除站点数据或重置工作区。"
+      },
+      "localWorkspace": {
+        "title": "本地工作区",
+        "body": "页面、媒体和插件数据首先保存在这里。同步是可选的。",
+        "removal": "在设置 → 存储中重置工作区。"
+      },
+      "workspaceChanges": {
+        "title": "工作区变更",
+        "body": "页面、设置、聊天线程和插件状态以变更形式同步。",
+        "removal": "从账户中删除工作区数据，或移除工作区。"
+      },
+      "pageDrafts": {
+        "title": "页面草稿",
+        "body": "页面在发布前以草稿形式存在于工作区中。",
+        "removal": "删除草稿或工作区数据。"
+      },
+      "media": {
+        "title": "媒体",
+        "body": "上传的图片、字体和文件，包含文件类型和大小。",
+        "removal": "删除资源或工作区数据。"
+      },
+      "publishedPages": {
+        "title": "已发布页面",
+        "body": "页面的 HTML、PDF、标题、摘要、标签和源文本。",
+        "removal": "取消发布页面。"
+      },
+      "publishedSite": {
+        "title": "已发布网站",
+        "body": "由 Wisp 提供的网站文件、设置和资源。",
+        "removal": "在网站面板中取消发布网站。"
+      },
+      "siteDiscovery": {
+        "title": "网站目录",
+        "body": "让其他应用找到该网站的发布和文档记录。",
+        "removal": "取消发布网站。"
+      },
+      "pluginListings": {
+        "title": "插件条目",
+        "body": "插件描述、版本和包。",
+        "removal": "目前请使用 atproto 客户端删除这些记录。"
+      },
+      "themeListings": {
+        "title": "主题条目",
+        "body": "主题文件、版本和校验和。",
+        "removal": "在主题浏览器中取消发布主题。"
+      },
+      "installRecord": {
+        "title": "安装记录",
+        "body": "一条记录，表示此账户安装了 Typbase。它包含平台和时间戳，不含工作区内容或设备标识符。",
+        "removal": "删除记录。Typbase 不会在此设备上再次写入。"
+      },
+      "aiProviders": {
+        "title": "AI 提供商",
+        "body": "发送聊天消息时，Typbase 会把提示词和你选择的页面上下文发送到你配置的提供商。密钥保留在此设备上。",
+        "removal": "切换提供商或关闭 AI。"
+      },
+      "fontRequests": {
+        "title": "字体请求",
+        "body": "浏览网络字体时，Typbase 会向字体代理和字体提供商请求文件。代理会看到请求。不会发送工作区内容。",
+        "removal": "使用本地字体。"
+      },
+      "typstPackages": {
+        "title": "Typst 包",
+        "body": "安装包时，会从 packages.typst.org 下载索引和 tarball。",
+        "removal": "移除该包。"
+      },
+      "accountServices": {
+        "title": "账户和网站服务",
+        "body": "Typbase 会与你的账户提供商、实时中继、公开个人资料服务、Wisp 和 Standard.site 通信。这些服务会看到同步和发布所需的请求。",
+        "removal": "退出登录或在提供商的账户页面撤销 Typbase。"
+      }
+    },
+    "notCollectedTitle": "不会收集",
+    "notCollected": {
+      "analytics": "没有产品分析或跟踪像素。",
+      "deviceId": "安装记录中没有设备标识符。",
+      "contact": "没有联系人列表、位置或阅读历史。",
+      "workspace": "安装记录中没有工作区内容。",
+      "ads": "没有广告标识符。"
+    },
+    "removeLabel": "移除：",
+    "deleteInstall": "删除安装记录",
+    "note": "删除记录会将其从你的账户中移除。其他应用或存档可能已经复制。",
+    "browse": "你可以在以下网站查看和删除记录：",
+    "technicalDetails": "技术细节"
   }
 }

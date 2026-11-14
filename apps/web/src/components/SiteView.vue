@@ -30,6 +30,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const accountDialog = useAccountDialog();
 const { atproto, atprotoStatus, localState } = useWorkspace();
 const runtimeConfig = useRuntimeConfig();
 const wispRequest = createWispDomainRequest(String(runtimeConfig.public.proxyUrl ?? ""));
@@ -829,7 +830,9 @@ function copy(value: string): Promise<void> {
                   <p>{{ $t("site.signInBody") }}</p>
                 </div>
               </div>
-              <AtprotoSignIn compact />
+              <UiButton variant="primary" @click="accountDialog.show('signin')">
+                {{ $t("account.signIn") }}
+              </UiButton>
             </section>
 
             <p v-if="atprotoStatus.signedIn && !publishingReady" class="site-view__note">

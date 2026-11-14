@@ -86,6 +86,7 @@ const {
 } = useSearchPalette();
 const { open: shortcutsOpen } = useShortcutsDialog();
 const { open: settingsOpen } = useSettingsDialog();
+const accountDialog = useAccountDialog();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
 /** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
@@ -1041,6 +1042,13 @@ function closeSite() {
   syncRoute("replace");
 }
 
+/** Opens the shared account dialog. */
+function openAccount() {
+  consumeTopBackLayer();
+  closeNavLayer();
+  accountDialog.show(atprotoStatus.value.signedIn ? "accounts" : "signin");
+}
+
 function closePlugin() {
   currentPluginId.value = null;
   syncRoute("replace");
@@ -1257,6 +1265,7 @@ definePageMeta({ ssr: false });
                 @graph="openGraph"
                 @open-site="openSite"
                 @open-files="openFiles"
+                @open-account="openAccount"
                 @collapse-request="toggleSidebar"
               />
             </SplitterPanel>
@@ -1387,6 +1396,7 @@ definePageMeta({ ssr: false });
                 @graph="openGraph"
                 @open-site="openSite"
                 @open-files="openFiles"
+                @open-account="openAccount"
                 @collapse-request="navOpen = false"
               />
             </div>
@@ -1475,6 +1485,7 @@ definePageMeta({ ssr: false });
 
         <KeyboardShortcutsDialog v-model:open="shortcutsOpen" />
         <SettingsDialog v-if="workspace" v-model:open="settingsOpen" :store="workspace" />
+        <AccountDialog v-if="workspace" />
       </div>
     </template>
 

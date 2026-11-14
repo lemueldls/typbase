@@ -33,7 +33,6 @@ describe("saved atproto accounts", () => {
 
   it("drops malformed entries and fills the profile defaults", () => {
     const before = Date.now();
-    const after = Date.now();
     const storage = new MemoryStorage(
       JSON.stringify([
         { did: "did:plc:bob", handle: 4, lastUsedAt: 300 },
@@ -44,6 +43,7 @@ describe("saved atproto accounts", () => {
     );
 
     const accounts = readAccounts(storage);
+    const after = Date.now();
 
     expect(accounts.map((account) => account.did)).toEqual(["did:plc:bob", "did:plc:alice"]);
     expect(accounts[0]).toMatchObject({

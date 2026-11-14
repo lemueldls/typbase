@@ -1113,5 +1113,203 @@
     "unpublishConfirm": "Remove this theme listing from your PDS? The local skin stays applied.",
     "unpublished": "Theme listing removed.",
     "search": "Search themes"
+  },
+  "account": {
+    "titleSignIn": "Se connecter ou créer un compte",
+    "titleCreate": "Créer un compte",
+    "titlePermissions": "Ce à quoi Typbase peut accéder",
+    "titleAccounts": "Votre compte",
+    "titleData": "Ce que Typbase écrit",
+    "signInIntro": "Synchronisez vos notes et publiez-les.",
+    "addAnotherIntro": "Ajoutez un autre compte pour synchroniser et publier.",
+    "createAccount": "Créer un compte",
+    "or": "ou",
+    "alreadyHave": "Vous avez déjà un compte ?",
+    "addAnother": "Ajouter un autre compte",
+    "handle": "Votre identifiant",
+    "handlePlaceholder": "vous.bsky.social",
+    "continue": "Continuer",
+    "checking": "Vérification…",
+    "authorize": "Autoriser Typbase",
+    "authorizing": "Ouverture de votre fournisseur…",
+    "back": "Retour",
+    "notReady": "La connexion au compte est indisponible pour le moment. Réessayez dans un instant.",
+    "worksWith": "Votre compte fonctionne aussi avec {apps}.",
+    "whatWrites": "Ce que Typbase écrit",
+    "withoutAccount": "Utiliser Typbase sans compte",
+    "createIntro": "Un compte pour Typbase, Bluesky et d'autres apps.",
+    "createWithBluesky": "Créer un compte avec Bluesky",
+    "providerNote": "Nous ouvrirons la page d'inscription de Bluesky.",
+    "chooseProvider": "Choisir un autre fournisseur",
+    "moreProviders": "Besoin d'un autre fournisseur ?",
+    "moreProvidersLink": "Parcourir les fournisseurs de compte",
+    "alreadyHaveAccount": "J'ai déjà un compte",
+    "continueTo": "Continuer vers {host}",
+    "providerRedirect": "Vous terminerez sur {domain}. Revenez ici pour vous connecter.",
+    "passwordNote": "Typbase ne voit jamais votre mot de passe.",
+    "hostOpened": "Compte créé ? Connectez-vous avec l'identifiant choisi.",
+    "iCreated": "J'ai créé mon compte",
+    "permissionsIntro": "Typbase demandera ces autorisations à {handle}.",
+    "yourAccount": "votre compte",
+    "permissionsTogether": "Typbase demande ces autorisations ensemble pour l'instant. Des contrôles plus fins sont prévus.",
+    "technicalDetails": "Détails techniques",
+    "scopeIdentity": "Vous connecter",
+    "scopeIdentityBody": "Lire votre identifiant, votre profil et l'état de votre compte.",
+    "scopeSync": "Synchroniser vos notes",
+    "scopeSyncBody": "Enregistrer les données de l'espace de travail et les ressources dans un espace privé. Seuls les membres peuvent le lire.",
+    "scopePages": "Publier des pages",
+    "scopePagesBody": "Écrire une publication publique de page lorsque vous publiez une page.",
+    "scopeSite": "Publier un site web",
+    "scopeSiteBody": "Écrire le site public et ses entrées d'annuaire, et gérer son domaine.",
+    "scopeExtensions": "Publier des plugins et des thèmes",
+    "scopeExtensionsBody": "Écrire des fiches et des versions publiques de plugins et de thèmes.",
+    "scopeInstall": "Enregistrement d'installation",
+    "scopeInstallBody": "Écrire un enregistrement public avec la plateforme et les dates. Aucun contenu de l'espace de travail.",
+    "viewProfile": "Voir le profil",
+    "otherAccounts": "Autres comptes",
+    "addAccount": "Ajouter un compte",
+    "switchHint": "Changer modifie le compte utilisé pour la synchronisation et la publication.",
+    "switch": "Changer",
+    "switching": "Changement…",
+    "noOtherAccounts": "Aucun autre compte sur cet appareil.",
+    "signOut": "Se déconnecter",
+    "signingOut": "Déconnexion…",
+    "lastUsed": "Dernière utilisation : {time}",
+    "installDeleted": "Enregistrement d'installation supprimé",
+    "manage": "Gérer le compte",
+    "menuLabel": "Compte",
+    "signIn": "Se connecter",
+    "appBarSignedOut": "Connectez-vous pour synchroniser et publier.",
+    "remove": "Supprimer",
+    "removeTitle": "Supprimer le compte",
+    "removeConfirm": "Supprimer {name} de cet appareil ? Le compte reste chez son fournisseur et peut être ajouté à nouveau.",
+    "createOn": "Créer votre compte avec {host}"
+  },
+  "dataLabel": {
+    "intro": "Voici la version courte. Chaque ligne indique ce qui est enregistré, qui peut le voir et comment le supprimer.",
+    "groups": {
+      "device": {
+        "title": "Sur cet appareil",
+        "intro": "Ces données restent dans le stockage du navigateur ou de l'app. Elles ne vont pas dans votre compte."
+      },
+      "workspace": {
+        "title": "Dans votre compte, partagé avec l'espace de travail",
+        "intro": "Ces données sont stockées dans un espace de travail privé. Seuls les membres de l'espace peuvent les lire. Le fournisseur du compte et le service de l'espace peuvent techniquement les lire, et elles ne sont pas chiffrées de bout en bout."
+      },
+      "public": {
+        "title": "Public dans votre compte",
+        "intro": "Tout le monde peut lire ces données. Supprimer un enregistrement le retire de votre compte, mais d'autres apps ou archives ont pu le copier."
+      },
+      "thirdParty": {
+        "title": "Envoyé à d'autres services",
+        "intro": "Ces requêtes quittent Typbase et vont au service indiqué dans chaque ligne."
+      }
+    },
+    "visibility": {
+      "device": "Sur l'appareil",
+      "workspace": "Espace de travail",
+      "public": "Public",
+      "thirdParty": "Autre service"
+    },
+    "entries": {
+      "tokens": {
+        "title": "Jetons de connexion",
+        "body": "Jetons de session et clés du client OAuth. Ils vous gardent connecté sur cet appareil.",
+        "removal": "Déconnectez-vous ou supprimez le compte."
+      },
+      "aiKeys": {
+        "title": "Clés des fournisseurs d'IA",
+        "body": "Clés pour les services compatibles OpenAI, Anthropic ou Ollama. Elles ne sont jamais synchronisées.",
+        "removal": "Supprimez le fournisseur dans Réglages → IA."
+      },
+      "settings": {
+        "title": "Réglages et état de l'interface",
+        "body": "Thème, polices, réglages de l'éditeur, panneaux ouverts et positions des fenêtres de plugins.",
+        "removal": "Effacez les données du site ou réinitialisez l'espace de travail."
+      },
+      "localWorkspace": {
+        "title": "Espace de travail local",
+        "body": "Les pages, ressources et données de plugins sont d'abord stockées ici. La synchronisation est facultative.",
+        "removal": "Réinitialisez l'espace de travail dans Réglages → Stockage."
+      },
+      "workspaceChanges": {
+        "title": "Modifications de l'espace de travail",
+        "body": "Les pages, réglages, fils de discussion et l'état des plugins sont synchronisés sous forme de modifications.",
+        "removal": "Supprimez les données de l'espace de travail de votre compte, ou retirez l'espace."
+      },
+      "pageDrafts": {
+        "title": "Brouillons de page",
+        "body": "Une page commence comme brouillon dans l'espace de travail avant d'être publiée.",
+        "removal": "Supprimez le brouillon ou les données de l'espace de travail."
+      },
+      "media": {
+        "title": "Ressources",
+        "body": "Images, polices et fichiers importés, avec le type de fichier et la taille.",
+        "removal": "Supprimez la ressource ou les données de l'espace de travail."
+      },
+      "publishedPages": {
+        "title": "Pages publiées",
+        "body": "Le HTML, le PDF, le titre, le résumé, les tags et la source de la page.",
+        "removal": "Dépubliez la page."
+      },
+      "publishedSite": {
+        "title": "Site publié",
+        "body": "Les fichiers, réglages et ressources du site servis par Wisp.",
+        "removal": "Dépubliez le site dans le tableau de bord du site."
+      },
+      "siteDiscovery": {
+        "title": "Annuaire du site",
+        "body": "Les enregistrements de publication et de document qui permettent aux autres apps de trouver le site.",
+        "removal": "Dépubliez le site."
+      },
+      "pluginListings": {
+        "title": "Fiches de plugins",
+        "body": "La description, la version et le bundle du plugin.",
+        "removal": "Supprimez les enregistrements avec un client atproto pour l'instant."
+      },
+      "themeListings": {
+        "title": "Fiches de thèmes",
+        "body": "Le fichier du thème, la version et la somme de contrôle.",
+        "removal": "Dépubliez le thème dans le navigateur de thèmes."
+      },
+      "installRecord": {
+        "title": "Enregistrement d'installation",
+        "body": "Un enregistrement indiquant que ce compte a installé Typbase. Il contient la plateforme et les dates. Il ne contient aucun contenu de l'espace de travail ni identifiant d'appareil.",
+        "removal": "Supprimez l'enregistrement. Typbase ne l'écrira plus sur cet appareil."
+      },
+      "aiProviders": {
+        "title": "Fournisseurs d'IA",
+        "body": "Lorsque vous envoyez un message de chat, Typbase envoie le prompt et le contexte de page sélectionné au fournisseur configuré. Les clés restent sur cet appareil.",
+        "removal": "Changez de fournisseur ou désactivez l'IA."
+      },
+      "fontRequests": {
+        "title": "Requêtes de polices",
+        "body": "Parcourir les polices web demande les fichiers au proxy et au fournisseur de polices. Le proxy voit la requête. Aucun contenu de l'espace de travail n'est envoyé.",
+        "removal": "Utilisez des polices locales."
+      },
+      "typstPackages": {
+        "title": "Paquets Typst",
+        "body": "Installer un paquet télécharge son index et son tarball depuis packages.typst.org.",
+        "removal": "Supprimez le paquet."
+      },
+      "accountServices": {
+        "title": "Services de compte et de site",
+        "body": "Typbase communique avec votre fournisseur de compte, le relais en direct, le service public de profils, Wisp et Standard.site. Ces services voient les requêtes nécessaires à la synchronisation et à la publication.",
+        "removal": "Déconnectez-vous ou révoquez Typbase sur la page de votre fournisseur."
+      }
+    },
+    "notCollectedTitle": "Non collecté",
+    "notCollected": {
+      "analytics": "Aucune analyse produit ni pixel de suivi.",
+      "deviceId": "Aucun identifiant d'appareil dans l'enregistrement d'installation.",
+      "contact": "Aucun carnet de contacts, aucune position ni historique de lecture.",
+      "workspace": "Aucun contenu de l'espace de travail dans l'enregistrement d'installation.",
+      "ads": "Aucun identifiant publicitaire."
+    },
+    "removeLabel": "Supprimer :",
+    "deleteInstall": "Supprimer l'enregistrement d'installation",
+    "note": "Supprimer un enregistrement le retire de votre compte. D'autres apps ou archives ont pu le copier avant.",
+    "browse": "Vous pouvez parcourir et supprimer des enregistrements sur",
+    "technicalDetails": "Détails techniques"
   }
 }

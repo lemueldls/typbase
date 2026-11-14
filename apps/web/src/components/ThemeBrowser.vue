@@ -26,6 +26,7 @@ const emit = defineEmits<{ (e: "applied"): void }>();
 const open = defineModel<boolean>("open", { default: false });
 const { t } = useI18n();
 const { atproto, atprotoStatus } = useWorkspace();
+const accountDialog = useAccountDialog();
 
 const settings = useWorkspaceValue(
   () => props.store,
@@ -441,9 +442,14 @@ async function reconnect(): Promise<void> {
       <section class="theme-browser__section">
         <header class="theme-browser__section-head">
           <h3>{{ $t("themes.publish") }}</h3>
-          <span v-if="!signedIn" class="theme-browser__muted">
-            {{ $t("themes.signIn") }}
-          </span>
+          <UiButton
+            v-if="!signedIn"
+            variant="plain"
+            size="small"
+            @click="accountDialog.show('signin')"
+          >
+            {{ $t("account.signIn") }}
+          </UiButton>
         </header>
 
         <div class="theme-browser__form">

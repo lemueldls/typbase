@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { atprotoStatus, atprotoReady } = useWorkspace();
+const accountDialog = useAccountDialog();
 
 const { t } = useI18n();
 const open = ref(false);
@@ -22,8 +23,32 @@ const accountName = computed(
     atprotoStatus.value.did ||
     "",
 );
+const handle = computed(() => profile.value?.handle ?? activeAccount.value?.handle ?? null);
 
-function openProfile(did: string): void {
+const statusLine = computed(() => {
+  if (atprotoStatus.value.error) return atprotoStatus.value.error;
+  if (!atprotoStatus.value.syncing) return t("settings.syncOff");
+  if (atprotoStatus.value.pendingUpdates > 0) {
+    return t("settings.syncPendingCount", { count: atprotoStatus.value.pendingUpdates });
+  }
+
+  return t("settings.syncInSync");
+});
+
+function manageAccount(): void {
+  open.value = false;
+  accountDialog.show(atprotoStatus.value.signedIn ? "accounts" : "signin");
+}
+
+function showData(): void {
+  open.value = false;
+  accountDialog.show("data");
+}
+
+function openProfile(): void {
+  const did = atprotoStatus.value.did;
+  if (!did) return;
+
   open.value = false;
   void navigateTo(`/u/${did}`);
 }
@@ -73,7 +98,55 @@ const label = computed(() => {
       </UiTooltip>
     </template>
 
-    <SyncPanel @open-profile="openProfile" />
+    <div class="app-bar-account__card">
+      <template v-if="atprotoStatus.signedIn">
+        <div class="app-bar-account__identity">
+          <img
+            v-if="avatar && !avatarFailed"
+            class="app-bar-account__card-avatar"
+            :src="avatar"
+            alt=""
+            @error="avatarFailed = true"
+          />
+          <MsIcon
+            v-else
+            class="app-bar-account__card-avatar app-bar-account__card-avatar--placeholder"
+            name="account_circle"
+            :size="40"
+          />
+          <div class="app-bar-account__copy">
+            <span class="app-bar-account__name">{{ accountName }}</span>
+            <span v-if="handle" class="app-bar-account__handle">@{{ handle }}</span>
+            <span class="app-bar-account__did">{{ atprotoStatus.did }}</span>
+          </div>
+        </div>
+
+        <p class="app-bar-account__status">{{ statusLine }}</p>
+
+        <UiButton variant="primary" class="app-bar-account__wide" @click="manageAccount">
+          {{ $t("account.manage") }}
+        </UiButton>
+
+        <div class="app-bar-account__links">
+          <!-- <button type="button" class="app-bar-account__link" @click="showData">
+            {{ $t("account.whatWrites") }}
+          </button> -->
+          <button type="button" class="app-bar-account__link" @click="openProfile">
+            {{ $t("account.viewProfile") }}
+          </button>
+        </div>
+      </template>
+
+      <template v-else>
+        <p class="app-bar-account__status">{{ $t("account.appBarSignedOut") }}</p>
+        <UiButton variant="primary" class="app-bar-account__wide" @click="manageAccount">
+          {{ $t("account.signIn") }}
+        </UiButton>
+        <!-- <button type="button" class="app-bar-account__link" @click="showData">
+          {{ $t("account.whatWrites") }}
+        </button> -->
+      </template>
+    </div>
   </UiPopover>
 </template>
 
@@ -82,7 +155,7 @@ const label = computed(() => {
   z-index: 65;
   display: flex;
   flex-direction: column;
-  width: min(440px, calc(100vw - var(--space-4)));
+  width: min(360px, calc(100vw - var(--space-4)));
   max-height: calc(100dvh - var(--app-bar-height) - var(--space-8));
   overflow-y: auto;
   padding: var(--space-3);
@@ -91,6 +164,88 @@ const label = computed(() => {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-2);
   animation: ui-overlay-fade-in var(--motion-fast);
+}
+
+.app-bar-account__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.app-bar-account__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-bar-account__card-avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.app-bar-account__card-avatar--placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.app-bar-account__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-bar-account__name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.app-bar-account__handle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.app-bar-account__did {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.app-bar-account__status {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.app-bar-account__wide {
+  width: 100%;
+}
+
+.app-bar-account__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.app-bar-account__link {
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.app-bar-account__link:hover {
+  text-decoration: underline;
 }
 
 .app-bar-account__trigger {

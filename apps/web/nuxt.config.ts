@@ -304,6 +304,7 @@ export default defineNuxtConfig({
   i18n: {
     locales,
     defaultLocale,
+    fallbackLocale: defaultLocale,
     strategy: "no_prefix",
   },
 });

@@ -1113,5 +1113,203 @@
     "unpublishConfirm": "Remove this theme listing from your PDS? The local skin stays applied.",
     "unpublished": "Theme listing removed.",
     "search": "Search themes"
+  },
+  "account": {
+    "titleSignIn": "Inicia sesión o crea una cuenta",
+    "titleCreate": "Crear una cuenta",
+    "titlePermissions": "A qué puede acceder Typbase",
+    "titleAccounts": "Tu cuenta",
+    "titleData": "Lo que Typbase escribe",
+    "signInIntro": "Sincroniza tus notas y publícalas.",
+    "addAnotherIntro": "Añade otra cuenta para sincronizar y publicar.",
+    "createAccount": "Crear cuenta",
+    "or": "o",
+    "alreadyHave": "¿Ya tienes una cuenta?",
+    "addAnother": "Añadir otra cuenta",
+    "handle": "Tu usuario",
+    "handlePlaceholder": "tu.bsky.social",
+    "continue": "Continuar",
+    "checking": "Comprobando…",
+    "authorize": "Autorizar Typbase",
+    "authorizing": "Abriendo tu proveedor…",
+    "back": "Volver",
+    "notReady": "El inicio de sesión no está disponible ahora. Inténtalo de nuevo en un momento.",
+    "worksWith": "Tu cuenta también funciona con {apps}.",
+    "whatWrites": "Lo que Typbase escribe",
+    "withoutAccount": "Usar Typbase sin cuenta",
+    "createIntro": "Una cuenta para Typbase, Bluesky y otras apps.",
+    "createWithBluesky": "Crear cuenta con Bluesky",
+    "providerNote": "Abriremos la página de registro de Bluesky.",
+    "chooseProvider": "Elegir otro proveedor",
+    "moreProviders": "¿Necesitas otro proveedor?",
+    "moreProvidersLink": "Explorar proveedores de cuenta",
+    "alreadyHaveAccount": "Ya tengo una cuenta",
+    "continueTo": "Continuar a {host}",
+    "providerRedirect": "Terminarás en {domain}. Vuelve aquí para iniciar sesión.",
+    "passwordNote": "Typbase nunca ve tu contraseña.",
+    "hostOpened": "¿Creaste tu cuenta? Inicia sesión con el usuario que elegiste.",
+    "iCreated": "He creado mi cuenta",
+    "permissionsIntro": "Typbase pedirá estos permisos a {handle}.",
+    "yourAccount": "tu cuenta",
+    "permissionsTogether": "Typbase pide estos permisos juntos por ahora. Hay controles más finos previstos.",
+    "technicalDetails": "Detalles técnicos",
+    "scopeIdentity": "Iniciar tu sesión",
+    "scopeIdentityBody": "Leer tu usuario, perfil y estado de la cuenta.",
+    "scopeSync": "Sincronizar tus notas",
+    "scopeSyncBody": "Guardar los datos del espacio de trabajo y los recursos en un espacio privado. Solo los miembros pueden leerlo.",
+    "scopePages": "Publicar páginas",
+    "scopePagesBody": "Escribir una publicación pública de página cuando publiques una página.",
+    "scopeSite": "Publicar un sitio web",
+    "scopeSiteBody": "Escribir el sitio público y sus entradas de directorio, y gestionar su dominio.",
+    "scopeExtensions": "Publicar plugins y temas",
+    "scopeExtensionsBody": "Escribir listados y lanzamientos públicos de plugins y temas.",
+    "scopeInstall": "Registro de instalación",
+    "scopeInstallBody": "Escribir un registro público con la plataforma y las fechas. Sin contenido del espacio de trabajo.",
+    "viewProfile": "Ver perfil",
+    "otherAccounts": "Otras cuentas",
+    "addAccount": "Añadir cuenta",
+    "switchHint": "Cambiar modifica la cuenta usada para sincronizar y publicar.",
+    "switch": "Cambiar",
+    "switching": "Cambiando…",
+    "noOtherAccounts": "No hay otras cuentas en este dispositivo.",
+    "signOut": "Cerrar sesión",
+    "signingOut": "Cerrando sesión…",
+    "lastUsed": "Último uso: {time}",
+    "installDeleted": "Registro de instalación eliminado",
+    "manage": "Gestionar cuenta",
+    "menuLabel": "Cuenta",
+    "signIn": "Iniciar sesión",
+    "appBarSignedOut": "Inicia sesión para sincronizar y publicar.",
+    "remove": "Eliminar",
+    "removeTitle": "Eliminar cuenta",
+    "removeConfirm": "¿Eliminar {name} de este dispositivo? La cuenta sigue con su proveedor y se puede volver a añadir.",
+    "createOn": "Crea tu cuenta con {host}"
+  },
+  "dataLabel": {
+    "intro": "Esta es la versión corta. Cada fila dice qué se guarda, quién puede verlo y cómo eliminarlo.",
+    "groups": {
+      "device": {
+        "title": "En este dispositivo",
+        "intro": "Estos datos se quedan en el almacenamiento del navegador o de la app. No van a tu cuenta."
+      },
+      "workspace": {
+        "title": "En tu cuenta, compartido con el espacio de trabajo",
+        "intro": "Esto se guarda en un espacio de trabajo privado. Solo los miembros del espacio pueden leerlo. El proveedor de la cuenta y el servicio del espacio pueden leerlo técnicamente, y no está cifrado de extremo a extremo."
+      },
+      "public": {
+        "title": "Público en tu cuenta",
+        "intro": "Cualquiera puede leer esto. Eliminar un registro lo quita de tu cuenta, pero otras apps o archivos pueden haberlo copiado."
+      },
+      "thirdParty": {
+        "title": "Enviado a otros servicios",
+        "intro": "Estas solicitudes salen de Typbase y van al servicio indicado en cada fila."
+      }
+    },
+    "visibility": {
+      "device": "En el dispositivo",
+      "workspace": "Espacio de trabajo",
+      "public": "Público",
+      "thirdParty": "Otro servicio"
+    },
+    "entries": {
+      "tokens": {
+        "title": "Tokens de sesión",
+        "body": "Tokens de sesión y claves del cliente OAuth. Mantienen tu sesión en este dispositivo.",
+        "removal": "Cierra la sesión o elimina la cuenta."
+      },
+      "aiKeys": {
+        "title": "Claves de proveedores de IA",
+        "body": "Claves para servicios compatibles con OpenAI, Anthropic u Ollama. Nunca se sincronizan.",
+        "removal": "Elimina el proveedor en Ajustes → IA."
+      },
+      "settings": {
+        "title": "Ajustes y estado de la interfaz",
+        "body": "Tema, fuentes, ajustes del editor, paneles abiertos y posiciones de las ventanas de plugins.",
+        "removal": "Borra los datos del sitio o reinicia el espacio de trabajo."
+      },
+      "localWorkspace": {
+        "title": "Espacio de trabajo local",
+        "body": "Las páginas, los recursos y los datos de plugins se guardan aquí primero. La sincronización es opcional.",
+        "removal": "Reinicia el espacio de trabajo en Ajustes → Almacenamiento."
+      },
+      "workspaceChanges": {
+        "title": "Cambios del espacio de trabajo",
+        "body": "Páginas, ajustes, hilos de chat y estado de plugins se sincronizan como cambios.",
+        "removal": "Elimina los datos del espacio de trabajo de tu cuenta o elimina el espacio."
+      },
+      "pageDrafts": {
+        "title": "Borradores de página",
+        "body": "Una página empieza como borrador en el espacio de trabajo antes de publicarla.",
+        "removal": "Elimina el borrador o los datos del espacio de trabajo."
+      },
+      "media": {
+        "title": "Recursos",
+        "body": "Imágenes, fuentes y archivos subidos, con el tipo de archivo y el tamaño.",
+        "removal": "Elimina el recurso o los datos del espacio de trabajo."
+      },
+      "publishedPages": {
+        "title": "Páginas publicadas",
+        "body": "El HTML, PDF, título, resumen, etiquetas y código fuente de la página.",
+        "removal": "Despublica la página."
+      },
+      "publishedSite": {
+        "title": "Sitio publicado",
+        "body": "Los archivos, ajustes y recursos del sitio que sirve Wisp.",
+        "removal": "Despublica el sitio en el panel del sitio."
+      },
+      "siteDiscovery": {
+        "title": "Directorio del sitio",
+        "body": "Registros de publicación y documento que permiten a otras apps encontrar el sitio.",
+        "removal": "Despublica el sitio."
+      },
+      "pluginListings": {
+        "title": "Listados de plugins",
+        "body": "La descripción, versión y paquete del plugin.",
+        "removal": "Elimina los registros con un cliente atproto por ahora."
+      },
+      "themeListings": {
+        "title": "Listados de temas",
+        "body": "El archivo del tema, la versión y la suma de comprobación.",
+        "removal": "Despublica el tema en el navegador de temas."
+      },
+      "installRecord": {
+        "title": "Registro de instalación",
+        "body": "Un registro que indica que esta cuenta instaló Typbase. Incluye la plataforma y las fechas. No contiene datos del espacio de trabajo ni un identificador del dispositivo.",
+        "removal": "Elimina el registro. Typbase no lo escribirá de nuevo en este dispositivo."
+      },
+      "aiProviders": {
+        "title": "Proveedores de IA",
+        "body": "Cuando envías un mensaje de chat, Typbase envía el prompt y el contexto de página seleccionado al proveedor que configuraste. Las claves se quedan en este dispositivo.",
+        "removal": "Cambia de proveedor o desactiva la IA."
+      },
+      "fontRequests": {
+        "title": "Solicitudes de fuentes",
+        "body": "Al explorar fuentes web, Typbase pide los archivos al proxy y al proveedor de fuentes. El proxy ve la solicitud. No se envía contenido del espacio de trabajo.",
+        "removal": "Usa fuentes locales."
+      },
+      "typstPackages": {
+        "title": "Paquetes de Typst",
+        "body": "Instalar un paquete descarga su índice y su tarball desde packages.typst.org.",
+        "removal": "Elimina el paquete."
+      },
+      "accountServices": {
+        "title": "Servicios de cuenta y sitio",
+        "body": "Typbase habla con tu proveedor de cuenta, el relay en vivo, el servicio público de perfiles, Wisp y Standard.site. Esos servicios ven las solicitudes necesarias para sincronizar y publicar.",
+        "removal": "Cierra la sesión o revoca Typbase en la página de tu proveedor."
+      }
+    },
+    "notCollectedTitle": "No se recoge",
+    "notCollected": {
+      "analytics": "Sin analítica de producto ni píxeles de seguimiento.",
+      "deviceId": "Sin identificador de dispositivo en el registro de instalación.",
+      "contact": "Sin lista de contactos, ubicación ni historial de lectura.",
+      "workspace": "Sin contenido del espacio de trabajo en el registro de instalación.",
+      "ads": "Sin identificadores publicitarios."
+    },
+    "removeLabel": "Eliminar:",
+    "deleteInstall": "Eliminar registro de instalación",
+    "note": "Eliminar un registro lo quita de tu cuenta. Otras apps o archivos pueden haberlo copiado antes.",
+    "browse": "Puedes consultar y eliminar registros en",
+    "technicalDetails": "Detalles técnicos"
   }
 }

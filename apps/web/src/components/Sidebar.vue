@@ -25,13 +25,19 @@ const emit = defineEmits<{
   (e: "openSite"): void;
   /** Opens the storage explorer. */
   (e: "openFiles"): void;
+  /** Opens the account dialog. */
+  (e: "openAccount"): void;
   /** Collapses the desktop panel / closes the mobile drawer. */
   (e: "collapseRequest"): void;
 }>();
 
-const { workspaces, activeWorkspaceId } = useWorkspace();
+const { workspaces, activeWorkspaceId, atprotoStatus } = useWorkspace();
 const { t, locale } = useI18n();
 const settingsDialog = useSettingsDialog();
+
+const accountMenuLabel = computed(() =>
+  atprotoStatus.value.signedIn ? t("account.menuLabel") : t("account.signIn"),
+);
 
 const workspaceIcon = computed<MaterialSymbol>(() => {
   const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
@@ -342,6 +348,11 @@ function onCreated(page: PageMeta) {
 
           <UiMenuSeparator />
 
+          <UiMenuItem icon="account_circle" @select="emit('openAccount')">
+            <span class="sidebar__menu-label">
+              {{ accountMenuLabel }}
+            </span>
+          </UiMenuItem>
           <UiMenuItem icon="settings" @select="settingsDialog.show()">
             <span class="sidebar__menu-label">
               {{ $t("sidebar.workspaceSettings") }}

@@ -1113,5 +1113,203 @@
     "unpublishConfirm": "Remove this theme listing from your PDS? The local skin stays applied.",
     "unpublished": "Theme listing removed.",
     "search": "Search themes"
+  },
+  "account": {
+    "titleSignIn": "Sign in or create an account",
+    "titleCreate": "Create an account",
+    "titlePermissions": "What Typbase can access",
+    "titleAccounts": "Your account",
+    "titleData": "What Typbase writes",
+    "signInIntro": "Sync your notes and publish them.",
+    "addAnotherIntro": "Add another account for sync and publishing.",
+    "createAccount": "Create account",
+    "or": "or",
+    "alreadyHave": "Already have an account?",
+    "addAnother": "Add another account",
+    "handle": "Your handle",
+    "handlePlaceholder": "you.bsky.social",
+    "continue": "Continue",
+    "checking": "Checking…",
+    "authorize": "Authorize Typbase",
+    "authorizing": "Opening your provider…",
+    "back": "Back",
+    "notReady": "Account sign-in is unavailable right now. Try again in a moment.",
+    "worksWith": "Your account also works with {apps}.",
+    "whatWrites": "What Typbase writes",
+    "withoutAccount": "Use Typbase without an account",
+    "createIntro": "One account for Typbase, Bluesky, and other apps.",
+    "createWithBluesky": "Create account with Bluesky",
+    "providerNote": "We'll open Bluesky's signup page.",
+    "chooseProvider": "Choose another provider",
+    "moreProviders": "Need a different provider?",
+    "moreProvidersLink": "Browse account providers",
+    "alreadyHaveAccount": "I already have an account",
+    "continueTo": "Continue to {host}",
+    "providerRedirect": "You'll finish at {domain}. Come back here to sign in.",
+    "passwordNote": "Typbase never sees your password.",
+    "hostOpened": "Created your account? Sign in with the handle you chose.",
+    "iCreated": "I created my account",
+    "permissionsIntro": "Typbase will ask {handle} for these permissions.",
+    "yourAccount": "your account",
+    "permissionsTogether": "Typbase asks for these permissions together today. Finer controls are planned.",
+    "technicalDetails": "Technical details",
+    "scopeIdentity": "Sign you in",
+    "scopeIdentityBody": "Read your handle, profile, and account status.",
+    "scopeSync": "Sync your notes",
+    "scopeSyncBody": "Save workspace data and media to a private workspace. Only members can read it.",
+    "scopePages": "Publish pages",
+    "scopePagesBody": "Write a public page post when you publish a page.",
+    "scopeSite": "Publish a website",
+    "scopeSiteBody": "Write the public site and its directory entries, and manage its domain.",
+    "scopeExtensions": "Publish plugins and themes",
+    "scopeExtensionsBody": "Write public plugin and theme listings and releases.",
+    "scopeInstall": "Install record",
+    "scopeInstallBody": "Write one public record with the platform and timestamps. No workspace content.",
+    "viewProfile": "View profile",
+    "otherAccounts": "Other accounts",
+    "addAccount": "Add account",
+    "switchHint": "Switching changes the account used for sync and publishing.",
+    "switch": "Switch",
+    "switching": "Switching…",
+    "noOtherAccounts": "No other accounts on this device.",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "lastUsed": "Last used {time}",
+    "installDeleted": "Install record deleted",
+    "manage": "Manage account",
+    "menuLabel": "Account",
+    "signIn": "Sign in",
+    "appBarSignedOut": "Sign in to sync and publish.",
+    "remove": "Remove",
+    "removeTitle": "Remove account",
+    "removeConfirm": "Remove {name} from this device? The account stays on its provider and can be added again.",
+    "createOn": "Create your account with {host}"
+  },
+  "dataLabel": {
+    "intro": "This is the short version. Every row says what is saved, who can see it, and how to remove it.",
+    "groups": {
+      "device": {
+        "title": "On this device",
+        "intro": "This data stays in the browser or app storage. It does not go to your account."
+      },
+      "workspace": {
+        "title": "In your account, shared with the workspace",
+        "intro": "This is stored in a private workspace. Only workspace members can read it. The account provider and the workspace service can technically read it, and it is not end-to-end encrypted."
+      },
+      "public": {
+        "title": "Public on your account",
+        "intro": "Anyone can read this. Deleting a record removes it from your account, but other apps or archives may have copied it."
+      },
+      "thirdParty": {
+        "title": "Sent to other services",
+        "intro": "These requests leave Typbase and go to the service named in each row."
+      }
+    },
+    "visibility": {
+      "device": "On device",
+      "workspace": "Workspace",
+      "public": "Public",
+      "thirdParty": "Other service"
+    },
+    "entries": {
+      "tokens": {
+        "title": "Sign-in tokens",
+        "body": "Session tokens and the OAuth client's keys. They keep you signed in on this device.",
+        "removal": "Sign out or remove the account."
+      },
+      "aiKeys": {
+        "title": "AI provider keys",
+        "body": "Keys for OpenAI-compatible, Anthropic, or Ollama. They never sync.",
+        "removal": "Remove the provider in Settings → AI."
+      },
+      "settings": {
+        "title": "Settings and UI state",
+        "body": "Theme, fonts, editor settings, open panels, and plugin window positions.",
+        "removal": "Clear site data or wipe the workspace."
+      },
+      "localWorkspace": {
+        "title": "Local workspace",
+        "body": "Pages, media, and plugin data are stored here first. Sync is optional.",
+        "removal": "Wipe the workspace in Settings → Storage."
+      },
+      "workspaceChanges": {
+        "title": "Workspace changes",
+        "body": "Pages, settings, chat threads, and plugin state sync as changes.",
+        "removal": "Delete the workspace data from your account, or remove the workspace."
+      },
+      "pageDrafts": {
+        "title": "Page drafts",
+        "body": "A page starts as a draft in the workspace before you publish it.",
+        "removal": "Delete the draft or the workspace data."
+      },
+      "media": {
+        "title": "Media",
+        "body": "Uploaded images, fonts, and files, with the file type and size.",
+        "removal": "Delete the asset or the workspace data."
+      },
+      "publishedPages": {
+        "title": "Published pages",
+        "body": "The page HTML, PDF, title, summary, tags, and source.",
+        "removal": "Unpublish the page."
+      },
+      "publishedSite": {
+        "title": "Published site",
+        "body": "The site files, settings, and assets served by Wisp.",
+        "removal": "Unpublish the site in the site dashboard."
+      },
+      "siteDiscovery": {
+        "title": "Site discovery",
+        "body": "Publication and document records that let other apps find the site.",
+        "removal": "Unpublish the site."
+      },
+      "pluginListings": {
+        "title": "Plugin listings",
+        "body": "The plugin description, version, and bundle.",
+        "removal": "Delete the records with an atproto client for now."
+      },
+      "themeListings": {
+        "title": "Theme listings",
+        "body": "The theme file, version, and checksum.",
+        "removal": "Unpublish the theme in the theme browser."
+      },
+      "installRecord": {
+        "title": "Install record",
+        "body": "One record saying this account installed Typbase. It includes the platform and timestamps. It has no workspace content or device identifier.",
+        "removal": "Delete the record. Typbase will not write it again on this device."
+      },
+      "aiProviders": {
+        "title": "AI providers",
+        "body": "When you send a chat message, Typbase sends the prompt and the page context you selected to the provider you configured. Keys stay on this device.",
+        "removal": "Switch providers or turn AI off."
+      },
+      "fontRequests": {
+        "title": "Font requests",
+        "body": "Browsing web fonts asks the font proxy and the font provider for the files. The proxy sees the request. No workspace content is sent.",
+        "removal": "Use local fonts."
+      },
+      "typstPackages": {
+        "title": "Typst packages",
+        "body": "Installing a package downloads its index and tarball from packages.typst.org.",
+        "removal": "Remove the package."
+      },
+      "accountServices": {
+        "title": "Account and site services",
+        "body": "Typbase talks to your account provider, the live relay, the public profile service, Wisp, and Standard.site. Those services see the requests needed to sync and publish.",
+        "removal": "Sign out or revoke Typbase on your provider's account page."
+      }
+    },
+    "notCollectedTitle": "Not collected",
+    "notCollected": {
+      "analytics": "No product analytics or tracking pixels.",
+      "deviceId": "No device identifier in the install record.",
+      "contact": "No contact list, location, or reading history.",
+      "workspace": "No workspace content in the install record.",
+      "ads": "No advertising identifiers."
+    },
+    "removeLabel": "Remove:",
+    "deleteInstall": "Delete install record",
+    "note": "Deleting a record removes it from your account. Other apps or archives may have copied it before that.",
+    "browse": "You can browse and delete records on",
+    "technicalDetails": "Technical details"
   }
 }

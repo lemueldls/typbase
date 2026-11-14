@@ -2229,6 +2229,54 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("opens the account dialog from the mobile drawer menu", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 420, height: 800 });
+    await openApp(page);
+
+    await page.locator(".app__nav-toggle").click();
+    await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
+    await page
+      .locator(".sidebar__header-actions")
+      .getByRole("button", { name: "Workspace actions" })
+      .click();
+    await page.getByRole("menuitem", { name: "Sign in" }).click();
+
+    await page.waitForSelector(".account-dialog", { timeout: 30_000 });
+    await page.waitForTimeout(250);
+    expect(await page.locator(".account-dialog").count()).toBe(1);
+
+    // await page
+    //   .locator(".account-dialog")
+    //   .getByRole("button", { name: "What Typbase writes" })
+    //   .click();
+    // await page.waitForSelector(".account-label", { timeout: 30_000 });
+    // await page.getByText("Not collected").waitFor({ state: "visible", timeout: 30_000 });
+
+    // await page.locator(".account-dialog").getByRole("button", { name: "Back" }).click();
+    await page.locator(".account-dialog input").fill("alice.test");
+    await page.locator(".account-dialog").getByRole("button", { name: "Continue" }).click();
+    await page
+      .locator(".account-dialog__scope-title", { hasText: "Sync your notes" })
+      .waitFor({ state: "visible", timeout: 30_000 });
+    await page.locator(".account-dialog").getByText("Technical details").click();
+    await page
+      .locator(".account-dialog__technical code", { hasText: "repo:at.typbase.post" })
+      .waitFor({ state: "visible", timeout: 30_000 });
+
+    await page.locator(".account-dialog").getByRole("button", { name: "Back" }).click();
+    await page.locator(".account-dialog").getByRole("button", { name: "Create account" }).click();
+    await page
+      .getByText("Create account with Bluesky")
+      .waitFor({ state: "visible", timeout: 30_000 });
+    await page.locator(".account-dialog").getByText("Choose another provider").click();
+    await page
+      .locator(".account-dialog__host-name", { hasText: "Tangled" })
+      .waitFor({ state: "visible", timeout: 30_000 });
+
+    await page.close();
+  });
+
   it("moves an existing page into a category from its row menu", async () => {
     const page = await createPage();
     await openApp(page);

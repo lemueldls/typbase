@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import type { MaterialSymbol } from "material-symbols";
 
-import type { AtprotoAccount, WorkspaceSpaceSummary } from "~/lib/atproto";
+import type { WorkspaceSpaceSummary } from "~/lib/atproto";
 
 import { pushToast } from "~/composables/toasts";
+import { shortDid } from "~/lib/accountHandle";
 import { formatAgo } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 /**
- * Sign-in and account details. The sign-in form is shared with the website
- * dashboard so both surfaces use the same handle normalization and errors.
+ * Sync status and Spaces. Account sign-in, switching, and the data label live
+ * in the shared account dialog so every surface uses one account flow.
  */
 const { t, locale } = useI18n();
 const { atproto, atprotoStatus, atprotoReady, joinWorkspace, workspaceId, workspaces } =
@@ -39,88 +40,13 @@ const profileName = computed(
 
 const SPACES_ALPHA_URL = "https://atproto.com/blog/atproto-spaces-alpha";
 
-const otherAccounts = computed(() =>
-  atprotoStatus.value.accounts.filter((account) => account.did !== atprotoStatus.value.did),
-);
-const addAccountOpen = ref(false);
-const switchBusy = ref<string | null>(null);
-const signingOut = ref(false);
-const removing = ref(false);
-const accountError = ref("");
-const removeTarget = ref<AtprotoAccount | null>(null);
-const removeOpen = ref(false);
-const accountBusy = computed(() => switchBusy.value !== null || signingOut.value || removing.value);
+const accountDialog = useAccountDialog();
+/** Account switching lives in the account dialog, so the panel only needs readiness. */
+const accountBusy = computed(() => !atprotoReady.value);
 
-function accountName(account: AtprotoAccount): string {
-  return account.displayName || account.handle || shortDid(account.did);
-}
-
-async function onSwitchAccount(did: string): Promise<void> {
-  if (accountBusy.value || did === atprotoStatus.value.did) return;
-  switchBusy.value = did;
-  accountError.value = "";
-  try {
-    await atproto.value?.switchAccount(did);
-    addAccountOpen.value = false;
-  } catch (cause) {
-    accountError.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    switchBusy.value = null;
-  }
-}
-
-function toggleAddAccount(): void {
-  addAccountOpen.value = !addAccountOpen.value;
-  if (addAccountOpen.value) accountError.value = "";
-}
-
-function askRemoveAccount(account: AtprotoAccount): void {
-  removeTarget.value = account;
-  removeOpen.value = true;
-}
-
-async function confirmRemoveAccount(): Promise<void> {
-  const account = removeTarget.value;
-  if (!account) return;
-  removeTarget.value = null;
-  removeOpen.value = false;
-  removing.value = true;
-  accountError.value = "";
-  try {
-    await atproto.value?.removeAccount(account.did);
-  } catch (cause) {
-    accountError.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    removing.value = false;
-  }
-}
-
-async function onSignOut() {
-  if (signingOut.value) return;
-  signingOut.value = true;
-  accountError.value = "";
-  try {
-    await atproto.value?.signOut();
-  } catch (cause) {
-    accountError.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    signingOut.value = false;
-  }
-}
-
-watch(
-  () => atprotoStatus.value.did,
-  () => {
-    addAccountOpen.value = false;
-    accountError.value = "";
-  },
-);
-
-/** DIDs are long, so show the method prefix and the tail. */
-function shortDid(did: string | null): string {
-  if (!did) return "";
-
-  return did.length > 18 ? `${did.slice(0, 10)}...${did.slice(-6)}` : did;
+function viewProfile(): void {
+  const did = atprotoStatus.value.did;
+  if (did) emit("open-profile", did);
 }
 
 function ago(timestamp: number): string {
@@ -260,7 +186,13 @@ watch(
           {{ atprotoStatus.error }}
         </p>
 
-        <AtprotoSignIn />
+        <UiButton variant="primary" size="large" @click="accountDialog.show('signin')">
+          {{ $t("account.signIn") }}
+        </UiButton>
+
+        <!-- <UiButton variant="plain" size="small" @click="accountDialog.show('data')">
+          {{ $t("account.whatWrites") }}
+        </UiButton> -->
 
         <p class="sync__note">
           <MsIcon name="info" :size="18" />
@@ -293,103 +225,24 @@ watch(
             <span class="sync__did">{{ atprotoStatus.did }}</span>
           </div>
           <UiIconButton
-            class="sync__signout"
-            icon="logout"
+            class="sync__manage"
+            icon="manage_accounts"
             :size="20"
-            danger
-            :label="signingOut ? $t('settings.syncSigningOut') : $t('settings.syncSignOut')"
-            :disabled="!atprotoReady || accountBusy"
-            @click="onSignOut"
+            :label="$t('account.manage')"
+            :disabled="!atprotoReady"
+            @click="accountDialog.show('accounts')"
           />
         </div>
 
         <p v-if="profile?.description" class="sync__bio">{{ profile.description }}</p>
 
-        <!-- <UiButton
-          v-if="atprotoStatus.did"
-          class="sync__profile"
-          icon="open_in_new"
-          @click="emit('open-profile', atprotoStatus.did)"
-        >
-          {{ $t("settings.viewProfile") }}
-        </UiButton> -->
-
-        <div class="sync__accounts">
-          <div class="sync__accounts-head">
-            <p class="sync__label">{{ $t("settings.accountsTitle") }}</p>
-            <UiButton
-              variant="plain"
-              :icon="addAccountOpen ? 'close' : 'add'"
-              :disabled="accountBusy || !atprotoReady"
-              @click="toggleAddAccount"
-            >
-              {{ addAccountOpen ? $t("common.cancel") : $t("settings.accountAdd") }}
-            </UiButton>
-          </div>
-
-          <p v-if="otherAccounts.length" class="sync__hint">
-            {{ $t("settings.accountSwitchHint") }}
-          </p>
-
-          <ul v-if="otherAccounts.length" class="sync__account-list">
-            <li v-for="account in otherAccounts" :key="account.did" class="sync__account-row">
-              <img
-                v-if="account.avatar"
-                class="sync__account-avatar"
-                :src="account.avatar"
-                alt=""
-              />
-              <MsIcon
-                v-else
-                class="sync__account-avatar sync__account-avatar--placeholder"
-                name="account_circle"
-                :size="32"
-              />
-              <div class="sync__account-copy">
-                <span class="sync__account-row-name">{{ accountName(account) }}</span>
-                <span v-if="account.displayName || account.handle" class="sync__account-row-meta">
-                  <span v-if="account.displayName && account.handle" class="sync__handle">
-                    @{{ account.handle }}
-                  </span>
-                  <span class="sync__did">{{ shortDid(account.did) }}</span>
-                </span>
-              </div>
-              <div class="sync__account-actions">
-                <UiButton
-                  variant="plain"
-                  size="large"
-                  :aria-label="`${$t('settings.accountSwitch')} ${accountName(account)}`"
-                  :disabled="accountBusy"
-                  @click="onSwitchAccount(account.did)"
-                >
-                  {{
-                    switchBusy === account.did
-                      ? $t("settings.accountSwitching")
-                      : $t("settings.accountSwitch")
-                  }}
-                </UiButton>
-                <UiIconButton
-                  icon="person_remove"
-                  variant="ghost"
-                  danger
-                  :size="20"
-                  :label="`${$t('settings.accountRemove')} ${accountName(account)}`"
-                  :disabled="accountBusy"
-                  @click="askRemoveAccount(account)"
-                />
-              </div>
-            </li>
-          </ul>
-
-          <p v-else-if="!addAccountOpen" class="sync__hint">
-            {{ $t("settings.accountNone") }}
-          </p>
-
-          <AtprotoSignIn v-if="addAccountOpen" compact />
-
-          <p v-if="accountError" class="sync__hint sync__hint--error" role="alert">
-            {{ accountError }}
-          </p>
+        <div class="sync__account-actions">
+          <UiButton variant="plain" icon="open_in_new" @click="viewProfile">
+            {{ $t("account.viewProfile") }}
+          </UiButton>
+          <!-- <UiButton variant="plain" @click="accountDialog.show('data')">
+            {{ $t("account.whatWrites") }}
+          </UiButton> -->
         </div>
 
         <template v-if="atprotoStatus.syncing">
@@ -541,17 +394,6 @@ watch(
 
     <p v-else class="sync__hint">{{ $t("settings.syncRequiresServer") }}</p>
   </div>
-
-  <UiConfirmDialog
-    :open="removeOpen"
-    :title="$t('settings.accountRemoveTitle')"
-    :description="
-      $t('settings.accountRemoveConfirm', { name: removeTarget ? accountName(removeTarget) : '' })
-    "
-    :confirm-label="$t('settings.accountRemove')"
-    @update:open="(value) => !value && (removeOpen = false)"
-    @confirm="confirmRemoveAccount"
-  />
 </template>
 
 <style>
@@ -574,10 +416,16 @@ watch(
   min-width: 0;
 }
 
-.sync__signout {
+.sync__manage {
   flex: none;
   align-self: flex-start;
   margin-left: auto;
+}
+
+.sync__account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
 }
 
 .sync__avatar {

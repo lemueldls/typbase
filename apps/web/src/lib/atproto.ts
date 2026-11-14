@@ -29,6 +29,30 @@ import { withTimeout } from "~/lib/timeout";
 
 export type { AtprotoAccount } from "~/lib/atprotoAccounts";
 
+const INSTALL_RECORD_OPT_OUT_PREFIX = "typbase:installRecordOptOut:";
+
+/** Device-wide, because the install record belongs to the account, not a workspace. */
+function isInstallRecordOptedOut(did: string): boolean {
+  try {
+    return (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem(`${INSTALL_RECORD_OPT_OUT_PREFIX}${did}`) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function setInstallRecordOptedOut(did: string): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(`${INSTALL_RECORD_OPT_OUT_PREFIX}${did}`, "1");
+    }
+  } catch {
+    // The delete still ran. A blocked storage write only means the next attach may rewrite it.
+  }
+}
+
 export interface Persona {
   name: string;
   color: string;
@@ -545,6 +569,10 @@ export class AtprotoService {
     this.emit();
   }
 
+  private installRecordOptOutKey(did: string): string {
+    return `installRecordOptOut:${did}`;
+  }
+
   /**
    * Writes one public installation record for the account. It contains only
    * the client class and timestamps, never a device id or workspace data.
@@ -554,6 +582,7 @@ export class AtprotoService {
     if (!session || this.disposed) return;
 
     try {
+      if (isInstallRecordOptedOut(session.did)) return;
       const query = new URLSearchParams({
         repo: session.did,
         collection: "at.typbase.install",
@@ -726,6 +755,30 @@ export class AtprotoService {
     const identifier = this.statusDid;
     if (!identifier) throw new Error("Not signed in");
     await this.signIn(identifier);
+  }
+
+  /**
+   * Deletes the public install record and remembers the choice on this device.
+   * The next attach skips writing it again for the same account.
+   */
+  async deleteInstallRecord(): Promise<void> {
+    const session = this.sessionRef;
+    if (!session) throw new Error("Not signed in");
+
+    setInstallRecordOptedOut(session.did);
+    const response = await session.fetchHandler("/xrpc/com.atproto.repo.deleteRecord", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        repo: session.did,
+        collection: "at.typbase.install",
+        rkey: "self",
+      }),
+    });
+    // A record that was already gone is the desired state.
+    if (!response.ok && response.status !== 400) {
+      throw new Error(`Could not delete the install record (${response.status})`);
+    }
   }
 
   async refreshMembers(): Promise<void> {
