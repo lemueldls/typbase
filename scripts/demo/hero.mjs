@@ -281,10 +281,14 @@ async function main() {
     // await pause(page, 1100);
 
     // // Theme switch: Catppuccin, then dark mode. The settings entry lives in
-    // // the sidebar's workspace actions menu, so the clip shows that menu first.
+    // // the sidebar's workspace actions popover, so the clip shows that menu
+    // // first. The menu uses plain buttons, not menu items.
     // await clickWithCursor(page, page.locator('[aria-label="Workspace actions"]').first());
     // await pause(page, 900);
-    // await clickWithCursor(page, page.getByRole("menuitem", { name: "Workspace settings" }));
+    // await clickWithCursor(
+    //   page,
+    //   page.locator(".ws-menu").getByRole("button", { name: "Workspace settings" }),
+    // );
     // await pause(page, 700);
     // await clickWithCursor(
     //   page,
