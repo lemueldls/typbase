@@ -73,7 +73,7 @@ impl FontLoader {
     where T: AsRef<[u8]> + Send + Sync + 'static {
         for font in Font::iter(Bytes::new(bytes)) {
             // Installing the same font twice (a repeated settings sync, a
-            // worker restart) used to duplicate it in the book and the font
+            // worker restart) would duplicate it in the book and the font
             // list. Keep the first copy.
             if self
                 .fonts

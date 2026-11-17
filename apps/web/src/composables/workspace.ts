@@ -177,7 +177,7 @@ function useWorkspaceState() {
 
   const workspaces = ref<WorkspaceInfo[]>([]);
   const activeWorkspaceId = ref<string | null>(null);
-  /** Workspace id currently being opened, null when idle. Drives switch UI. */
+  /** Workspace id currently being opened, null when idle. Controls the switch UI. */
   const switching = ref<string | null>(null);
   /** Bumped whenever the active workspace changes. Key the shell on it. */
   const workspaceGeneration = ref(0);
@@ -188,7 +188,7 @@ function useWorkspaceState() {
   /** Disposer for the active workspace's source watcher, if the backend has one. */
   let unwatchSources: (() => void) | undefined;
   /**
-   * Owns the switching overlay. Kept apart from `openingSeq` because
+   * The switching overlay's sequence number. Kept apart from `openingSeq` because
    * `bootAtproto` also bumps that one, which made the overlay's cleanup guard
    * fail and left the pill up forever.
    */
@@ -765,8 +765,8 @@ function useWorkspaceState() {
 
   /**
    * Opens a workspace that already exists in a space on the account. The
-   * local doc starts empty because the sync pull supplies the remote history;
-   * seeding it first would merge a second Welcome page into that history.
+   * local doc starts empty because the sync pull supplies the remote history.
+   * Seeding it first would merge a second Welcome page into that history.
    */
   async function joinWorkspace(id: string, name = "Workspace"): Promise<WorkspaceInfo> {
     const clean = id.trim();

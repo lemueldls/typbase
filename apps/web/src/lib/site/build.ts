@@ -157,7 +157,7 @@ export function siteMime(path: string): string {
 }
 
 /**
- * Builds the public site bundle. The workspace stays the source; this module
+ * Builds the public site bundle. The workspace stays the source. This module
  * never writes to it. Every page compile runs against a page allowlist so
  * queries and embeds cannot pull private notes into public HTML.
  */

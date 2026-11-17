@@ -68,18 +68,24 @@ export interface RenderOutcome {
   payloads: RequestPayload[];
 }
 
-/** A render can idle behind a slow compile. Without a message for this long,
- *  assume the worker is wedged and restart it instead of hanging the UI. */
+/**
+ * A render can idle behind a slow compile. Without a message for this long,
+ * assume the worker is wedged and restart it instead of hanging the UI.
+ */
 const RENDER_IDLE_TIMEOUT_MS = 30_000;
 
 let worker: Worker | undefined;
 let nextId = 1;
 let requestStore: WorkspaceStore | undefined;
-/** Uploaded faces for the worker's world. The worker has no blob store, so the
- *  bytes are sent with the configure message. */
+/**
+ * Uploaded faces for the worker's world. The worker has no blob store, so the
+ * bytes are sent with the configure message.
+ */
 let renderFonts: FontPayload[] = [];
-/** Renders share one worker and its request loop. Run them one at a time so a
- *  concurrent publish and export cannot interleave request passes. */
+/**
+ * Renders share one worker and its request loop. Run them one at a time so a
+ * concurrent publish and export cannot interleave request passes.
+ */
 let renderQueue: Promise<unknown> = Promise.resolve();
 
 export function setPublishRequestStore(store: WorkspaceStore | undefined): void {
@@ -119,8 +125,10 @@ function keepAlive(entry: PendingRender, id: number): void {
   }, RENDER_IDLE_TIMEOUT_MS);
 }
 
-/** Rejects everything in flight and drops the worker, so the next render gets
- *  a fresh instance instead of posting into a dead one. */
+/**
+ * Rejects everything in flight and drops the worker, so the next render gets
+ * a fresh instance instead of posting into a dead one.
+ */
 function stopWorker(reason: Error): void {
   for (const entry of pending.values()) {
     clearTimeout(entry.timer);

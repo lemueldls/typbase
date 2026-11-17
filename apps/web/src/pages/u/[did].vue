@@ -40,7 +40,7 @@ watchImmediate(routeDid, async (input) => {
   try {
     // The posts client resolves handle -> DID -> PDS. The AppView profile is
     // optional and adds the display name, avatar, and bio when the account has
-    // one; the PDS identity still supplies the canonical DID and handle.
+    // one. The PDS identity still supplies the canonical DID and handle.
     const client = createPublicPostsClient(input);
     const [identity, rich] = await Promise.all([client.identity(), fetchPublicProfile(input)]);
     author.value = {

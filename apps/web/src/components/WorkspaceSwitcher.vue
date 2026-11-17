@@ -29,7 +29,7 @@ const {
 /** The open slot, sized to the dragged row. */
 const workspaceGapStyle = computed(() => ({ height: `${workspaceRowHeight.value ?? 0}px` }));
 
-/** Moves one workspace a slot; the registry array is the order. */
+/** Moves one workspace a slot. The registry array is the order. */
 function moveWorkspace(index: number, delta: -1 | 1): void {
   const ids = workspaces.value.map((info) => info.id);
   const to = index + delta;
@@ -55,8 +55,10 @@ const dialogOpen = ref(false);
 const dialogMode = ref<"create" | "edit">("create");
 const editing = ref<WorkspaceInfo | null>(null);
 
-/** Workspace queued for deletion. The target survives the dialog's close
- *  event: reka's action closes the dialog before the confirm handler runs. */
+/**
+ * Workspace queued for deletion. The target survives the dialog's close
+ * event: reka's action closes the dialog before the confirm handler runs.
+ */
 const pendingDelete = ref<WorkspaceInfo | null>(null);
 const confirmOpen = ref(false);
 

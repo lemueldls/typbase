@@ -22,7 +22,7 @@ export interface KeyboardShortcut {
  * App-level chords. These are registered through `matchesShortcut` in the
  * components that handle the action, so this list is the one place to change a
  * binding and the shortcuts dialog reads it directly. Editor chords live in
- * `packages/codemirror/src/keymap.ts` and the vim package; the editor entries
+ * `packages/codemirror/src/keymap.ts` and the vim package. The editor entries
  * here mirror that keymap for the help dialog.
  */
 export const APPLICATION_SHORTCUTS: KeyboardShortcut[] = [

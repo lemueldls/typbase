@@ -277,8 +277,10 @@ async function saveOne(name: string, bytes: Uint8Array): Promise<void> {
 
 const BLOB_REFERENCE = /\/?typbase\/blob\/([0-9a-f]{16,64})(?:\.[a-z0-9]+)?/gi;
 
-/** Replaces blob references in rendered HTML with data URIs, so the document
- *  is self-contained wherever it is opened. */
+/**
+ * Replaces blob references in rendered HTML with data URIs, so the document
+ * is self-contained wherever it is opened.
+ */
 export async function inlineBlobs(html: string, store: WorkspaceStore): Promise<string> {
   const hashes = new Set<string>();
   for (const match of html.matchAll(BLOB_REFERENCE)) {

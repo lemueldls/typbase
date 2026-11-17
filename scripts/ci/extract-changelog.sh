@@ -14,7 +14,7 @@ require VERSION
 
 repo_root=$(cd "$script_dir/../.." && pwd)
 
-# Reads to EOF after the section ends; an early exit would close git show's
+# Reads to EOF after the section ends. An early exit would close git show's
 # pipe under pipefail.
 git -C "$repo_root" show "$TAG:CHANGELOG.md" |
     awk -v heading="## [$VERSION]" '

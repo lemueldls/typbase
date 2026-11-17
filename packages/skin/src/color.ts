@@ -90,7 +90,7 @@ export function mixHex(color: string, base: string, weight: number): string {
 
 /**
  * Turns the seeds a theme author writes into the full token map the app
- * consumes. Authored tokens, including backdrop, pass through; soft
+ * consumes. Authored tokens, including backdrop, pass through. Soft
  * backgrounds are mixed from the solids and overlay follows the mode.
  */
 export function expandSeeds(seeds: ThemeSeeds, mode: "light" | "dark"): ThemePaletteTokens {

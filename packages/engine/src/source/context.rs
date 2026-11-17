@@ -34,7 +34,7 @@ pub struct SpaceContext {
     pub theme: ThemeColors,
     /// Locale for this space.
     pub locale: String,
-    /// Body text size in points. Drives `#set text(size: ...)` in the
+    /// Body text size in points. The value for `#set text(size: ...)` in the
     /// generated prelude. One app pt is one screen px, so the default 16pt
     /// matches the editor's 16px source text.
     pub text_size: f64,
@@ -96,7 +96,7 @@ pub(crate) struct SyncedInput {
 
 /// Per-note rendering context.
 ///
-/// Holds four coordinate spaces and the offset maps between them:
+/// Contains four coordinate spaces and the offset maps between them:
 ///
 /// - **raw**: exactly what the user typed, `raw_id`. Every position the editor
 ///   sees is in raw coordinates.
@@ -186,10 +186,11 @@ pub struct SourceContext {
     /// The syntax tree of the text parsed most recently, paired with that
     /// text.
     ///
-    /// A keystroke used to parse the same bytes up to four times: the editor's
-    /// highlight field runs first, then the delimiter repair, then the synth,
-    /// then the pristine synth when a repair happened. They all want the tree
-    /// for the same string, so the first one parses and the rest read it here.
+    /// Up to four passes want the tree for the same bytes in one keystroke: the
+    /// editor's highlight field runs first, then the delimiter repair, then the
+    /// synth, then the pristine synth when a repair happened. They all want the
+    /// tree for the same string, so the first one parses and the rest read it
+    /// here.
     /// The text is kept alongside it because a tree says nothing about which
     /// bytes it came from.
     parsed: Option<(String, typst_syntax::SyntaxNode)>,

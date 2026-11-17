@@ -668,9 +668,9 @@ export class WorkspaceStore {
       }
     }
 
-    // Templates from before the context binding are broken: the app no longer
-    // substitutes `{title}` and friends. Swap the old shape for the current
-    // default. A template without placeholders is left alone.
+    // Templates with `{title}` placeholders are broken: the app does not
+    // substitute them. Swap that shape for the current default. A template
+    // without placeholders is left alone.
     if (settings.dailyNoteTemplate.includes("{title}")) {
       settings.dailyNoteTemplate = DEFAULT_SETTINGS.dailyNoteTemplate;
     }
@@ -1062,7 +1062,7 @@ export class WorkspaceStore {
   }
 
   listCategories(): Category[] {
-    // Manual order first; categories without one keep their list position.
+    // Manual order first. Categories without one keep their list position.
     return (this.doc.getList("categories").toJSON() as Category[])
       .map((category, index) => ({ category, index }))
       .sort((a, b) => (a.category.order ?? a.index) - (b.category.order ?? b.index))
@@ -1254,8 +1254,10 @@ export class WorkspaceStore {
     doc.commit();
   }
 
-  /** Subscribe to a page doc's changes (content or meta). The listener gets
-   *  the container paths that changed, for filtering. */
+  /**
+   * Subscribe to a page doc's changes (content or meta). The listener gets
+   * the container paths that changed, for filtering.
+   */
   async onPageDocChange(
     pageId: string,
     listener: (paths: LoroPath[]) => void,

@@ -120,7 +120,7 @@ const sharedUrl = computed(() => {
 
   return wispSiteUrl(did, key, site.value.wisp.serviceUrl);
 });
-/** Wisp treats the shared path as a directory; show the address without the slash. */
+/** Wisp treats the shared path as a directory. Show the address without the slash. */
 function cleanSiteUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }

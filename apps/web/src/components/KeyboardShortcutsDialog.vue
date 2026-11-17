@@ -8,7 +8,7 @@ import {
 
 /**
  * The app's shortcut reference. The application rows come from the same
- * registry the handlers match against; the editor rows mirror the CodeMirror
+ * registry the handlers match against. The editor rows mirror the CodeMirror
  * keymap, which lives in the published package.
  */
 const open = defineModel<boolean>("open", { default: false });

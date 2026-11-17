@@ -324,7 +324,7 @@ const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string; keywor
 ];
 
 const activeTab = ref<SettingsTab>("general");
-/** A small palette for the common case; the full picker is one click away. */
+/** A small palette for the common case. The full picker is one click away. */
 const QUICK_ICONS: MaterialSymbol[] = [
   "folder",
   "home",
@@ -456,7 +456,7 @@ function clearSearch(): void {
   searchQuery.value = "";
 }
 
-/** The first Escape clears the query; only an empty field closes the dialog. */
+/** The first Escape clears the query. Only an empty field closes the dialog. */
 function onSearchEscape(event: KeyboardEvent): void {
   if (!searchQuery.value) return;
 
@@ -483,7 +483,7 @@ function openProfile(did: string): void {
   void navigateTo(`/u/${did}`);
 }
 
-/** The shortcut list lives outside Settings; close this and show it. */
+/** The shortcut list lives outside Settings. Close this and show it. */
 function openShortcuts(): void {
   open.value = false;
   shortcuts.show();
@@ -2355,7 +2355,7 @@ async function copyWorkspaceId(): Promise<void> {
   font-size: var(--text-md);
 }
 
-/* One quiet row. The list below is the content; this is only the way in. */
+/* One quiet row. The list below is the content. This is only the way in. */
 .settings__drop {
   display: flex;
   align-items: center;

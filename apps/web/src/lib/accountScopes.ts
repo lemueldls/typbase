@@ -90,7 +90,7 @@ export function uncoveredAccountScopes(): string[] {
   return OAUTH_SCOPES.filter((scope) => !grouped.has(scope));
 }
 
-/** Grouped scopes that the client no longer requests. Should stay empty. */
+/** Grouped scopes that the client does not request. Should stay empty. */
 export function staleAccountScopes(): string[] {
   const requested = new Set(OAUTH_SCOPES);
 

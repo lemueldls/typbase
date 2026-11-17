@@ -424,8 +424,10 @@ export interface TypstViewPluginOptions {
   revision?: () => string | number | undefined;
   /** See TypstPluginOptions#onPanic. */
   onPanic?: (fileId: FileId) => void;
-  /** Called after a compile pass succeeds. The host resets its health and
-   *  heap watchdog on it. */
+  /**
+   * Called after a compile pass succeeds. The host resets its health and
+   * heap watchdog on it.
+   */
   onCompile?: () => void;
   /** See TypstPluginOptions#onExternalLink. */
   onExternalLink?: ExternalLinkOpener;

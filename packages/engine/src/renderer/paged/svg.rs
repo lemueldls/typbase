@@ -243,7 +243,7 @@ fn split_def_elements(inner: &str) -> Vec<&str> {
             .find(|tag| inner[at..].starts_with(**tag))
         else {
             // A close this build does not know ends nothing. Skip it and keep
-            // looking; the element it belonged to rides along with the next one,
+            // looking. The element it belonged to rides along with the next one,
             // which is harmless because the union is a plain concatenation.
             from = at + 2;
             continue;

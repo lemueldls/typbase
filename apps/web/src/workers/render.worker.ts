@@ -8,11 +8,15 @@ import { themeColorsFromPalette } from "~/lib/rendererPalette";
 import { setTypstInputs } from "~/lib/typstInputs";
 import { initTypstState, installPayload, payloadKey, requestKey } from "~/workers/typstWorkerCore";
 
-/** The wasm asset URL arrives in a configure message. The main thread already
- *  loaded it, and worker-side asset resolution is not portable. */
+/**
+ * The wasm asset URL arrives in a configure message. The main thread already
+ * loaded it, and worker-side asset resolution is not portable.
+ */
 let wasmModuleUrl: string | undefined;
-/** Uploaded workspace faces. The worker cannot read the blob store, so the
- *  bytes ride the configure message and install with the bundled fonts. */
+/**
+ * Uploaded workspace faces. The worker cannot read the blob store, so the
+ * bytes ride the configure message and install with the bundled fonts.
+ */
 let customFonts: FontPayload[] = [];
 let state: TypstState | undefined;
 
@@ -28,8 +32,10 @@ async function ensureState(): Promise<TypstState> {
 
 let currentId = 0;
 let releaseAnswer: ((inserted: number) => void) | undefined;
-/** Request keys already inserted for the current render. A pass that asks
- *  only for these has made no progress and must not loop. */
+/**
+ * Request keys already inserted for the current render. A pass that asks
+ * only for these has made no progress and must not loop.
+ */
 let insertedKeys = new Set<string>();
 
 self.addEventListener(
@@ -168,8 +174,10 @@ interface RenderPass {
   requests: TypstRequest[];
 }
 
-/** Renders until requests stop coming, then hands the final pass to `settle`.
- *  A pass that inserts nothing stops the loop with a readable error. */
+/**
+ * Renders until requests stop coming, then hands the final pass to `settle`.
+ * A pass that inserts nothing stops the loop with a readable error.
+ */
 async function runPasses<T extends RenderPass>(
   render: () => T,
   settle: (rendered: T) => void,

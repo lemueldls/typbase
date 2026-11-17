@@ -38,8 +38,10 @@ const currentChatId = ref<string | null>(null);
 const graphOpen = ref(false);
 const filesOpen = ref(false);
 const siteOpen = ref(false);
-/** Whether the main pane is showing the selected page. The sidebar mutes the
- *  page highlight while a workspace view owns the pane. */
+/**
+ * Whether the main pane is showing the selected page. The sidebar mutes the
+ * page highlight while a workspace view is in the pane.
+ */
 const pageActive = computed(
   () =>
     !graphOpen.value &&
@@ -62,8 +64,10 @@ const { open: settingsOpen } = useSettingsDialog();
 const accountDialog = useAccountDialog();
 /** Sidebar drawer state (mobile only). */
 const navOpen = ref(false);
-/** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
- *  mirrors `--breakpoint-lg` in tokens.css (mobile <= 56rem, desktop above). */
+/**
+ * Desktop gets a resizable splitter, while mobile keeps the drawer. The query
+ * mirrors `--breakpoint-lg` in tokens.css (mobile <= 56rem, desktop above).
+ */
 const isDesktop = useMediaQuery("(min-width: 56.0625rem)");
 const nav = useNavHistory();
 const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
@@ -187,8 +191,10 @@ watch(
   { immediate: true },
 );
 
-/** Home page when it still exists, else the first page. Empty when the workspace
- *  has none, which is the empty pane's case. */
+/**
+ * Home page when it still exists, else the first page. Empty when the workspace
+ * has none, which is the empty pane's case.
+ */
 function fallbackPageId(): string {
   const store = workspace.value;
   if (!store) return "";
@@ -358,7 +364,7 @@ function reloadApp(): void {
   window.location.reload();
 }
 
-/** Retries a boot that failed. The splash shows the reason; this is the way out. */
+/** Retries a boot that failed. The splash shows the reason. This is the way out. */
 async function retryBoot(): Promise<void> {
   retryingBoot.value = true;
   try {
@@ -775,7 +781,7 @@ function openGraph(rootAtPage = false) {
   }
 
   // A floating links rail has a backdrop that would sit over the graph. Close
-  // it for any graph; an inline rail can stay beside the graph.
+  // it for any graph. An inline rail can stay beside the graph.
   closeFloatingLinks();
 
   syncRoute(historyMode);

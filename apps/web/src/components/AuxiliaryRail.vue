@@ -51,7 +51,7 @@ function onMove(): void {
   emit("move", props.side === "left" ? "right" : "left");
 }
 
-/** A floating links rail is a page-context overlay; following a link leaves it. */
+/** A floating links rail is a page-context overlay. Following a link leaves it. */
 function openLinkPage(id: string): void {
   if (props.floating) emit("closePanel", "links");
   emit("openPage", id);

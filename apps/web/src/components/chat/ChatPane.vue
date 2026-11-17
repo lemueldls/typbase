@@ -48,8 +48,10 @@ if (seed && seed.threadId === props.threadId) {
   contextPageId.value = seed.pageId;
 }
 
-/** Thread metadata lives in the workspace doc's `chats` map, so title,
- *  provider, model, and page edits show up without an engine event. */
+/**
+ * Thread metadata lives in the workspace doc's `chats` map, so title,
+ * provider, model, and page edits show up without an engine event.
+ */
 const thread = useWorkspaceValue(workspace, ["chats"], (store) => store.getChat(props.threadId));
 
 const threadTitle = computed(() => thread.value?.title ?? t("chat.title"));
@@ -161,8 +163,10 @@ function updateModel(value: string): void {
   store.updateChat(props.threadId, { model: value || null });
 }
 
-/** Re-grounds the thread on another page. A selection came from the old page
- *  and would be read against the wrong text. */
+/**
+ * Re-grounds the thread on another page. A selection came from the old page
+ * and would be read against the wrong text.
+ */
 function updateContextPage(id: string | null): void {
   const current = contextPageId.value ?? thread.value?.pageId ?? null;
   contextPageId.value = id;

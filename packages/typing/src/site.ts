@@ -1,6 +1,6 @@
 /**
  * A site is a public projection of a workspace. The workspace stays the
- * editable source; these settings say which pages leave it, how they are laid
+ * editable source. These settings say which pages leave it, how they are laid
  * out, and where the built files are hosted.
  */
 
@@ -111,7 +111,7 @@ export interface SiteSettings {
   showGraph: boolean;
   /**
    * Keep the editor's line spacing between source lines. The synth renders
-   * each top-level line as its own block; the site CSS otherwise leaves those
+   * each top-level line as its own block. The site CSS otherwise leaves those
    * divs tight.
    */
   preserveNewlines: boolean;

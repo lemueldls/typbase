@@ -8,7 +8,7 @@ interface AuxPanelState {
   active: AuxiliaryPanel;
   chatId: string | null;
   pageId: string;
-  /** Inline rails sit in the shell row; floating rails are drawers. */
+  /** Inline rails sit in the shell row. Floating rails are drawers. */
   inline: boolean;
 }
 
@@ -84,9 +84,11 @@ export function useShellLayout(options: ShellLayoutOptions) {
   );
 
   const windowSize = useWindowSize();
-  /** Inline aux panels need room for the page and the rail; below this they
+  /**
+   * Inline aux panels need room for the page and the rail. Below this they
    *  float. At 1280 with the default 300px sidebar, the page and a 360px rail
-   *  fit; at 1200 they do not. */
+   * fit. At 1200 they do not.
+   */
   const inlineAux = computed(
     () => isDesktop.value && windowSize.width.value - sidebarSize.value >= 940,
   );

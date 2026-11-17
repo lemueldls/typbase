@@ -21,7 +21,7 @@ async function collect(dir: FileSystemDirectoryHandle, prefix = ""): Promise<Col
     if (handle.kind === "file") {
       const file = await (handle as FileSystemFileHandle).getFile();
       if (!/\.(typ|json|txt|md|toml)$/i.test(name)) continue;
-      if (file.size > 512 * 1024) continue; // sources only; skip media
+      if (file.size > 512 * 1024) continue; // keep sources only and skip media
       files.push({ path, text: await file.text() });
     } else {
       files.push(...(await collect(handle as FileSystemDirectoryHandle, path)));

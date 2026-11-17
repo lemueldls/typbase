@@ -4,7 +4,7 @@ import sqliteWasmUrl from "sqlite-wasm-vec/sqlite3.wasm?url";
 import { buildSearchQuery } from "../lib/searchQuery";
 
 /**
- * Search index worker. Owns `index.sqlite` (OPFS when cross-origin isolation
+ * Search index worker. Keeps `index.sqlite` (OPFS when cross-origin isolation
  * allows it, memory otherwise) with FTS5 plus an optional sqlite-vec table
  * for semantic search. The main thread sends flattened blocks (see the wasm
  * `flattenDocument` pass) and asks queries here. All text search state lives

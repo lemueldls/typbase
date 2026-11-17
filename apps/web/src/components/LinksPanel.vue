@@ -21,8 +21,10 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { index, status, ensure, setWanted, clearWanted } = useLinks();
 
-/** Backlinks come from other pages' query loops, so while the panel is open
- *  it wants every pending dynamic page resolved. */
+/**
+ * Backlinks come from other pages' query loops, so while the panel is open
+ * it wants every pending dynamic page resolved.
+ */
 const owner = Symbol("links-panel");
 
 const resolving = computed(() => {

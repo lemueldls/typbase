@@ -20,8 +20,10 @@ const { t } = useI18n();
 const { workspace } = useWorkspace();
 const { index, status, ensure, setWanted, clearWanted } = useLinks();
 
-/** The graph wants its visible pages resolved: a query loop inside the view
- *  is an edge like any other. Pages outside a local graph stay untouched. */
+/**
+ * The graph wants its visible pages resolved: a query loop inside the view
+ * is an edge like any other. Pages outside a local graph stay untouched.
+ */
 const owner = Symbol("graph");
 
 const resolving = computed(() => {
@@ -161,8 +163,10 @@ const labelsChoice = computed({
     update({ labels: value === "always" || value === "never" ? value : "auto" }),
 });
 
-/** Non-default filter count for the toolbar badge. Scope depth counts only
- *  while local mode is on, since it does nothing otherwise. */
+/**
+ * Non-default filter count for the toolbar badge. Scope depth counts only
+ * while local mode is on, since it does nothing otherwise.
+ */
 const activeFilters = computed(() => {
   const value = settings.value;
   let count = 0;

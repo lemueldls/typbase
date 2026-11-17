@@ -19,7 +19,7 @@ class SystemBarsArgs {
  * `enableEdgeToEdge()` picks the tint from the system dark mode, so a light
  * workspace on a dark phone drew white status and navigation icons over the
  * white app surface. The web layer calls [setLight] whenever `data-theme`
- * changes. The bars stay transparent; the app paints under them, and the
+ * changes. The bars stay transparent. The app paints under them, and the
  * `--safe-*` insets keep content clear of the icons.
  */
 @TauriPlugin

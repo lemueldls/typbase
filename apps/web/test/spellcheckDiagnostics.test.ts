@@ -30,7 +30,7 @@ describe("mergeTypstDiagnostics", () => {
       },
       { from: 5, to: 9, severity: "info", message: "spelling" },
     ]);
-    // Diagnostics map through an edit; the compile result for the new text
+    // Diagnostics map through an edit. The compile result for the new text
     // should not drop the spellcheck mark or reuse its old range.
     const state = before.update({ changes: { from: 0, insert: "x" } }).state;
 

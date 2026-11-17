@@ -17,9 +17,11 @@ export function blobPath(workspaceId: string, hash: string): string {
 /** Blob ids are the first 16 hex chars of the SHA-256 digest. */
 export const BLOB_ID_LENGTH = 16;
 
-/** Content addresses are 16 to 64 lowercase hex: new blobs use the truncated
+/**
+ * Content addresses are 16 to 64 lowercase hex: new blobs use the truncated
  *  digest, and full digests stay valid for blobs and sources written before
- *  the truncation. Never trust a request path. */
+ * the truncation. Never trust a request path.
+ */
 export function isBlobHash(value: string): boolean {
   return /^[0-9a-f]{16,64}$/.test(value);
 }

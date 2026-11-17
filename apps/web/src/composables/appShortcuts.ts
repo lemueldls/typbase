@@ -21,7 +21,7 @@ export interface AppShortcutOptions {
 
 /**
  * The app-level chords in `lib/keybindings.ts`. Editor chords stay in
- * `@typbase/codemirror`; these are the ones that belong to the shell.
+ * `@typbase/codemirror`. These are the ones that belong to the shell.
  */
 export function useAppShortcuts(options: AppShortcutOptions): void {
   // Cmd-K / Ctrl-K opens the search palette.
@@ -37,7 +37,7 @@ export function useAppShortcuts(options: AppShortcutOptions): void {
    * Back and forward, on the chords browsers and editors use. The desktop shell
    * has no browser to do it, and in a browser tab Alt-ArrowLeft is the browser's
    * own back, which would navigate twice. The chord specs live in
-   * `lib/keybindings.ts`; the platform split is part of `matchesShortcut`.
+   * `lib/keybindings.ts`. The platform split is part of `matchesShortcut`.
    */
   for (const direction of ["back", "forward"] as const) {
     onCapturedKey(

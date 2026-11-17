@@ -32,11 +32,13 @@ const emit = defineEmits<{
   (e: "jump", range: { from: number; to: number }): void;
 }>();
 
-/** The link under the pointer, if any.
+/**
+ * The link under the pointer, if any.
  *
  * The SVG draws a link's hit box as a transparent rect in its own `<a>`
  * group, separate from the glyphs, so a click on the text has no anchor
- * ancestor. Fall back to testing each anchor's box by position. */
+ * ancestor. Fall back to testing each anchor's box by position.
+ */
 function linkAt(event: MouseEvent, frameEl: HTMLElement | null): string | null {
   const direct = (event.target as Element | null)?.closest?.("a[href]");
   if (direct) return direct.getAttribute("href") ?? "";
@@ -113,9 +115,11 @@ function onPreviewClick(event: MouseEvent) {
 
 const scroller = useTemplateRef("scroller");
 const frames = ref<SvgRangedFrame[]>([]);
-/** Raw text the current frames were compiled from. The layout maps frame
+/**
+ * Raw text the current frames were compiled from. The layout maps frame
  *  ranges against this, not the live text, so a keystroke cannot move frames
- *  before the next compile lands. */
+ * before the next compile lands.
+ */
 const framesText = ref("");
 const rendering = ref(false);
 /** Frame index with the find-bar flash, cleared after the animation. */
@@ -257,8 +261,10 @@ watch(
   () => scheduleRender(),
 );
 
-/** Editor line height in px. The editor scroller uses 1.4 with the document
- *  text size, which `--doc-text-size` sets. */
+/**
+ * Editor line height in px. The editor scroller uses 1.4 with the document
+ * text size, which `--doc-text-size` sets.
+ */
 function editorLineHeight(): number {
   if (typeof document === "undefined") return 22.4;
 
@@ -511,7 +517,7 @@ defineExpose({ scroller, getFrameLayout, revealRange });
 }
 
 /* Same column as the editor, so switching modes does not move the text. The
-   scroller keeps the full pane and its scrollbar; only the content narrows. */
+   scroller keeps the full pane and its scrollbar. Only the content narrows. */
 .paged-preview--measure .paged-preview__inner {
   max-width: var(--doc-measure);
   margin-inline: auto;

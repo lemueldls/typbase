@@ -4,7 +4,7 @@ import type { StorageBackend } from "./backend";
 
 /**
  * The workspace registry: one JSON manifest at the backend root listing every
- * workspace. The array order is the user's order, rewritten by `reorder`;
+ * workspace. The array order is the user's order, rewritten by `reorder`.
  * `lastOpenedAt` is only the "opened <date>" status in the switcher. The name
  * is a cache of the workspace doc's `settings.name`, kept fresh on open/rename.
  */
@@ -54,8 +54,10 @@ export class WorkspaceRegistry {
     await this.backend.write(REGISTRY_FILE, encoder.encode(JSON.stringify(entries)));
   }
 
-  /** Rewrites the manifest in the given order; ids it does not know about
-   *  keep their relative positions at the end. */
+  /**
+   * Rewrites the manifest in the given order. Ids it does not know about
+   * keep their relative positions at the end.
+   */
   async reorder(ids: readonly string[]): Promise<void> {
     const entries = await this.list();
     const remaining = new Map(entries.map((entry) => [entry.id, entry]));
@@ -87,7 +89,7 @@ export async function removeWorkspace(backend: StorageBackend, workspaceId: stri
 
 async function removeEntryRecursive(backend: StorageBackend, path: string): Promise<void> {
   // Only directories have children. The Tauri backend returns ENOTDIR when
-  // listing a file, while memory and OPFS return an empty list; stat keeps
+  // listing a file, while memory and OPFS return an empty list. Stat keeps
   // the walk independent of that difference.
   const stat = await backend.stat(path);
   if (stat?.kind === "directory") {

@@ -150,8 +150,10 @@ function detachVim(): void {
   vimEvents = undefined;
 }
 
-/** Mirrors the vim mode and pending keys into the status bar. Reattached after
- *  a reconfigure or a view rebuild because the facade belongs to one view. */
+/**
+ * Mirrors the vim mode and pending keys into the status bar. Reattached after
+ * a reconfigure or a view rebuild because the facade belongs to one view.
+ */
 function attachVim(): void {
   detachVim();
   vimKeys.value = "";
@@ -287,7 +289,7 @@ const createView = () => {
 };
 
 // typbase.page-link and plugin embeds render as typbase:// anchors inside
-// the widget SVG. The widget no longer claims anchor clicks, so route them.
+// the widget SVG. The widget does not claim anchor clicks, so route them.
 function onWidgetClick(event: MouseEvent) {
   const target = event.target as Element | null;
   const anchor = target?.closest?.('a[href^="typbase://"]') as HTMLAnchorElement | null;
@@ -396,12 +398,16 @@ function vimExtension(): Extension {
 }
 
 const vimCompartment = new Compartment();
-/** Last vim setting applied, so a display-only change does not recreate the
- *  vim plugin and reset its mode. */
+/**
+ * Last vim setting applied, so a display-only change does not recreate the
+ * vim plugin and reset its mode.
+ */
 let vimEnabled = Boolean(props.editor?.vim);
 
-/** A capped, centered writing column instead of the full pane. The class
- *  sets the CSS; the engine reads the resulting width from the scroller. */
+/**
+ * A capped, centered writing column instead of the full pane. The class
+ * sets the CSS. The engine reads the resulting width from the scroller.
+ */
 const measureColumn = computed(() => props.editor?.contentWidth !== "full");
 
 const editorDisplaySignature = computed(() =>
@@ -735,7 +741,7 @@ defineExpose({ view, recompile, revealRange, insertAt });
 
 /* CodeMirror internals: scrollbar, syntax tags, rendered frames, remote
    cursors, and notebook cell widgets. The classes come from
-   @typbase/codemirror and the wasm highlighter; this editor is the only place
+   @typbase/codemirror and the wasm highlighter. This editor is the only place
    they render. */
 
 .cm-scroller {

@@ -722,11 +722,9 @@ fn tooltip_chunk(
     // equation lays its items out at each use, so folding item ranges reports
     // one range spanning the definition and every use.
     //
-    // The range is not padded. It used to be padded by a byte on each side
-    // because the fold stopped at the first and last *item*, which sit inside
-    // the `$` delimiters, so the editor missed a cursor resting on a delimiter.
-    // An equation range already covers both delimiters, and padding it now makes
-    // the popup reach one character into the prose on either side.
+    // The range is not padded. It covers both `$` delimiters, and padding it by
+    // a byte on each side would make the popup reach one character into the
+    // prose on either side.
     let raw_start = context.map_render_to_raw(start);
     let raw_end = context.map_render_to_raw(end).min(source_len);
 

@@ -31,7 +31,7 @@ export interface PublishPreludeOptions {
   textSize?: number;
   /**
    * How much a paged export shrinks. `document` mode scales the whole
-   * document; `text` mode multiplies the font size. Leave it at 1 for anything
+   * document. `text` mode multiplies the font size. Leave it at 1 for anything
    * standing in for the editor pane (chat rendering, link resolution) and pass
    * `EXPORT_TEXT_SCALE` for output that lands on a real page.
    */
@@ -96,7 +96,7 @@ export async function publishPrelude(
   const scale = options.textScale ?? 1;
   const bodySize = options.textSize ?? settings.textSize;
   const scaleMode = options.scaleMode ?? (options.paged ? "document" : "text");
-  // Document scaling keeps the text size and scales everything; text scaling
+  // Document scaling keeps the text size and scales everything. Text scaling
   // is the fallback for documents that set their own page configuration.
   const textSize = scaleMode === "text" ? bodySize * scale : bodySize;
   const style = TypstState.stylePrelude(

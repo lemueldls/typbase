@@ -32,8 +32,10 @@ async function ensureState(): Promise<TypstState> {
   return state;
 }
 
-/** Fonts, theme, and text size live on a space context, so the page source
- *  must share that context or the settings never apply. */
+/**
+ * Fonts, theme, and text size live on a space context, so the page source
+ * must share that context or the settings never apply.
+ */
 function applyStyle(typstState: TypstState, next: LinkWorkerStyle, spaceId: string): void {
   const key = `${spaceId}:${JSON.stringify(next)}`;
   if (key === styleKey) return;
@@ -55,8 +57,10 @@ let insertedKeys = new Set<string>();
 let resolving = false;
 let purgePending = false;
 
-/** Drops the cached query files. Deferred while a compile is running so the
- *  request loop does not lose files mid-pass. */
+/**
+ * Drops the cached query files. Deferred while a compile is running so the
+ * request loop does not lose files mid-pass.
+ */
 function applyPurge(): void {
   if (state) {
     for (const path of insertedPaths) state.removeFile(state.createFileId(path));
@@ -156,8 +160,10 @@ interface RequestPass {
   requests: TypstRequest[];
 }
 
-/** Compiles until requests stop coming. A pass that inserts nothing stops
- *  with a readable error instead of looping. */
+/**
+ * Compiles until requests stop coming. A pass that inserts nothing stops
+ * with a readable error instead of looping.
+ */
 async function runPasses<T extends RequestPass>(
   run: () => T,
   settle: (result: T) => void,

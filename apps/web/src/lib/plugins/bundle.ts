@@ -34,7 +34,7 @@ async function removeTree(backend: StorageBackend, path: string): Promise<void> 
 
 /**
  * Replaces the local source folder for one plugin. The bundle parser has
- * already checked paths; this only makes the folder match the release.
+ * already checked paths. This only makes the folder match the release.
  */
 export async function installPluginBundle(
   backend: StorageBackend,

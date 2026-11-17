@@ -406,9 +406,9 @@ describe("plugin system", async () => {
     await openApp(page);
 
     // The drawing wraps its board in a `typbase://plugin/<id>` link, so clicking
-    // the drawing in a note is the way back to the window it belongs to. That is
-    // the whole point of the link: the embed is a view of the instance's data,
-    // and the data is edited in the plugin.
+    // the drawing in a note is the way back to the window it belongs to. The
+    // embed is a view of the instance's data, and the data is edited in the
+    // plugin.
     const instanceId = await page.evaluate(() => window.__typbase.installPlugin("local:drawing"));
     await page.evaluate(
       (id) =>
@@ -558,7 +558,7 @@ describe("plugin system", async () => {
 
     // Rewrite the plugin on disk, the way editing it in the studio or replacing
     // its folder would. The refresh is explicit because OPFS has no storage
-    // watcher; the studio's save path calls exactly this after a write.
+    // watcher. The studio's save path calls exactly this after a write.
     await page.evaluate(async () => {
       await window.__typbase.writeWorkspaceFile(
         "plugins/versioned/plugin.json",
@@ -733,7 +733,7 @@ describe("plugin system", async () => {
       instanceId,
     );
 
-    // The surface shows the reason, so the button is not simply dead.
+    // The surface shows the reason, so the button is not dead.
     await page.waitForFunction(
       (id) => window.__typbase.pluginStatus(id, "pane") === "error",
       instanceId,
@@ -924,7 +924,7 @@ describe("plugin system", async () => {
     expect(pdf.files.some((file) => file.name.endsWith(".typ"))).toBe(true);
 
     // A public page may render the diagram because the plugin declares
-    // `site.publish`; the build otherwise strips every plugin-data query.
+    // `site.publish`. The build otherwise strips every plugin-data query.
     const site = await page.evaluate(
       async ({ pageId: id }) => {
         const settings = window.__typbase.store.getSiteSettings();

@@ -82,8 +82,8 @@ function setSelected(id: string, value: boolean): void {
   selected.value = next;
 }
 
-// The settings dialog mounts its panels on open, so this is the old "select
-// everything when export opens" reset, minus the dialog.
+// The settings dialog mounts its panels on open, so this panel selects every
+// page when the export opens.
 onMounted(() => {
   selected.value = new Set(pages.value.map((page) => page.id));
 });

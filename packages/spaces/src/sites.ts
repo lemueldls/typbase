@@ -81,7 +81,7 @@ export interface WispResponse {
 /**
  * The browser cannot reach Wisp's domain XRPC from a Tauri origin because the
  * service's CORS policy rejects `tauri://localhost`. The app injects a native
- * transport there; everything else uses `fetch`.
+ * transport there. Everything else uses `fetch`.
  */
 export type WispRequestTransport = (request: WispRequest) => Promise<WispResponse>;
 
@@ -191,8 +191,8 @@ export function createPublicRepo(session: PublicSession, did: string = session.d
       const response = await call(`com.atproto.repo.getRecord?${params.toString()}`);
       if (response.status === 404) return null;
       if (response.status === 400) {
-        // The reference PDS reports a missing record as 400 RecordNotFound;
-        // do not hide any other bad request behind the same path.
+        // The reference PDS reports a missing record as 400 RecordNotFound.
+        // Do not hide any other bad request behind the same path.
         const body = (await response.json().catch(() => null)) as {
           error?: string;
           message?: string;

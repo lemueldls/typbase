@@ -78,7 +78,7 @@ describe("Wisp publisher", () => {
       | undefined;
     expect(manifest?.site).toBe("notes");
     expect(manifest?.fileCount).toBe(2);
-    // Wisp validates the node union by `$type`; without it the record is
+    // Wisp validates the node union by `$type`. Without it the record is
     // rejected and the host fences the site after repeated fetch failures.
     expect(nodeTypes(manifest?.root.entries ?? [])).toEqual([
       "place.wisp.fs#directory",

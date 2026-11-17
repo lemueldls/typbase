@@ -36,7 +36,7 @@ interface AppViewSuggestion {
 
 /**
  * Suggest accounts by handle prefix. This is the public AppView's typeahead, so
- * an account on a PDS the AppView has not indexed simply returns no suggestion.
+ * an account on a PDS the AppView has not indexed returns no suggestion.
  * The full handle still resolves on submit.
  */
 export async function searchPublicActors(query: string): Promise<ActorSuggestion[]> {

@@ -44,7 +44,7 @@ export function useAppBar() {
   }
 
   return {
-    /** Writable so a switch can bind to it; writing saves the choice. */
+    /** Writable so a switch can bind to it. Writing saves the choice. */
     visible: computed({
       get: () => visible.value,
       set: (value) => {

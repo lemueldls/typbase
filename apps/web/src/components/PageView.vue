@@ -113,8 +113,10 @@ useResizeObserver(pageView, (entries) => {
   const entry = entries[0];
   if (entry) paneWidth.value = entry.contentRect.width;
 });
-/** Matches the page-view container query (56rem), so the buttons that move
- *  into the page menu disappear in the same step as the mode tabs. */
+/**
+ * Matches the page-view container query (56rem), so the buttons that move
+ * into the page menu disappear in the same step as the mode tabs.
+ */
 const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 896);
 const coarsePointer = useMediaQuery("(hover: none) and (pointer: coarse)");
 
@@ -184,7 +186,7 @@ function cellText(index: number): string {
 /**
  * One handler for every cell command, because the rail's menu, the toolbar and
  * the keyboard all dispatch the same names. A command that is a text edit goes
- * through the package's own dispatch, so it lands on the undo stack; the rest
+ * through the package's own dispatch, so it lands on the undo stack. The rest
  * change session state and ask for a re-decoration.
  */
 function runNotebookCommand(command: string, index: number): void {
@@ -350,13 +352,13 @@ async function handlePanic(options: { manual?: boolean } = {}) {
 
     const fresh = await recreateTypstState();
     typstState.value = fresh;
-    // The old request service pointed at a dead instance.
+    // The current request service still points at the dead instance.
     requestService = createTypstRequestService(fresh, store);
     await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
     if (pageDisposed) return;
 
-    // Every held cell was showing the last output, which is still the output of
-    // the dead instance's render. Release them so the fresh state repaints.
+    // Every held cell shows the last output, which still belongs to the dead
+    // instance's render. Release them so the fresh state repaints.
     notebookSession.held = {};
     notebookSession.frozen = {};
     if (meta.value) bindPage(props.pageId, meta.value, setupToken);
@@ -574,8 +576,10 @@ async function pushPendingText(): Promise<boolean> {
   }
 }
 
-/** Flushes pending text and the store snapshot. False when either failed.
- *  Pagehide and page-switch callers ignore it and let the next flush retry. */
+/**
+ * Flushes pending text and the store snapshot. False when either failed.
+ * Pagehide and page-switch callers ignore it and let the next flush retry.
+ */
 async function flushText(): Promise<boolean> {
   let ok = await pushPendingText();
   if (store) {
@@ -687,10 +691,12 @@ async function setupPage() {
   bindPage(pageId, page, token);
 }
 
-/** Binds the open page to the current wasm state: request service page, file
+/**
+ * Binds the open page to the current wasm state: request service page, file
  *  id and source, save watchers, and readiness. `meta` and `text` must already
  *  describe `pageId`. Recovery calls this again after swapping in a fresh
- *  state, so a page opened while the engine was down gets its watchers too. */
+ * state, so a page opened while the engine was down gets its watchers too.
+ */
 function bindPage(pageId: string, page: PageMeta, token: number): void {
   const state = typstState.value;
   if (!store || !state) return;
@@ -1298,15 +1304,17 @@ const splitLeft = ref(50);
 
 const tocOpen = ref(false);
 
-/** The outline jumps to the heading's source line; read mode switches to split
- *  first, like a rendered-link jump. */
+/**
+ * The outline jumps to the heading's source line. Read mode switches to split
+ * first, like a rendered-link jump.
+ */
 function jumpToHeading(heading: { from: number; to: number }): void {
   tocOpen.value = false;
   onPreviewJump(heading);
 }
 
 // Page-toolbar actions that are worth a chord. The app-level registry defines the
-// key specs; the handlers live here because both panels are PageView state.
+// key specs. The handlers live here because both panels are PageView state.
 onCapturedKey(
   (event) => matchesShortcut(event, "links"),
   (event) => {
@@ -2021,7 +2029,7 @@ function onModeKeydown(event: KeyboardEvent) {
 }
 
 /* Split view stacks on phones: side-by-side panes would give each ~190px.
-   The horizontal drag handle is hidden; editors/previews scroll on their own. */
+   The horizontal drag handle is hidden. Editors and previews scroll on their own. */
 @container page-view (max-width: 48rem) {
   .page-view__body--split {
     grid-template-columns: 100%;

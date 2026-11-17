@@ -212,7 +212,7 @@ export class SearchManager {
     this.syncIndexed();
   }
 
-  /** Asks the worker for the pages it already holds. */
+  /** Asks the worker for the pages it has already indexed. */
   private syncIndexed(): void {
     this.worker?.postMessage({ type: "indexed" });
   }

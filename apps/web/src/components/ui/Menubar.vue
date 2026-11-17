@@ -4,12 +4,16 @@ import { MenubarRoot } from "reka-ui";
 const open = defineModel<string>("open", { default: "" });
 
 const bar = useTemplateRef<InstanceType<typeof MenubarRoot>>("bar");
-/** The menu this bar is switching to. The old menu reports its close a tick
- *  later, and that close must not clear the target. */
+/**
+ * The menu this bar is switching to. The old menu reports its close a tick
+ * later, and that close must not clear the target.
+ */
 let switching: string | null = null;
 let switchTimer: ReturnType<typeof setTimeout> | undefined;
-/** When a menu last opened. A close inside the grace window is the previous
- *  menu's focus-outside, not a real dismissal. */
+/**
+ * When a menu last opened. A close inside the grace window is the previous
+ * menu's focus-outside, not a real dismissal.
+ */
 let openedAt = 0;
 const SWITCH_GRACE_MS = 100;
 
@@ -46,8 +50,10 @@ function switchTo(value: string): void {
 
 onBeforeUnmount(() => clearTimeout(switchTimer));
 
-/** A real click or key press ends the switch guard, so a menu item can close
- *  the bar right after a menu switch. */
+/**
+ * A real click or key press ends the switch guard, so a menu item can close
+ * the bar right after a menu switch.
+ */
 function clearSwitchGuard(): void {
   switching = null;
   openedAt = 0;
@@ -56,8 +62,10 @@ function clearSwitchGuard(): void {
 
 useEventListener(document, "pointerdown", clearSwitchGuard, { capture: true });
 
-/** Reka closes the previous menu when focus moves into the one that replaced it.
- *  Its event type says boolean, but the menubar's value is the open menu's id. */
+/**
+ * Reka closes the previous menu when focus moves into the one that replaced it.
+ * Its event type says boolean, but the menubar's value is the open menu's id.
+ */
 function onOpenChange(value: string | boolean): void {
   const next = typeof value === "string" ? value : "";
 
@@ -91,7 +99,7 @@ function onKeydown(event: KeyboardEvent): void {
   if (!target) return;
   if (target.closest("input, textarea, [contenteditable='true']")) return;
 
-  // A submenu owns its arrows: right opens it and left closes it.
+  // A submenu handles its arrows: right opens it and left closes it.
   if (event.key === "ArrowRight" && target.closest("[data-reka-menubar-subtrigger]")) return;
   const content = target.closest("[data-reka-menu-content]");
   if (content && !content.hasAttribute("data-reka-menubar-content")) return;

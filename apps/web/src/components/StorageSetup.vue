@@ -185,7 +185,7 @@ async function run(choice: StorageSetupChoice): Promise<void> {
   display: grid;
   /* A path under an option is one long unbreakable token. An auto track sizes
      to its min-content and pushes the card wider than the viewport, which
-     makes the whole app scroll sideways on Android; a zero-min track pins the
+     makes the whole app scroll sideways on Android. A zero-min track pins the
      card to its width so the path ellipsizes instead. */
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3-5);

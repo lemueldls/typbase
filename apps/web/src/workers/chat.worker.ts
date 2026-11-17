@@ -12,12 +12,16 @@ let wasmModuleUrl: string | undefined;
 let state: TypstState | undefined;
 let style: ChatWorkerStyle | undefined;
 let styleKey = "";
-/** Inputs the state was last configured with. Setting them rebuilds the
- *  library, and the chat streams many renders of the same page. */
+/**
+ * Inputs the state was last configured with. Setting them rebuilds the
+ * library, and the chat streams many renders of the same page.
+ */
 let inputsKey = "";
 
-/** Uploaded workspace faces. The worker cannot read the blob store, so the
- *  bytes ride the configure message and install with the bundled fonts. */
+/**
+ * Uploaded workspace faces. The worker cannot read the blob store, so the
+ * bytes ride the configure message and install with the bundled fonts.
+ */
 let customFonts: FontPayload[] = [];
 
 async function ensureState(): Promise<TypstState> {
@@ -148,8 +152,10 @@ interface RequestPass {
   requests: TypstRequest[];
 }
 
-/** Compiles until requests stop coming. A pass that inserts nothing stops
- *  with a readable error instead of looping. */
+/**
+ * Compiles until requests stop coming. A pass that inserts nothing stops
+ * with a readable error instead of looping.
+ */
 async function runPasses<T extends RequestPass>(
   run: () => T,
   settle: (result: T) => void,

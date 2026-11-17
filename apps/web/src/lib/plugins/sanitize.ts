@@ -233,9 +233,11 @@ export interface SanitizedSurface {
   errors: string[];
 }
 
-/** Parses the patch, strips its holder, and rewrites the DOM safely. Chat
+/**
+ * Parses the patch, strips its holder, and rewrites the DOM safely. Chat
  *  replies pass through this too. Model-generated Typst can emit arbitrary
- *  HTML elements, and the same allowlist keeps them out. */
+ * HTML elements, and the same allowlist keeps them out.
+ */
 export function sanitizeHtml(raw: string): SanitizedSurface {
   const errors: string[] = [];
   const doc = new DOMParser().parseFromString(raw, "text/html");

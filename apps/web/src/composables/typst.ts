@@ -384,8 +384,8 @@ export function applyWorkspaceStyle(
 /**
  * Hidden config file ids, one per workspace and per wasm instance. The space
  * context (fonts, theme, locale) hangs off the file's space id, so reusing a
- * single id across workspaces applied the new settings to the old workspace's
- * context and left the switched workspace rendering with defaults. Keyed by
+ * single id across workspaces would apply the new settings to the old workspace's
+ * context and leave the switched workspace rendering with defaults. Keyed by
  * state: panic recovery installs a fresh instance whose file ids mean nothing.
  */
 const workspaceConfigIds = new WeakMap<TypstState, Map<string, FileId>>();

@@ -43,7 +43,7 @@ export type PageKind = "document" | "notebook";
 export interface Category {
   id: string;
   name: string;
-  /** Manual group position; unset categories keep their list order. */
+  /** Manual group position. Unset categories keep their list order. */
   order?: number;
 }
 
@@ -146,7 +146,7 @@ export type SplitScrollMode = "both" | "editor" | "preview" | "off";
 
 /**
  * Width of the writing column. "measure" caps it at a readable line length and
- * centers it in the pane; "full" uses the whole width.
+ * centers it in the pane. The "full" mode uses the whole width.
  */
 export type EditorContentWidth = "measure" | "full";
 
@@ -506,7 +506,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
 export interface QueryConfig {
   name: string;
   homePageId: string | null;
-  /** Text font. Kept as the original field; `textFont` is the explicit name. */
+  /** Text font. Kept as the original field. `textFont` is the explicit name. */
   font: string;
   textFont: string;
   /** Effective code family, falling back to the text font. */

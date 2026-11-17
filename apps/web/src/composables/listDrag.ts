@@ -3,7 +3,7 @@ import type { Ref } from "vue";
 /**
  * Pointer-based list reordering. The caller tags each item with
  * `itemSelector`, hands over the container element, and gets back the state a
- * drop needs. A mouse drag starts after a few pixels of movement; a touch drag
+ * drop needs. A mouse drag starts after a few pixels of movement. A touch drag
  * starts after a short hold, so a swipe still scrolls the list. On release the
  * composable hands `onReorder` the ids in their new order.
  *
@@ -199,8 +199,10 @@ export function useListDrag(options: ListDragOptions): ListDragState {
     frame = requestAnimationFrame(autoScroll);
   }
 
-  /** Swallows the click the browser fires after the drop, whatever it lands
-   *  on, and drops the guard if no click follows. */
+  /**
+   * Swallows the click the browser fires after the drop, whatever it lands
+   * on, and drops the guard if no click follows.
+   */
   function guardClick(): void {
     if (guarding) return;
     guarding = true;

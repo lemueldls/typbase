@@ -62,8 +62,10 @@ describe("typbase app", async () => {
     await page.waitForSelector(".cm-editor", { timeout: 120_000 });
   }
 
-  /** Graph settings persist across the shared context. Local mode from an
-   *  earlier test would scope the graph to a single page. */
+  /**
+   * Graph settings persist across the shared context. Local mode from an
+   * earlier test would scope the graph to a single page.
+   */
   async function resetGraphLocal(page: NuxtPage): Promise<void> {
     await page.evaluate(() => {
       window.__typbase.store.updateSettings({ graph: { local: false } });
@@ -797,8 +799,8 @@ describe("typbase app", async () => {
     expect(boxes.railBottom).toBeLessThanOrEqual(boxes.lineTop);
     expect(boxes.renderRight).toBeLessThanOrEqual(boxes.lineRight);
 
-    // The mode is untouched by the conversion, which is the whole point of cells
-    // not being a mode.
+    // The conversion leaves the mode untouched, which is why cells are not a
+    // mode.
     expect(await page.evaluate(() => window.__typbase.mode())).toBe("write");
 
     // And a notebook page reads as cells without source in read mode.
@@ -2043,7 +2045,7 @@ describe("typbase app", async () => {
       })
       .toMatchObject({ local: true });
     // The local graph is rooted at the page. The seeded Home query also links
-    // every page, so the node count is not fixed; check the root node itself.
+    // every page, so the node count is not fixed. Check the root node itself.
     await expect
       .poll(
         () => page.evaluate((pageId) => Boolean(window.__typbase.graphNodePoint?.(pageId)), id),
@@ -2593,7 +2595,7 @@ describe("typbase app", async () => {
   it("keeps a closed aux rail at zero while the sidebar resizes", async () => {
     const page = await createPage();
     await page.setViewportSize({ width: 1440, height: 900 });
-    // A previous test may have saved a collapsed or very narrow sidebar.
+    // A previous test may have saved a collapsed or narrow sidebar.
     await page.addInitScript(() => {
       localStorage.removeItem("typbase:navWidth");
       localStorage.removeItem("typbase:sidebarCollapsed");
@@ -2732,8 +2734,8 @@ describe("typbase app", async () => {
       .poll(() => page.locator(".editable-pane__status").textContent())
       .toContain("INSERT");
     await page.keyboard.type("vim ");
-    // The first Escape dismisses the completion popup the typed word opened;
-    // the second leaves insert mode.
+    // The first Escape dismisses the completion popup the typed word opened.
+    // The second leaves insert mode.
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
@@ -2741,7 +2743,7 @@ describe("typbase app", async () => {
     expect(text.startsWith("vim start")).toBe(true);
 
     // Back in normal mode: the mode line names the active mode and shows the
-    // cursor position; the block cursor uses the workspace accent.
+    // cursor position. The block cursor uses the workspace accent.
     await expect
       .poll(() => page.locator(".editable-pane__status").textContent())
       .toContain("NORMAL");

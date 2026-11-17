@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 describe("page order", () => {
   it("follows the manual order and appends new pages to it", async () => {
     const store = await WorkspaceStore.open(new MemoryBackend(), "page-order");
-    // The store seeds a home page; keep it in the expected order.
+    // The store seeds a home page. Keep it in the expected order.
     const seeded = store.listPages().map((page) => page.id);
     const a = await store.createPage({ title: "A" });
     const b = await store.createPage({ title: "B" });

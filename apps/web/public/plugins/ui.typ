@@ -240,7 +240,7 @@
 
 // Free-positioned element inside `board`. The runtime moves it live and sends
 // x/y on drop, merged with `args` (put the record id there). `attrs` adds
-// wrapper attributes such as a select action; the wrapper receives the click
+// wrapper attributes such as a select action. The wrapper receives the click
 // because it takes pointer capture during a drag.
 #let movable(action, x: 0, y: 0, body: [], args: (:), attrs: (:)) = html.elem(
   "div",

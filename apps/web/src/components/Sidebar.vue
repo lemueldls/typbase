@@ -14,7 +14,7 @@ const props = defineProps<{
   pageActive: boolean;
   /** The narrow shell renders this as a drawer, so the close action is a close. */
   drawer?: boolean;
-  /** The plugin pane that owns the main view, so its row can show active. */
+  /** The plugin pane currently in the main view, so its row can show active. */
   activePluginId?: string | null;
 }>();
 
@@ -63,7 +63,7 @@ const settings = useWorkspaceValue(
   (store) => store.getSettings(),
 );
 
-/** Rows highlight only while the page pane owns the main view. */
+/** Rows highlight only while the page pane is in the main view. */
 const highlightedPageId = computed(() => (props.pageActive ? props.currentPageId : ""));
 
 const regularPages = computed(() => pages.value.filter((page) => !page.path.startsWith("daily/")));
@@ -134,8 +134,10 @@ const renameFile = ref(true);
 const renamePath = computed(() =>
   renameTarget.value ? renamePagePathFor(renameTarget.value, renameTitle.value) : null,
 );
-/** Page queued for deletion. The target survives the dialog's close event:
- *  reka's action closes the dialog before the confirm handler runs. */
+/**
+ * Page queued for deletion. The target survives the dialog's close event:
+ * reka's action closes the dialog before the confirm handler runs.
+ */
 const pendingDelete = ref<PageMeta>();
 const confirmOpen = ref(false);
 
@@ -250,8 +252,10 @@ const {
   onReorder: (ids) => void props.store.reorderCategories(ids),
 });
 
-/** A category is a whole group of rows, so its gap is capped to a short band
- *  instead of the group's full height. */
+/**
+ * A category is a whole group of rows, so its gap is capped to a short band
+ * instead of the group's full height.
+ */
 const categoryGapStyle = computed(() => ({
   height: `${Math.min(categoryRowHeight.value ?? 0, 56)}px`,
 }));

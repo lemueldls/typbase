@@ -1,5 +1,5 @@
 // Diagrams plugin. Nodes and edges are synced records. The surface editor is
-// HTML/SVG so it can stay interactive; notes embed Fletcher in paged output
+// HTML/SVG so it can stay interactive. Notes embed Fletcher in paged output
 // and an inline SVG fallback wherever the Typst HTML renderer is used.
 
 #import "@preview/fletcher:0.5.8" as fletcher

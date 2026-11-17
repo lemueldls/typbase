@@ -81,8 +81,10 @@ export interface TypstPluginOptions {
    * the editor. The plugin drops the decorations for the failed pass.
    */
   onPanic?: (fileId: FileId) => void;
-  /** Called after a compile pass succeeds. The host resets its health and
-   *  heap watchdog on it. */
+  /**
+   * Called after a compile pass succeeds. The host resets its health and
+   * heap watchdog on it.
+   */
   onCompile?: () => void;
   /**
    * Opens a link clicked inside a rendered frame. Defaults to a new browser

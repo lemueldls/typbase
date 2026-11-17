@@ -97,8 +97,10 @@ export function setChatWorkerFonts(fonts: FontPayload[]): void {
   stopChatWorker(new Error("Chat fonts changed; the worker was restarted."));
 }
 
-/** Rejects everything in flight and drops the worker so the next compile
- *  starts from a fresh wasm instance. */
+/**
+ * Rejects everything in flight and drops the worker so the next compile
+ * starts from a fresh wasm instance.
+ */
 export function stopChatWorker(reason: Error): void {
   for (const entry of pending.values()) {
     clearTimeout(entry.timer);

@@ -97,8 +97,8 @@ fn every_referenced_glyph_is_declared() {
     }
 }
 
-/// The frames stopped being self-contained, which is the whole point, and the
-/// host's contract is that it places the shared block.
+/// Frames do not carry their own definitions. The host places the shared block,
+/// which the renderer then assumes.
 #[test]
 fn frames_carry_no_definitions_of_their_own() {
     if !harness::fonts_available() {

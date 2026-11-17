@@ -12,7 +12,7 @@ const props = defineProps<{
   close?: () => void;
   /** Opens the package browser, which lives outside the popover. */
   openPackages?: () => void;
-  /** Omit the leading separator; the host already separates the group. */
+  /** Omit the leading separator. The host already separates the group. */
   standalone?: boolean;
 }>();
 

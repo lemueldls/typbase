@@ -80,8 +80,10 @@ interface PlayResult {
   code: number;
 }
 
-/** The stable release feed. The updater plugin reads `latest.json`. This is
- *  the API equivalent for installs the app is not allowed to update itself. */
+/**
+ * The stable release feed. The updater plugin reads `latest.json`. This is
+ * the API equivalent for installs the app is not allowed to update itself.
+ */
 const RELEASE_API = "https://api.github.com/repos/lemueldls/typbase/releases/latest";
 
 interface GitHubRelease {

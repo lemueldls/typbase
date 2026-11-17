@@ -3,7 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 /**
  * The whole-workspace export on its own, opened from the app bar's file menu.
- * The panel is the same one Settings renders; this only gives it a dialog and a
+ * The panel is the same one Settings renders. This only gives it a dialog and a
  * home outside the settings tree, which is where a user looks for "export".
  *
  * The dialog's content unmounts when it closes, so the panel mounts fresh each

@@ -10,7 +10,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_root"
 
 # wasm-pack fails to re-read its own arrays in pkg/package.json on a cache-miss
-# rebuild, so the moon task resets the file first; do the same here.
+# rebuild, so the moon task resets the file first. Do the same here.
 (cd packages/engine && printf '{}' > pkg/package.json && wasm-pack build --release --target web --scope typbase .)
 
 pnpm --filter @typbase/web generate

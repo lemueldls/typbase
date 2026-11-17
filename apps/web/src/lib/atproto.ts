@@ -456,7 +456,7 @@ export class AtprotoService {
 
   /**
    * Resolve the account's public handle from its PDS, then any richer profile
-   * fields the AppView has. The PDS call is authoritative for the handle; the
+   * fields the AppView has. The PDS call is authoritative for the handle. The
    * AppView is optional and may not index a self-hosted account.
    */
   private async refreshProfile(): Promise<void> {

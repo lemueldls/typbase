@@ -33,7 +33,7 @@ use crate::{
 
 /// Global state for Typst rendering and compilation in Typbase.
 ///
-/// Holds the world, all open source and space contexts, and manages the mapping
+/// Contains the world, all open source and space contexts, and manages the mapping
 /// between user/editor state and Typst's compilation model.
 #[wasm_bindgen]
 #[derive(Default, Debug)]
@@ -233,7 +233,7 @@ impl TypstState {
     #[wasm_bindgen(js_name = "removeFile")]
     pub fn remove_file(&mut self, id: &TypstFileId) {
         // For a note, drop the context and every source file it created. Leaving
-        // the raw and render files behind used to leak one entry per closed
+        // the raw and render files behind would leak one entry per closed
         // note. Plain project files (requests the caller satisfied by hand)
         // have no context and are removed as-is.
         if let Some(context) = self.source_context_map.remove(id) {

@@ -15,8 +15,10 @@ import {
 
 export const spellcheckCompartment = new Compartment();
 
-/** Mirror of harper.js's SuggestionKind, kept local so this module can load
- *  without pulling the linter in. */
+/**
+ * Mirror of harper.js's SuggestionKind, kept local so this module can load
+ * without pulling the linter in.
+ */
 const SUGGESTION_REMOVE = 1;
 const SUGGESTION_INSERT_AFTER = 2;
 

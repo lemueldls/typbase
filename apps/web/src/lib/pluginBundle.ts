@@ -3,7 +3,7 @@ import type { WorkspaceStore } from "@typbase/storage";
 import { pluginSourceFiles, pluginSlugs } from "~/lib/plugins/registry";
 
 /**
- * Every file an exported project needs in order to resolve a plugin.
+ * Every file an exported project needs to resolve a plugin.
  */
 export async function pluginProjectFiles(
   store: WorkspaceStore,

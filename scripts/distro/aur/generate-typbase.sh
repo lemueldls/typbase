@@ -36,7 +36,7 @@ prepare() {
 build() {
     cd "\$srcdir/\$_builddir" || exit 1
     export RUSTUP_TOOLCHAIN=stable
-    # LTO flags from makepkg.conf break linking for some native deps; clear them.
+    # LTO flags from makepkg.conf break linking for some native deps. Clear them.
     export CFLAGS="\${CFLAGS//-flto=auto//}"
     export NUXT_PUBLIC_APP_URL="https://typbase.at"
     cd apps/native || exit 1

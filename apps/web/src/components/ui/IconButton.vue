@@ -11,7 +11,7 @@ withDefaults(
     icon?: MaterialSymbol;
     disabled?: boolean;
     pressed?: boolean;
-    /** "ghost" is the default borderless button; "plain" adds a border. */
+    /** "ghost" is the default borderless button, and "plain" adds a border. */
     variant?: "plain" | "ghost" | "primary";
     /** Colors the button as destructive (red icon and hover tint). */
     danger?: boolean;

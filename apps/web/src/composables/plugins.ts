@@ -492,8 +492,8 @@ export function usePluginHost() {
 
   /**
    * Publishes one local plugin revision to the signed-in account's public
-   * repo. Publishing under the current DID creates a normal registry listing;
-   * the local authoring copy keeps its own local id.
+   * repo. Publishing under the current DID creates a normal registry listing.
+   * The local authoring copy keeps its own local id.
    */
   async function publishToAtmosphere(pluginId: string): Promise<void> {
     const entry = catalog.value.find((candidate) => candidate.manifest.id === pluginId);
@@ -794,8 +794,10 @@ export function usePluginHost() {
     return next;
   }
 
-  /** Re-renders the instance's mounted surfaces. Unmounted ones render on
-   *  mount, and their stale cache entries were dropped by the patch. */
+  /**
+   * Re-renders the instance's mounted surfaces. Unmounted ones render on
+   * mount, and their stale cache entries were dropped by the patch.
+   */
   function rerenderInstance(instanceId: string): void {
     for (const slot of surfacesOf(instanceId)) {
       if (listeners.has(keyOf(instanceId, slot.kind))) {

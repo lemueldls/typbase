@@ -63,7 +63,7 @@ sign_commit=()
 sign_tag=()
 if [[ -n "${SSH_SIGNING_KEY:-}" ]]; then
     sign_commit=(-S)
-    # `git tag` signs with -s; -S is only a `git commit` flag.
+    # `git tag` signs with -s. -S is only a `git commit` flag.
     sign_tag=(-s)
 fi
 

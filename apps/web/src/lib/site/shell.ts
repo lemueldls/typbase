@@ -18,7 +18,7 @@ export { absoluteUrl, relativeUrl };
 interface ShellInput {
   site: SiteSettings;
   settings: WorkspaceSettings;
-  /** Kept in the input shape for callers; the document gets the resolved CSS. */
+  /** Kept in the input shape for callers. The document gets the resolved CSS. */
   palette?: ThemePaletteTokens;
   name: string;
   title: string;

@@ -29,7 +29,7 @@ import org.json.JSONArray
  * `apps/native/src/update.rs` call these through `run_mobile_plugin`.
  *
  * Tauri builds the plugin after the activity has resumed, so nothing here may
- * touch `registerForActivityResult`; Play's flow reports through
+ * touch `registerForActivityResult`. Play's flow reports through
  * [MainActivity.onActivityResult] instead.
  */
 @InvokeArg
@@ -59,7 +59,7 @@ class UpdaterPlugin(private val activity: Activity) : Plugin(activity) {
         invoke.resolve(result)
     }
 
-    /** Device ABIs, best first; the release manifest is keyed by ABI. */
+    /** Device ABIs, best first. The release manifest is keyed by ABI. */
     @Command
     fun abi(invoke: Invoke) {
         val result = JSObject()
@@ -76,7 +76,7 @@ class UpdaterPlugin(private val activity: Activity) : Plugin(activity) {
 
     /**
      * Opens the "install unknown apps" screen for this app. Resolves once the
-     * user is back; the caller re-checks `canInstall`.
+     * user is back. The caller re-checks `canInstall`.
      */
     @Command
     fun requestInstallPermission(invoke: Invoke) {

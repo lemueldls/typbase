@@ -91,8 +91,10 @@ export function purgeLinkResolver(): void {
   worker?.postMessage({ id: 0, type: "purge" } satisfies LinkWorkerResponse);
 }
 
-/** Rejects everything in flight and drops the worker so the next request
- *  starts from a fresh wasm instance. */
+/**
+ * Rejects everything in flight and drops the worker so the next request
+ * starts from a fresh wasm instance.
+ */
 export function stopLinkResolver(reason: Error): void {
   for (const entry of pending.values()) {
     clearTimeout(entry.timer);

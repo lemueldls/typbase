@@ -27,8 +27,10 @@ const error = ref("");
 const query = ref("");
 const search = useTemplateRef("search");
 
-/** Delete confirmation. The target lives here so the dialog's close event
- *  cannot clear it before the confirm handler runs. */
+/**
+ * Delete confirmation. The target lives here so the dialog's close event
+ * cannot clear it before the confirm handler runs.
+ */
 const deleteTarget = ref<Asset | null>(null);
 const deleteOpen = ref(false);
 const deleteDescription = ref("");

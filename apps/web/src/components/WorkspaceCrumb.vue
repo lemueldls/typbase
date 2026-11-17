@@ -115,7 +115,7 @@ const workspaceIcon = computed<MaterialSymbol>(() => {
   color: var(--color-text-secondary);
 }
 
-/* The name carries the identity once there is room for it. The icon takes
+/* The name is the identity once there is room for it. The icon takes
    over when the name is hidden, so the left cluster keeps one leading glyph
    in the common case instead of an icon plus text. */
 @media (min-width: 40rem) {

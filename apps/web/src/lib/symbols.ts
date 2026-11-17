@@ -10,8 +10,10 @@ export interface SymbolEntry {
   synonyms: string[];
 }
 
-/** The catalog is generated from the font's own glyph list (see
- *  scripts/symbols/transform.mjs), so every id renders. */
+/**
+ * The catalog is generated from the font's own glyph list (see
+ * scripts/symbols/transform.mjs), so every id renders.
+ */
 export const allSymbols = symbols as SymbolEntry[];
 
 /** Fallback used when a workspace has no icon of its own. */
