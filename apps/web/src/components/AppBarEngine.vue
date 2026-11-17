@@ -57,7 +57,7 @@ const heapText = computed(() =>
 </script>
 
 <template>
-  <UiPopover v-model:open="open" align="end" :side-offset="6" class="app-bar-engine">
+  <UiPopover v-model:open="open" align="end" class="app-bar-engine">
     <template #trigger>
       <UiTooltip :text="statusLabel">
         <button

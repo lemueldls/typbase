@@ -6,6 +6,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
   <div class="files-view">
     <div class="files-view__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
+      <slot name="scope" />
       <MsIcon name="folder_open" :size="20" />
       <span class="files-view__title">{{ $t("explorer.title") }}</span>
       <div class="files-view__actions">
@@ -40,7 +41,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
 .files-view__title {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;

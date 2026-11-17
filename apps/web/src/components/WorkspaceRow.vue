@@ -98,8 +98,8 @@ const rowStyle = computed(() =>
   display: flex;
   align-items: center;
   gap: var(--space-0-5);
-  padding-right: var(--space-1);
-  border-radius: var(--radius-xs);
+  padding-right: var(--space-2);
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-1)));
   transition: background var(--motion-fast);
 }
 
@@ -136,7 +136,7 @@ const rowStyle = computed(() =>
   color: var(--color-text);
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: inherit;
   cursor: pointer;
 }
 

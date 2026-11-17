@@ -452,7 +452,53 @@ export const typstViewPlugin = (
     // runs until the user clicks or types.
     let firstUpdate = true;
     let resizeTimer: number | undefined;
+    let resizePending = false;
+    let pointerDown = false;
     const renderFrames = options.renderFrames ?? true;
+
+    /**
+     * Reflows once the pane width has settled. A drag keeps the compiled frame
+     * sizes until the pointer is released, so the rendered blocks do not resize
+     * under the pointer while a splitter is being dragged.
+     */
+    const flushResize = () => {
+      clearTimeout(resizeTimer);
+      if (!resizePending) return;
+      resizePending = false;
+
+      // The last pointer move can land before the resize observer reports the
+      // settled width, so measure once more before the compile.
+      try {
+        typstState.resize(
+          fileId,
+          editorRenderWidth(_view.scrollDOM, _view.contentDOM),
+          locked ? _view.scrollDOM.clientHeight : undefined,
+        );
+      } catch (error) {
+        console.error("[typst] resize panicked:", error);
+        options.onPanic?.(fileId);
+
+        return;
+      }
+
+      _view.dispatch({ effects: typstRecompileEffect.of(null) });
+    };
+
+    const onPointerDown = () => {
+      pointerDown = true;
+    };
+
+    const onPointerUp = () => {
+      pointerDown = false;
+      flushResize();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointerdown", onPointerDown, true);
+      window.addEventListener("pointerup", onPointerUp, true);
+      window.addEventListener("pointercancel", onPointerUp, true);
+      window.addEventListener("blur", onPointerUp);
+    }
 
     // Dedupes remeasure requests for this view. The latest one wins.
     const remeasureKey = {};
@@ -543,11 +589,13 @@ export const typstViewPlugin = (
           // tick: recompiling per pointermove swaps the widget size mid-drag
           // and blocks the main thread. Until the recompile lands, widgets
           // keep their compiled size (see TypstWidget), so the render stays
-          // consistent while the pane moves.
+          // consistent while the pane moves. While a pointer is down there is
+          // no timer at all: a pause in a drag must not reflow the page.
+          resizePending = true;
           clearTimeout(resizeTimer);
-          resizeTimer = window.setTimeout(() => {
-            update.view.dispatch({ effects: typstRecompileEffect.of(null) });
-          }, 150);
+          if (!pointerDown) {
+            resizeTimer = window.setTimeout(flushResize, 150);
+          }
         }
 
         if (update.docChanged || update.selectionSet || update.focusChanged || forced || refresh) {
@@ -599,6 +647,12 @@ export const typstViewPlugin = (
       },
       destroy() {
         clearTimeout(resizeTimer);
+        if (typeof window !== "undefined") {
+          window.removeEventListener("pointerdown", onPointerDown, true);
+          window.removeEventListener("pointerup", onPointerUp, true);
+          window.removeEventListener("pointercancel", onPointerUp, true);
+          window.removeEventListener("blur", onPointerUp);
+        }
       },
     };
   });

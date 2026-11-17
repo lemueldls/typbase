@@ -4,6 +4,7 @@ import type { WorkspaceInfo } from "@typbase/typing";
 const props = defineProps<{ mode: "screen" | "menu" }>();
 
 const {
+  workspace,
   workspaces,
   activeWorkspaceId,
   switching,
@@ -48,6 +49,7 @@ const busy = ref(false);
 const error = ref("");
 
 const newOpen = defineModel<boolean>("open", { default: false });
+const packagesOpen = ref(false);
 
 const dialogOpen = ref(false);
 const dialogMode = ref<"create" | "edit">("create");
@@ -68,6 +70,17 @@ function openCreate() {
   dialogMode.value = "create";
   editing.value = null;
   dialogOpen.value = true;
+}
+
+/** The command group closes the popover after its action runs. */
+function closeMenu(): void {
+  newOpen.value = false;
+}
+
+/** The browser lives outside the popover, so closing the menu keeps it alive. */
+function openPackages(): void {
+  newOpen.value = false;
+  packagesOpen.value = true;
 }
 
 function openRename(info: WorkspaceInfo) {
@@ -170,12 +183,16 @@ function statusFor(info: WorkspaceInfo): string {
   </div>
 
   <template v-else>
-    <UiPopover v-model:open="newOpen" class="menu ws-menu" align="start" :side-offset="6">
+    <UiPopover v-model:open="newOpen" class="menu ws-menu" align="start">
       <template #trigger>
         <slot>
           <UiIconButton icon="swap_horiz" :label="$t('switcher.switchAria')" />
         </slot>
       </template>
+
+      <slot name="commands" :close="closeMenu" :open-packages="openPackages" />
+
+      <div v-if="$slots.commands" class="menu__separator" />
 
       <div class="ws-menu__header">
         <span>{{ $t("switcher.heading") }}</span>
@@ -228,6 +245,8 @@ function statusFor(info: WorkspaceInfo): string {
       <p v-if="error" class="ws-menu__error" role="alert">{{ error }}</p>
       <!-- <p class="ws-menu__hint">{{ $t("switcher.hint") }}</p> -->
     </UiPopover>
+
+    <PackageBrowser v-if="workspace" v-model:open="packagesOpen" :store="workspace" />
   </template>
 
   <WorkspaceDialog v-model:open="dialogOpen" :mode="dialogMode" :workspace="editing" />
@@ -336,7 +355,7 @@ function statusFor(info: WorkspaceInfo): string {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-0-5);
+  gap: var(--space-1);
 }
 
 .ws-menu__add {

@@ -936,11 +936,15 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
 
 /* A block-level SVG anchors at the container's top. Inline, it sits on the
    container's text baseline, so a frame shorter than the editor's 22.4px line
-   box is pushed down and overflows the bottom. */
+   box is pushed down and overflows the bottom.
+   The reset's `max-width: 100%` on media must not reach the frame: it would
+   scale the render down to the clamped container and change its aspect. The
+   SVG keeps the compiled size and the scroller clips the overflow instead. */
 .typst-render svg {
   display: block;
   width: var(--render-w) !important;
   height: var(--render-h) !important;
+  max-width: none !important;
 }
 
 .cm-content[contenteditable="true"] .typst-render {

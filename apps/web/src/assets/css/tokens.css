@@ -76,7 +76,7 @@
 
   --pane-header-height: calc(var(--control-md) + 2 * var(--space-2));
 
-  --app-bar-height: calc(var(--control-sm) + 2 * var(--space-1));
+  --app-bar-height: calc(var(--control-sm));
   --app-bar-search-width: calc(24rem * var(--ui-size));
 
   --z-panel: 10;
@@ -111,7 +111,7 @@
   --breakpoint-lg: 56rem;
   --breakpoint-xl: 72rem;
 
-  --color-backdrop: #ebebea;
+  --color-backdrop: #e7eae8;
   --color-surface: #f9f9f8;
   --color-surface-2: #f1f3f2;
   --color-surface-3: #e7eae8;

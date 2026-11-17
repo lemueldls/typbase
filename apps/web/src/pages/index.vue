@@ -1,26 +1,19 @@
 <script setup lang="ts">
-import type { PageKind, PluginSurfaceKind } from "@typbase/typing";
-import type { SplitterPanel } from "reka-ui";
 import type { LocationQueryRaw } from "vue-router";
 
-import { isTauri } from "@typbase/storage";
+import "~/assets/css/shell.css";
 
 import type { NavQuery } from "~/lib/navStack";
 
 import { setChatNavigation, useChat } from "~/composables/chat";
 import { setProviderOverride } from "~/lib/ai/engine";
-import { bundleTextFiles, compileBundle } from "~/lib/bundleCheck";
 import { formatDocumentTitle } from "~/lib/documentTitle";
 import { engineAvailable } from "~/lib/engineHealth";
 import { sectionsOf } from "~/lib/engineSyntax";
-import { buildExport, type ExportOptions } from "~/lib/exportPage";
-import { buildWorkspaceExport, type WorkspaceExportOptions } from "~/lib/exportWorkspace";
 import { todayISO } from "~/lib/format";
-import { isTypingTarget, matchesShortcut } from "~/lib/keybindings";
 import { resolveOpenPageId } from "~/lib/openPage";
 import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
-import { buildSite, siteBaseUrl } from "~/lib/site/build";
 import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
 
@@ -43,38 +36,20 @@ const loaded = ref(false);
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
-/** Desktop auxiliary rail: chat and links sit beside the main pane. */
-const dockChatId = ref<string | null>(null);
-const linksOpen = useLocalStorage("typbase:linksPanel", false);
-const auxSide = useLocalStorage<"left" | "right">("typbase:auxSide", "right");
-const auxActive = ref<"chat" | "links">("chat");
-const auxPanels = computed<Array<"chat" | "links">>(() => {
-  const panels: Array<"chat" | "links"> = [];
-  if (dockChatId.value) panels.push("chat");
-  if (linksOpen.value && currentPageId.value) panels.push("links");
-
-  return panels;
-});
-const auxPanel = computed<"chat" | "links" | null>(() =>
-  auxPanels.value.includes(auxActive.value) ? auxActive.value : (auxPanels.value[0] ?? null),
-);
-
-watch(dockChatId, (id) => {
-  if (id) auxActive.value = "chat";
-});
-watch(linksOpen, (open) => {
-  if (open) auxActive.value = "links";
-});
-watch(auxPanels, (panels) => {
-  if (!panels.includes(auxActive.value) && panels[0]) auxActive.value = panels[0];
-});
 
 const graphOpen = ref(false);
 const filesOpen = ref(false);
 const siteOpen = ref(false);
-/** Focus mode: the open page without window chrome. Transient, not persisted. */
-const zen = ref(false);
-let zenSidebarWasCollapsed = false;
+/** Whether the main pane is showing the selected page. The sidebar mutes the
+ *  page highlight while a workspace view owns the pane. */
+const pageActive = computed(
+  () =>
+    !graphOpen.value &&
+    !filesOpen.value &&
+    !siteOpen.value &&
+    !currentChatId.value &&
+    !currentPluginId.value,
+);
 const requestedMode = ref<ViewModeId | null>(null);
 const mode = computed<ViewModeId>(() => requestedMode.value ?? "write");
 const plugins = usePlugins();
@@ -92,9 +67,6 @@ const navOpen = ref(false);
 /** Desktop gets a resizable splitter, while mobile keeps the drawer. The query
  *  mirrors `--breakpoint-lg` in tokens.css (mobile <= 56rem, desktop above). */
 const isDesktop = useMediaQuery("(min-width: 56.0625rem)");
-/** Inline auxiliary panels need the wider shell. Below this they float. */
-const isWide = useMediaQuery("(min-width: 72rem)");
-
 const nav = useNavHistory();
 const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
 
@@ -109,177 +81,64 @@ const switchingName = computed(
   () => workspaces.value.find((entry) => entry.id === switching.value)?.name ?? null,
 );
 
-/** Desktop sidebar widths in px. The splitter is px-sized and persists its
- *  layout, so the default is also what the expand button falls back to. */
-const SIDEBAR_WIDTH = 300;
-const SIDEBAR_MIN_WIDTH = 260;
-const SIDEBAR_MAX_WIDTH = 480;
-
-/** Desktop sidebar collapse. Reka-ui persists the collapsed layout, so the
- *  initial state is read from the panel rather than assumed. */
-const navPanel = useTemplateRef<InstanceType<typeof SplitterPanel>>("navPanel");
-const sidebarCollapsed = ref(false);
-
-function syncSidebarCollapsed() {
-  const panel = navPanel.value;
-  if (panel) sidebarCollapsed.value = (panel.getSize() ?? 0) === 0;
-}
-
-function expandSidebar() {
-  const panel = navPanel.value;
-  if (!panel) return;
-
-  panel.expand();
-  if ((panel.getSize() ?? 0) <= SIDEBAR_MIN_WIDTH) panel.resize(SIDEBAR_WIDTH);
-}
-
-onMounted(() => nextTick(syncSidebarCollapsed));
-watch(isDesktop, (desktop) => {
-  if (desktop) {
-    nextTick(syncSidebarCollapsed);
-
-    return;
-  }
-
-  // Narrow windows have no dock. Keep the thread open as the full pane.
-  if (dockChatId.value) {
-    currentChatId.value = dockChatId.value;
-    dockChatId.value = null;
-    syncRoute("replace");
-  }
+const {
+  auxWidth,
+  sidebarCollapsed,
+  sidebarSize,
+  navResizing,
+  splitterResizing,
+  startNavResize,
+  startAuxResize,
+  resizeSidebarBy,
+  resizeAuxBy,
+  dockChatId,
+  linksOpen,
+  auxSide,
+  auxActive,
+  auxPanels,
+  auxPanel,
+  auxSnapshot,
+  floatingAuxOpen,
+  inlineAux,
+  finishAuxClose,
+  clearAuxContent,
+  closeAuxPanel,
+  closeActiveAux,
+  moveAux,
+  showWorkspaceCrumb,
+  zen,
+  setZen,
+  toggleSidebar,
+  leftAuxOpen,
+  rightAuxOpen,
+  leftAuxContent,
+  rightAuxContent,
+} = useShellLayout({
+  isDesktop,
+  currentPageId,
+  currentChatId,
+  closeDock: () => closeDock(),
+  replaceRoute: () => syncRoute("replace"),
 });
-
-function toggleSidebar() {
-  const panel = navPanel.value;
-  if (!panel) return;
-
-  if (sidebarCollapsed.value) {
-    sidebarCollapsed.value = false;
-    expandSidebar();
-  } else {
-    sidebarCollapsed.value = true;
-    panel.collapse();
-  }
-}
-
-/**
- * Focus mode hides the app bar, the sidebar, and the page's editor chrome.
- * Entering collapses the sidebar through the splitter, remembering whether it
- * was already collapsed so leaving can put it back. The app bar is only hidden
- * by its `v-if`, so the device preference is untouched.
- */
-function setZen(value: boolean): void {
-  if (value === zen.value) return;
-  zen.value = value;
-
-  if (!isDesktop.value) return;
-
-  if (value) {
-    zenSidebarWasCollapsed = sidebarCollapsed.value;
-    if (!sidebarCollapsed.value) navPanel.value?.collapse();
-  } else if (!zenSidebarWasCollapsed) {
-    expandSidebar();
-  }
-}
 
 const { ensure: ensureSearch, search: searchManager, status: searchStatus } = useSearch();
 const chat = useChat();
 const appUpdates = useAppUpdates();
 
-// Cmd-K / Ctrl-K opens the search palette.
-onCapturedKey(
-  (event) => matchesShortcut(event, "search"),
-  (event) => {
-    event.preventDefault();
-    togglePalette();
-  },
-);
-
-/**
- * Back and forward, on the chords browsers and editors use. The desktop shell
- * has no browser to do it, and in a browser tab Alt-ArrowLeft is the browser's
- * own back, which would navigate twice. The chord specs live in
- * `lib/keybindings.ts`; the platform split is part of `matchesShortcut`.
- */
-for (const direction of ["back", "forward"] as const) {
-  onCapturedKey(
-    (event) => isTauri() && matchesShortcut(event, direction),
-    (event) => {
-      // The settings fields and the plugin studio install CodeMirror's default
-      // keymap, where these arrows walk the syntax tree and the brackets
-      // reindent. The capture phase gets here first, so the carve-out has to.
-      if ((event.target as HTMLElement | null)?.closest(".cm-editor")) return;
-
-      event.preventDefault();
-      if (direction === "back") nav.goBack();
-      else nav.goForward();
-    },
-  );
-}
-
-// Cmd-J / Ctrl-J hides the app bar for the editor's full height.
-onCapturedKey(
-  (event) => matchesShortcut(event, "appBar"),
-  (event) => {
-    event.preventDefault();
-    toggleAppBar();
-  },
-);
-
-// Cmd-\ / Ctrl-\ toggles the sidebar on desktop and the drawer on mobile.
-onCapturedKey(
-  (event) => matchesShortcut(event, "sidebar"),
-  (event) => {
-    event.preventDefault();
-    if (isDesktop.value) toggleSidebar();
-    else navOpen.value = !navOpen.value;
-  },
-);
-
-// Cmd-Alt-Z / Ctrl-Alt-Z toggles focus mode.
-onCapturedKey(
-  (event) => matchesShortcut(event, "focus"),
-  (event) => {
-    event.preventDefault();
-    setZen(!zen.value);
-  },
-);
-
-// Cmd-Shift-E / Ctrl-Shift-E opens the storage browser.
-onCapturedKey(
-  (event) => matchesShortcut(event, "files"),
-  (event) => {
-    event.preventDefault();
-    openFiles();
-  },
-);
-
-// `?` opens this list, but only when no text field or editor has focus.
-onCapturedKey(
-  (event) => matchesShortcut(event, "shortcuts") && !isTypingTarget(event.target),
-  (event) => {
-    event.preventDefault();
-    shortcutsOpen.value = true;
-  },
-);
-
-// Cmd-, / Ctrl-, opens workspace settings.
-onCapturedKey(
-  (event) => matchesShortcut(event, "settings"),
-  (event) => {
-    event.preventDefault();
-    settingsOpen.value = true;
-  },
-);
-
-// Cmd-Alt-T / Ctrl-Alt-T opens (or creates) today's daily note.
-onCapturedKey(
-  (event) => matchesShortcut(event, "today"),
-  (event) => {
-    event.preventDefault();
-    void openToday();
-  },
-);
+useAppShortcuts({
+  togglePalette,
+  nav,
+  toggleAppBar,
+  isDesktop,
+  navOpen,
+  toggleSidebar,
+  zen,
+  setZen,
+  openFiles,
+  openShortcuts: () => (shortcutsOpen.value = true),
+  openSettings: () => (settingsOpen.value = true),
+  openToday: () => void openToday(),
+});
 
 /** Titles the navigation labels read from, so a rename updates them. */
 const pageTitles = useWorkspaceValue(
@@ -360,24 +219,6 @@ watch(
   },
   { immediate: true },
 );
-
-testApi.openPage = (id) => openPage(id);
-testApi.setMode = (value) => void setMode(value as ViewModeId);
-testApi.searchStatus = () => searchStatus.value;
-testApi.searchQuery = async (text) => {
-  const manager =
-    searchManager.value ?? (workspace.value ? await ensureSearch(workspace.value) : null);
-
-  return (await manager?.query(text))?.items ?? [];
-};
-testApi.openGraph = () => openGraph();
-testApi.openChat = (threadId) => openChat(threadId ?? undefined);
-testApi.newChat = async (pageId) => (await chat.startThread({ pageId: pageId ?? null })).id;
-testApi.sendChat = (threadId, text) => chat.send(threadId, text);
-testApi.chatMessages = (threadId) => chat.readMessages(threadId);
-testApi.setAiStub = (provider) => {
-  setProviderOverride(provider);
-};
 
 // Section metadata should stay fresh even without the editor being open:
 // the store's page changes trigger a re-extract on every page switch.
@@ -474,106 +315,32 @@ function afterBoot(): void {
   setChatNavigation({ openChat, openPage });
 
   // Dev-only handles for the e2e suite. Production builds drop them.
-  testApi.openPlugin = openPlugin;
-  testApi.openSite = openSite;
-  testApi.siteState = () => store.getSiteSettings();
-  testApi.siteBuild = async (options = {}) => {
-    const site = store.getSiteSettings();
-    const build = await buildSite(store, site, {
-      baseUrl: options.baseUrl ?? siteBaseUrl(site, atprotoStatus.value.did),
-      did: atprotoStatus.value.did,
-    });
-    const readable = new Map(bundleTextFiles(build.files).map((file) => [file.name, file.text]));
+  bindPageTestApi({
+    workspace,
+    plugins,
+    openPage,
+    setMode: (value) => void setMode(value as ViewModeId),
+    searchStatus: () => searchStatus.value,
+    searchQuery: async (text) => {
+      const manager =
+        searchManager.value ?? (workspace.value ? await ensureSearch(workspace.value) : null);
 
-    return {
-      hash: build.hash,
-      files: build.files.map((file) => ({
-        name: file.name,
-        size: file.bytes.length,
-        text: readable.get(file.name),
-      })),
-      pages: build.pages.map((page) => ({ id: page.id, title: page.title, url: page.url })),
-    };
-  };
-  testApi.installPlugin = async (pluginId) => {
-    await plugins.install(pluginId);
-
-    return plugins.instances.value.find((candidate) => candidate.pluginId === pluginId)?.id ?? "";
-  };
-  testApi.pluginStatus = (id, kind) =>
-    plugins.stateOf(id, kind as PluginSurfaceKind)?.status ?? null;
-  testApi.pluginHtml = (id, kind) => plugins.stateOf(id, kind as PluginSurfaceKind)?.html ?? "";
-  testApi.pluginAction = (id, kind, name, args = {}, fields = {}) =>
-    plugins.dispatch(id, kind as PluginSurfaceKind, {
-      id: crypto.randomUUID(),
-      name,
-      args,
-      fields,
-    });
-  testApi.pluginWindowOpen = (id) => plugins.windowOf(id).open;
-  testApi.pluginState = async (id) => (await workspace.value?.readPluginState(id)) ?? {};
-  testApi.writeWorkspaceFile = async (path, text) => {
-    await useWorkspace().backend.value?.write(path, new TextEncoder().encode(text));
-  };
-  testApi.exportPage = async (pageId, options) => {
-    if (!store) throw new Error("no workspace");
-
-    const { base, files } = await buildExport(store, pageId, {
-      html: false,
-      pdf: false,
-      svg: false,
-      svgMerged: false,
-      project: true,
-      fonts: false,
-      theme: "light",
-      pageSize: "a4",
-      ...options,
-    });
-
-    return { base, files: bundleTextFiles(files) };
-  };
-  testApi.exportWorkspace = async (pageIds, options) => {
-    if (!store) throw new Error("no workspace");
-
-    const typstState = await useTypst();
-    const { name, files } = await buildWorkspaceExport(
-      store,
-      pageIds,
-      {
-        html: false,
-        pdf: false,
-        svg: false,
-        svgMerged: true,
-        project: false,
-        stripMarkers: false,
-        fonts: false,
-        theme: "light",
-        pageSize: "a4",
-        separate: true,
-        combined: false,
-        ...options,
-      } as WorkspaceExportOptions,
-      typstState,
-    );
-
-    const readable = new Map(bundleTextFiles(files).map((file) => [file.name, file.text]));
-
-    return {
-      name,
-      files: files.map((file) => ({
-        name: file.name,
-        size: file.bytes.length,
-        text: readable.get(file.name),
-      })),
-    };
-  };
-  testApi.compileBundle = (files, entry) =>
-    compileBundle(files, entry, workspace.value?.workspaceId ?? "bundle");
-  testApi.refreshPlugins = () => plugins.refreshCatalog();
-  testApi.pluginLogs = () =>
-    plugins.logs.value.map((entry) =>
-      `${entry.kind} ${entry.pluginId ?? ""} ${entry.message}`.trim(),
-    );
+      return (await manager?.query(text))?.items ?? [];
+    },
+    openGraph,
+    openChat,
+    newChat: async (pageId) => (await chat.startThread({ pageId: pageId ?? null })).id,
+    sendChat: (id, text) => chat.send(id, text),
+    chatMessages: (id) => chat.readMessages(id),
+    setAiStub: setProviderOverride,
+    openPlugin,
+    openSite,
+    siteDid: () => atprotoStatus.value.did,
+    writeFile: async (path, text) => {
+      await useWorkspace().backend.value?.write(path, new TextEncoder().encode(text));
+    },
+    typstState: () => useTypst(),
+  });
 }
 
 async function boot(): Promise<void> {
@@ -719,7 +486,11 @@ function syncRoute(historyMode: "push" | "replace"): void {
 
 function writeRoute(historyMode: "push" | "replace"): Promise<unknown> | void {
   const query = routeQuery();
-  if (sameQuery(query)) return;
+  if (sameQuery(query)) {
+    overlayEntryReplaced = false;
+
+    return;
+  }
 
   const index = nav.record(query, {
     append: historyMode === "push" || overlayEntryReplaced,
@@ -901,8 +672,9 @@ async function openToday(): Promise<void> {
   openPage(page.id);
 }
 
-/** Sidebar and toolbar search buttons: close the drawer, open the palette. */
-function openSearch() {
+/** The workspace menu opens search: close the menu and drawer before the palette. */
+function openSearch(): void {
+  consumeTopBackLayer();
   closeNavLayer();
   showPalette();
 }
@@ -979,7 +751,11 @@ watch(
   },
 );
 
-/** The sidebar opens the workspace graph. The links panel roots it at the page. */
+/** A floating links rail must not sit over a full-pane view. */
+function closeFloatingLinks(): void {
+  if (!inlineAux.value) linksOpen.value = false;
+}
+
 function openGraph(rootAtPage = false) {
   const historyMode = takeLayerHistory();
   closeNavLayer();
@@ -990,13 +766,19 @@ function openGraph(rootAtPage = false) {
   siteOpen.value = false;
   graphOpen.value = true;
 
-  // A graph opened from a page is about that page. Turn local mode on so the
-  // root is real, not just implied by the header chip.
-  if (rootAtPage && currentPageId.value) {
-    const store = workspace.value;
-    const graph = store?.getSettings().graph;
-    if (store && graph && !graph.local) store.updateSettings({ graph: { ...graph, local: true } });
+  // The entry point sets the scope. Links opens the page's local graph, while
+  // the workspace menu opens the whole graph. The switch in the header is a
+  // temporary override, not a sticky mode that surprises the next open.
+  const store = workspace.value;
+  const graph = store?.getSettings().graph;
+  const local = Boolean(rootAtPage && currentPageId.value);
+  if (store && graph && graph.local !== local) {
+    store.updateSettings({ graph: { ...graph, local } });
   }
+
+  // A floating links rail has a backdrop that would sit over the graph. Close
+  // it for any graph; an inline rail can stay beside the graph.
+  closeFloatingLinks();
 
   syncRoute(historyMode);
 }
@@ -1011,6 +793,7 @@ function openFiles() {
   const historyMode = takeLayerHistory();
   closeNavLayer();
   setZen(false);
+  closeFloatingLinks();
   currentPluginId.value = null;
   currentChatId.value = null;
   graphOpen.value = false;
@@ -1029,6 +812,7 @@ function openSite() {
   const historyMode = takeLayerHistory();
   closeNavLayer();
   setZen(false);
+  closeFloatingLinks();
   currentPluginId.value = null;
   currentChatId.value = null;
   graphOpen.value = false;
@@ -1112,19 +896,6 @@ function onLinksOpen(open: boolean) {
   linksOpen.value = open;
 }
 
-function closeAuxPanel(panel: "chat" | "links") {
-  if (panel === "chat") closeDock();
-  else linksOpen.value = false;
-}
-
-function closeActiveAux() {
-  if (auxPanel.value) closeAuxPanel(auxPanel.value);
-}
-
-function moveAux(side: "left" | "right") {
-  if (auxSide.value !== side) auxSide.value = side;
-}
-
 /** Moves the docked thread into the main pane. */
 function expandDock() {
   const id = dockChatId.value;
@@ -1136,6 +907,8 @@ function expandDock() {
   filesOpen.value = false;
   siteOpen.value = false;
   currentChatId.value = id;
+  // The rail would otherwise paint the same thread while it slides shut.
+  clearAuxContent();
   syncRoute("replace");
 }
 
@@ -1146,7 +919,9 @@ useEventListener("pagehide", () => {
 
 async function setMode(value: ViewModeId) {
   requestedMode.value = value === "write" ? null : value;
-  syncRoute("replace");
+  // A mode picked from the menu is one navigation: the menu's entry is
+  // replaced, so its deferred `history.back()` cannot drop the new `?mode=`.
+  syncRoute(takeLayerHistory());
 }
 
 definePageMeta({ ssr: false });
@@ -1231,33 +1006,28 @@ definePageMeta({ ssr: false });
           @toggle-sidebar="toggleSidebar"
           @open-files="openFiles"
           @open-site="openSite"
+          @open-graph="openGraph()"
           @toggle-zen="setZen(!zen)"
         />
 
         <div class="app__body">
-          <SplitterGroup
+          <div
             v-if="isDesktop"
-            direction="horizontal"
-            auto-save-id="typbase:layout-v3"
             class="app__splitter"
+            :class="{ 'app__splitter--resizing': splitterResizing }"
           >
-            <SplitterPanel
-              ref="navPanel"
+            <aside
               class="app__nav-panel"
               :class="{ 'app__nav-panel--collapsed': sidebarCollapsed }"
-              size-unit="px"
-              :default-size="SIDEBAR_WIDTH"
-              :min-size="SIDEBAR_MIN_WIDTH"
-              :max-size="SIDEBAR_MAX_WIDTH"
-              collapsible
-              :collapsed-size="0"
-              @collapse="sidebarCollapsed = true"
-              @expand="sidebarCollapsed = false"
-              @resize="syncSidebarCollapsed"
+              :style="{ width: `${sidebarSize}px` }"
+              :aria-hidden="sidebarCollapsed ? 'true' : undefined"
+              :inert="sidebarCollapsed"
             >
               <Sidebar
                 :store="workspace"
                 :current-page-id="currentPageId"
+                :page-active="pageActive"
+                :active-plugin-id="currentPluginId"
                 @select="openPage"
                 @open-plugin="openPlugin"
                 @search="openSearch"
@@ -1268,47 +1038,63 @@ definePageMeta({ ssr: false });
                 @open-account="openAccount"
                 @collapse-request="toggleSidebar"
               />
-            </SplitterPanel>
+            </aside>
 
-            <SplitterResizeHandle
-              v-show="!sidebarCollapsed"
+            <div
+              v-show="!sidebarCollapsed || navResizing"
               class="app__resize-handle"
+              role="separator"
+              aria-orientation="vertical"
               :aria-label="$t('sidebar.resizeSidebar')"
+              tabindex="0"
+              @pointerdown="startNavResize"
+              @keydown.left.prevent="resizeSidebarBy(-16)"
+              @keydown.right.prevent="resizeSidebarBy(16)"
             />
 
-            <SplitterPanel
-              v-if="auxPanel && auxSide === 'left' && isWide"
-              class="app__aux-panel"
-              size-unit="px"
-              :default-size="360"
-              :min-size="320"
-              :max-size="620"
+            <aside
+              class="app__aux-panel app__aux-panel--left"
+              :class="{
+                'app__aux-panel--workspace': !leftAuxContent?.panels.includes('links'),
+                'app__aux-panel--idle': !leftAuxContent,
+              }"
+              :style="{ width: leftAuxOpen ? `${auxWidth}px` : '0px' }"
             >
-              <AuxiliaryRail
-                :side="auxSide"
-                :panels="auxPanels"
-                :active="auxPanel ?? 'chat'"
-                :chat-id="dockChatId"
-                :page-id="currentPageId"
-                :store="workspace"
-                @update:active="auxActive = $event"
-                @close-panel="closeAuxPanel"
-                @close="closeActiveAux"
-                @expand-chat="expandDock"
-                @open-thread="openChat"
-                @open-page="openPage"
-                @open-graph="openGraph(true)"
-                @move="moveAux"
-              />
-            </SplitterPanel>
+              <div class="app__aux-panel-body">
+                <AuxiliaryRail
+                  v-if="leftAuxContent"
+                  :side="leftAuxContent.side"
+                  :panels="leftAuxContent.panels"
+                  :active="leftAuxContent.active"
+                  :chat-id="leftAuxContent.chatId"
+                  :page-id="leftAuxContent.pageId"
+                  :store="workspace"
+                  :flat="!leftAuxContent.panels.includes('links')"
+                  @update:active="auxActive = $event"
+                  @close-panel="closeAuxPanel"
+                  @close="closeActiveAux"
+                  @expand-chat="expandDock"
+                  @open-thread="openChat"
+                  @open-page="openPage"
+                  @open-graph="openGraph(true)"
+                  @move="moveAux"
+                />
+              </div>
+            </aside>
 
-            <SplitterResizeHandle
-              v-if="auxPanel && auxSide === 'left' && isWide"
+            <div
+              v-show="leftAuxOpen"
               class="app__resize-handle"
+              role="separator"
+              aria-orientation="vertical"
               :aria-label="$t('aux.title')"
+              tabindex="0"
+              @pointerdown="startAuxResize($event, 'left')"
+              @keydown.left.prevent="resizeAuxBy(-16, 'left')"
+              @keydown.right.prevent="resizeAuxBy(16, 'left')"
             />
 
-            <SplitterPanel class="app__main-panel">
+            <div class="app__main-panel">
               <div class="app__main">
                 <MainPane
                   :page-id="currentPageId"
@@ -1342,42 +1128,64 @@ definePageMeta({ ssr: false });
                       @click="toggleSidebar"
                     />
                   </template>
+
+                  <template #scope>
+                    <WorkspaceCrumb
+                      v-if="showWorkspaceCrumb"
+                      @search="openSearch"
+                      @account="openAccount"
+                      @graph="openGraph()"
+                      @chat="openChat()"
+                      @site="openSite"
+                      @files="openFiles"
+                    />
+                  </template>
                 </MainPane>
               </div>
-            </SplitterPanel>
+            </div>
 
-            <SplitterResizeHandle
-              v-if="auxPanel && auxSide === 'right' && isWide"
+            <div
+              v-show="rightAuxOpen"
               class="app__resize-handle"
+              role="separator"
+              aria-orientation="vertical"
               :aria-label="$t('aux.title')"
+              tabindex="0"
+              @pointerdown="startAuxResize($event, 'right')"
+              @keydown.left.prevent="resizeAuxBy(-16, 'right')"
+              @keydown.right.prevent="resizeAuxBy(16, 'right')"
             />
 
-            <SplitterPanel
-              v-if="auxPanel && auxSide === 'right' && isWide"
-              class="app__aux-panel"
-              size-unit="px"
-              :default-size="360"
-              :min-size="320"
-              :max-size="620"
+            <aside
+              class="app__aux-panel app__aux-panel--right"
+              :class="{
+                'app__aux-panel--workspace': !rightAuxContent?.panels.includes('links'),
+                'app__aux-panel--idle': !rightAuxContent,
+              }"
+              :style="{ width: rightAuxOpen ? `${auxWidth}px` : '0px' }"
             >
-              <AuxiliaryRail
-                :side="auxSide"
-                :panels="auxPanels"
-                :active="auxPanel ?? 'chat'"
-                :chat-id="dockChatId"
-                :page-id="currentPageId"
-                :store="workspace"
-                @update:active="auxActive = $event"
-                @close-panel="closeAuxPanel"
-                @close="closeActiveAux"
-                @expand-chat="expandDock"
-                @open-thread="openChat"
-                @open-page="openPage"
-                @open-graph="openGraph(true)"
-                @move="moveAux"
-              />
-            </SplitterPanel>
-          </SplitterGroup>
+              <div class="app__aux-panel-body">
+                <AuxiliaryRail
+                  v-if="rightAuxContent"
+                  :side="rightAuxContent.side"
+                  :panels="rightAuxContent.panels"
+                  :active="rightAuxContent.active"
+                  :chat-id="rightAuxContent.chatId"
+                  :page-id="rightAuxContent.pageId"
+                  :store="workspace"
+                  :flat="!rightAuxContent.panels.includes('links')"
+                  @update:active="auxActive = $event"
+                  @close-panel="closeAuxPanel"
+                  @close="closeActiveAux"
+                  @expand-chat="expandDock"
+                  @open-thread="openChat"
+                  @open-page="openPage"
+                  @open-graph="openGraph(true)"
+                  @move="moveAux"
+                />
+              </div>
+            </aside>
+          </div>
 
           <!-- Mobile drawer + main pane. -->
           <template v-else>
@@ -1389,6 +1197,9 @@ definePageMeta({ ssr: false });
               <Sidebar
                 :store="workspace"
                 :current-page-id="currentPageId"
+                :page-active="pageActive"
+                :active-plugin-id="currentPluginId"
+                drawer
                 @select="openPage"
                 @open-plugin="openPlugin"
                 @search="openSearch"
@@ -1441,17 +1252,30 @@ definePageMeta({ ssr: false });
                     @click="navOpen = true"
                   />
                 </template>
+
+                <template #scope>
+                  <WorkspaceCrumb
+                    v-if="showWorkspaceCrumb"
+                    @search="openSearch"
+                    @account="openAccount"
+                    @graph="openGraph()"
+                    @chat="openChat()"
+                    @site="openSite"
+                    @files="openFiles"
+                  />
+                </template>
               </MainPane>
             </div>
           </template>
 
           <AuxiliaryRail
-            v-if="auxPanel && !(isDesktop && isWide)"
-            :side="auxSide"
-            :panels="auxPanels"
-            :active="auxPanel ?? 'chat'"
-            :chat-id="dockChatId"
-            :page-id="currentPageId"
+            v-if="!isDesktop || !inlineAux"
+            :open="floatingAuxOpen"
+            :side="auxSnapshot?.side ?? auxSide"
+            :panels="auxSnapshot?.panels ?? []"
+            :active="auxSnapshot?.active ?? 'chat'"
+            :chat-id="auxSnapshot?.chatId ?? null"
+            :page-id="auxSnapshot?.pageId ?? null"
             :store="workspace"
             floating
             @update:active="auxActive = $event"
@@ -1462,6 +1286,7 @@ definePageMeta({ ssr: false });
             @open-page="openPage"
             @open-graph="openGraph(true)"
             @move="moveAux"
+            @after-close="finishAuxClose"
           />
 
           <PluginWindows />
@@ -1496,457 +1321,3 @@ definePageMeta({ ssr: false });
     <UpdateDialog />
   </main>
 </template>
-
-<style>
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-}
-
-/* The shell is a column: the app bar, then the panes. The content div controls the
-   dim and the inert state while a workspace switches, which its children used to
-   cover when it was `display: contents`. */
-.app__content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--island-gap);
-  padding: var(--island-gap);
-}
-
-.app__body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  /* padding: var(--island-gap); */
-  gap: var(--island-gap);
-}
-
-/* Focus mode: the page keeps the window. The app bar and the sidebar are
-   already gone through their own state; this drops the pane toolbars, the
-   notebook toolbar, the format strip, and the links panel. */
-.app__content--zen .page-view__toolbar,
-.app__content--zen .page-view__format,
-.app__content--zen .page-view__handle,
-.app__content--zen .notebook-toolbar,
-.app__content--zen .links,
-.app__content--zen .app__nav-toggle {
-  display: none;
-}
-
-.app__zen-exit {
-  position: fixed;
-  top: calc(var(--space-2) + var(--safe-top));
-  right: calc(var(--space-2) + var(--safe-right));
-  z-index: var(--z-menu);
-  opacity: 0.5;
-}
-
-.app__zen-exit:hover,
-.app__zen-exit:focus-visible {
-  color: var(--color-text);
-  opacity: 1;
-}
-
-/* Workspace switch feedback: a floating status pill over the dimmed, inert
-   content area (see .app__content--switching). */
-.app__switching {
-  position: fixed;
-  top: calc(var(--space-3-5) + var(--safe-top));
-  left: 50%;
-  z-index: var(--z-toast);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3-5);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-2);
-  pointer-events: none;
-  animation: app-switching-in var(--motion-fast);
-  transform: translateX(-50%);
-}
-
-.app__switching-spinner {
-  width: calc(0.95rem * var(--ui-size));
-  height: calc(0.95rem * var(--ui-size));
-  flex: none;
-  border: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: app-switching-spin 0.7s linear infinite;
-}
-
-.app__switching-label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-@keyframes app-switching-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes app-switching-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, calc(var(--space-1) * -1));
-  }
-
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-.app__content--switching > * {
-  pointer-events: none;
-  opacity: 0.7;
-  transition: opacity var(--motion-fast);
-}
-
-.app__chooser {
-  flex: 1;
-  display: grid;
-  place-content: center;
-  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-}
-
-.app__main {
-  position: relative;
-  min-width: 0;
-}
-
-/* Desktop layout: the sidebar panel is px-sized, so it keeps its width when
-   the window resizes and only the main panel flexes. */
-.app__splitter {
-  flex: 1;
-  min-width: 0;
-  gap: 0;
-}
-
-.app__nav-panel,
-.app__main-panel,
-.app__aux-panel {
-  background: var(--color-surface);
-  border: var(--island-border);
-  border-radius: var(--island-radius);
-  box-shadow: var(--island-shadow);
-  overflow: hidden;
-}
-
-.app__nav-panel--collapsed,
-.app__nav-panel[data-state="collapsed"] {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.app__nav-panel .sidebar {
-  border-right: 0;
-}
-
-.app__main-panel .app__main {
-  height: 100%;
-}
-
-.app__resize-handle {
-  width: var(--island-gap);
-  flex: 0 0 var(--island-gap);
-  position: relative;
-  cursor: col-resize;
-  outline: none;
-}
-
-.app__resize-handle::before {
-  content: "";
-  position: absolute;
-  top: var(--space-4);
-  bottom: var(--space-4);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  background: var(--color-accent);
-  border-radius: var(--radius-full);
-  transition: width var(--motion-fast);
-}
-
-.app__resize-handle:hover::before,
-.app__resize-handle:focus-visible::before,
-.app__resize-handle[data-resize-handle-active]::before {
-  width: 3px;
-}
-
-/* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
-   in the toolbar flow (MainPane slot), so it pushes content rather than
-   floating over it.
-
-   The desktop variant renders whenever the desktop shell does. Its icon and
-   label flip with the sidebar state so it can collapse and expand. */
-.app__main .app__nav-toggle,
-.app__backdrop {
-  display: none;
-}
-
-.app__main .app__nav-toggle--desktop {
-  display: inline-flex;
-  padding: var(--space-1-5) var(--space-2);
-}
-
-.app__main .app__nav-toggle:focus-visible,
-.app__main .app__nav-toggle--desktop:focus-visible {
-  background: var(--color-surface-2);
-}
-
-@media (max-width: 56rem) {
-  .app__main .app__nav-toggle {
-    display: inline-flex;
-  }
-
-  .app__content {
-    padding: 0;
-    gap: 0;
-  }
-
-  .app__main {
-    padding-top: var(--safe-top);
-  }
-
-  .app__nav-panel,
-  .app__main-panel,
-  .app__aux-panel {
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .app__nav {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: var(--z-drawer);
-    width: min(84vw, 320px);
-    transform: translateX(-100%);
-    background: var(--color-surface);
-    transition: transform var(--motion-base);
-    box-shadow: var(--shadow-3);
-    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-    overflow: hidden;
-  }
-
-  .app__nav--open {
-    transform: translateX(0);
-  }
-
-  .app__backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-drawer-backdrop);
-    background: var(--color-overlay);
-    border: none;
-  }
-}
-
-.app__content--zen {
-  padding: 0;
-  gap: 0;
-}
-
-.app__content--zen .app__nav-panel,
-.app__content--zen .app__main-panel,
-.app__content--zen .app__aux-panel {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.app__splash {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-splash);
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-4);
-  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-  background: var(--color-surface);
-  color: var(--color-text);
-  user-select: none;
-}
-
-.app__splash-mark {
-  width: 3.5rem;
-  height: 3.5rem;
-  display: block;
-}
-
-.app__splash-title {
-  margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.app__splash-steps {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  /* width: min(20rem, 80vw); */
-}
-
-.app__splash-step-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app__splash-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.app__splash-step--pending {
-  opacity: 0.5;
-}
-
-.app__splash-step--active {
-  color: var(--color-text);
-}
-
-.app__splash-step--error {
-  color: var(--color-danger);
-}
-
-.app__splash-step-mark {
-  display: grid;
-  place-content: center;
-  flex: none;
-  box-sizing: border-box;
-  width: 0.85rem;
-  height: 0.85rem;
-  border: 2px solid var(--color-border-strong);
-  border-radius: 50%;
-}
-
-.app__splash-step-mark--active {
-  border-color: var(--color-accent);
-  border-top-color: transparent;
-  animation: app-splash-spin 0.8s linear infinite;
-}
-
-.app__splash-step-mark--done {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-surface);
-}
-
-.app__splash-step-mark--error {
-  border-color: var(--color-danger);
-  background: var(--color-danger);
-}
-
-.app__splash-step-check {
-  width: 0.65rem;
-  height: 0.65rem;
-}
-
-.app__splash-step-detail {
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-@keyframes app-splash-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.app__splash-bar {
-  position: relative;
-  width: 11rem;
-  height: 0.25rem;
-  overflow: hidden;
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.app__splash-bar span {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  background: var(--color-accent);
-  border-radius: inherit;
-  animation: app-splash-slide 1.1s ease-in-out infinite;
-}
-
-@keyframes app-splash-slide {
-  0% {
-    left: -40%;
-  }
-
-  100% {
-    left: 100%;
-  }
-}
-
-.app__splash-step {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.app__splash-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.app__splash-note {
-  max-width: 26rem;
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-
-.app__splash-error {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--color-danger);
-}
-
-.splash-leave-active {
-  transition: opacity var(--motion-slow);
-}
-
-.splash-leave-to {
-  opacity: 0;
-}
-
-.app__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-  background: var(--color-surface);
-}
-</style>

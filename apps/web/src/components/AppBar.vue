@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
+import type { ThemeMode } from "@typbase/typing";
 
 import { todayISO } from "~/lib/format";
 import { shortcutLabel } from "~/lib/keybindings";
 import { openExternal } from "~/lib/openExternal";
 import { PROJECT_URL } from "~/lib/projectLinks";
+import { resolveTheme } from "~/lib/themes";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -20,6 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "openPage", pageId: string): void;
   (e: "toggleSidebar"): void;
+  (e: "openGraph"): void;
   (e: "openFiles"): void;
   (e: "openSite"): void;
   (e: "toggleZen"): void;
@@ -37,7 +40,6 @@ const newPageOpen = ref(false);
 const workspaceExportOpen = ref(false);
 const packagesOpen = ref(false);
 
-const searchHint = computed(() => shortcutLabel("search") ?? "");
 const backTitle = computed(() => {
   const chord = shortcutLabel("back");
   return chord ? `${props.backLabel} (${chord})` : props.backLabel;
@@ -51,6 +53,21 @@ const sidebarLabel = computed(() =>
   props.sidebarVisible ? "sidebar.hideSidebar" : "sidebar.showSidebar",
 );
 const sidebarIcon = computed(() => (props.sidebarVisible ? "left_panel_close" : "left_panel_open"));
+
+const themeSettings = useWorkspaceValue(
+  () => props.store,
+  ["settings"],
+  (store) => store.getSettings(),
+);
+const resolvedTheme = computed(() => resolveTheme(themeSettings.value));
+const themeIcon = computed(() =>
+  resolvedTheme.value.mode === "dark" ? "dark_mode" : "light_mode",
+);
+
+function setTheme(theme: ThemeMode): void {
+  props.store.updateSettings({ theme });
+  bumpRenderRevision();
+}
 
 function onCreated(page: { id: string }): void {
   emit("openPage", page.id);
@@ -78,33 +95,31 @@ async function openToday(): Promise<void> {
 
           <UiMenubarSeparator />
 
-          <UiMenubarItem icon="search" @select="showSearch()">
-            <span class="app-bar__menu-label">{{ $t("nav.search") }}</span>
-            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("search") }}</UiKbd>
+          <UiMenubarItem icon="folder_zip" @select="workspaceExportOpen = true">
+            <span class="app-bar__menu-label">{{ $t("exportWorkspace.title") }}</span>
+          </UiMenubarItem>
+        </UiMenubarMenu>
+
+        <UiMenubarMenu :label="$t('nav.menuWorkspace')" value="workspace">
+          <UiMenubarItem icon="hub" @select="emit('openGraph')">
+            <span class="app-bar__menu-label">{{ $t("graph.title") }}</span>
           </UiMenubarItem>
 
           <UiMenubarSeparator />
 
-          <UiMenubarItem icon="folder_zip" @select="workspaceExportOpen = true">
-            <span class="app-bar__menu-label">{{ $t("exportWorkspace.title") }}</span>
+          <UiMenubarItem icon="settings" @select="settings.show()">
+            <span class="app-bar__menu-label">{{ $t("sidebar.workspaceSettings") }}</span>
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
           </UiMenubarItem>
-
-          <UiMenubarItem icon="package_2" @select="packagesOpen = true">
-            <span class="app-bar__menu-label">{{ $t("packages.title") }}</span>
-          </UiMenubarItem>
-
           <UiMenubarItem icon="public" @select="emit('openSite')">
-            <span class="app-bar__menu-label">{{ $t("site.dashboard") }}</span>
+            <span class="app-bar__menu-label">{{ $t("site.title") }}</span>
           </UiMenubarItem>
-
           <UiMenubarItem icon="folder_open" @select="emit('openFiles')">
             <span class="app-bar__menu-label">{{ $t("explorer.title") }}</span>
             <UiKbd class="app-bar__menu-key">{{ shortcutLabel("files") }}</UiKbd>
           </UiMenubarItem>
-
-          <UiMenubarItem icon="settings" @select="settings.show()">
-            <span class="app-bar__menu-label">{{ $t("sidebar.workspaceSettings") }}</span>
-            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
+          <UiMenubarItem icon="package_2" @select="packagesOpen = true">
+            <span class="app-bar__menu-label">{{ $t("packages.title") }}</span>
           </UiMenubarItem>
         </UiMenubarMenu>
 
@@ -176,6 +191,26 @@ async function openToday(): Promise<void> {
       </UiButton>
 
       <AppBarEngine />
+      <UiMenu align="end">
+        <template #trigger>
+          <UiIconButton
+            :icon="themeIcon"
+            :label="$t('settings.themeMode')"
+            variant="ghost"
+            class="button--tiny"
+            :size="18"
+          />
+        </template>
+        <UiMenuItem :checked="themeSettings.theme === 'auto'" @select="setTheme('auto')">
+          {{ $t("settings.auto") }}
+        </UiMenuItem>
+        <UiMenuItem :checked="themeSettings.theme === 'light'" @select="setTheme('light')">
+          {{ $t("settings.light") }}
+        </UiMenuItem>
+        <UiMenuItem :checked="themeSettings.theme === 'dark'" @select="setTheme('dark')">
+          {{ $t("settings.dark") }}
+        </UiMenuItem>
+      </UiMenu>
       <AppBarAccount />
     </div>
 
@@ -191,9 +226,7 @@ async function openToday(): Promise<void> {
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
   gap: var(--space-2);
-  /* height: var(--app-bar-height); */
-  /* padding: 0 var(--space-2); */
-  /* background: var(--color-surface); */
+  min-height: var(--app-bar-height);
 }
 
 .app-bar__side {

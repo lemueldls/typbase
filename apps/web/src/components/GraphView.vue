@@ -79,6 +79,9 @@ const rootPage = computed(() => {
   return pages.value.find((page) => page.id === props.pageId) ?? null;
 });
 
+const isLocal = computed(() => rootPage.value !== null);
+// const graphTitle = computed(() => (isLocal.value ? t("graph.local") : t("graph.title")));
+
 watch(
   graph,
   (value) =>
@@ -201,14 +204,23 @@ onBeforeUnmount(() => {
       data-tauri-drag-region="deep"
     >
       <slot name="nav-toggle" />
+      <slot name="scope" />
       <!-- <MsIcon name="hub" :size="20" class="graph__icon" /> -->
-      <span class="graph__title">{{ t("graph.title") }}</span>
-      <span class="graph__stats">
+      <span class="graph__title">{{ $t("graph.title") }}</span>
+      <!-- <UiTooltip v-if="rootPage" :text="t('graph.openContextPage')">
+        <button type="button" class="graph__context" @click="emit('openPage', rootPage.id)">
+          <MsIcon name="description" :size="14" />
+          <span class="graph__context-title">
+            {{ t("graph.aroundPage", { title: rootPage.title }) }}
+          </span>
+        </button>
+      </UiTooltip> -->
+      <!-- <span class="graph__stats">
         {{ t("graph.stats", { pages: graph.nodes.length, backlinks: graph.edges.length }) }}
-      </span>
-      <span v-if="resolving" class="graph__resolving" aria-live="polite">
+      </span> -->
+      <!-- <span v-if="resolving" class="graph__resolving" aria-live="polite">
         {{ t("graph.resolving", { count: status?.pending ?? 0 }) }}
-      </span>
+      </span> -->
       <div class="graph__actions">
         <UiIconButton
           icon="fit_screen"
@@ -340,6 +352,7 @@ onBeforeUnmount(() => {
 .graph__header {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2);
   /* border-bottom: 1px solid var(--color-border); */
   background: var(--color-surface-2);
@@ -351,10 +364,13 @@ onBeforeUnmount(() => {
 }
 
 .graph__title {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 600;
-  margin-left: var(--space-2);
   white-space: nowrap;
+}
+
+.graph__header .graph__title:first-child {
+  margin-left: var(--space-2);
 }
 
 .graph__stats,
@@ -379,6 +395,7 @@ onBeforeUnmount(() => {
   gap: var(--space-1);
   min-width: 0;
   max-width: 18rem;
+  margin-left: var(--space-3);
   padding: var(--space-0-5) var(--space-1-5);
   font-family: inherit;
   font-size: var(--text-xs);

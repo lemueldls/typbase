@@ -66,6 +66,7 @@ declare global {
       openChat(threadId?: string | null): void;
       openGraph(): void;
       graphStats(): { nodes: number; edges: number } | null;
+      graphNodePoint(id: string): { x: number; y: number } | null;
       backlinksFor(pageId: string): string[];
       searchStatus(): {
         ready: boolean;

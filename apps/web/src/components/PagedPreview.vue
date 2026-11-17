@@ -205,11 +205,35 @@ function syncWidth(): boolean {
   }
 }
 
+/**
+ * A splitter drag keeps the compiled page size until the pointer is released.
+ * The observer still records the settled width in the engine, but re-rendering
+ * mid-drag reflows every page under the pointer.
+ */
+const pointerDown = ref(false);
+const resizePending = ref(false);
+
+function releasePointer(): void {
+  pointerDown.value = false;
+  if (!resizePending.value) return;
+
+  resizePending.value = false;
+  scheduleRender();
+}
+
+useEventListener(window, "pointerdown", () => (pointerDown.value = true), { capture: true });
+useEventListener(window, "pointerup", releasePointer, { capture: true });
+useEventListener(window, "pointercancel", releasePointer, { capture: true });
+useEventListener(window, "blur", releasePointer);
+
 useResizeObserver(scroller, () => {
   // resize() reports whether the width actually changed. Height-only
   // observer ticks must not schedule another compile, or the pane keeps
   // reflowing after it has settled.
-  if (syncWidth()) scheduleRender();
+  if (!syncWidth()) return;
+
+  if (pointerDown.value) resizePending.value = true;
+  else scheduleRender();
 });
 
 onMounted(() => {
@@ -520,6 +544,9 @@ defineExpose({ scroller, getFrameLayout, revealRange });
   display: block;
   width: var(--frame-w) !important;
   height: var(--frame-h) !important;
+  /* The reset's media max-width would scale the page down while a resize is
+     in flight. The frame clips the overflow instead. */
+  max-width: none !important;
 }
 
 .paged-preview__frame--flash {

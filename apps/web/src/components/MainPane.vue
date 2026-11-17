@@ -67,6 +67,9 @@ async function openToday(): Promise<void> {
         <template #nav-toggle>
           <slot name="nav-toggle" />
         </template>
+        <template #scope>
+          <slot name="scope" />
+        </template>
       </ChatPane>
 
       <PluginView
@@ -77,6 +80,9 @@ async function openToday(): Promise<void> {
       >
         <template #nav-toggle>
           <slot name="nav-toggle" />
+        </template>
+        <template #scope>
+          <slot name="scope" />
         </template>
       </PluginView>
 
@@ -89,11 +95,17 @@ async function openToday(): Promise<void> {
         <template #nav-toggle>
           <slot name="nav-toggle" />
         </template>
+        <template #scope>
+          <slot name="scope" />
+        </template>
       </GraphView>
 
       <FilesView v-else-if="filesOpen" @close="emit('closeFiles')">
         <template #nav-toggle>
           <slot name="nav-toggle" />
+        </template>
+        <template #scope>
+          <slot name="scope" />
         </template>
       </FilesView>
 
@@ -105,6 +117,9 @@ async function openToday(): Promise<void> {
       >
         <template #nav-toggle>
           <slot name="nav-toggle" />
+        </template>
+        <template #scope>
+          <slot name="scope" />
         </template>
       </SiteView>
 
@@ -123,11 +138,15 @@ async function openToday(): Promise<void> {
         <template #nav-toggle>
           <slot name="nav-toggle" />
         </template>
+        <template #scope>
+          <slot name="scope" />
+        </template>
       </PageView>
 
       <div v-else class="app__empty">
         <div class="app__empty-toolbar" data-tauri-drag-region="deep">
           <slot name="nav-toggle" />
+          <slot name="scope" />
           <!-- <span v-if="store" class="app__empty-toolbar-title">{{ workspaceName }}</span> -->
         </div>
 
@@ -193,7 +212,7 @@ async function openToday(): Promise<void> {
 .app__empty-toolbar-title {
   min-width: 0;
   overflow: hidden;
-  margin-left: var(--space-2);
+  /* margin-left: var(--space-2); */
   font-size: var(--text-2xl);
   font-weight: 600;
   text-overflow: ellipsis;

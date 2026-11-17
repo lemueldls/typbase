@@ -8,14 +8,14 @@ import type { LocalState } from "@typbase/storage";
  * sync to another device, and it must stay out of the workspace doc. The
  * Settings appearance tab and the `Mod-J` chord both write here.
  *
- * Off until asked for. The bar is a strip on top of the pane toolbars, and a
- * workspace that is used all day does not need two rows of window chrome for
- * navigation it does not use.
+ * On by default: it is the persistent home for back/forward, search, and the
+ * account. The Settings switch and the `Mod-J` chord can hide it for a taller
+ * editor, and that choice stays on this device.
  */
 
 const KEY = "appBarVisible";
 
-const visible = ref(false);
+const visible = ref(true);
 /** The local state the current value came from, so a switch reloads it. */
 let loadedFrom: LocalState | undefined;
 
@@ -28,9 +28,9 @@ export function useAppBar() {
     loadedFrom = local;
 
     try {
-      visible.value = (await local.get<boolean>(KEY)) ?? false;
+      visible.value = (await local.get<boolean>(KEY)) ?? true;
     } catch {
-      visible.value = false;
+      visible.value = true;
     }
   }
 

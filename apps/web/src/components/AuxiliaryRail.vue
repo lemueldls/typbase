@@ -3,16 +3,23 @@ import type { WorkspaceStore } from "@typbase/storage";
 
 export type AuxiliaryPanel = "chat" | "links";
 
-const props = defineProps<{
-  side: "left" | "right";
-  panels: AuxiliaryPanel[];
-  active: AuxiliaryPanel;
-  chatId: string | null;
-  pageId: string | null;
-  store: WorkspaceStore;
-  /** Render as an overlay drawer instead of an inline splitter panel. */
-  floating?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    side: "left" | "right";
+    panels: AuxiliaryPanel[];
+    active: AuxiliaryPanel;
+    chatId: string | null;
+    pageId: string | null;
+    store: WorkspaceStore;
+    /** Render as an overlay drawer instead of an inline splitter panel. */
+    floating?: boolean;
+    /** Sit on the workspace plane instead of reading as a card. */
+    flat?: boolean;
+    /** Floating rails slide between the closed and open transforms. */
+    open?: boolean;
+  }>(),
+  { floating: false, flat: false, open: true },
+);
 
 const emit = defineEmits<{
   (e: "closePanel", panel: AuxiliaryPanel): void;
@@ -23,6 +30,7 @@ const emit = defineEmits<{
   (e: "move", side: "left" | "right"): void;
   (e: "update:active", panel: AuxiliaryPanel): void;
   (e: "close"): void;
+  (e: "afterClose"): void;
 }>();
 
 const { t } = useI18n();
@@ -41,6 +49,20 @@ function iconFor(panel: AuxiliaryPanel): "forum" | "link" {
 
 function onMove(): void {
   emit("move", props.side === "left" ? "right" : "left");
+}
+
+/** A floating links rail is a page-context overlay; following a link leaves it. */
+function openLinkPage(id: string): void {
+  if (props.floating) emit("closePanel", "links");
+  emit("openPage", id);
+}
+
+/** The shell clears the last panel after the floating rail has slid out. */
+function onAsideTransitionEnd(event: TransitionEvent): void {
+  if (!props.floating || props.open) return;
+  if (event.target !== event.currentTarget || event.propertyName !== "transform") return;
+
+  emit("afterClose");
 }
 
 let drag: { pointerId: number; startX: number } | null = null;
@@ -66,94 +88,111 @@ function endDrag(event: PointerEvent): void {
 </script>
 
 <template>
-  <button
-    v-if="floating"
-    type="button"
-    class="aux-rail__backdrop"
-    :aria-label="$t('common.close')"
-    @click="emit('close')"
-  />
-  <aside
-    class="aux-rail"
-    :class="[`aux-rail--${side}`, { 'aux-rail--floating': floating, 'aux-rail--tabs': showTabs }]"
-    :aria-label="$t('aux.title')"
-  >
-    <div
-      v-if="!floating"
-      class="aux-rail__grip"
-      role="separator"
-      aria-orientation="vertical"
-      :aria-label="moveLabel"
-      tabindex="0"
-      @pointerdown="startDrag"
-      @pointerup="endDrag"
-      @pointercancel="drag = null"
-      @keydown.left.prevent="side === 'right' && emit('move', 'left')"
-      @keydown.right.prevent="side === 'left' && emit('move', 'right')"
+  <div class="aux-rail__layer">
+    <button
+      v-if="floating && open"
+      type="button"
+      class="aux-rail__backdrop"
+      :aria-label="$t('common.close')"
+      @click="emit('close')"
     />
-
-    <div v-if="showTabs" class="aux-rail__tabs">
-      <button
-        v-for="panel in panels"
-        :key="panel"
-        type="button"
-        class="aux-rail__tab"
-        :class="{ 'aux-rail__tab--active': active === panel }"
-        :aria-pressed="active === panel"
-        @click="emit('update:active', panel)"
-      >
-        <MsIcon :name="iconFor(panel)" :size="16" />
-        <span>{{ labelFor(panel) }}</span>
-      </button>
-      <UiIconButton
-        icon="swap_horiz"
-        :label="moveLabel"
-        variant="ghost"
-        class="aux-rail__move"
-        @click="onMove"
+    <aside
+      class="aux-rail"
+      :class="[
+        `aux-rail--${side}`,
+        {
+          'aux-rail--floating': floating,
+          'aux-rail--tabs': showTabs,
+          'aux-rail--flat': flat,
+          'aux-rail--open': open,
+        },
+      ]"
+      :aria-label="$t('aux.title')"
+      @transitionend="onAsideTransitionEnd"
+    >
+      <div
+        v-if="!floating"
+        class="aux-rail__grip"
+        role="separator"
+        aria-orientation="vertical"
+        :aria-label="moveLabel"
+        tabindex="0"
+        @pointerdown="startDrag"
+        @pointerup="endDrag"
+        @pointercancel="drag = null"
+        @keydown.left.prevent="side === 'right' && emit('move', 'left')"
+        @keydown.right.prevent="side === 'left' && emit('move', 'right')"
       />
-      <UiIconButton
-        icon="close"
-        :label="$t('common.close')"
-        variant="ghost"
-        @click="floating ? emit('close') : emit('closePanel', active)"
-      />
-    </div>
 
-    <div v-if="active === 'chat' && chatId" class="aux-rail__body">
-      <ChatPane
-        :key="chatId"
-        :thread-id="chatId"
-        docked
-        @close="emit('closePanel', 'chat')"
-        @expand="emit('expandChat')"
-        @open-page="emit('openPage', $event)"
-        @open-thread="emit('openThread', $event)"
-      >
-        <template v-if="!showTabs" #rail-actions>
-          <UiIconButton icon="swap_horiz" :label="moveLabel" variant="ghost" @click="onMove" />
-        </template>
-      </ChatPane>
-    </div>
+      <div v-if="showTabs" class="aux-rail__tabs">
+        <button
+          v-for="panel in panels"
+          :key="panel"
+          type="button"
+          class="aux-rail__tab"
+          :class="{ 'aux-rail__tab--active': active === panel }"
+          :aria-pressed="active === panel"
+          @click="emit('update:active', panel)"
+        >
+          <MsIcon :name="iconFor(panel)" :size="16" />
+          <span>{{ labelFor(panel) }}</span>
+        </button>
+        <UiIconButton
+          icon="swap_horiz"
+          :label="moveLabel"
+          variant="ghost"
+          class="aux-rail__move"
+          @click="onMove"
+        />
+        <UiIconButton
+          icon="close"
+          :label="$t('common.close')"
+          variant="ghost"
+          @click="floating ? emit('close') : emit('closePanel', active)"
+        />
+      </div>
 
-    <div v-else-if="active === 'links' && pageId" class="aux-rail__body">
-      <LinksPanel
-        :page-id="pageId"
-        :store="store"
-        rail
-        @close="emit('closePanel', 'links')"
-        @open-page="emit('openPage', $event)"
-        @open-graph="emit('openGraph')"
-      >
-        <template v-if="!showTabs" #rail-actions>
-          <UiIconButton icon="swap_horiz" :label="moveLabel" variant="ghost" @click="onMove" />
-        </template>
-      </LinksPanel>
-    </div>
-  </aside>
+      <div v-if="active === 'chat' && chatId" class="aux-rail__body">
+        <ChatPane
+          :key="chatId"
+          :thread-id="chatId"
+          docked
+          @close="emit('closePanel', 'chat')"
+          @expand="emit('expandChat')"
+          @open-page="emit('openPage', $event)"
+          @open-thread="emit('openThread', $event)"
+        >
+          <template v-if="!showTabs" #rail-actions>
+            <UiIconButton icon="swap_horiz" :label="moveLabel" variant="ghost" @click="onMove" />
+          </template>
+        </ChatPane>
+      </div>
+
+      <div v-else-if="active === 'links' && pageId" class="aux-rail__body">
+        <LinksPanel
+          :page-id="pageId"
+          :store="store"
+          rail
+          @close="emit('closePanel', 'links')"
+          @open-page="openLinkPage"
+          @open-graph="emit('openGraph')"
+        >
+          <template v-if="!showTabs" #rail-actions>
+            <UiIconButton icon="swap_horiz" :label="moveLabel" variant="ghost" @click="onMove" />
+          </template>
+        </LinksPanel>
+      </div>
+    </aside>
+  </div>
 </template>
 
 <style>
+/* One root for the component. `display: contents` leaves the inline splitter
+   layout unchanged and lets the fixed floating children position normally. */
+.aux-rail__layer {
+  display: contents;
+}
+
 .aux-rail {
   position: relative;
   display: flex;
@@ -163,6 +202,8 @@ function endDrag(event: PointerEvent): void {
   background: var(--color-surface);
 }
 
+/* The floating rail follows the workspace sidebar: always mounted, transformed
+   by an `open` class, with an instant backdrop. */
 .aux-rail--floating {
   position: fixed;
   top: 0;
@@ -171,19 +212,33 @@ function endDrag(event: PointerEvent): void {
   width: min(92vw, 380px);
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bottom);
-  border: var(--island-border);
   box-shadow: var(--shadow-3);
   overflow: hidden;
+  transition: transform var(--motion-base);
 }
 
 .aux-rail--floating.aux-rail--left {
   left: 0;
+  transform: translateX(-100%);
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
 .aux-rail--floating.aux-rail--right {
   right: 0;
+  transform: translateX(100%);
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.aux-rail--floating.aux-rail--open {
+  transform: translateX(0);
+}
+
+.aux-rail--flat {
+  background: transparent;
+}
+
+.aux-rail--flat .aux-rail__tabs {
+  background: var(--color-backdrop);
 }
 
 .aux-rail__backdrop {

@@ -5,17 +5,23 @@ import type { MaterialSymbol } from "material-symbols";
 import { renamePagePathFor, type WorkspaceStore } from "@typbase/storage";
 
 import { todayISO } from "~/lib/format";
-import { shortcutLabel } from "~/lib/keybindings";
 import { DEFAULT_WORKSPACE_ICON } from "~/lib/symbols";
 
 const props = defineProps<{
   store: WorkspaceStore;
   currentPageId: string | null;
+  /** Whether the page pane is showing. Workspace views mute the page highlight. */
+  pageActive: boolean;
+  /** The narrow shell renders this as a drawer, so the close action is a close. */
+  drawer?: boolean;
+  /** The plugin pane that owns the main view, so its row can show active. */
+  activePluginId?: string | null;
 }>();
 
 const emit = defineEmits<{
   (e: "select", pageId: string): void;
   (e: "openPlugin", instanceId: string): void;
+  /** Opens the command palette and closes the drawer. */
   (e: "search"): void;
   /** Opens the chat pane (last thread or a new one). */
   (e: "chat"): void;
@@ -25,19 +31,14 @@ const emit = defineEmits<{
   (e: "openSite"): void;
   /** Opens the storage explorer. */
   (e: "openFiles"): void;
-  /** Opens the account dialog. */
+  /** Opens the account dialog and closes the drawer. */
   (e: "openAccount"): void;
   /** Collapses the desktop panel / closes the mobile drawer. */
   (e: "collapseRequest"): void;
 }>();
 
-const { workspaces, activeWorkspaceId, atprotoStatus } = useWorkspace();
+const { workspaces, activeWorkspaceId } = useWorkspace();
 const { t, locale } = useI18n();
-const settingsDialog = useSettingsDialog();
-
-const accountMenuLabel = computed(() =>
-  atprotoStatus.value.signedIn ? t("account.menuLabel") : t("account.signIn"),
-);
 
 const workspaceIcon = computed<MaterialSymbol>(() => {
   const info = workspaces.value.find((entry) => entry.id === activeWorkspaceId.value);
@@ -62,8 +63,8 @@ const settings = useWorkspaceValue(
   (store) => store.getSettings(),
 );
 
-/** Chat is opt-in, so its menu entry follows the AI setting. */
-const aiEnabled = computed(() => settings.value?.ai.enabled ?? false);
+/** Rows highlight only while the page pane owns the main view. */
+const highlightedPageId = computed(() => (props.pageActive ? props.currentPageId : ""));
 
 const regularPages = computed(() => pages.value.filter((page) => !page.path.startsWith("daily/")));
 
@@ -103,7 +104,7 @@ const recentDays = computed(() =>
         page.path.slice("daily/".length, "daily/".length + 10) !== todayISO(),
     )
     .sort((a, b) => b.path.localeCompare(a.path))
-    .slice(0, 7),
+    .slice(0, 3),
 );
 
 function dayLabel(page: PageMeta): string {
@@ -120,8 +121,6 @@ async function openToday() {
   const page = await props.store.createDailyNote(todayISO());
   emit("select", page.id);
 }
-
-const packagesOpen = ref(false);
 
 const renameTarget = ref<PageMeta>();
 const renameTitle = ref("");
@@ -303,69 +302,21 @@ function onCreated(page: PageMeta) {
         </UiTooltip>
       </WorkspaceSwitcher>
       <div class="sidebar__header-actions">
-        <UiMenu align="start" :side-offset="6">
-          <template #trigger>
-            <UiIconButton icon="more_vert" :label="$t('sidebar.workspaceActions')" :size="20" />
-          </template>
-          <UiMenuItem icon="search" @select="emit('search')">
-            <span class="sidebar__menu-label">
-              {{ $t("palette.title") }}
-            </span>
-            <UiKbd class="sidebar__menu-key">{{ shortcutLabel("search") }}</UiKbd>
-          </UiMenuItem>
-          <UiMenuItem icon="hub" @select="emit('graph')">
-            <span class="sidebar__menu-label">
-              {{ $t("graph.title") }}
-            </span>
-          </UiMenuItem>
-          <UiMenuItem v-if="aiEnabled" icon="forum" @select="emit('chat')">
-            <span class="sidebar__menu-label">
-              {{ $t("chat.title") }}
-            </span>
-          </UiMenuItem>
-
-          <UiMenuSeparator />
-
-          <UiMenuItem icon="package_2" @select="packagesOpen = true">
-            <span class="sidebar__menu-label">
-              {{ $t("packages.title") }}
-            </span>
-          </UiMenuItem>
-
-          <UiMenuSeparator />
-
-          <UiMenuItem icon="public" @select="emit('openSite')">
-            <span class="sidebar__menu-label">
-              {{ $t("site.dashboard") }}
-            </span>
-          </UiMenuItem>
-          <UiMenuItem icon="folder_open" @select="emit('openFiles')">
-            <span class="sidebar__menu-label">
-              {{ $t("explorer.title") }}
-            </span>
-            <UiKbd class="sidebar__menu-key">{{ shortcutLabel("files") }}</UiKbd>
-          </UiMenuItem>
-
-          <UiMenuSeparator />
-
-          <UiMenuItem icon="account_circle" @select="emit('openAccount')">
-            <span class="sidebar__menu-label">
-              {{ accountMenuLabel }}
-            </span>
-          </UiMenuItem>
-          <UiMenuItem icon="settings" @select="settingsDialog.show()">
-            <span class="sidebar__menu-label">
-              {{ $t("sidebar.workspaceSettings") }}
-            </span>
-            <UiKbd class="sidebar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
-          </UiMenuItem>
-        </UiMenu>
-        <!-- <UiIconButton
-          icon="chevron_left"
-          :label="$t('sidebar.hideSidebar')"
+        <WorkspaceActions
+          @search="emit('search')"
+          @account="emit('openAccount')"
+          @graph="emit('graph')"
+          @chat="emit('chat')"
+          @site="emit('openSite')"
+          @files="emit('openFiles')"
+        />
+        <UiIconButton
+          :icon="drawer ? 'close' : 'left_panel_close'"
+          :label="drawer ? $t('boot.closeNav') : $t('sidebar.hideSidebar')"
+          :size="20"
           class="sidebar__collapse"
           @click="emit('collapseRequest')"
-        /> -->
+        />
       </div>
     </header>
 
@@ -412,7 +363,7 @@ function onCreated(page: PageMeta) {
               <SidebarPageRow
                 :page="page"
                 :categories="categories"
-                :current="page.id === currentPageId"
+                :current="page.id === highlightedPageId"
                 :home="settings.homePageId === page.id"
                 :first="pageIndex === 0"
                 :last="pageIndex === pagesForCategory(null).length - 1"
@@ -472,7 +423,7 @@ function onCreated(page: PageMeta) {
                 <SidebarPageRow
                   :page="page"
                   :categories="categories"
-                  :current="page.id === currentPageId"
+                  :current="page.id === highlightedPageId"
                   :home="settings.homePageId === page.id"
                   :first="pageIndex === 0"
                   :last="pageIndex === pagesForCategory(category.id).length - 1"
@@ -528,12 +479,12 @@ function onCreated(page: PageMeta) {
         <ul class="sidebar__list">
           <li
             class="sidebar__item"
-            :class="{ 'sidebar__item--active': todayPage && todayPage.id === currentPageId }"
+            :class="{ 'sidebar__item--active': todayPage && todayPage.id === highlightedPageId }"
           >
             <button
               type="button"
               class="sidebar__row sidebar__row--today"
-              :aria-current="todayPage && todayPage.id === currentPageId ? 'page' : undefined"
+              :aria-current="todayPage && todayPage.id === highlightedPageId ? 'page' : undefined"
               @click="openToday"
             >
               <MsIcon name="calendar_today" :size="20" />
@@ -561,12 +512,12 @@ function onCreated(page: PageMeta) {
             v-for="day in recentDays"
             :key="day.id"
             class="sidebar__item"
-            :class="{ 'sidebar__item--active': day.id === currentPageId }"
+            :class="{ 'sidebar__item--active': day.id === highlightedPageId }"
           >
             <button
               type="button"
               class="sidebar__row"
-              :aria-current="day.id === currentPageId ? 'page' : undefined"
+              :aria-current="day.id === highlightedPageId ? 'page' : undefined"
               @click="emit('select', day.id)"
             >
               <MsIcon name="event_note" :size="20" />
@@ -591,7 +542,10 @@ function onCreated(page: PageMeta) {
       </div>
 
       <div class="sidebar__section sidebar__section--plugins">
-        <PluginSidebar @open-plugin="emit('openPlugin', $event)" />
+        <PluginSidebar
+          :active-instance-id="activePluginId"
+          @open-plugin="emit('openPlugin', $event)"
+        />
       </div>
     </div>
 
@@ -643,7 +597,6 @@ function onCreated(page: PageMeta) {
       @update:open="(value) => !value && (confirmOpen = false)"
       @confirm="confirmRemove"
     />
-    <PackageBrowser v-if="store" v-model:open="packagesOpen" :store="store" />
   </aside>
 </template>
 
@@ -665,7 +618,7 @@ function onCreated(page: PageMeta) {
   gap: var(--space-2);
   min-height: var(--pane-header-height);
   padding: var(--space-2);
-  background: var(--color-surface-2);
+  background: transparent;
 }
 
 .sidebar__workspace {
@@ -709,7 +662,7 @@ function onCreated(page: PageMeta) {
 .sidebar__name {
   flex: 1;
   min-width: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
@@ -738,10 +691,11 @@ function onCreated(page: PageMeta) {
   padding: 0 var(--space-2) var(--space-2);
 }
 
-/* The line separates sections. The last one has nothing below it to separate
-   from, and a rule at the sidebar's bottom edge reads as a stray border. */
-.sidebar__section:not(:last-child) {
+/* .sidebar__section:not(:last-child) {
   border-bottom: 1px solid var(--color-border);
+} */
+.sidebar__section {
+  border-top: 1px solid var(--color-border);
 }
 
 /* Desktop gives each section its own scroll area: Daily and Plugins cap at
@@ -780,7 +734,7 @@ function onCreated(page: PageMeta) {
   gap: var(--space-2);
   padding: var(--space-2) 0 var(--space-1-5) var(--space-2);
   margin-bottom: calc(-1 * var(--space-1-5));
-  background: var(--color-surface);
+  background: var(--sidebar-bg, var(--color-surface));
   font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;
@@ -808,7 +762,7 @@ function onCreated(page: PageMeta) {
   display: flex;
   align-items: center;
   gap: var(--space-0-5);
-  padding-right: var(--space-1);
+  padding-right: var(--space-1-5);
   border-radius: var(--radius-sm);
   transition: background var(--motion-fast);
 }
@@ -840,7 +794,7 @@ function onCreated(page: PageMeta) {
   flex: 1;
   width: 100%;
   min-width: 0;
-  padding: var(--space-2) var(--space-2-5);
+  padding: var(--space-2);
   font-size: var(--text-md);
   text-align: left;
   font-family: inherit;
@@ -858,6 +812,7 @@ function onCreated(page: PageMeta) {
 .sidebar__item .sidebar__row-more {
   flex: none;
   opacity: 0;
+  border-radius: var(--radius-xs);
   transition: opacity var(--motion-fast);
 }
 
@@ -952,23 +907,5 @@ function onCreated(page: PageMeta) {
   padding: var(--space-2);
   font-size: var(--text-md);
   color: var(--color-text-secondary);
-}
-
-.sidebar__menu-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar__menu-key {
-  margin-left: var(--space-2);
-}
-
-@media (hover: none) and (pointer: coarse) {
-  .sidebar__menu-key {
-    display: none;
-  }
 }
 </style>

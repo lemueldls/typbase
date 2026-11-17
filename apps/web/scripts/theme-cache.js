@@ -8,7 +8,7 @@
       const vars = cached.vars;
       if (vars) {
         for (const key in vars) root.style.setProperty(key, vars[key]);
-        if (vars["--color-surface"]) root.style.backgroundColor = vars["--color-surface"];
+        if (vars["--color-backdrop"]) root.style.backgroundColor = vars["--color-backdrop"];
       }
       if (cached.mode) {
         root.dataset.theme = cached.mode;

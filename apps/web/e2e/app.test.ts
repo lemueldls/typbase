@@ -71,16 +71,30 @@ describe("typbase app", async () => {
     await page.waitForTimeout(300);
   }
 
-  /** The app bar ships off, so tests that need it go through Settings. */
-  async function enableAppBar(page: NuxtPage): Promise<void> {
-    if (await page.locator(".app-bar").count()) return;
+  /** The app bar is on by default. Tests that hide it use the same switch. */
+  async function setAppBar(page: NuxtPage, visible: boolean): Promise<void> {
+    const present = (await page.locator(".app-bar").count()) > 0;
+    if (present === visible) return;
 
-    await page.locator(".sidebar__header-actions button").first().click();
+    await page.keyboard.press("Control+Comma");
     await page.waitForSelector(".settings", { timeout: 30_000 });
     await page.locator(".settings__tab", { hasText: "Appearance" }).click();
     await page.getByRole("switch", { name: "App bar" }).click();
     await page.keyboard.press("Escape");
-    await page.waitForSelector(".app-bar", { timeout: 30_000 });
+
+    if (visible) await page.waitForSelector(".app-bar", { timeout: 30_000 });
+    else
+      await page.waitForFunction(() => !document.querySelector(".app-bar"), null, {
+        timeout: 30_000,
+      });
+  }
+
+  async function enableAppBar(page: NuxtPage): Promise<void> {
+    await setAppBar(page, true);
+  }
+
+  async function disableAppBar(page: NuxtPage): Promise<void> {
+    await setAppBar(page, false);
   }
 
   it("boots into a workspace with an editor", async () => {
@@ -1591,10 +1605,10 @@ describe("typbase app", async () => {
     });
     await page.waitForTimeout(200);
 
-    // The sidebar menu restores focus to its trigger after the palette mounts.
+    // The workspace menu restores focus to its trigger after the palette mounts.
     // The input has to win anyway so typing lands in the search box.
     await page.locator('[aria-label="Workspace actions"]').first().click();
-    await page.getByRole("menuitem", { name: "Search" }).click();
+    await page.locator(".ws-menu").getByRole("button", { name: "Search" }).click();
     await page.waitForSelector(".search-palette", { timeout: 30_000 });
     await expect
       .poll(
@@ -1644,18 +1658,16 @@ describe("typbase app", async () => {
       content: `= Source\n\n#typbase.page-link("${targetId}")\n`,
     });
 
-    // The links panel remembers its open state. Turn it on before the page
-    // mounts so the toggle click is not part of the assertion.
-    await page.evaluate(() => localStorage.setItem("typbase:linksPanel", "true"));
     await showPage(page, targetId, "write");
+    await page.locator('[aria-label="More actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Links" }).click();
+    await page.waitForSelector(".links", { timeout: 30_000 });
 
     await page.waitForFunction(
       ({ id, source }) => (window.__typbase.backlinksFor?.(id) ?? []).includes(source),
       { id: targetId, source: sourceId },
       { timeout: 60_000 },
     );
-
-    await page.waitForSelector(".links", { timeout: 30_000 });
     const text = await page.locator(".links__body").innerText();
     expect(text).toContain("Backlink source");
     expect(text).toContain("#typbase.page-link");
@@ -1733,17 +1745,17 @@ describe("typbase app", async () => {
         `#typbase.page-link(target.id)\n`,
     });
 
-    // The links panel wants pending dynamic pages resolved while it is open.
-    await page.evaluate(() => localStorage.setItem("typbase:linksPanel", "true"));
     await showPage(page, targetId, "write");
+    await page.locator('[aria-label="More actions"]').first().click();
+    await page.getByRole("menuitem", { name: "Links" }).click();
+    await page.waitForSelector(".links", { timeout: 30_000 });
 
+    // The links panel wants pending dynamic pages resolved while it is open.
     await page.waitForFunction(
       ({ id, source }) => (window.__typbase.backlinksFor?.(id) ?? []).includes(source),
       { id: targetId, source: sourceId },
       { timeout: 90_000 },
     );
-
-    await page.waitForSelector(".links", { timeout: 30_000 });
     await expect
       .poll(
         async () => {
@@ -1814,7 +1826,8 @@ describe("typbase app", async () => {
       };
     });
 
-    await page.locator('[aria-label="Workspace settings"]').click();
+    await page.locator('[aria-label="Workspace actions"]').first().click();
+    await page.locator(".ws-menu").getByRole("button", { name: "Workspace settings" }).click();
     await page.waitForSelector(".settings", { timeout: 30_000 });
     await page.locator('[data-tab="content"]').click();
     await page.waitForTimeout(300);
@@ -1862,7 +1875,8 @@ describe("typbase app", async () => {
     const page = await createPage();
     await openApp(page);
 
-    await page.locator('[aria-label="Workspace settings"]').click();
+    await page.locator('[aria-label="Workspace actions"]').first().click();
+    await page.locator(".ws-menu").getByRole("button", { name: "Workspace settings" }).click();
     await page.waitForSelector(".settings", { timeout: 30_000 });
 
     const search = page.getByRole("searchbox", { name: "Search settings" });
@@ -2028,12 +2042,14 @@ describe("typbase app", async () => {
         timeout: 30_000,
       })
       .toMatchObject({ local: true });
-    // "Dock host" has no links, so the local graph has only its root.
+    // The local graph is rooted at the page. The seeded Home query also links
+    // every page, so the node count is not fixed; check the root node itself.
     await expect
-      .poll(() => page.evaluate(() => window.__typbase.graphStats()?.nodes ?? 0), {
-        timeout: 30_000,
-      })
-      .toBe(1);
+      .poll(
+        () => page.evaluate((pageId) => Boolean(window.__typbase.graphNodePoint?.(pageId)), id),
+        { timeout: 30_000 },
+      )
+      .toBe(true);
 
     await page.close();
   });
@@ -2213,11 +2229,8 @@ describe("typbase app", async () => {
 
     await page.locator(".app__nav-toggle").click();
     await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
-    await page
-      .locator(".sidebar__header-actions")
-      .getByRole("button", { name: "Workspace actions" })
-      .click();
-    await page.getByRole("menuitem", { name: "Website settings" }).click();
+    await page.locator('[aria-label="Workspace actions"]').first().click();
+    await page.locator(".ws-menu").getByRole("button", { name: "Website", exact: true }).click();
 
     await page.waitForSelector(".site-view", { timeout: 30_000 });
     // The drawer's entry used to call history.back() after the site route, so
@@ -2236,11 +2249,8 @@ describe("typbase app", async () => {
 
     await page.locator(".app__nav-toggle").click();
     await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
-    await page
-      .locator(".sidebar__header-actions")
-      .getByRole("button", { name: "Workspace actions" })
-      .click();
-    await page.getByRole("menuitem", { name: "Sign in" }).click();
+    await page.locator('[aria-label="Workspace actions"]').first().click();
+    await page.locator(".ws-menu").getByRole("button", { name: "Sign in" }).click();
 
     await page.waitForSelector(".account-dialog", { timeout: 30_000 });
     await page.waitForTimeout(250);
@@ -2488,6 +2498,7 @@ describe("typbase app", async () => {
 
   it("caps the writing column and can fill the pane instead", async () => {
     const page = await createPage();
+    await page.setViewportSize({ width: 1500, height: 900 });
     await openApp(page);
 
     const id = await createTestPage(page, { title: "Measure", content: "A line of prose.\n" });
@@ -2517,6 +2528,176 @@ describe("typbase app", async () => {
       });
     });
     await expect.poll(inset, { timeout: 10_000 }).toBeGreaterThan(0);
+    await page.close();
+  });
+
+  it("keeps rendered frame widths stable through a splitter drag", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Stable widths",
+      content: "A line of prose.\n",
+    });
+    await showPage(page, id, "write");
+    await expect
+      .poll(() => page.locator(".page-view__title").innerText(), { timeout: 30_000 })
+      .toContain("Stable widths");
+    await page.waitForSelector(".typst-render", { timeout: 60_000 });
+    await page.waitForTimeout(300);
+
+    // A previous test may have left the sidebar collapsed, where there is no
+    // handle to drag.
+    const expand = page.locator(".app__nav-toggle--desktop");
+    if ((await expand.count()) > 0) {
+      await expand.click();
+      await page.waitForTimeout(300);
+    }
+
+    const frame = page.locator(".typst-render").first();
+    const width = () =>
+      frame.evaluate((element) => getComputedStyle(element).getPropertyValue("--render-w"));
+    const svgWidth = () =>
+      frame.evaluate((element) => element.querySelector("svg")?.getBoundingClientRect().width ?? 0);
+    const before = await width();
+    const beforeSvg = await svgWidth();
+
+    const handle = page.locator(".app__resize-handle").first();
+    const box = await handle.boundingBox();
+    if (!box) throw new Error("the sidebar handle has no box");
+    const center = { x: box.x + box.width / 2, y: box.y + 300 };
+
+    await page.mouse.move(center.x, center.y);
+    await page.mouse.down();
+    await page.mouse.move(center.x + 100, center.y, { steps: 8 });
+    // Longer than the plugin's recompile debounce: without the drag guard the
+    // frame would reflow here, under the pointer. The SVG itself must keep its
+    // compiled width instead of being clamped by the reset's media max-width.
+    await page.waitForTimeout(400);
+    expect(await width()).toBe(before);
+    expect(await svgWidth()).toBeCloseTo(beforeSvg, 0);
+
+    await page.mouse.up();
+    await expect.poll(width, { timeout: 30_000 }).not.toBe(before);
+
+    // Put the saved layout back so later tests see the default sidebar.
+    await page.mouse.move(center.x + 100, center.y);
+    await page.mouse.down();
+    await page.mouse.move(center.x, center.y, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await page.close();
+  });
+
+  it("keeps a closed aux rail at zero while the sidebar resizes", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // A previous test may have saved a collapsed or very narrow sidebar.
+    await page.addInitScript(() => {
+      localStorage.removeItem("typbase:navWidth");
+      localStorage.removeItem("typbase:sidebarCollapsed");
+    });
+    await openApp(page);
+
+    const expand = page.locator(".app__nav-toggle--desktop");
+    if ((await expand.count()) > 0) {
+      await expand.click();
+      await page.waitForTimeout(300);
+    }
+
+    const nav = page.locator(".app__nav-panel");
+    const aux = page.locator(".app__aux-panel").first();
+    const navWidth = () => nav.evaluate((element) => element.clientWidth);
+    const auxWidth = () => aux.evaluate((element) => element.clientWidth);
+    const handle = page.locator(".app__resize-handle").first();
+
+    const dragSidebarTo = async (delta: number, release: boolean) => {
+      let box = await handle.boundingBox();
+      if (!box && (await expand.count()) > 0) {
+        await expand.click();
+        await page.waitForTimeout(400);
+        box = await handle.boundingBox();
+      }
+      if (!box) throw new Error("the sidebar handle has no box");
+      const x = box.x + box.width / 2;
+      const y = box.y + 300;
+
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + delta, y, { steps: 12 });
+      await page.waitForTimeout(400);
+      if (release) await page.mouse.up();
+      if (release) await page.waitForTimeout(500);
+    };
+
+    // Reka hands the shrinking sidebar's space to its nearest neighbour. The
+    // closed left rail used to take it and stay expanded with no content, both
+    // while dragging from the maximum width down and after the release.
+    await dragSidebarTo(400, true);
+    await dragSidebarTo(-210, false);
+
+    expect(await navWidth()).toBeLessThan(320);
+    expect(await auxWidth()).toBe(0);
+
+    await page.mouse.up();
+    await expect.poll(auxWidth, { timeout: 10_000 }).toBe(0);
+
+    // Dragging all the way left collapses the sidebar. The closed rail must
+    // not take the space the sidebar leaves behind.
+    await dragSidebarTo(-400, false);
+    expect(await navWidth()).toBe(0);
+    expect(await auxWidth()).toBe(0);
+
+    await page.mouse.up();
+    await expect.poll(auxWidth, { timeout: 10_000 }).toBe(0);
+
+    // The handle is gone with the sidebar. The toolbar button brings it back.
+    if (await handle.boundingBox()) await dragSidebarTo(40, true);
+    else if ((await expand.count()) > 0) await expand.click();
+    await page.close();
+  });
+
+  it("keeps the aux rail readable while it opens and closes", async () => {
+    const page = await createPage();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openApp(page);
+
+    const openLinks = async () => {
+      await page.locator('[aria-label="More actions"]').first().click();
+      await page.getByRole("menuitem", { name: "Links" }).click();
+      await page.locator(".links").waitFor({ timeout: 30_000 });
+    };
+
+    await openLinks();
+    await page.waitForSelector(".links__row", { timeout: 30_000 });
+
+    const body = page.locator(".app__aux-panel--right .app__aux-panel-body");
+    const width = () =>
+      body.evaluate((element) => Math.round(element.getBoundingClientRect().width));
+    const settled = await width();
+    expect(settled).toBeGreaterThan(300);
+
+    const row = page.locator(".links__row").first();
+    const rowHeight = () =>
+      row.evaluate((element) => Math.round(element.getBoundingClientRect().height));
+    const height = await rowHeight();
+
+    // The aside narrows first. Below the rail minimum the contents keep a
+    // readable width, so the text does not wrap one word per line.
+    await page.getByRole("button", { name: "Collapse panel" }).click();
+    await page.waitForTimeout(60);
+    expect(await width()).toBeGreaterThanOrEqual(320);
+    expect(await rowHeight()).toBe(height);
+    await page.waitForTimeout(500);
+    expect(await page.locator(".links").count()).toBe(0);
+
+    await openLinks();
+    await page.waitForTimeout(300);
+    expect(await width()).toBe(settled);
+
+    await page.getByRole("button", { name: "Collapse panel" }).click();
+    await page.waitForTimeout(300);
     await page.close();
   });
 
@@ -2847,17 +3028,21 @@ describe("typbase app", async () => {
     await page.close();
   });
 
-  it("keeps the app bar off until the setting turns it on", async () => {
+  it("shows the app bar by default and remembers when it is turned off", async () => {
     const page = await createPage();
     await openApp(page);
 
-    expect(await page.locator(".app-bar").count()).toBe(0);
+    expect(await page.locator(".app-bar").count()).toBe(1);
 
-    await enableAppBar(page);
+    await disableAppBar(page);
+    expect(await page.locator(".app-bar").count()).toBe(0);
 
     // The choice is device-local, so it outlives the document.
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector(".cm-editor", { timeout: 120_000 });
+    expect(await page.locator(".app-bar").count()).toBe(0);
+
+    await enableAppBar(page);
     await page.waitForSelector(".app-bar", { timeout: 30_000 });
 
     await page.close();
@@ -2877,7 +3062,25 @@ describe("typbase app", async () => {
     await page.waitForSelector(".menubar__content", { timeout: 30_000 });
     // Named rather than counted: the menu grows, and a count would only say
     // that it changed.
-    for (const label of ["New page", "Today", "Search", "Export workspace", "Workspace settings"]) {
+    for (const label of ["New page", "Today", "Export workspace"]) {
+      await expect(
+        page.locator(".menubar__content .menu__item", { hasText: label }).count(),
+      ).resolves.toBe(1);
+    }
+
+    await page.locator(".menubar__trigger", { hasText: "Workspace" }).click();
+    await page.waitForFunction(
+      () => document.querySelectorAll(".menubar__content").length === 1,
+      null,
+      { timeout: 30_000 },
+    );
+    for (const label of [
+      "Backlink graph",
+      "Workspace settings",
+      "Website",
+      "Storage explorer",
+      "Packages",
+    ]) {
       await expect(
         page.locator(".menubar__content .menu__item", { hasText: label }).count(),
       ).resolves.toBe(1);
@@ -2894,6 +3097,22 @@ describe("typbase app", async () => {
     expect(
       await page.locator(".menubar__content .menu__item", { hasText: "Hide sidebar" }).count(),
     ).toBe(1);
+
+    // Arrow keys move between open menus in both directions. The left one
+    // used to close the bar instead of opening the previous menu.
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".menubar__content")?.textContent?.includes("Workspace settings"),
+      null,
+      { timeout: 30_000 },
+    );
+    await page.keyboard.press("ArrowRight");
+    await page.waitForFunction(
+      () => document.querySelector(".menubar__content")?.textContent?.includes("Hide sidebar"),
+      null,
+      { timeout: 30_000 },
+    );
 
     const panelWidth = () =>
       page.evaluate(() => {
@@ -2925,8 +3144,11 @@ describe("typbase app", async () => {
       null,
       { timeout: 30_000 },
     );
-    // Reka restores the size the panel had before it collapsed.
-    expect(Math.abs((await panelWidth()) - expanded)).toBeLessThanOrEqual(2);
+    // Reka restores the size the panel had before it collapsed. The collapse
+    // transition runs first, so poll instead of measuring mid-animation.
+    await expect
+      .poll(async () => Math.abs((await panelWidth()) - expanded), { timeout: 5_000 })
+      .toBeLessThanOrEqual(2);
     // Let the splitter animation finish before the next click lands.
     await page.waitForTimeout(500);
 

@@ -152,7 +152,7 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-md);
   color: var(--color-text);
-  border-radius: var(--radius-sm);
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-2)));
   cursor: pointer;
   user-select: none;
 }

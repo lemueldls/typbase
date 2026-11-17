@@ -1,0 +1,512 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* The shell is a column: the app bar, then the panes. The content div controls the
+   dim and the inert state while a workspace switches, which its children used to
+   cover when it was `display: contents`. */
+.app__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--island-gap);
+  padding: var(--island-gap);
+}
+
+.app__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 0;
+}
+
+/* Focus mode: the page keeps the window. The app bar and the sidebar are
+   already gone through their own state; this drops the pane toolbars, the
+   notebook toolbar, the format strip, and the links panel. */
+.app__content--zen .page-view__toolbar,
+.app__content--zen .page-view__format,
+.app__content--zen .page-view__handle,
+.app__content--zen .notebook-toolbar,
+.app__content--zen .links,
+.app__content--zen .app__nav-toggle {
+  display: none;
+}
+
+.app__zen-exit {
+  position: fixed;
+  top: calc(var(--space-2) + var(--safe-top));
+  right: calc(var(--space-2) + var(--safe-right));
+  z-index: var(--z-menu);
+  opacity: 0.5;
+}
+
+.app__zen-exit:hover,
+.app__zen-exit:focus-visible {
+  color: var(--color-text);
+  opacity: 1;
+}
+
+/* Workspace switch feedback: a floating status pill over the dimmed, inert
+   content area (see .app__content--switching). */
+.app__switching {
+  position: fixed;
+  top: calc(var(--space-3-5) + var(--safe-top));
+  left: 50%;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3-5);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+  animation: app-switching-in var(--motion-fast);
+  transform: translateX(-50%);
+}
+
+.app__switching-spinner {
+  width: calc(0.95rem * var(--ui-size));
+  height: calc(0.95rem * var(--ui-size));
+  flex: none;
+  border: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: app-switching-spin 0.7s linear infinite;
+}
+
+.app__switching-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@keyframes app-switching-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes app-switching-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(var(--space-1) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.app__content--switching > * {
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity var(--motion-fast);
+}
+
+.app__chooser {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+.app__main {
+  position: relative;
+  min-width: 0;
+}
+
+/* Desktop layout: the sidebar and aux rails are px-sized flex items, so they
+   keep their width when the window resizes and only the main panel flexes. */
+.app__splitter {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0;
+}
+
+/* The workspace plane. The sidebar is chrome behind the document, so it has
+   no card of its own. The page is the only raised surface. */
+.app__nav-panel {
+  --sidebar-bg: var(--color-backdrop);
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  background: transparent;
+  transition: width var(--motion-base);
+}
+
+.app__main-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: var(--island-border);
+  border-radius: var(--island-radius);
+  box-shadow: var(--island-shadow);
+}
+
+.app__aux-panel {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: var(--island-border);
+  border-radius: var(--island-radius);
+  box-shadow: var(--island-shadow);
+  transition: width var(--motion-base);
+}
+
+/* The rail's contents follow a drag, but stop shrinking below the rail's
+   minimum. During the open/close animation the container is still narrow, so
+   the content keeps a readable width and is clipped instead of wrapping one
+   word per line. 320px matches AUX_MIN_WIDTH in shellLayout. */
+.app__aux-panel-body {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+}
+
+/* Chat is workspace context. Links is page context and keeps the card. */
+.app__aux-panel--workspace {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* A rail with no content is on its way out, so it must not paint an empty
+   card while the splitter shrinks it. This happens when a resize crosses from
+   the inline rail to the floating drawer. */
+.app__aux-panel--idle {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Collapse and expand animate; dragging a handle stays 1:1. */
+.app__splitter--resizing {
+  user-select: none;
+}
+
+.app__splitter--resizing .app__nav-panel,
+.app__splitter--resizing .app__aux-panel {
+  transition: none;
+}
+
+.app__nav-panel--collapsed {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app__nav-panel .sidebar {
+  border-right: 0;
+}
+
+.app__main-panel .app__main {
+  height: 100%;
+}
+
+.app__resize-handle {
+  width: var(--island-gap);
+  flex: 0 0 var(--island-gap);
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.app__resize-handle::before {
+  content: "";
+  position: absolute;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width var(--motion-fast);
+}
+
+.app__resize-handle:hover::before,
+.app__resize-handle:focus-visible::before,
+.app__resize-handle[data-resize-handle-active]::before {
+  width: 3px;
+}
+
+/* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
+   in the toolbar flow (MainPane slot), so it pushes content rather than
+   floating over it.
+
+   The desktop variant renders whenever the desktop shell does. Its icon and
+   label flip with the sidebar state so it can collapse and expand. */
+.app__main .app__nav-toggle,
+.app__backdrop {
+  display: none;
+}
+
+.app__main .app__nav-toggle--desktop {
+  display: inline-flex;
+  padding: var(--space-1-5) var(--space-2);
+}
+
+.app__main .app__nav-toggle:focus-visible,
+.app__main .app__nav-toggle--desktop:focus-visible {
+  background: var(--color-surface-2);
+}
+
+@media (max-width: 56rem) {
+  .app__main .app__nav-toggle {
+    display: inline-flex;
+  }
+
+  .app__content {
+    padding: 0;
+    gap: 0;
+  }
+
+  .app__main {
+    padding-top: var(--safe-top);
+  }
+
+  .app__nav-panel,
+  .app__main-panel,
+  .app__aux-panel {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app__nav {
+    --sidebar-bg: var(--color-surface);
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: var(--z-drawer);
+    width: min(84vw, 320px);
+    transform: translateX(-100%);
+    background: var(--color-surface);
+    transition: transform var(--motion-base);
+    box-shadow: var(--shadow-3);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    overflow: hidden;
+  }
+
+  .app__nav--open {
+    transform: translateX(0);
+  }
+
+  .app__backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-drawer-backdrop);
+    background: var(--color-overlay);
+    border: none;
+  }
+}
+
+.app__content--zen {
+  padding: 0;
+  gap: 0;
+}
+
+.app__content--zen .app__nav-panel,
+.app__content--zen .app__main-panel,
+.app__content--zen .app__aux-panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app__splash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-splash);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: var(--color-backdrop);
+  color: var(--color-text);
+  user-select: none;
+}
+
+.app__splash-mark {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: block;
+}
+
+.app__splash-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.app__splash-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* width: min(20rem, 80vw); */
+}
+
+.app__splash-step-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app__splash-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.app__splash-step--pending {
+  opacity: 0.5;
+}
+
+.app__splash-step--active {
+  color: var(--color-text);
+}
+
+.app__splash-step--error {
+  color: var(--color-danger);
+}
+
+.app__splash-step-mark {
+  display: grid;
+  place-content: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 50%;
+}
+
+.app__splash-step-mark--active {
+  border-color: var(--color-accent);
+  border-top-color: transparent;
+  animation: app-splash-spin 0.8s linear infinite;
+}
+
+.app__splash-step-mark--done {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.app__splash-step-mark--error {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+}
+
+.app__splash-step-check {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+.app__splash-step-detail {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+@keyframes app-splash-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app__splash-bar {
+  position: relative;
+  width: 11rem;
+  height: 0.25rem;
+  overflow: hidden;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.app__splash-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: var(--color-accent);
+  border-radius: inherit;
+  animation: app-splash-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes app-splash-slide {
+  0% {
+    left: -40%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}
+
+.app__splash-step {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.app__splash-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.app__splash-note {
+  max-width: 26rem;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.app__splash-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.splash-leave-active {
+  transition: opacity var(--motion-slow);
+}
+
+.splash-leave-to {
+  opacity: 0;
+}
+
+.app__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: var(--color-surface);
+}

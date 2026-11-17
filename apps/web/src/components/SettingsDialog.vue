@@ -27,6 +27,7 @@ import {
 import type { ComboboxOption } from "~/components/ui/Combobox.vue";
 import type { SelectOption } from "~/components/ui/Select.vue";
 
+import { pushToast } from "~/composables/toasts";
 import { BUNDLED_FONTS } from "~/composables/typst";
 import { getAiKeys, setAiKey } from "~/lib/ai/keys";
 import {
@@ -950,6 +951,15 @@ async function renameWorkspace(event: Event) {
   const name = (event.target as HTMLInputElement).value.trim();
   if (name) props.store.updateSettings({ name });
 }
+
+async function copyWorkspaceId(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(workspaceId.value);
+    pushToast({ titleKey: "common.copied", duration: 1800 });
+  } catch (cause) {
+    console.error("[settings] copy workspace id failed:", cause);
+  }
+}
 </script>
 
 <template>
@@ -1085,6 +1095,30 @@ async function renameWorkspace(event: Event) {
                     />
                   </UiPopover>
                 </div>
+              </SettingsRow>
+
+              <SettingsRow
+                :label="$t('settings.workspaceId')"
+                :hint="$t('settings.workspaceIdHint')"
+                anchor="workspace-id"
+                stacked
+              >
+                <UiTextField
+                  :value="workspaceId"
+                  readonly
+                  spellcheck="false"
+                  :label="$t('settings.workspaceId')"
+                  class="settings__workspace-id"
+                >
+                  <template #trailing>
+                    <UiIconButton
+                      icon="content_copy"
+                      :label="$t('common.copyWorkspaceId')"
+                      variant="ghost"
+                      @click="copyWorkspaceId"
+                    />
+                  </template>
+                </UiTextField>
               </SettingsRow>
             </SettingsSection>
 
@@ -2408,6 +2442,21 @@ async function renameWorkspace(event: Event) {
 
 .settings__storage-label {
   font-size: var(--text-md);
+}
+
+.settings__workspace-id {
+  padding-right: var(--space-0-5);
+}
+
+.settings__workspace-id .ui-text-field__input {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.settings__workspace-id .button {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border-radius: max(0px, calc(var(--radius-sm) - 1px - var(--space-0-5)));
 }
 
 .settings__storage-path {

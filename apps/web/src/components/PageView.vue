@@ -20,7 +20,6 @@ import {
 } from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
 
-import { pushToast } from "~/composables/toasts";
 import {
   beginRecovery,
   canAutoRebuild,
@@ -114,7 +113,9 @@ useResizeObserver(pageView, (entries) => {
   const entry = entries[0];
   if (entry) paneWidth.value = entry.contentRect.width;
 });
-const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 768);
+/** Matches the page-view container query (56rem), so the buttons that move
+ *  into the page menu disappear in the same step as the mode tabs. */
+const compact = computed(() => paneWidth.value > 0 && paneWidth.value <= 896);
 const coarsePointer = useMediaQuery("(hover: none) and (pointer: coarse)");
 
 function onKeydown(event: KeyboardEvent): void {
@@ -521,14 +522,6 @@ const aiEnabled = useWorkspaceValue(
   false,
 );
 
-/** Category choices for the toolbar menu. */
-const categories = useWorkspaceValue(
-  workspace,
-  ["categories"],
-  (value) => value.listCategories(),
-  [],
-);
-
 const chat = useChat();
 
 /** Opens the chat pane seeded with this page (or the selection). */
@@ -886,16 +879,6 @@ watch(
   },
   { immediate: true },
 );
-
-/** The page id is opaque, so the menu is the only way to get at it. */
-async function copyPageId(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(props.pageId);
-    pushToast({ titleKey: "common.copied", duration: 1800 });
-  } catch (cause) {
-    console.error("[page] copy id failed:", cause);
-  }
-}
 
 function getSelection(): { from: number; to: number; text: string } | null {
   const view = editorPane.value?.view;
@@ -1386,17 +1369,6 @@ function onModeKeydown(event: KeyboardEvent) {
   const next = list[(index + delta + list.length) % list.length];
   if (next) emit("update:modelValue", next.id);
 }
-
-/** The open page's kind flip. index.vue syncs the view mode to it. */
-function convertPageKind(): void {
-  const kind = meta.value?.kind === "notebook" ? "document" : "notebook";
-  void store.updatePageKind(props.pageId, kind);
-}
-
-/** Moves the open page into a category, or out of one, from the toolbar menu. */
-function setCategory(categoryId: string | null): void {
-  void store.updatePageCategory(props.pageId, categoryId);
-}
 </script>
 
 <template>
@@ -1405,6 +1377,7 @@ function setCategory(categoryId: string | null): void {
       <div class="page-view__toolbar-main">
         <div class="page-view__toolbar-main-left">
           <slot name="nav-toggle" />
+          <slot name="scope" />
           <UiTruncatedText class="page-view__title" :text="meta?.title ?? pageId" />
         </div>
 
@@ -1524,6 +1497,7 @@ function setCategory(categoryId: string | null): void {
             <template #trigger>
               <UiIconButton
                 :icon="activeMode.icon"
+                variant="plain"
                 :label="`${$t('pageView.viewMode')}: ${$t(activeMode.key)}`"
                 :disabled="!ready"
               />
@@ -1590,49 +1564,11 @@ function setCategory(categoryId: string | null): void {
 
           <UiMenuSeparator v-if="(store && aiEnabled) || (compact && modelValue !== 'read')" />
 
-          <UiMenuItem
-            :icon="meta?.kind === 'notebook' ? 'description' : 'view_agenda'"
-            :disabled="!ready"
-            @select="convertPageKind"
-          >
-            <span class="page-view__menu-label">
-              {{
-                meta?.kind === "notebook"
-                  ? $t("common.convertToDocument")
-                  : $t("common.convertToNotebook")
-              }}
-            </span>
-          </UiMenuItem>
-
-          <UiMenuSub icon="category" :label="$t('common.setCategory')" :disabled="!ready">
-            <UiMenuItem :checked="!meta?.categoryId" @select="setCategory(null)">
-              <span class="page-view__menu-label">
-                {{ $t("newPage.noCategory") }}
-              </span>
-            </UiMenuItem>
-            <UiMenuItem
-              v-for="category in categories"
-              :key="category.id"
-              :checked="meta?.categoryId === category.id"
-              @select="setCategory(category.id)"
-            >
-              <span class="page-view__menu-label">
-                {{ category.name }}
-              </span>
-            </UiMenuItem>
-          </UiMenuSub>
-
           <UiMenuItem icon="link" @select="linksOpen = true">
             <span class="page-view__menu-label">
               {{ $t("links.title") }}
             </span>
             <UiKbd class="page-view__menu-key">{{ shortcutLabel("links") }}</UiKbd>
-          </UiMenuItem>
-
-          <UiMenuItem icon="content_copy" :disabled="!ready" @select="copyPageId">
-            <span class="page-view__menu-label">
-              {{ $t("common.copyId") }}
-            </span>
           </UiMenuItem>
 
           <UiMenuSeparator />
@@ -1792,8 +1728,7 @@ function setCategory(categoryId: string | null): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2);
   min-height: var(--pane-header-height);
   padding: var(--pane-header-pad-x);
   background: var(--color-surface-2);
@@ -1818,14 +1753,19 @@ function setCategory(categoryId: string | null): void {
 .page-view__toolbar-main-left {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-2);
   min-width: 0;
   flex: 1 1 0;
 }
 
 .page-view__title {
   min-width: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 600;
+}
+
+/* With no crumb or toggle before it, keep the title's original inset. */
+.page-view__toolbar-main-left .page-view__title:first-child {
   margin-left: var(--space-2);
 }
 
@@ -1878,7 +1818,7 @@ function setCategory(categoryId: string | null): void {
   flex: none;
 }
 
-@container page-view (max-width: 48rem) {
+@container page-view (max-width: 56rem) {
   .page-view__toolbar-main {
     width: 100%;
   }
@@ -1918,7 +1858,7 @@ function setCategory(categoryId: string | null): void {
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: max(0px, calc(var(--radius-md) - 1px - var(--space-0-5)));
   cursor: pointer;
 }
 
@@ -1928,7 +1868,7 @@ function setCategory(categoryId: string | null): void {
 
 .page-view__mode:hover {
   color: var(--color-text);
-  /* background: var(--color-surface-3); */
+  /* background: var(--color-surface-2); */
 }
 
 .page-view__mode:disabled {

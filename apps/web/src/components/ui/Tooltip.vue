@@ -20,7 +20,7 @@ withDefaults(
       <slot />
     </TooltipTrigger>
     <TooltipPortal>
-      <TooltipContent class="ui-tooltip" :side="side" :side-offset="6">
+      <TooltipContent class="ui-tooltip" :side="side">
         {{ text }}
         <TooltipArrow class="ui-tooltip__arrow" :width="10" :height="5" />
       </TooltipContent>

@@ -45,7 +45,7 @@ useBackLayer(open);
     </SelectTrigger>
 
     <SelectPortal>
-      <SelectContent class="ui-select__content" position="popper" :side-offset="4">
+      <SelectContent class="ui-select__content" position="popper">
         <SelectViewport class="ui-select__viewport">
           <SelectItem
             v-for="option in options"

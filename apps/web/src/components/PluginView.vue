@@ -30,7 +30,8 @@ const hasWindow = computed(() =>
   <div class="plugin-view">
     <div class="plugin-view__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
-      <MsIcon :name="icon" :size="20" />
+      <slot name="scope" />
+      <!-- <MsIcon :name="icon" :size="20" /> -->
       <UiTruncatedText class="plugin-view__title" :text="title" />
       <div class="plugin-view__actions">
         <UiIconButton
@@ -68,7 +69,7 @@ const hasWindow = computed(() =>
 
 .plugin-view__title {
   min-width: 0;
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 600;
 }
 

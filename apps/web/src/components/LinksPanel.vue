@@ -85,6 +85,7 @@ function mentionCount(group: BacklinkGroup): string {
     <header class="links__header">
       <!-- <MsIcon name="link" :size="20" /> -->
       <span class="links__title">{{ t("links.title") }}</span>
+      <!-- <UiTruncatedText class="links__context" :text="title(pageId)" /> -->
       <span class="links__counts">
         {{ t("links.countOutgoing", { count: records.length }) }} ·
         {{ t("links.countBacklinks", { count: backlinks.length }) }}
@@ -115,7 +116,10 @@ function mentionCount(group: BacklinkGroup): string {
 
     <div v-else class="links__body">
       <section class="links__section" :aria-label="t('links.outgoing')">
-        <h3 class="links__section-title">{{ t("links.outgoing") }}</h3>
+        <h3 class="links__section-title">
+          <span>{{ t("links.outgoing") }}</span>
+          <span class="links__section-count">{{ records.length }}</span>
+        </h3>
         <p v-if="records.length === 0" class="links__empty">{{ t("links.noOutgoing") }}</p>
         <ul v-else class="links__list">
           <li v-for="record in records" :key="`${record.sourceId}:${record.from}`">
@@ -126,25 +130,10 @@ function mentionCount(group: BacklinkGroup): string {
                 class="links__row-icon"
               />
               <span class="links__row-body">
-                <span class="links__row-head">
-                  <UiTruncatedText
-                    class="links__row-title"
-                    :text="record.targetId ? title(record.targetId) : record.target"
-                  />
-                  <!-- <span v-if="record.pending" class="links__stale">
-                    {{ t("links.stale") }}
-                  </span> -->
-                  <!-- <span v-else-if="!record.targetId" class="links__dangling">
-                    {{ t("links.dangling") }}
-                  </span> -->
-                </span>
-                <span class="links__snippet"
-                  ><span>{{ record.snippet.text.slice(0, record.snippet.from) }}</span
-                  ><mark class="links__mark">{{
-                    record.snippet.text.slice(record.snippet.from, record.snippet.to)
-                  }}</mark
-                  ><span>{{ record.snippet.text.slice(record.snippet.to) }}</span></span
-                >
+                <UiTruncatedText
+                  class="links__row-title"
+                  :text="record.targetId ? title(record.targetId) : record.target"
+                />
               </span>
             </button>
           </li>
@@ -152,7 +141,10 @@ function mentionCount(group: BacklinkGroup): string {
       </section>
 
       <section class="links__section" :aria-label="t('links.backlinks')">
-        <h3 class="links__section-title">{{ t("links.backlinks") }}</h3>
+        <h3 class="links__section-title">
+          <span>{{ t("links.backlinks") }}</span>
+          <span class="links__section-count">{{ backlinks.length }}</span>
+        </h3>
         <p v-if="backlinks.length === 0" class="links__empty">{{ t("links.noBacklinks") }}</p>
         <ul v-else class="links__list">
           <li v-for="group in backlinks" :key="group.pageId" class="links__group">
@@ -227,6 +219,15 @@ function mentionCount(group: BacklinkGroup): string {
   color: var(--color-text);
 }
 
+.links__context {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .links__counts {
   min-width: 0;
   overflow: hidden;
@@ -272,12 +273,23 @@ function mentionCount(group: BacklinkGroup): string {
 }
 
 .links__section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
   margin: 0 0 var(--space-1);
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-secondary);
+}
+
+.links__section-count {
+  flex: none;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .links__list,

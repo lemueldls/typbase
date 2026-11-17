@@ -546,16 +546,14 @@ function fontFeatureSettings(typography: SkinTypography): string {
 }
 
 /**
- * The backdrop sits behind the island gap. It is one step darker than the
- * panes in both modes, so the gap reads without a border. Dark themes use a
- * deeper step because shadows do less work there.
+ * The backdrop sits behind the island gap. Light themes author the step below
+ * the page as `surface3`, so that is the plane. The dark ramp steps up instead,
+ * leaving no authored color under the surface, so dark themes darken theirs.
  */
 export function backdropFor(palette: ThemePaletteTokens, mode: "light" | "dark" = "light"): string {
   const dark = mode === "dark" || relativeLuminance(parseColor(palette.surface)) < 0.35;
 
-  return dark
-    ? mixHex("#000000", palette.surface, 0.48)
-    : mixHex("#000000", palette.surface, 0.055);
+  return dark ? mixHex("#000000", palette.surface, 0.48) : palette.surface3;
 }
 
 /**

@@ -248,17 +248,18 @@ function applySuggestion(text: string): void {
   <div class="chat-pane" :class="{ 'chat-pane--docked': docked }">
     <div class="chat-pane__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
+      <slot name="scope" />
       <!-- <MsIcon name="forum" :size="20" /> -->
       <UiTruncatedText class="chat-pane__title" :text="threadTitle" />
 
-      <!-- <UiTooltip v-if="contextPage" :text="$t('chat.openContextPage')">
+      <UiTooltip v-if="contextPage" :text="$t('chat.openContextPage')">
         <button type="button" class="chat-pane__context" @click="emit('openPage', contextPage.id)">
           <MsIcon name="description" :size="14" />
           <span class="chat-pane__context-title">
             {{ $t("chat.aboutPage", { title: contextPage.title }) }}
           </span>
         </button>
-      </UiTooltip> -->
+      </UiTooltip>
 
       <div class="chat-pane__actions">
         <slot name="rail-actions" />
@@ -370,7 +371,7 @@ function applySuggestion(text: string): void {
 .chat-pane__title {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 600;
   margin-left: var(--space-2);
   white-space: nowrap;

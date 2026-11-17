@@ -2,6 +2,8 @@
 import type { PluginInstance } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
+const props = defineProps<{ activeInstanceId?: string | null }>();
+
 const emit = defineEmits<{ (e: "openPlugin", instanceId: string): void }>();
 
 const plugins = usePlugins();
@@ -69,7 +71,13 @@ function openInstanceById(instanceId: string): void {
 
     <ul v-if="rows.length" class="plugin-sidebar__list">
       <li v-for="instance in rows" :key="instance.id">
-        <button type="button" class="plugin-sidebar__row" @click="openRow(instance)">
+        <button
+          type="button"
+          class="plugin-sidebar__row"
+          :class="{ 'plugin-sidebar__row--active': instance.id === props.activeInstanceId }"
+          :aria-current="instance.id === props.activeInstanceId ? 'true' : undefined"
+          @click="openRow(instance)"
+        >
           <MsIcon :name="iconOf(instance)" :size="20" />
           <UiTruncatedText class="plugin-sidebar__label" :text="instance.title" />
           <span
@@ -108,7 +116,7 @@ function openInstanceById(instanceId: string): void {
   gap: var(--space-2);
   padding: var(--space-2) 0 var(--space-1-5) var(--space-2);
   margin-bottom: calc(-1 * var(--space-1-5));
-  background: var(--color-surface);
+  background: var(--sidebar-bg, var(--color-surface));
   font-size: var(--text-md);
   font-weight: 600;
   text-transform: uppercase;
@@ -144,6 +152,11 @@ function openInstanceById(instanceId: string): void {
 
 .plugin-sidebar__row:hover {
   background: var(--color-surface-2);
+}
+
+.plugin-sidebar__row--active,
+.plugin-sidebar__row--active:hover {
+  background: var(--color-accent-soft);
 }
 
 .plugin-sidebar__label {

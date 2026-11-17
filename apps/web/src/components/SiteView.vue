@@ -732,6 +732,7 @@ function copy(value: string): Promise<void> {
       <div class="site-view__header-inner">
         <div class="site-view__heading">
           <slot name="nav-toggle" />
+          <slot name="scope" />
           <div class="site-view__title-group">
             <!-- <MsIcon name="public" :size="24" /> -->
             <div class="site-view__title-copy">
@@ -1827,7 +1828,7 @@ function copy(value: string): Promise<void> {
 
 .site-view__title {
   margin: 0 0 0 var(--space-2);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   line-height: var(--leading-tight);
 }
 

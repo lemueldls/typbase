@@ -82,7 +82,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <UiPopover v-model:open="open" align="end" :side-offset="6" class="app-bar-account">
+  <UiPopover v-model:open="open" align="end" class="app-bar-account">
     <template #trigger>
       <UiTooltip :text="label">
         <button type="button" class="app-bar-account__trigger" :class="tone">
