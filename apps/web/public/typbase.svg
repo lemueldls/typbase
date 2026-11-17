@@ -17,8 +17,8 @@
    xmlns:dc="http://purl.org/dc/elements/1.1/">
   <sodipodi:namedview
      inkscape:current-layer="g2"
-     inkscape:cx="15.455325"
-     inkscape:cy="17.206255"
+     inkscape:cx="8.4377347"
+     inkscape:cy="9.3624179"
      inkscape:deskcolor="#505050"
      inkscape:pagecheckerboard="0"
      inkscape:pageopacity="0"
@@ -28,7 +28,7 @@
      inkscape:window-width="1408"
      inkscape:window-x="0"
      inkscape:window-y="0"
-     inkscape:zoom="14.849251"
+     inkscape:zoom="12.977417"
      bordercolor="#eeeeee"
      borderopacity="1"
      pagecolor="#505050"
@@ -115,11 +115,11 @@
        style="fill:#293133;stroke-width:.0745361"
        id="path3" />
     <path
-       inkscape:path-effect="#path-effect5"
        sodipodi:nodetypes="cccccccccccc"
        d="M8.25 23h5.5a1.059017 1.059017 13.282526 0 1 .473607.111803L16 24l1.776393-.888197A1.059017 1.059017 166.71747 0 1 18.25 23h5.5a.25.25 45 0 1 .25.25v1.5a.25.25 135 0 1-.25.25h-4.5a1.059017 1.059017 166.71747 0 0-.473607.111803l-1.552786.776394A1.059017 1.059017 166.71747 0 1 16.75 26h-1.5a1.059017 1.059017 13.282526 0 1-.473607-.111803l-1.552786-.776394A1.059017 1.059017 13.282526 0 0 12.75 25h-4.5a.25.25 45 0 1-.25-.25v-1.5a.25.25 135 0 1 .25-.25"
        style="fill:#293133;fill-opacity:1;stroke:none;stroke-width:40"
-       id="path4" />
+       id="path4"
+       inkscape:path-effect="#path-effect5" />
   </g>
   <metadata
      id="metadata4">
