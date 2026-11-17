@@ -26,8 +26,6 @@ body {
   background: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
-/* Set by the list drag while a reorder is live: no text selection, and the
-   cursor reads as "dragging something". */
 body.is-reordering {
   user-select: none;
   cursor: grabbing;
@@ -38,13 +36,6 @@ body.is-reordering {
   opacity: 1;
 }
 
-/*
- * Overlay fade. reka-ui's Presence waits for `animationend` on the element
- * before unmounting, so the exit has to be a keyframe (it never waits on a
- * transition). One duration for every portaled layer keeps dialogs, menus,
- * selects, tooltips, and toasts feeling like the same surface. Each overlay
- * component declares the animation for its own element.
- */
 @keyframes ui-overlay-fade-in {
   from {
     opacity: 0;

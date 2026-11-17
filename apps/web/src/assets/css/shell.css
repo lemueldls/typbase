@@ -6,9 +6,6 @@
   overflow: hidden;
 }
 
-/* The shell is a column: the app bar, then the panes. The content div controls the
-   dim and the inert state while a workspace switches, which its children used to
-   cover when it was `display: contents`. */
 .app__content {
   flex: 1;
   min-height: 0;
@@ -25,9 +22,6 @@
   gap: 0;
 }
 
-/* Focus mode: the page keeps the window. The app bar and the sidebar are
-   already gone through their own state; this drops the pane toolbars, the
-   notebook toolbar, the format strip, and the links panel. */
 .app__content--zen .page-view__toolbar,
 .app__content--zen .page-view__format,
 .app__content--zen .page-view__handle,
@@ -51,8 +45,6 @@
   opacity: 1;
 }
 
-/* Workspace switch feedback: a floating status pill over the dimmed, inert
-   content area (see .app__content--switching). */
 .app__switching {
   position: fixed;
   top: calc(var(--space-3-5) + var(--safe-top));
@@ -124,8 +116,6 @@
   min-width: 0;
 }
 
-/* Desktop layout: the sidebar and aux rails are px-sized flex items, so they
-   keep their width when the window resizes and only the main panel flexes. */
 .app__splitter {
   flex: 1;
   min-width: 0;
@@ -133,8 +123,6 @@
   gap: 0;
 }
 
-/* The workspace plane. The sidebar is chrome behind the document, so it has
-   no card of its own. The page is the only raised surface. */
 .app__nav-panel {
   --sidebar-bg: var(--color-backdrop);
   flex: 0 0 auto;
@@ -165,17 +153,12 @@
   transition: width var(--motion-base);
 }
 
-/* The rail's contents follow a drag, but stop shrinking below the rail's
-   minimum. During the open/close animation the container is still narrow, so
-   the content keeps a readable width and is clipped instead of wrapping one
-   word per line. 320px matches AUX_MIN_WIDTH in shellLayout. */
 .app__aux-panel-body {
   width: 100%;
   min-width: 320px;
   height: 100%;
 }
 
-/* Chat is workspace context. Links is page context and keeps the card. */
 .app__aux-panel--workspace {
   background: transparent;
   border: 0;
@@ -183,9 +166,6 @@
   box-shadow: none;
 }
 
-/* A rail with no content is on its way out, so it must not paint an empty
-   card while the splitter shrinks it. This happens when a resize crosses from
-   the inline rail to the floating drawer. */
 .app__aux-panel--idle {
   background: transparent;
   border: 0;
@@ -193,7 +173,6 @@
   box-shadow: none;
 }
 
-/* Collapse and expand animate; dragging a handle stays 1:1. */
 .app__splitter--resizing {
   user-select: none;
 }
@@ -246,12 +225,6 @@
   width: 3px;
 }
 
-/* Mobile: sidebar becomes a drawer below the breakpoint. The nav toggle lives
-   in the toolbar flow (MainPane slot), so it pushes content rather than
-   floating over it.
-
-   The desktop variant renders whenever the desktop shell does. Its icon and
-   label flip with the sidebar state so it can collapse and expand. */
 .app__main .app__nav-toggle,
 .app__backdrop {
   display: none;
@@ -364,7 +337,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  /* width: min(20rem, 80vw); */
 }
 
 .app__splash-step-label {

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { LocationQueryRaw } from "vue-router";
 
-import "~/assets/css/shell.css";
-
 import type { NavQuery } from "~/lib/navStack";
 
 import { setChatNavigation, useChat } from "~/composables/chat";

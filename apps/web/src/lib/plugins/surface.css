@@ -1,13 +1,3 @@
-/*
- * Host styles for plugin surfaces. Injected into every plugin shadow root
- * before the plugin's own stylesheets, so a plugin can override these rules.
- *
- * Rules here are generic primitives and host components only. Anything that
- * looks like one bundled plugin (calendar cells, event chips) belongs in that
- * plugin's style.css. Theme custom properties inherit through the shadow
- * boundary from <html>. The fallbacks only cover a detached test mount.
- */
-
 :host {
   display: block;
   color: var(--color-text, #293133);
@@ -18,7 +8,6 @@
   caret-color: var(--color-accent, #1f6f6b);
 }
 
-/* Shadow roots do not inherit the document's ::selection rule. */
 ::selection {
   background: color-mix(in srgb, var(--color-accent, #1f6f6b) 30%, transparent);
 }
@@ -54,8 +43,6 @@ p {
 a {
   color: var(--color-accent, #1f6f6b);
 }
-
-/* Primitives */
 
 .tb-button {
   display: inline-flex;
@@ -166,7 +153,6 @@ a {
   user-select: none;
 }
 
-/* Color swatch. The plugin sets --tb-swatch on the element. */
 .tb-swatch {
   width: 1.5rem;
   height: 1.5rem;
@@ -308,8 +294,6 @@ a {
 .tb-form {
   width: 100%;
 }
-
-/* Host components */
 
 .tb-board {
   position: relative;

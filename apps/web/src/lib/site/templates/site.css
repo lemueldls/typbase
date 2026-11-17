@@ -498,7 +498,6 @@ body[data-nav="none"] .site-sidebar {
 .site-nav li a {
   display: block;
   padding: 0.25rem 0.5rem;
-  /* margin-left: -0.5rem; */
   border-radius: var(--site-radius-xs);
   color: var(--site-muted);
   font-size: 0.9rem;
@@ -589,8 +588,6 @@ body[data-nav="none"] .site-sidebar {
   margin: 0 0 1.1em;
 }
 
-/* The synth gives every top-level line its own block wrapper. Without this
-   the browser stacks those divs with no paragraph gap. */
 .site-page--preserve-newlines > div {
   margin: 0 0 1.1em;
 }
@@ -659,7 +656,6 @@ body[data-nav="none"] .site-sidebar {
   padding-left: 1.2rem;
 }
 
-/* Docs layout: no desktop header, navigation on the left, context and graph on the right. */
 body[data-layout="docs"] .site-header {
   display: none;
 }

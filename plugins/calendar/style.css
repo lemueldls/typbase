@@ -1,6 +1,3 @@
-/* Calendar cells, chips, and event rows. Host vars keep every color on the
-   workspace theme; nothing here hardcodes a palette. */
-
 .cal-day {
   display: flex;
   flex-direction: column;
