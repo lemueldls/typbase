@@ -191,6 +191,7 @@ export type SpellcheckMode = "off" | "native" | "harper";
  * derives soft variants, mode-dependent overlay, and on-* text from them.
  */
 export const THEME_SEED_KEYS = [
+  "backdrop",
   "surface",
   "surface2",
   "surface3",
@@ -216,7 +217,7 @@ export const THEME_SEED_KEYS = [
 export type ThemeSeedToken = (typeof THEME_SEED_KEYS)[number];
 
 /**
- * What a theme author writes: the surface and text ramps, borders, the
+ * What a theme author writes: the backdrop and surface ramps, borders, the
  * accent, status solids, the tinted hue ramp, and the code surface. Soft
  * backgrounds, overlay, and on-* text colors are derived, so themes cannot
  * drift apart on those.
@@ -227,8 +228,10 @@ export type ThemeSeeds = Record<ThemeSeedToken, string>;
  * Resolved palette token names, in display order. The custom palette editor
  * edits these. The chrome reads them as `--color-*` and the Typst renderer
  * mirrors the ones that are not chrome-only (see `THEME_COLOR_KEYS`).
+ * `backdrop` and `overlay` stay in the chrome.
  */
 export const THEME_PALETTE_TOKEN_KEYS = [
+  "backdrop",
   "surface",
   "surface2",
   "surface3",

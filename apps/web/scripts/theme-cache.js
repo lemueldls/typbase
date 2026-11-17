@@ -22,12 +22,14 @@
   }
 
   try {
-    if (!window.matchMedia || !window.matchMedia("(prefers-color-scheme: dark)").matches) return;
+    const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-    root.dataset.theme = "dark";
-    root.style.colorScheme = "dark";
-    root.style.backgroundColor = "#0d0e0f";
+    if (dark) {
+      root.dataset.theme = "dark";
+      root.style.colorScheme = "dark";
+    }
+    root.style.backgroundColor = dark ? "#0d0e0f" : "#e7eae8";
   } catch {
-    // Leave the document default if matchMedia is unavailable.
+    // The CSS fallback still supplies the backdrop.
   }
 })();

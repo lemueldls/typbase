@@ -18,8 +18,8 @@ import { themeColorsFromPalette } from "./rendererPalette";
 export interface ThemeDefinition {
   id: string;
   label: string;
-  /** Key colors for readability in the picker. */
-  swatch: { background: string; text: string; accent: string };
+  /** Picker card colors: the plane, the page, text, and the accent. */
+  swatch: { backdrop: string; background: string; text: string; accent: string };
   /** Seeds per mode. `light` may be null for dark-only themes. */
   variants: { light: ThemeSeeds | null; dark: ThemeSeeds };
 }
@@ -28,7 +28,7 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "default",
     label: "Default",
-    swatch: { background: "#f9f9f8", text: "#293133", accent: "#1f6f6b" },
+    swatch: { backdrop: "#e7eae8", background: "#f9f9f8", text: "#293133", accent: "#1f6f6b" },
     variants: {
       light: {
         surface: "#f9f9f8",
@@ -51,6 +51,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#2f6f9f",
         violet: "#6b538f",
         code: "#f1f4f2",
+        backdrop: "#e7eae8",
       },
       dark: {
         surface: "#18191a",
@@ -73,13 +74,14 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#8bb6e0",
         violet: "#b99bc7",
         code: "#121414",
+        backdrop: "#0d0e0f",
       },
     },
   },
   {
     id: "catppuccin",
     label: "Catppuccin",
-    swatch: { background: "#1e1e2e", text: "#cdd6f4", accent: "#cba6f7" },
+    swatch: { backdrop: "#11111b", background: "#1e1e2e", text: "#cdd6f4", accent: "#cba6f7" },
     variants: {
       light: {
         surface: "#eff1f5",
@@ -102,6 +104,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#1e66f5",
         violet: "#8839ef",
         code: "#e6e9ef",
+        backdrop: "#dce0e8",
       },
       dark: {
         surface: "#1e1e2e",
@@ -124,13 +127,14 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#89b4fa",
         violet: "#cba6f7",
         code: "#181825",
+        backdrop: "#11111b",
       },
     },
   },
   {
     id: "nord",
     label: "Nord",
-    swatch: { background: "#2e3440", text: "#d8dee9", accent: "#88c0d0" },
+    swatch: { backdrop: "#242933", background: "#2e3440", text: "#d8dee9", accent: "#88c0d0" },
     variants: {
       light: {
         surface: "#eceff4",
@@ -153,6 +157,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#81a1c1",
         violet: "#b48ead",
         code: "#e5e9f0",
+        backdrop: "#d8dee9",
       },
       dark: {
         surface: "#2e3440",
@@ -175,13 +180,14 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#81a1c1",
         violet: "#b48ead",
         code: "#272b34",
+        backdrop: "#242933",
       },
     },
   },
   {
     id: "gruvbox",
     label: "Gruvbox",
-    swatch: { background: "#282828", text: "#ebdbb2", accent: "#83a598" },
+    swatch: { backdrop: "#1d2021", background: "#282828", text: "#ebdbb2", accent: "#83a598" },
     variants: {
       light: {
         surface: "#fbf1c7",
@@ -204,6 +210,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#076678",
         violet: "#8f3f71",
         code: "#f2e5bc",
+        backdrop: "#ebdbb2",
       },
       dark: {
         surface: "#282828",
@@ -226,13 +233,14 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#83a598",
         violet: "#d3869b",
         code: "#1d2021",
+        backdrop: "#1d2021",
       },
     },
   },
   {
     id: "melange",
     label: "Melange",
-    swatch: { background: "#292522", text: "#ece1d7", accent: "#e49b5d" },
+    swatch: { backdrop: "#211e1c", background: "#292522", text: "#ece1d7", accent: "#e49b5d" },
     variants: {
       light: {
         surface: "#f1f1f1",
@@ -255,6 +263,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#3d6a99",
         violet: "#7d5a9e",
         code: "#e9e1db",
+        backdrop: "#d9d3ce",
       },
       dark: {
         surface: "#292522",
@@ -277,13 +286,14 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#8fb4d8",
         violet: "#c9a0dc",
         code: "#211e1c",
+        backdrop: "#211e1c",
       },
     },
   },
   {
     id: "rose-pine",
     label: "Rosé Pine",
-    swatch: { background: "#191724", text: "#e0def4", accent: "#c4a7e7" },
+    swatch: { backdrop: "#0d0c13", background: "#191724", text: "#e0def4", accent: "#c4a7e7" },
     variants: {
       light: {
         surface: "#fffaf3",
@@ -306,6 +316,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#907aa9",
         violet: "#ea9d34",
         code: "#f2e9e1",
+        backdrop: "#f2e9e1",
       },
       dark: {
         surface: "#191724",
@@ -328,13 +339,14 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#c4a7e7",
         violet: "#f6c177",
         code: "#21202e",
+        backdrop: "#0d0c13",
       },
     },
   },
   {
     id: "evergarden",
     label: "Evergarden",
-    swatch: { background: "#232a2e", text: "#f8f9e8", accent: "#b3e6db" },
+    swatch: { backdrop: "#171c1f", background: "#232a2e", text: "#f8f9e8", accent: "#b3e6db" },
     variants: {
       light: {
         surface: "#f5efe6",
@@ -357,6 +369,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#8294ad",
         violet: "#a08bb0",
         code: "#ede5da",
+        backdrop: "#e8ded5",
       },
       dark: {
         surface: "#232a2e",
@@ -379,6 +392,7 @@ export const THEMES: ThemeDefinition[] = [
         blue: "#8fb8d8",
         violet: "#c6a6d8",
         code: "#1c2226",
+        backdrop: "#171c1f",
       },
     },
   },
@@ -414,15 +428,17 @@ export function resolveLightTheme(settings: {
   const def = themeById(settings.themeName ?? "default") ?? null;
   const fallback = THEMES[0]!;
   const seeds = def?.variants.light ?? fallback.variants.light ?? fallback.variants.dark;
-  const custom =
-    settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom?.light ?? {}) : {};
+  const useCustom = settings.themeName === CUSTOM_THEME_ID || !def;
+  const custom: Partial<ThemePaletteTokens> = useCustom ? (settings.themeCustom?.light ?? {}) : {};
+  const palette = {
+    ...expandSeeds(seeds, "light"),
+    ...normalizeCustom(custom),
+    surface: "#ffffff",
+  };
+  if (useCustom && !custom.backdrop) palette.backdrop = backdropFor(palette, "light");
 
   return {
-    palette: {
-      ...expandSeeds(seeds, "light"),
-      ...normalizeCustom(custom),
-      surface: "#ffffff",
-    },
+    palette,
     mode: "light",
     definition: def,
   };
@@ -464,11 +480,13 @@ export function resolveTheme(settings: {
     mode = "light";
   }
 
-  const custom =
-    settings.themeName === CUSTOM_THEME_ID || !def ? (settings.themeCustom?.[mode] ?? {}) : {};
+  const useCustom = settings.themeName === CUSTOM_THEME_ID || !def;
+  const custom: Partial<ThemePaletteTokens> = useCustom ? (settings.themeCustom?.[mode] ?? {}) : {};
+  const palette = { ...expandSeeds(seeds, mode), ...normalizeCustom(custom) };
+  if (useCustom && !custom.backdrop) palette.backdrop = backdropFor(palette, mode);
 
   return {
-    palette: { ...expandSeeds(seeds, mode), ...normalizeCustom(custom) },
+    palette,
     mode,
     definition: def,
   };
@@ -568,8 +586,6 @@ export function themeCssVars(
   // The source text uses the same OpenType features the engine applies, so
   // toggling ligatures does not make the source and the render disagree.
   vars["--doc-font-features"] = fontFeatureSettings(settings?.typography);
-
-  vars["--color-backdrop"] = backdropFor(resolved.palette, resolved.mode);
 
   return vars;
 }

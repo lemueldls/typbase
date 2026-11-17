@@ -66,6 +66,9 @@
         "overlay"
       ],
       "properties": {
+        "backdrop": {
+          "$ref": "#/$defs/color"
+        },
         "surface": {
           "$ref": "#/$defs/color"
         },

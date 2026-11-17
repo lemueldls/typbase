@@ -11,6 +11,7 @@ import {
 } from "../src/lib/site/social";
 
 const palette = {
+  backdrop: "#e7eae8",
   surface: "#f9f9f8",
   surface2: "#f1f3f2",
   surface3: "#e7eae8",

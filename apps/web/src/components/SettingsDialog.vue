@@ -139,13 +139,17 @@ function togglePdf(value: boolean) {
 // custom editor seeds from the resolved palette, so selecting it starts from
 // the colors currently on screen instead of an empty map.
 const customSwatch = computed(() => {
-  const base = resolveTheme({ ...settings.value, themeName: "default" }).palette;
-  const custom = settings.value.themeCustom?.light;
+  const resolved = resolveTheme({
+    ...settings.value,
+    theme: "light",
+    themeName: CUSTOM_THEME_ID,
+  });
 
   return {
-    background: custom?.surface ?? base.surface,
-    accent: custom?.accent ?? base.accent,
-    text: custom?.text ?? base.text,
+    backdrop: resolved.palette.backdrop,
+    background: resolved.palette.surface,
+    accent: resolved.palette.accent,
+    text: resolved.palette.text,
   };
 });
 
@@ -197,10 +201,11 @@ const paletteDraft = ref<ThemePaletteTokens | null>(null);
 function syncPaletteDraft(): void {
   paletteDraft.value =
     settings.value.themeName === CUSTOM_THEME_ID
-      ? {
-          ...(settings.value.themeCustom?.[paletteMode.value] ??
-            resolveTheme(settings.value).palette),
-        }
+      ? resolveTheme({
+          ...settings.value,
+          theme: paletteMode.value,
+          themeName: CUSTOM_THEME_ID,
+        }).palette
       : null;
 }
 
@@ -1443,7 +1448,11 @@ async function copyWorkspaceId(): Promise<void> {
                     :class="{ 'theme-card--active': settings.themeName === option.id }"
                     @click="selectTheme(option.id)"
                   >
-                    <span class="theme-card__swatches" aria-hidden="true">
+                    <span
+                      class="theme-card__swatches"
+                      :style="{ background: option.swatch.backdrop }"
+                      aria-hidden="true"
+                    >
                       <span
                         class="theme-card__dot"
                         :style="{ background: option.swatch.background }"
@@ -2528,6 +2537,9 @@ async function copyWorkspaceId(): Promise<void> {
 .theme-card__swatches {
   display: flex;
   gap: var(--space-1);
+  padding: var(--space-1-5);
+  border: 1px solid rgb(127 127 127 / 0.24);
+  border-radius: var(--radius-sm);
 }
 
 .theme-card__dot {

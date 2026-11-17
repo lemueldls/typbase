@@ -202,6 +202,7 @@ function paletteValue(
   value: unknown,
   path: string,
   errors: ValidationIssue[],
+  mode: "light" | "dark",
 ): ThemePaletteTokens | null {
   if (!isRecord(value)) {
     errors.push({ path, message: "must be an object" });
@@ -210,15 +211,20 @@ function paletteValue(
   }
 
   unknownKeys(value, THEME_PALETTE_TOKEN_KEYS, path, errors);
-  const palette = {} as ThemePaletteTokens;
+  const palette = {} as Partial<ThemePaletteTokens>;
   let ok = true;
   for (const key of THEME_PALETTE_TOKEN_KEYS) {
+    // Skins written before backdrop became a palette token derive one below.
+    if (key === "backdrop" && value[key] === undefined) continue;
     const color = colorValue(value[key], `${path}.${key}`, errors);
     if (color === null) ok = false;
     else palette[key] = color;
   }
+  if (!ok || !palette.surface || !palette.surface3) return null;
 
-  return ok ? palette : null;
+  palette.backdrop ??= backdropFor({ surface: palette.surface, surface3: palette.surface3 }, mode);
+
+  return palette as ThemePaletteTokens;
 }
 
 function geometryValue(
@@ -343,8 +349,8 @@ export function validateSkin(raw: unknown): ValidationResult<Skin> {
   if (!isRecord(paletteRaw)) {
     errors.push({ path: "palette", message: "must be an object" });
   } else {
-    const light = paletteValue(paletteRaw.light, "palette.light", errors);
-    const dark = paletteValue(paletteRaw.dark, "palette.dark", errors);
+    const light = paletteValue(paletteRaw.light, "palette.light", errors, "light");
+    const dark = paletteValue(paletteRaw.dark, "palette.dark", errors, "dark");
     if (light && dark) {
       palette = { light, dark };
       warnings.push(...contrastWarningsFor(light, "palette.light"));
@@ -483,8 +489,9 @@ export function canonicalJson(value: unknown): string {
   return JSON.stringify(normalize(value));
 }
 
-export async function skinHash(skin: Skin): Promise<string> {
-  const bytes = new TextEncoder().encode(canonicalJson(skin));
+/** Canonical JSON hash for a skin or the stored skin it was parsed from. */
+export async function skinHash(value: unknown): Promise<string> {
+  const bytes = new TextEncoder().encode(canonicalJson(value));
   const digest = await crypto.subtle.digest("SHA-256", bytes as BufferSource);
 
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -546,11 +553,14 @@ function fontFeatureSettings(typography: SkinTypography): string {
 }
 
 /**
- * The backdrop sits behind the island gap. Light themes author the step below
- * the page as `surface3`, so that is the plane. The dark ramp steps up instead,
- * leaving no authored color under the surface, so dark themes darken theirs.
+ * A backdrop for palettes written before `backdrop` became a palette token.
+ * Light themes take the authored step below the page, `surface3`. Dark themes
+ * darken their surface, since the ramp steps up instead.
  */
-export function backdropFor(palette: ThemePaletteTokens, mode: "light" | "dark" = "light"): string {
+export function backdropFor(
+  palette: Pick<ThemePaletteTokens, "surface" | "surface3">,
+  mode: "light" | "dark" = "light",
+): string {
   const dark = mode === "dark" || relativeLuminance(parseColor(palette.surface)) < 0.35;
 
   return dark ? mixHex("#000000", palette.surface, 0.48) : palette.surface3;
@@ -578,8 +588,6 @@ export function skinToCssVars(skin: Skin, mode: "light" | "dark"): Record<string
   vars["--ui-radius"] = String(scale.radius);
   vars["--doc-text-size"] = `${skin.typography.textSize}px`;
   vars["--doc-font-features"] = fontFeatureSettings(skin.typography);
-
-  vars["--color-backdrop"] = backdropFor(palette, mode);
 
   return vars;
 }

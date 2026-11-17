@@ -129,10 +129,10 @@ export function themeSlug(name: string): string {
   return slug || "theme";
 }
 
-function parseTheme(
+async function parseTheme(
   listing: ThemeListing["value"],
   release: ThemeRelease["value"],
-): { theme: ThemeFile; warnings: ContrastWarning[] } {
+): Promise<{ theme: ThemeFile; warnings: ContrastWarning[] }> {
   const actualSize = new TextEncoder().encode(release.data).byteLength;
   if (release.size !== actualSize) {
     throw new Error("theme release size does not match its data");
@@ -148,12 +148,23 @@ function parseTheme(
     throw new Error("theme release data is not JSON");
   }
 
+  const storedHash = await skinHash(raw);
   const result = validateSkin(raw);
   if (!result.ok || !result.value) {
     throw new Error(result.errors.map((error) => `${error.path}: ${error.message}`).join("; "));
   }
   if (release.schema !== result.value.schema) {
     throw new Error("theme release schema does not match the skin schema");
+  }
+
+  // Releases written before backdrop was a palette token hash the stored
+  // skin. Newer releases hash the normalized skin, which fills the backdrop
+  // in. Accept either form.
+  if (storedHash !== release.sha256) {
+    const normalizedHash = await skinHash(result.value);
+    if (normalizedHash !== release.sha256) {
+      throw new Error("theme checksum does not match its release record");
+    }
   }
 
   return {
@@ -202,11 +213,7 @@ export async function listPublisherThemes(
         if (release.value.theme !== record.uri) {
           throw new Error("latest release points at a different listing");
         }
-        const parsed = parseTheme(listing, release.value);
-        const hash = await skinHash(parsed.theme.skin);
-        if (hash !== release.value.sha256) {
-          throw new Error("theme checksum does not match its release record");
-        }
+        const parsed = await parseTheme(listing, release.value);
         releaseUri = release.uri;
         version = release.value.version;
         schema = release.value.schema;
@@ -261,11 +268,7 @@ export async function resolvePublishedTheme(
     throw new Error(`Theme release ${release.uri} points at a different listing`);
   }
 
-  const parsed = parseTheme(listing.value, release.value);
-  const hash = await skinHash(parsed.theme.skin);
-  if (hash !== release.value.sha256) {
-    throw new Error("theme checksum does not match its release record");
-  }
+  const parsed = await parseTheme(listing.value, release.value);
 
   return {
     uri,

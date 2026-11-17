@@ -19,7 +19,13 @@ import { describe, expect, it } from "vitest";
 const seeds: ThemeSeeds = Object.fromEntries(
   THEME_SEED_KEYS.map((key) => [
     key,
-    key === "surface" ? "#ffffff" : key === "text" ? "#111111" : "#777777",
+    key === "surface"
+      ? "#ffffff"
+      : key === "text"
+        ? "#111111"
+        : key === "backdrop"
+          ? "#dddddd"
+          : "#777777",
   ]),
 ) as ThemeSeeds;
 
@@ -89,8 +95,20 @@ describe("skin schema", () => {
     const vars = skinToCssVars(fixtureSkin(), "light");
     expect(vars["--color-surface"]).toBe("#ffffff");
     expect(vars["--ui-density"]).toBe("1");
-    expect(vars["--color-backdrop"]).toBe(backdropFor(fixtureSkin().palette.light, "light"));
+    expect(vars["--color-backdrop"]).toBe("#dddddd");
     expect(vars["--font-sans"]).toContain("Maple Mono");
+  });
+
+  it("derives a backdrop for skins written before the token", () => {
+    const skin = fixtureSkin() as unknown as Record<string, unknown>;
+    const palette = skin.palette as { light: Record<string, string> };
+    delete palette.light.backdrop;
+
+    const result = validateSkin(skin);
+    expect(result.ok).toBe(true);
+    expect(result.value?.palette.light.backdrop).toBe(
+      backdropFor({ surface: "#ffffff", surface3: "#777777" }, "light"),
+    );
   });
 
   it("maps a skin into workspace settings", () => {

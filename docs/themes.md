@@ -16,8 +16,10 @@ can apply a theme from its listing URI without the registry.
 - `typography`: font families, document text size, ligatures, kerning.
 
 The full palette is explicit, so applying a theme does not depend on the app's
-named-theme registry. Soft status backgrounds and `overlay` are part of the
-palette and are validated with the rest.
+named-theme registry. `backdrop`, the soft status backgrounds, and `overlay`
+are part of the palette and are validated with the rest. A palette written
+before `backdrop` was a token still validates: the validator derives one from
+`surface` and `surface3`.
 
 ## Records
 

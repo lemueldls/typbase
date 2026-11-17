@@ -11,7 +11,9 @@ The typed theme contract for Typbase.
   `normalizeCssColor`, `mixHex`).
 
 A skin has two complete palettes, geometry, and typography. It has no CSS,
-fonts, images, or Typst source.
+fonts, images, or Typst source. Palettes include `backdrop`, the plane behind
+the page islands. Skins written before that token still validate; the validator
+derives one from `surface` and `surface3`.
 
 JSON Schemas live in `schema/` and are served by the app at
 `https://typbase.at/schemas/`.

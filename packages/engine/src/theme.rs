@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 /// Colors handed to Typst as the `theme` dictionary. The slots mirror the
-/// app's resolved `ThemePaletteTokens` one to one (plus derived `on-*` text
-/// colors), so a single token set styles both the chrome and rendered pages.
-/// The dict keys in [`fmt::Display`] are the kebab-case token names Typst
-/// code reads. `overlay` stays chrome-only: it has alpha and Rgb cannot.
+/// renderer tokens of the app's resolved `ThemePaletteTokens` (plus derived
+/// `on-*` text colors), so a single token set styles both the chrome and
+/// rendered pages. The dict keys in [`fmt::Display`] are the kebab-case token
+/// names Typst code reads. `backdrop` and `overlay` stay chrome-only: the first
+/// is the plane behind the page and the second has alpha, which Rgb cannot.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize)]
 #[wasm_bindgen]

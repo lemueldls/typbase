@@ -121,7 +121,7 @@ export default defineNuxtConfig({
       meta: [
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "description", content: appDescription },
-        { name: "theme-color", content: "#ebebea", media: "(prefers-color-scheme: light)" },
+        { name: "theme-color", content: "#e7eae8", media: "(prefers-color-scheme: light)" },
         { name: "theme-color", content: "#0d0e0f", media: "(prefers-color-scheme: dark)" },
         { name: "mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-capable", content: "yes" },

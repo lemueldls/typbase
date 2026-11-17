@@ -8,6 +8,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const LIGHT_SEEDS: Record<ThemeSeedToken, string> = {
+  backdrop: "#e7eae8",
   surface: "#f9f9f8",
   surface2: "#f1f3f2",
   surface3: "#e7eae8",
@@ -31,6 +32,7 @@ const LIGHT_SEEDS: Record<ThemeSeedToken, string> = {
 };
 
 const DARK_SEEDS: Record<ThemeSeedToken, string> = {
+  backdrop: "#0d0e0f",
   surface: "#18191a",
   surface2: "#202223",
   surface3: "#292c2d",
