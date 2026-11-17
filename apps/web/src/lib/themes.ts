@@ -18,8 +18,6 @@ import { themeColorsFromPalette } from "./rendererPalette";
 export interface ThemeDefinition {
   id: string;
   label: string;
-  /** Picker card colors: the plane, the page, text, and the accent. */
-  swatch: { backdrop: string; background: string; text: string; accent: string };
   /** Seeds per mode. `light` may be null for dark-only themes. */
   variants: { light: ThemeSeeds | null; dark: ThemeSeeds };
 }
@@ -28,7 +26,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "default",
     label: "Default",
-    swatch: { backdrop: "#e7eae8", background: "#f9f9f8", text: "#293133", accent: "#1f6f6b" },
     variants: {
       light: {
         surface: "#f9f9f8",
@@ -81,7 +78,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "catppuccin",
     label: "Catppuccin",
-    swatch: { backdrop: "#11111b", background: "#1e1e2e", text: "#cdd6f4", accent: "#cba6f7" },
     variants: {
       light: {
         surface: "#eff1f5",
@@ -134,7 +130,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "nord",
     label: "Nord",
-    swatch: { backdrop: "#242933", background: "#2e3440", text: "#d8dee9", accent: "#88c0d0" },
     variants: {
       light: {
         surface: "#eceff4",
@@ -187,7 +182,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "gruvbox",
     label: "Gruvbox",
-    swatch: { backdrop: "#1d2021", background: "#282828", text: "#ebdbb2", accent: "#83a598" },
     variants: {
       light: {
         surface: "#fbf1c7",
@@ -240,7 +234,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "melange",
     label: "Melange",
-    swatch: { backdrop: "#211e1c", background: "#292522", text: "#ece1d7", accent: "#e49b5d" },
     variants: {
       light: {
         surface: "#f1f1f1",
@@ -293,7 +286,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "rose-pine",
     label: "Rosé Pine",
-    swatch: { backdrop: "#0d0c13", background: "#191724", text: "#e0def4", accent: "#c4a7e7" },
     variants: {
       light: {
         surface: "#fffaf3",
@@ -346,7 +338,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "evergarden",
     label: "Evergarden",
-    swatch: { backdrop: "#171c1f", background: "#232a2e", text: "#f8f9e8", accent: "#b3e6db" },
     variants: {
       light: {
         surface: "#f5efe6",

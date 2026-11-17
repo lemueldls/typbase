@@ -137,25 +137,26 @@ function togglePdf(value: boolean) {
 
 // Theme picker: named themes from the registry plus a custom palette. The
 // custom editor seeds from the resolved palette, so selecting it starts from
-// the colors currently on screen instead of an empty map.
-const customSwatch = computed(() => {
-  const resolved = resolveTheme({
-    ...settings.value,
-    theme: "light",
-    themeName: CUSTOM_THEME_ID,
-  });
+// the colors currently on screen instead of an empty map. Cards preview the
+// variant the app is showing: the selected mode, or the OS preference while
+// the mode is "auto".
+const prefersDarkScheme = useMediaQuery("(prefers-color-scheme: dark)");
+const activeMode = computed<"light" | "dark">(() => {
+  const mode = settings.value.theme ?? "auto";
+  if (mode === "auto") return prefersDarkScheme.value ? "dark" : "light";
 
-  return {
-    backdrop: resolved.palette.backdrop,
-    background: resolved.palette.surface,
-    accent: resolved.palette.accent,
-    text: resolved.palette.text,
-  };
+  return mode;
 });
 
+function themeOption(id: string, label: string) {
+  const resolved = resolveTheme({ ...settings.value, theme: activeMode.value, themeName: id });
+
+  return { id, label, mode: resolved.mode, palette: resolved.palette };
+}
+
 const themeOptions = computed(() => [
-  ...THEMES.map((theme) => ({ id: theme.id, label: theme.label, swatch: theme.swatch })),
-  { id: CUSTOM_THEME_ID, label: t("settings.custom"), swatch: customSwatch.value },
+  ...THEMES.map((theme) => themeOption(theme.id, theme.label)),
+  themeOption(CUSTOM_THEME_ID, t("settings.custom")),
 ]);
 
 function customPalettes(): CustomThemePalettes {
@@ -1448,19 +1449,16 @@ async function copyWorkspaceId(): Promise<void> {
                     :class="{ 'theme-card--active': settings.themeName === option.id }"
                     @click="selectTheme(option.id)"
                   >
-                    <span
-                      class="theme-card__swatches"
-                      :style="{ background: option.swatch.backdrop }"
-                      aria-hidden="true"
-                    >
-                      <span
-                        class="theme-card__dot"
-                        :style="{ background: option.swatch.background }"
+                    <ThemeThumb :palette="option.palette" :mode="option.mode" />
+                    <span class="theme-card__footer">
+                      <span class="theme-card__label">{{ option.label }}</span>
+                      <MsIcon
+                        v-if="settings.themeName === option.id"
+                        class="theme-card__check"
+                        name="check"
+                        :size="16"
                       />
-                      <span class="theme-card__dot" :style="{ background: option.swatch.accent }" />
-                      <span class="theme-card__dot" :style="{ background: option.swatch.text }" />
                     </span>
-                    <span class="theme-card__label">{{ option.label }}</span>
                   </button>
                 </div>
               </SettingsRow>
@@ -2503,7 +2501,7 @@ async function copyWorkspaceId(): Promise<void> {
   color: var(--color-danger);
 }
 
-/* Theme cards: swatch trio + name, selected by border and check. */
+/* Theme cards: a mini window per theme plus its name. */
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
@@ -2514,7 +2512,7 @@ async function copyWorkspaceId(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  padding: var(--space-2);
+  padding: var(--space-1-5);
   font-family: inherit;
   font-size: var(--text-sm);
   text-align: left;
@@ -2534,26 +2532,25 @@ async function copyWorkspaceId(): Promise<void> {
   box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
-.theme-card__swatches {
+.theme-card__footer {
   display: flex;
+  align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1-5);
-  border: 1px solid rgb(127 127 127 / 0.24);
-  border-radius: var(--radius-sm);
-}
-
-.theme-card__dot {
-  width: 1.1rem;
-  height: 1.1rem;
-  border: 1px solid rgb(0 0 0 / 0.12);
-  border-radius: var(--radius-xs);
+  min-width: 0;
 }
 
 .theme-card__label {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.theme-card__check {
+  flex: none;
+  color: var(--color-accent);
 }
 
 /* Custom palette editor: one row per token with a color swatch, name, and
