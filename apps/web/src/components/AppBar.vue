@@ -272,7 +272,7 @@ async function openToday(): Promise<void> {
   font-size: var(--text-sm);
   text-align: left;
   color: var(--color-text-secondary);
-  background: var(--color-surface-2);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -283,7 +283,7 @@ async function openToday(): Promise<void> {
 
 .app-bar__search:hover {
   color: var(--color-text);
-  background: var(--color-surface);
+  background: var(--color-surface-2);
   border-color: var(--color-border-strong);
 }
 

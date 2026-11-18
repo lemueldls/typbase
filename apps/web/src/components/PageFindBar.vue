@@ -243,7 +243,7 @@ defineExpose({ focus, hasFocus });
   gap: var(--space-2);
   padding: 0 var(--space-2) var(--space-2);
   background: var(--color-surface-2);
-  border-bottom: 1px solid var(--color-border);
+  /* border-bottom: 1px solid var(--color-border); */
 }
 
 .page-find__input {

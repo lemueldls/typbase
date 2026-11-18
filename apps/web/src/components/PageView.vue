@@ -1140,6 +1140,12 @@ function openFind(): void {
   void nextTick(() => findBar.value?.focus());
 }
 
+/** Toolbar and menu toggle; the chord only opens and refocuses. */
+function toggleFind(): void {
+  if (findOpen.value) closeFind();
+  else openFind();
+}
+
 function closeFind(): void {
   findOpen.value = false;
   findQuery.value = "";
@@ -1671,7 +1677,7 @@ function onModeKeydown(event: KeyboardEvent) {
           icon="text_format"
           :label="$t('formatting.title')"
           :pressed="formatOpen"
-          class="page-view__format-toggle"
+          class="page-view__toggle page-view__format-toggle"
           @click="formatOpen = !formatOpen"
         />
 
@@ -1703,10 +1709,12 @@ function onModeKeydown(event: KeyboardEvent) {
         </UiPopover> -->
 
         <UiIconButton
+          class="page-view__toggle page-view__find-toggle"
           icon="manage_search"
           :label="$t('pageView.find')"
+          :pressed="findOpen"
           :disabled="!ready"
-          @click="openFind"
+          @click="toggleFind"
         />
 
         <PublishDialog v-if="store" v-model:open="publishOpen" :page-id="pageId" :store="store" />
@@ -1803,11 +1811,6 @@ function onModeKeydown(event: KeyboardEvent) {
 
           <UiMenuItem v-if="store && aiEnabled" icon="forum" :disabled="!ready" @select="askAi">
             {{ $t("chat.ask") }}
-          </UiMenuItem>
-
-          <UiMenuItem icon="manage_search" :disabled="!ready" @select="openFind">
-            <span class="page-view__menu-label">{{ $t("pageView.find") }}</span>
-            <UiKbd class="page-view__menu-key">{{ shortcutLabel("pageFind") }}</UiKbd>
           </UiMenuItem>
 
           <UiMenuItem
@@ -2051,6 +2054,12 @@ function onModeKeydown(event: KeyboardEvent) {
   margin-left: var(--space-2);
 }
 
+.page-view__toolbar .page-view__toggle[aria-pressed="true"] {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface-2));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 34%, transparent);
+}
+
 .page-view__modes-menu {
   display: none;
   flex: none;
@@ -2067,15 +2076,9 @@ function onModeKeydown(event: KeyboardEvent) {
   padding: 0;
   margin-left: auto;
   color: var(--color-text-secondary);
-  background: transparent;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-}
-
-.page-view__format .page-view__format-collapse:hover {
-  color: var(--color-text);
-  background: var(--color-surface-2);
 }
 
 /* Full-width strip: the buttons ride inside it, left-aligned, scrolling
@@ -2085,7 +2088,7 @@ function onModeKeydown(event: KeyboardEvent) {
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  padding: var(--space-1);
+  padding: 0 var(--space-1) var(--space-1);
   background: var(--color-surface-2);
   overflow-x: auto;
   scrollbar-width: none;
@@ -2148,9 +2151,9 @@ function onModeKeydown(event: KeyboardEvent) {
   flex: none;
 }
 
-.page-view__mode:hover {
+.page-view__mode:not(.page-view__mode--active):hover {
   color: var(--color-text);
-  /* background: var(--color-surface-2); */
+  background: var(--color-surface-3);
 }
 
 .page-view__mode:disabled {
