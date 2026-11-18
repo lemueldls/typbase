@@ -21,15 +21,7 @@ import {
   undoSelection,
 } from "@codemirror/commands";
 import { nextDiagnostic } from "@codemirror/lint";
-import {
-  closeSearchPanel,
-  findNext,
-  findPrevious,
-  gotoLine,
-  openSearchPanel,
-  selectNextOccurrence,
-  selectSelectionMatches,
-} from "@codemirror/search";
+import { gotoLine, selectNextOccurrence, selectSelectionMatches } from "@codemirror/search";
 import { Facet } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 
@@ -189,23 +181,6 @@ export const typstKeymap = keymap.of([
   {
     key: "Mod-Alt-ArrowDown",
     run: (n) => cursorAddVertical(n, 1),
-  },
-  {
-    key: "Mod-f",
-    run: openSearchPanel,
-    scope: "editor search-panel goto-panel",
-  },
-  {
-    key: "F3",
-    run: findNext,
-    shift: findPrevious,
-    scope: "editor search-panel",
-    preventDefault: true,
-  },
-  {
-    key: "Escape",
-    run: closeSearchPanel,
-    scope: "editor search-panel",
   },
   {
     key: "Mod-Shift-l",

@@ -87,6 +87,9 @@ export function syncFrameContainer(container: HTMLElement, frame: SvgRangedFrame
   const size = frameSize(frame);
   const sizeKey = `${Math.round(size.width)}x${Math.round(size.height)}`;
 
+  container.dataset.frameFrom = String(frame.range.start);
+  container.dataset.frameTo = String(frame.range.end);
+
   if (container.dataset.renderSize === sizeKey) return;
 
   container.dataset.renderSize = sizeKey;

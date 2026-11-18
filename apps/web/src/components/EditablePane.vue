@@ -22,6 +22,7 @@ import {
 } from "@codemirror/state";
 import {
   EditorView,
+  Decoration,
   crosshairCursor,
   drawSelection,
   dropCursor,
@@ -29,6 +30,7 @@ import {
   placeholder,
   rectangularSelection,
   tooltips,
+  type DecorationSet,
 } from "@codemirror/view";
 import { Vim, getCM, vim } from "@replit/codemirror-vim";
 import {
@@ -46,6 +48,8 @@ import {
   typstSourceSync,
   vimKeymapFacet,
 } from "@typbase/codemirror";
+
+import type { FindRect } from "~/lib/pageFind";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
 import { editorDisplayCompartment, editorDisplayExtension } from "~/lib/editorDisplay";
@@ -102,6 +106,17 @@ const props = defineProps<{
   onPanic?: () => void;
   /** Fired after a compile succeeds, so the parent resets engine health. */
   onCompile?: () => void;
+  /** Fired after a paged compile, so page search can refresh its text index. */
+  onPagedCompile?: () => void;
+  /** Raw source ranges for the current page-find results. */
+  findSourceRanges?: Array<{ from: number; to: number; active: boolean }>;
+  /** Exact page-find rectangles for rendered frames, in frame points. */
+  findFrameMarks?: Array<{
+    frameIndex: number;
+    range: { from: number; to: number };
+    rects: FindRect[];
+    active: boolean;
+  }>;
   /** Fired when a Typbase link inside a rendered widget is clicked. */
   onNavigate?: (pageId: string) => void;
   /** Fired when a plugin link inside a rendered widget is clicked. */
@@ -311,6 +326,7 @@ function onWidgetClick(event: MouseEvent) {
 
 onMounted(() => {
   createView();
+  scheduleFrameMarks();
   const element = container.value;
   element?.addEventListener("click", onWidgetClick);
   element?.addEventListener("dragover", onDragOver, true);
@@ -319,6 +335,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  if (frameMarkHandle !== undefined) cancelAnimationFrame(frameMarkHandle);
   const element = container.value;
   element?.removeEventListener("click", onWidgetClick);
   element?.removeEventListener("dragover", onDragOver, true);
@@ -431,6 +448,104 @@ watch(editorDisplaySignature, () => {
   attachVim();
 });
 
+/** Page-find marks in the source. Reconfigured without touching the document. */
+const findCompartment = new Compartment();
+
+function findDecorations(): DecorationSet {
+  const ranges = (props.findSourceRanges ?? [])
+    .filter((range) => range.to > range.from)
+    .map((range) =>
+      Decoration.mark({
+        class: range.active ? "cm-searchMatch cm-searchMatch-selected" : "cm-searchMatch",
+      }).range(range.from, range.to),
+    );
+
+  return Decoration.set(ranges, true);
+}
+
+watch(
+  () => props.findSourceRanges,
+  () => {
+    view.value?.dispatch({
+      effects: findCompartment.reconfigure(EditorView.decorations.of(findDecorations())),
+    });
+  },
+  { deep: true },
+);
+
+const FIND_MARKS_CLASS = "typst-find-marks";
+let frameMarkHandle: number | undefined;
+let frameMarksAttached = false;
+
+/**
+ * Draws exact page-find rectangles over mounted rendered frames. Frame widgets
+ * are recreated on compile, so the layers are reconciled from the props again
+ * after every relevant update.
+ */
+function applyFrameMarks(): void {
+  const editor = view.value;
+  if (!editor) return;
+
+  const marks = props.findFrameMarks ?? [];
+  if (marks.length === 0 && !frameMarksAttached) return;
+
+  frameMarksAttached = marks.length > 0;
+
+  const byRange = new Map<string, Array<{ rects: FindRect[]; active: boolean }>>();
+
+  for (const mark of marks) {
+    const key = `${mark.range.from}:${mark.range.to}`;
+    const list = byRange.get(key) ?? [];
+    list.push({ rects: mark.rects, active: mark.active });
+    byRange.set(key, list);
+  }
+
+  for (const frameEl of editor.dom.querySelectorAll<HTMLElement>(".typst-render")) {
+    const from = Number(frameEl.dataset.frameFrom);
+    const to = Number(frameEl.dataset.frameTo);
+    const frameMarks =
+      Number.isFinite(from) && Number.isFinite(to) ? byRange.get(`${from}:${to}`) : undefined;
+
+    const existing = Array.from(frameEl.children).find((child) =>
+      child.classList.contains(FIND_MARKS_CLASS),
+    );
+    existing?.remove();
+
+    if (!frameMarks?.length) continue;
+
+    const layer = document.createElement("div");
+    layer.className = FIND_MARKS_CLASS;
+
+    for (const mark of frameMarks) {
+      for (const rect of mark.rects) {
+        const element = document.createElement("span");
+        element.className = mark.active
+          ? "typst-find-mark typst-find-mark--active"
+          : "typst-find-mark";
+        element.style.left = `${rect.x}px`;
+        element.style.top = `${rect.y}px`;
+        element.style.width = `${Math.max(0, rect.width)}px`;
+        element.style.height = `${Math.max(0, rect.height)}px`;
+        layer.append(element);
+      }
+    }
+
+    if (layer.childElementCount > 0) frameEl.append(layer);
+  }
+}
+
+function scheduleFrameMarks(): void {
+  if (!props.findFrameMarks?.length && !frameMarksAttached) return;
+  if (frameMarkHandle !== undefined) return;
+
+  frameMarkHandle = requestAnimationFrame(() => {
+    frameMarkHandle = undefined;
+    applyFrameMarks();
+  });
+}
+
+watch(() => props.findFrameMarks, scheduleFrameMarks, { deep: true });
+
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
 
@@ -466,7 +581,10 @@ function createStateConfig(): EditorStateConfig {
           onRequests: props.onRequests,
           revision: props.revision,
           onPanic: props.onPanic,
-          onCompile: props.onCompile,
+          onCompile: () => {
+            props.onCompile?.();
+            props.onPagedCompile?.();
+          },
           onExternalLink: openExternal,
           notebook: props.notebook,
           renderFrames: props.wysiwyg,
@@ -502,6 +620,7 @@ function createStateConfig(): EditorStateConfig {
         ]),
     spellcheckCompartment.of(spellcheckExtension(props.spellcheck, spellcheckOptions())),
     editorDisplayCompartment.of(editorDisplayExtension(props.editor)),
+    findCompartment.of(EditorView.decorations.of(findDecorations())),
     EditorView.exceptionSink.of((error) => {
       console.error(error);
     }),
@@ -514,6 +633,9 @@ function createStateConfig(): EditorStateConfig {
     drawSelection(),
     EditorView.updateListener.of((update) => {
       if (update.selectionSet || update.docChanged) updateCursorPosition(update.state);
+      if (update.docChanged || update.focusChanged || update.viewportChanged) {
+        scheduleFrameMarks();
+      }
     }),
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),
@@ -541,8 +663,12 @@ function recompile() {
   view.value?.dispatch({ effects: typstRecompileEffect.of(null) });
 }
 
-/** Selects a source range (search hits, embedded references). */
-function revealRange(from: number, to: number) {
+/**
+ * Selects a source range (search hits, embedded references). `focus` false
+ * leaves the caret where it is, so the find bar keeps focus while the page
+ * scrolls behind it.
+ */
+function revealRange(from: number, to: number, focus = true) {
   const editor = view.value;
   if (!editor) return;
 
@@ -550,7 +676,7 @@ function revealRange(from: number, to: number) {
     selection: { anchor: from, head: to },
     effects: EditorView.scrollIntoView(from, { y: "center" }),
   });
-  editor.focus();
+  if (focus) editor.focus();
 }
 
 /** Inserts generated Typst at the given position and returns the new cursor. */
@@ -932,12 +1058,34 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
 }
 
 .typst-render {
+  position: relative;
   display: inline-block;
   max-width: 100%;
   overflow: visible;
   vertical-align: top;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.typst-find-marks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--render-w);
+  height: var(--render-h);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.typst-find-mark {
+  position: absolute;
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  border-radius: 2px;
+}
+
+.typst-find-mark--active {
+  background: color-mix(in srgb, var(--color-accent) 46%, transparent);
+  box-shadow: 0 0 0 1px var(--color-accent);
 }
 
 /* A block-level SVG anchors at the container's top. Inline, it sits on the

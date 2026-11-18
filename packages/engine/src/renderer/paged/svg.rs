@@ -21,7 +21,7 @@ use crate::{
         PagedRender,
         items::{TooltipFocus, chunk_by_items_ctx},
     },
-    source::RenderTarget,
+    source::{FrameText, RenderTarget, source_hash},
     state::{RenderContext, TypstState},
 };
 
@@ -55,7 +55,17 @@ pub fn render_svgs_by_items_ctx(
         overlays: _,
         diagnostics,
         document,
+        text: frame_text,
     } = chunk_by_items_ctx(ctx, text, prelude, focus, line_height_ratio);
+
+    ctx.note.frame_text = if ctx.note.find_text {
+        FrameText {
+            frames: frame_text,
+            source_hash: source_hash(text),
+        }
+    } else {
+        FrameText::default()
+    };
 
     let equation_ranges = equation_ranges_utf16(ctx);
 

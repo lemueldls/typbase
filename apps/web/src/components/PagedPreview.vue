@@ -5,6 +5,8 @@ import type { EditorContentWidth } from "@typbase/typing";
 
 import { installSharedDefs } from "@typbase/codemirror";
 
+import type { FindRect } from "~/lib/pageFind";
+
 import { openExternal } from "~/lib/openExternal";
 
 const props = defineProps<{
@@ -24,6 +26,15 @@ const props = defineProps<{
   onPanic?: () => void;
   /** Fired after a compile succeeds, so the parent resets engine health. */
   onCompile?: () => void;
+  /** Fired after frames and their text index are ready for page search. */
+  onPagedCompile?: () => void;
+  /** Exact page-find rectangles, in frame points. */
+  findMarks?: Array<{
+    frameIndex: number;
+    range: { from: number; to: number };
+    rects: FindRect[];
+    active: boolean;
+  }>;
 }>();
 
 const emit = defineEmits<{
@@ -127,6 +138,8 @@ const flashIndex = ref<number | null>(null);
 let flashTimer: ReturnType<typeof setTimeout> | undefined;
 /** A reveal that arrived before the first render landed. */
 const pendingReveal = shallowRef<{ from: number; to: number } | null>(null);
+/** A mark reveal that arrived before the first render landed. */
+const pendingMark = shallowRef<{ frameIndex: number; rects: FindRect[] } | null>(null);
 
 const renderNow = async () => {
   if (!props.typstState || !scroller.value || scroller.value.offsetParent === null) return;
@@ -161,6 +174,7 @@ const renderNow = async () => {
     frames.value = result.frames;
     framesText.value = props.text.value;
     props.onCompile?.();
+    props.onPagedCompile?.();
   } finally {
     rendering.value = false;
   }
@@ -396,6 +410,45 @@ function revealRange(from: number, to: number): boolean {
   return true;
 }
 
+/**
+ * Scrolls the frame containing a mark into view and flashes it. The mark's own
+ * rectangles are drawn by the template, so this only places the viewport.
+ */
+function revealMark(frameIndex: number, rects: FindRect[]): boolean {
+  const placed = layout.value.placed;
+  if (placed.length === 0) {
+    pendingMark.value = { frameIndex, rects };
+    return true;
+  }
+
+  const entry = placed[frameIndex];
+  if (!entry) return false;
+
+  const rect = rects[0];
+  const top = entry.top + (rect?.y ?? 0);
+  scroller.value?.scrollTo({ top: Math.max(0, top - 12), behavior: "smooth" });
+  flashIndex.value = frameIndex;
+  if (flashTimer) clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => {
+    flashIndex.value = null;
+  }, 900);
+
+  return true;
+}
+
+function marksFor(frameIndex: number) {
+  return props.findMarks?.filter((mark) => mark.frameIndex === frameIndex) ?? [];
+}
+
+function rectStyle(rect: FindRect): Record<string, string> {
+  return {
+    left: `${rect.x}px`,
+    top: `${rect.y}px`,
+    width: `${Math.max(0, rect.width)}px`,
+    height: `${Math.max(0, rect.height)}px`,
+  };
+}
+
 watch(
   () => layout.value.placed.length,
   () => {
@@ -404,6 +457,17 @@ watch(
 
     pendingReveal.value = null;
     void nextTick(() => revealRange(pending.from, pending.to));
+  },
+);
+
+watch(
+  () => layout.value.placed.length,
+  () => {
+    const pending = pendingMark.value;
+    if (!pending) return;
+
+    pendingMark.value = null;
+    void nextTick(() => revealMark(pending.frameIndex, pending.rects));
   },
 );
 
@@ -434,7 +498,7 @@ function getFrameLayout(): FrameLayout {
   return { tops, topsEnd: tops.at(-1) ?? 0, ranges };
 }
 
-defineExpose({ scroller, getFrameLayout, revealRange });
+defineExpose({ scroller, getFrameLayout, revealRange, revealMark });
 </script>
 
 <template>
@@ -456,8 +520,18 @@ defineExpose({ scroller, getFrameLayout, revealRange });
           :class="{ 'paged-preview__frame--flash': flashIndex === index }"
           :style="frameStyle(entry)"
         >
-          <!-- eslint-disable-next-line vue/no-v-html -- the wasm engine produced this SVG markup -->
           <div v-html="entry.frame.render.svg" />
+          <div v-if="marksFor(index).length" class="paged-preview__marks" aria-hidden="true">
+            <template v-for="(mark, markIndex) in marksFor(index)" :key="markIndex">
+              <span
+                v-for="(rect, rectIndex) in mark.rects"
+                :key="`${markIndex}:${rectIndex}`"
+                class="paged-preview__mark"
+                :class="{ 'paged-preview__mark--active': mark.active }"
+                :style="rectStyle(rect)"
+              />
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -560,6 +634,23 @@ defineExpose({ scroller, getFrameLayout, revealRange });
   background: var(--color-accent-soft);
   box-shadow: 0 0 0 2px var(--color-accent);
   animation: paged-preview-flash 0.9s var(--ease-out);
+}
+
+.paged-preview__marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.paged-preview__mark {
+  position: absolute;
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  border-radius: 2px;
+}
+
+.paged-preview__mark--active {
+  background: color-mix(in srgb, var(--color-accent) 46%, transparent);
+  box-shadow: 0 0 0 1px var(--color-accent);
 }
 
 .paged-preview:focus-visible {

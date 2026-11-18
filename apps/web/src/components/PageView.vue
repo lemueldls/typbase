@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { FileId, TypstState } from "@typbase/engine";
+import type { FileId, FrameText, TypstState } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 import type { IgnoredSpellcheckLint, PageMeta, SplitScrollMode } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
+import { EditorSelection } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import {
   currentCell,
@@ -32,7 +33,6 @@ import {
   useEngineHealth,
   type EngineFailure,
 } from "~/lib/engineHealth";
-import { blocksOf } from "~/lib/engineSyntax";
 import { fontFamiliesInSource } from "~/lib/fonts";
 import { matchesShortcut, shortcutLabel } from "~/lib/keybindings";
 import {
@@ -41,7 +41,21 @@ import {
   type NotebookController,
 } from "~/lib/notebook";
 import { pageContextBinding } from "~/lib/pageContext";
-import { findInPrepared, preparePageBlocks, type PreparedPageBlock } from "~/lib/pageFind";
+import {
+  DEFAULT_FIND_OPTIONS,
+  findInPage,
+  findInSource,
+  isValidPattern,
+  mergeFindHits,
+  prepareFrameText,
+  prepareSourceText,
+  replacementFor,
+  sourceHash,
+  type FindHit,
+  type FindOptions,
+  type FindRect,
+  type PreparedPage,
+} from "~/lib/pageFind";
 import { pluginsRevision } from "~/lib/plugins/registry";
 import { presenceCursors, refreshPresence, type PresencePeer } from "~/lib/presenceCursor";
 import { revealRequests } from "~/lib/reveal";
@@ -131,9 +145,8 @@ function onKeydown(event: KeyboardEvent): void {
 
 useEventListener("keydown", onKeydown, { capture: true });
 
-/** Read mode has no visible editor, so CodeMirror's find panel cannot open. */
 function onFindKeydown(event: KeyboardEvent): void {
-  if (props.modelValue !== "read" || !matchesShortcut(event, "pageFind")) return;
+  if (!matchesShortcut(event, "pageFind")) return;
 
   event.preventDefault();
   event.stopPropagation();
@@ -803,6 +816,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   pageDisposed = true;
   setupToken += 1;
+  setFindText(false);
   setEngineRetryHandler(undefined);
   setSaveHandler(undefined);
   testApi.mode = null;
@@ -965,63 +979,184 @@ const sharedState = computed(() => ({ text, prelude }));
 
 const findOpen = ref(false);
 const findQuery = ref("");
+const findReplacement = ref("");
 const findActive = ref(0);
-const findPrepared = shallowRef<PreparedPageBlock[]>([]);
+const findOptions = ref<FindOptions>({ ...DEFAULT_FIND_OPTIONS });
+const findFrames = shallowRef<FrameText | null>(null);
 const findBar = useTemplateRef("findBar");
 /** A read-mode reveal that arrived before the preview mounted. */
 const pendingPageReveal = ref<{ from: number; to: number } | null>(null);
+const pendingFindMark = shallowRef<{ frameIndex: number; rects: FindRect[] } | null>(null);
+let findRenderPending = false;
 
-const findMatches = computed(() => {
+const currentFindHash = computed(() => sourceHash(sharedState.value.text.value));
+const preparedSource = computed(() => prepareSourceText(sharedState.value.text.value));
+
+const preparedFind = computed<PreparedPage>(() =>
+  findFrames.value?.source_hash === currentFindHash.value
+    ? prepareFrameText(findFrames.value)
+    : prepareFrameText(null),
+);
+
+const findMatches = computed<FindHit[]>(() => {
   const value = findQuery.value.trim();
   if (!value) return [];
 
-  return findInPrepared(findPrepared.value, value, sharedState.value.text.value);
+  const sourceHits = findInSource(
+    preparedFind.value,
+    preparedSource.value,
+    value,
+    findOptions.value,
+  );
+
+  if (findFrames.value?.source_hash !== currentFindHash.value) return sourceHits;
+
+  return mergeFindHits(sourceHits, findInPage(preparedFind.value, value, findOptions.value));
 });
 
-function prepareFindNow(): void {
-  if (!typstState.value || !ready.value || degraded.value) {
-    findPrepared.value = [];
+const findFrameMarks = computed(() =>
+  findMatches.value.flatMap((hit, index) =>
+    hit.marks.map((mark) => ({
+      frameIndex: mark.frameIndex,
+      range: mark.range,
+      rects: mark.rects,
+      active: index === findActive.value,
+    })),
+  ),
+);
 
-    return;
-  }
+const findSourceRanges = computed(() =>
+  findMatches.value.flatMap((hit, index) =>
+    hit.source ? [{ ...hit.source, active: index === findActive.value }] : [],
+  ),
+);
 
-  const source = sharedState.value.text.value;
+const findReplaceCount = computed(
+  () => findMatches.value.filter((hit) => hit.source !== null).length,
+);
+const findCanReplace = computed(() => Boolean(findMatches.value[findActive.value]?.source));
+const findInvalid = computed(() => !isValidPattern(findQuery.value.trim(), findOptions.value));
+
+function readFindFrames(): FrameText | null {
+  if (!typstState.value || !fileId.value || degraded.value) return null;
+
   try {
-    findPrepared.value = preparePageBlocks(blocksOf(typstState.value, source), source);
-  } catch {
-    // A failed engine cannot answer, and the bar should stay empty rather than
-    // take the page down with it.
-    findPrepared.value = [];
+    return typstState.value.frameText(boundFileId.value);
+  } catch (error) {
+    console.error("[typst] frame text failed:", error);
+
+    return null;
   }
 }
 
-const prepareFindDebounced = useDebounceFn(prepareFindNow, 200);
+function adoptFindFrames(frames: FrameText | null): void {
+  findFrames.value = frames;
+}
 
-function openFind(): void {
-  if (degraded.value) return;
+/** Called after a paged compile, so the index matches the frames on screen. */
+function onPagedCompile(): void {
+  if (!findOpen.value) return;
 
-  if (findOpen.value) {
-    prepareFindNow();
-    void nextTick(() => findBar.value?.focus());
+  adoptFindFrames(readFindFrames());
+}
 
+/** Reuses the last paged index when it belongs to the live source. */
+function syncFindFrames(): void {
+  const frames = readFindFrames();
+  adoptFindFrames(frames?.source_hash === currentFindHash.value ? frames : null);
+}
+
+function setFindText(enabled: boolean): void {
+  if (!typstState.value || !fileId.value) return;
+
+  try {
+    typstState.value.setFindText(boundFileId.value, enabled);
+  } catch (error) {
+    console.error("[typst] find text toggle failed:", error);
+  }
+}
+
+/** Makes the frame index current, rendering one when the mode has none. */
+function activatePageFind(): void {
+  if (degraded.value) {
+    findFrames.value = null;
     return;
   }
 
-  findOpen.value = true;
+  setFindText(true);
+  syncFindFrames();
+  if (!findFrames.value) void ensureFindFrames();
+}
+
+/**
+ * Rendered search needs the layout's text index. Read, write, and split
+ * compile paged frames and refresh it. Source mode has no paged preview, so a
+ * find that wants rendered text renders one here.
+ */
+async function ensureFindFrames(): Promise<void> {
+  if (findRenderPending || !typstState.value || !fileId.value || !ready.value || degraded.value) {
+    return;
+  }
+
+  if (findFrames.value?.source_hash === currentFindHash.value) return;
+
+  const state = typstState.value;
+  const id = boundFileId.value;
+  const source = sharedState.value.text.value;
+  const documentPrelude = sharedState.value.prelude.value;
+
+  findRenderPending = true;
+  try {
+    let result = state.compilePaged(id, source, documentPrelude);
+
+    if (result.requests.length > 0) {
+      const updated = await onRequests(result.requests, workspaceId.value);
+      if (updated && typstState.value === state) {
+        result = state.compilePaged(id, source, documentPrelude);
+      }
+    }
+
+    adoptFindFrames(findOpen.value ? readFindFrames() : null);
+  } catch (error) {
+    console.error("[typst] find render failed:", error);
+    adoptFindFrames(null);
+    void handlePanic();
+  } finally {
+    findRenderPending = false;
+  }
+}
+
+const refreshFindDebounced = useDebounceFn(() => {
+  if (findOpen.value) void ensureFindFrames();
+}, 250);
+
+function openFind(): void {
+  if (!findOpen.value) {
+    findActive.value = 0;
+    findOpen.value = true;
+  }
+
+  activatePageFind();
   void nextTick(() => findBar.value?.focus());
 }
 
 function closeFind(): void {
   findOpen.value = false;
   findQuery.value = "";
-  findPrepared.value = [];
   findActive.value = 0;
+  findFrames.value = null;
+  pendingFindMark.value = null;
+  setFindText(false);
 
   if (props.modelValue === "read") previewPane.value?.scroller?.focus();
   else editorPane.value?.view?.focus();
 }
 
-function revealInPage(from: number, to: number): void {
+/**
+ * Scrolls a pane to a source range. `focusEditor` false keeps the caret in the
+ * find input while the selection moves behind it.
+ */
+function revealInPage(from: number, to: number, focusEditor = true): void {
   if (props.modelValue === "read") {
     if (!previewPane.value) {
       pendingPageReveal.value = { from, to };
@@ -1034,7 +1169,7 @@ function revealInPage(from: number, to: number): void {
     return;
   }
 
-  editorPane.value?.revealRange(from, to);
+  editorPane.value?.revealRange(from, to, focusEditor);
 }
 
 watch(previewPane, (pane) => {
@@ -1045,9 +1180,34 @@ watch(previewPane, (pane) => {
   pane.revealRange(pending.from, pending.to);
 });
 
+watch(previewPane, (pane) => {
+  const pending = pendingFindMark.value;
+  if (!pane || !pending) return;
+
+  pendingFindMark.value = null;
+  pane.revealMark(pending.frameIndex, pending.rects);
+});
+
 function revealActiveMatch(): void {
-  const match = findMatches.value[findActive.value];
-  if (match) revealInPage(match.from, match.to);
+  const hit = findMatches.value[findActive.value];
+  if (!hit) return;
+
+  const mark = hit.marks[0];
+
+  if (props.modelValue === "read") {
+    if (mark && previewPane.value) previewPane.value.revealMark(mark.frameIndex, mark.rects);
+    else if (mark) pendingFindMark.value = { frameIndex: mark.frameIndex, rects: mark.rects };
+    else if (hit.source) revealInPage(hit.source.from, hit.source.to, false);
+
+    return;
+  }
+
+  const target = hit.source ?? mark?.range ?? null;
+  if (target) editorPane.value?.revealRange(target.from, target.to, false);
+
+  if (props.modelValue === "split" && mark) {
+    previewPane.value?.revealMark(mark.frameIndex, mark.rects);
+  }
 }
 
 function nextFindMatch(): void {
@@ -1066,8 +1226,96 @@ function prevFindMatch(): void {
   revealActiveMatch();
 }
 
+function replacementText(hit: FindHit, source: string): string {
+  return replacementFor(
+    source,
+    hit,
+    findQuery.value.trim(),
+    findReplacement.value,
+    findOptions.value,
+  );
+}
+
+function replaceCurrent(): void {
+  const hit = findMatches.value[findActive.value];
+  const view = editorPane.value?.view;
+  if (!hit?.source || !view) return;
+
+  const source = sharedState.value.text.value;
+  const index = findActive.value;
+  view.dispatch({
+    changes: {
+      from: hit.source.from,
+      to: hit.source.to,
+      insert: replacementText(hit, source),
+    },
+  });
+
+  void nextTick(() => {
+    const count = findMatches.value.length;
+    findActive.value = count ? Math.min(index, count - 1) : 0;
+    revealActiveMatch();
+  });
+}
+
+function replaceAllMatches(): void {
+  const view = editorPane.value?.view;
+  if (!view) return;
+
+  const source = sharedState.value.text.value;
+  const changes = findMatches.value
+    .flatMap((hit) =>
+      hit.source
+        ? [
+            {
+              from: hit.source.from,
+              to: hit.source.to,
+              insert: replacementText(hit, source),
+            },
+          ]
+        : [],
+    )
+    .sort((left, right) => right.from - left.from);
+
+  if (changes.length === 0) return;
+
+  view.dispatch({ changes });
+  findActive.value = 0;
+  void nextTick(() => revealActiveMatch());
+}
+
+function selectAllMatches(): void {
+  const view = editorPane.value?.view;
+  const ranges = findMatches.value.flatMap((hit) =>
+    hit.source ? [EditorSelection.range(hit.source.from, hit.source.to)] : [],
+  );
+
+  if (!view || ranges.length === 0) return;
+
+  view.dispatch({ selection: EditorSelection.create(ranges) });
+  view.focus();
+}
+
 watch(findQuery, () => {
   findActive.value = 0;
+});
+
+watch(
+  findOptions,
+  () => {
+    findActive.value = 0;
+    if (findBar.value?.hasFocus()) revealActiveMatch();
+  },
+  { deep: true },
+);
+
+watch(degraded, (isDegraded) => {
+  if (isDegraded) {
+    findFrames.value = null;
+    return;
+  }
+
+  if (findOpen.value) activatePageFind();
 });
 
 watch(findMatches, (matches) => {
@@ -1078,24 +1326,32 @@ watch(findMatches, (matches) => {
   }
 
   if (findActive.value >= matches.length) findActive.value = 0;
-  revealActiveMatch();
+  // Editing with the bar open must not pull the caret to a match, so only a
+  // focused bar moves the selection as the list changes.
+  if (findBar.value?.hasFocus()) revealActiveMatch();
 });
 
 watch(findOpen, (open) => {
-  if (open) prepareFindNow();
+  if (open) activatePageFind();
 });
 
 watch(
   () => sharedState.value.text.value,
   () => {
-    if (findOpen.value) void prepareFindDebounced();
+    if (findOpen.value) void refreshFindDebounced();
   },
 );
 
+// The bar survives a mode switch. Show the active match in whichever pane now
+// owns the page.
 watch(
   () => props.modelValue,
-  (mode) => {
-    if (mode !== "read" && findOpen.value) closeFind();
+  () => {
+    if (!findOpen.value) return;
+
+    pendingFindMark.value = null;
+    activatePageFind();
+    revealActiveMatch();
   },
 );
 
@@ -1103,12 +1359,19 @@ watch(
   () => props.pageId,
   () => {
     pendingPageReveal.value = null;
+    pendingFindMark.value = null;
     if (findOpen.value) closeFind();
   },
 );
 
 watch(ready, (isReady) => {
-  if (isReady && findOpen.value) prepareFindNow();
+  if (isReady && findOpen.value) activatePageFind();
+});
+
+// A rebuilt engine starts with the find index off. Turn it back on for the
+// open bar.
+watch(typstState, () => {
+  if (findOpen.value) activatePageFind();
 });
 
 // System fonts were installed, so the typeface set changed under the docs.
@@ -1422,7 +1685,7 @@ function onModeKeydown(event: KeyboardEvent) {
           @click="linksOpen = !linksOpen"
         /> -->
 
-        <UiPopover
+        <!-- <UiPopover
           v-if="store && boundFileId"
           v-model:open="tocOpen"
           align="end"
@@ -1437,13 +1700,12 @@ function onModeKeydown(event: KeyboardEvent) {
             :typst-state="boundState"
             @jump="jumpToHeading"
           />
-        </UiPopover>
+        </UiPopover> -->
 
         <UiIconButton
-          v-if="modelValue === 'read'"
           icon="manage_search"
           :label="$t('pageView.find')"
-          :disabled="!ready || degraded"
+          :disabled="!ready"
           @click="openFind"
         />
 
@@ -1543,12 +1805,7 @@ function onModeKeydown(event: KeyboardEvent) {
             {{ $t("chat.ask") }}
           </UiMenuItem>
 
-          <UiMenuItem
-            v-if="modelValue === 'read'"
-            icon="manage_search"
-            :disabled="!ready || degraded"
-            @select="openFind"
-          >
+          <UiMenuItem icon="manage_search" :disabled="!ready" @select="openFind">
             <span class="page-view__menu-label">{{ $t("pageView.find") }}</span>
             <UiKbd class="page-view__menu-key">{{ shortcutLabel("pageFind") }}</UiKbd>
           </UiMenuItem>
@@ -1570,7 +1827,7 @@ function onModeKeydown(event: KeyboardEvent) {
             {{ $t("assets.title") }}
           </UiMenuItem>
 
-          <UiMenuSeparator v-if="(store && aiEnabled) || (compact && modelValue !== 'read')" />
+          <UiMenuSeparator />
 
           <UiMenuItem icon="link" @select="linksOpen = true">
             <span class="page-view__menu-label">
@@ -1602,14 +1859,26 @@ function onModeKeydown(event: KeyboardEvent) {
     </div>
 
     <PageFindBar
-      v-if="findOpen && modelValue === 'read'"
+      v-if="findOpen"
       ref="findBar"
       :query="findQuery"
       :count="findMatches.length"
       :active="findActive"
+      :replacement="findReplacement"
+      :options="findOptions"
+      :editable="modelValue !== 'read'"
+      :replace-count="findReplaceCount"
+      :can-replace="findCanReplace"
+      :invalid="findInvalid"
+      :source-only="degraded"
       @update:query="findQuery = $event"
+      @update:replacement="findReplacement = $event"
+      @update:options="findOptions = $event"
       @next="nextFindMatch"
       @prev="prevFindMatch"
+      @all="selectAllMatches"
+      @replace="replaceCurrent"
+      @replace-all="replaceAllMatches"
       @close="closeFind"
     />
 
@@ -1680,6 +1949,9 @@ function onModeKeydown(event: KeyboardEvent) {
           :extensions="extraExtensions"
           :on-panic="() => handlePanic()"
           :on-compile="onEngineCompile"
+          :on-paged-compile="onPagedCompile"
+          :find-source-ranges="findSourceRanges"
+          :find-frame-marks="findFrameMarks"
           :on-navigate="(pageId) => emit('openPage', pageId)"
           :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
           :on-asset-drop="handleAssetDrop"
@@ -1712,6 +1984,8 @@ function onModeKeydown(event: KeyboardEvent) {
         :on-requests="onRequests"
         :on-panic="() => handlePanic()"
         :on-compile="onEngineCompile"
+        :on-paged-compile="onPagedCompile"
+        :find-marks="findFrameMarks"
         @navigate="emit('openPage', $event)"
         @navigate-plugin="emit('openPlugin', $event)"
         @jump="onPreviewJump"

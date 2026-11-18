@@ -507,7 +507,7 @@ async function retryIndex() {
               )
             }}
           </span>
-          <UiTooltip :text="chipTooltip" side="top">
+          <!-- <UiTooltip :text="chipTooltip" side="top">
             <button
               type="button"
               class="button button--ghost search-palette-panel__mode"
@@ -526,7 +526,7 @@ async function retryIndex() {
               />
               <span class="search-palette-panel__mode-label">{{ chipLabel }}</span>
             </button>
-          </UiTooltip>
+          </UiTooltip> -->
           <UiIconButton
             icon="tune"
             :label="$t('palette.settings')"

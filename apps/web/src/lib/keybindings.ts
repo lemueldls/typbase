@@ -120,9 +120,7 @@ export const EDITOR_SHORTCUTS: KeyboardShortcut[] = [
     labelKey: "formatting.underline",
   },
   { id: "comment", group: "editor", keys: { default: "Mod+/" }, labelKey: "shortcuts.comment" },
-  { id: "find", group: "editor", keys: { default: "Mod+F" }, labelKey: "shortcuts.find" },
   { id: "goto", group: "editor", keys: { default: "Mod+G" }, labelKey: "shortcuts.goto" },
-  { id: "nextMatch", group: "editor", keys: { default: "F3" }, labelKey: "shortcuts.nextMatch" },
   {
     id: "selectNext",
     group: "editor",

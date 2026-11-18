@@ -15,6 +15,7 @@ mod cells;
 mod characterize;
 mod equations;
 mod fonts;
+mod frame_text;
 mod headings;
 mod ide;
 mod incomplete;

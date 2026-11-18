@@ -260,9 +260,40 @@ describe("typbase app", async () => {
     );
     await page.keyboard.press("Enter");
     await page.waitForSelector(".paged-preview__frame--flash", { timeout: 5_000 });
+    await page.waitForSelector(".paged-preview__mark--active", { timeout: 5_000 });
+
+    // The bar survives a mode switch, so a touch device without Mod-F gets
+    // page find in the editable modes too.
+    await page.evaluate(() => window.__typbase.setMode?.("write"));
+    await page.waitForFunction(() => window.__typbase.mode?.() === "write", null, {
+      timeout: 30_000,
+    });
+    await page.locator(".page-find input").fill("typstical");
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+        const text = view && selection ? view.state.sliceDoc(selection.from, selection.to) : "";
+
+        return /typstical/i.test(text);
+      },
+      null,
+      { timeout: 30_000 },
+    );
+    expect(
+      await page.evaluate(
+        () => document.querySelector(".page-find")?.contains(document.activeElement) ?? false,
+      ),
+    ).toBe(true);
+
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => !document.querySelector(".page-find"), null, {
       timeout: 5_000,
+    });
+
+    await page.evaluate(() => window.__typbase.setMode?.("read"));
+    await page.waitForFunction(() => window.__typbase.mode?.() === "read", null, {
+      timeout: 30_000,
     });
 
     // A global search result stays in read mode and scrolls the preview.
@@ -322,6 +353,230 @@ describe("typbase app", async () => {
       null,
       { timeout: 30_000 },
     );
+
+    await page.close();
+  });
+
+  it("finds page and source text from the toolbar on a touch device", async () => {
+    const page = await createPage(undefined, {
+      hasTouch: true,
+      viewport: { width: 420, height: 800 },
+    });
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Touch find",
+      content:
+        "= Touch find\n\nThe searchable phrase sits in a paragraph.\n\n" +
+        "$ alpha + x^2 $\n\n```typ\n#let value = 1\n```\n\n// secretnote\n",
+    });
+    await showPage(page, id, "write");
+
+    // A touch device has no Mod-F, so the toolbar control opens the same bar
+    // in the editable modes.
+    await page.getByRole("button", { name: "Find in page" }).click();
+    await page.waitForSelector(".page-find", { timeout: 10_000 });
+    const bar = page.locator(".page-find");
+    await bar.locator("input").fill("searchable");
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+        const text = view && selection ? view.state.sliceDoc(selection.from, selection.to) : "";
+
+        return /searchable/i.test(text);
+      },
+      null,
+      { timeout: 30_000 },
+    );
+    await page.waitForSelector(".typst-find-mark--active", { timeout: 10_000 });
+    expect(await bar.locator(".page-find__count").textContent()).toBe("1 of 1");
+
+    // The bar keeps focus while the selection moves in the page.
+    expect(await bar.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+
+    // Code blocks are visible page text and source text, in one hit.
+    await bar.locator("input").fill("value");
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+
+        return selection ? /value/i.test(view.state.sliceDoc(selection.from, selection.to)) : false;
+      },
+      null,
+      { timeout: 10_000 },
+    );
+    await page.waitForSelector(".typst-find-mark--active", { timeout: 10_000 });
+    expect(await bar.locator(".page-find__count").textContent()).toBe("1 of 1");
+
+    // Math renders as a glyph, so source `alpha` and the visible symbol still
+    // form one result.
+    await bar.locator("input").fill("alpha");
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+
+        return selection ? /alpha/i.test(view.state.sliceDoc(selection.from, selection.to)) : false;
+      },
+      null,
+      { timeout: 10_000 },
+    );
+    await page.waitForSelector(".typst-find-mark--active", { timeout: 10_000 });
+    expect(await bar.locator(".page-find__count").textContent()).toBe("1 of 1");
+
+    // A comment has source text and no rendered glyphs.
+    await bar.locator("input").fill("secretnote");
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+
+        return selection
+          ? /secretnote/i.test(view.state.sliceDoc(selection.from, selection.to))
+          : false;
+      },
+      null,
+      { timeout: 10_000 },
+    );
+
+    // Source decorations are visible once the source pane is.
+    await page.evaluate(() => window.__typbase.setMode?.("source"));
+    await page.waitForFunction(() => window.__typbase.mode?.() === "source", null, {
+      timeout: 30_000,
+    });
+    await page.waitForSelector(".cm-searchMatch", { timeout: 10_000 });
+
+    await page.close();
+  });
+
+  it("finds and replaces with options from the find bar", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Find replace",
+      content: "Alpha alpha alpha\n\n#let value = 1\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.getByRole("button", { name: "Find in page" }).click();
+    await page.waitForSelector(".page-find", { timeout: 10_000 });
+    const bar = page.locator(".page-find");
+    const input = bar.locator(".page-find__input input");
+    const options = bar.locator(".page-find__options");
+
+    await input.fill("alpha");
+    await expect
+      .poll(() => bar.locator(".page-find__count").textContent(), { timeout: 10_000 })
+      .toBe("1 of 3");
+
+    await options.getByRole("button", { name: "Match case" }).click();
+    await expect
+      .poll(() => bar.locator(".page-find__count").textContent(), { timeout: 10_000 })
+      .toBe("1 of 2");
+
+    await options.getByRole("button", { name: "Match case" }).click();
+    await input.fill("alph");
+    await options.getByRole("button", { name: "Whole word" }).click();
+    await expect
+      .poll(() => bar.locator(".page-find__count").textContent(), { timeout: 10_000 })
+      .toBe("No matches");
+
+    await options.getByRole("button", { name: "Whole word" }).click();
+    await input.fill("a\\w+a");
+    await options.getByRole("button", { name: "Regular expression" }).click();
+    await expect
+      .poll(() => bar.locator(".page-find__count").textContent(), { timeout: 10_000 })
+      .toBe("1 of 3");
+
+    await options.getByRole("button", { name: "Regular expression" }).click();
+    await input.fill("alpha");
+    await page.locator(".page-find__tools").getByRole("button", { name: "Replace" }).click();
+    const replace = bar.locator(".page-find__replace");
+    await replace.locator("input").fill("omega");
+    await replace.getByRole("button", { name: "Replace", exact: true }).click();
+
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.view?.state.doc.toString()), {
+        timeout: 10_000,
+      })
+      .toBe("omega alpha alpha\n\n#let value = 1\n");
+
+    await replace.getByRole("button", { name: "Replace all" }).click();
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.view?.state.doc.toString()), {
+        timeout: 10_000,
+      })
+      .toBe("omega omega omega\n\n#let value = 1\n");
+
+    await input.fill("omega");
+    await page
+      .locator(".page-find__tools")
+      .getByRole("button", { name: "Select all matches" })
+      .click();
+    await page.waitForFunction(
+      () => window.__typbase.view?.state.selection.ranges.length === 3,
+      null,
+      { timeout: 10_000 },
+    );
+
+    await page.close();
+  });
+
+  it("keeps source find and replace working when the engine is down", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Degraded find",
+      content: "#let doomed = 1\n\nDoomed text.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.evaluate(() => {
+      try {
+        window.__typbase.crashEngine();
+      } catch {
+        // expected: the wasm trap surfaces as a thrown RuntimeError
+      }
+    });
+    await page.waitForFunction(() => window.__typbase.engineStatus() === "failed", null, {
+      timeout: 60_000,
+    });
+
+    await page.keyboard.press("Control+f");
+    await page.waitForSelector(".page-find", { timeout: 10_000 });
+    const bar = page.locator(".page-find");
+    await expect
+      .poll(() => bar.locator(".page-find__note").textContent(), { timeout: 10_000 })
+      .toContain("Source only");
+
+    await bar.locator(".page-find__input input").fill("doomed");
+    await page.waitForFunction(
+      () => {
+        const view = window.__typbase.view;
+        const selection = view?.state.selection.main;
+
+        return selection
+          ? /doomed/i.test(view.state.sliceDoc(selection.from, selection.to))
+          : false;
+      },
+      null,
+      { timeout: 10_000 },
+    );
+
+    await page.locator(".page-find__tools").getByRole("button", { name: "Replace" }).click();
+    const replace = bar.locator(".page-find__replace");
+    await replace.locator("input").fill("saved");
+    await replace.getByRole("button", { name: "Replace all" }).click();
+
+    await expect
+      .poll(() => page.evaluate(() => window.__typbase.view?.state.doc.toString()), {
+        timeout: 10_000,
+      })
+      .toBe("#let saved = 1\n\nsaved text.\n");
 
     await page.close();
   });

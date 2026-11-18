@@ -166,6 +166,7 @@ pub fn sync_source_context(
     context.render_map = render.map.clone();
     context.render_fixups = fixups;
     context.marked_raw_ranges.clear();
+    context.frame_text = Default::default();
 
     context.last_sync = Some(SyncedInput {
         raw: text.to_string(),

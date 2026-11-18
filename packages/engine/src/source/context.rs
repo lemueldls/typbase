@@ -10,7 +10,7 @@ use typst_layout::PagedDocument;
 use typst_syntax::{FileId, LinkedNode, RootedPath, Source, Span};
 
 use crate::{
-    source::{RawFixups, Side, SourceMap, SynthBlock},
+    source::{FrameText, RawFixups, Side, SourceMap, SynthBlock},
     theme::ThemeColors,
     world::TypstWorld,
 };
@@ -168,6 +168,14 @@ pub struct SourceContext {
     /// Cached here so hover and jump-to-source queries can avoid recompiling.
     pub paged_document: Option<PagedDocument>,
 
+    /// Visible text and glyph boxes for the frames of the last paged render.
+    /// Page search reads this instead of parsing the frame SVG.
+    pub frame_text: FrameText,
+
+    /// Build `frame_text` on the next paged render. Page find turns this on
+    /// while its bar is open, so normal compiles skip the extra glyph walk.
+    pub find_text: bool,
+
     /// The most recently compiled HTML document for this note, if any.
     pub html_document: Option<HtmlDocument>,
 
@@ -255,6 +263,8 @@ impl SourceContext {
             render_fixups: RawFixups::default(),
             marked_raw_ranges: Vec::new(),
             paged_document: None,
+            frame_text: FrameText::default(),
+            find_text: false,
             html_document: None,
             width: String::from("auto"),
             height: None,

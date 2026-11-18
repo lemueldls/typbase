@@ -2,6 +2,7 @@
 mod frame;
 pub mod items;
 pub mod svg;
+mod text;
 
 use std::{collections::VecDeque, hash::Hash, ops::Range};
 
@@ -18,7 +19,7 @@ use wasm_bindgen::prelude::*;
 use crate::bindings::RenderPdfResult;
 use crate::{
     bindings::{CheckResult, CompilePagedResult, TypstDiagnostic, TypstFileId},
-    source::{RenderTarget, sync_source_state},
+    source::{FrameText, FrameTextFrame, RenderTarget, sync_source_state},
     state::{RenderContext, TypstState},
 };
 
@@ -27,6 +28,8 @@ use crate::{
 pub struct PagedRender {
     /// Chunks of blocks for incremental rendering.
     pub chunks: Vec<FrameItemsChunk>,
+    /// Searchable text and glyph boxes for each chunk, in chunk order.
+    pub text: Vec<FrameTextFrame>,
     /// Tooltips for the rendered content.
     pub tooltips: Vec<FrameItemsChunk>,
     /// The equation overlays this render walked, with the items that belong to each. The
@@ -126,6 +129,24 @@ impl TypstState {
             requests: self.world.take_requests(),
         }
         .into_ts()?)
+    }
+
+    /// Visible text and glyph boxes from the last paged render, for page
+    /// search. The frames array matches the last `compilePaged` result.
+    #[wasm_bindgen(js_name = "frameText")]
+    pub fn frame_text(&self, id: &TypstFileId) -> Result<Ts<FrameText>, JsError> {
+        Ok(self.get_source_context(id).frame_text.clone().into_ts()?)
+    }
+
+    /// Turns the frame text index on or off for this note. Page find enables
+    /// it while open and clears the old index when closing.
+    #[wasm_bindgen(js_name = "setFindText")]
+    pub fn set_find_text(&mut self, id: &TypstFileId, enabled: bool) {
+        let context = self.get_source_context_mut(id);
+        context.find_text = enabled;
+        if !enabled {
+            context.frame_text = Default::default();
+        }
     }
 
     /// Diagnostics for the current text, through the same error recovery the

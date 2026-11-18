@@ -131,11 +131,22 @@
     "publishOptions": "Publish options",
     "saveDefaults": "Save as defaults",
     "find": "Find in page",
+    "findReplace": "Replace",
     "findPlaceholder": "Find in page…",
     "findCount": "{active} of {count}",
     "findNoMatches": "No matches",
     "findPrevious": "Previous match",
-    "findNext": "Next match"
+    "findNext": "Next match",
+    "findOptions": "Search options",
+    "findMatchCase": "Match case",
+    "findRegexp": "Regular expression",
+    "findInvalid": "Invalid pattern",
+    "findWholeWord": "Whole word",
+    "findAll": "Select all matches",
+    "findReplacePlaceholder": "Replace with…",
+    "findReplaceOne": "Replace",
+    "findReplaceAll": "Replace all",
+    "findSourceOnly": "Source only, rendered text unavailable"
   },
   "toc": {
     "title": "Contents",

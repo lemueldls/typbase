@@ -914,6 +914,11 @@ impl TypstState {
         context.width = width;
         context.height = height;
 
+        if width_changed {
+            // Frame text boxes were laid out at the old width.
+            context.frame_text = Default::default();
+        }
+
         width_changed
     }
 }

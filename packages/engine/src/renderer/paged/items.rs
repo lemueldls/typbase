@@ -6,7 +6,10 @@ use typst::{
 };
 use typst_layout::PagedDocument;
 
-use super::frame::{TagStack, bound_frame};
+use super::{
+    frame::{TagStack, bound_frame},
+    text as frame_text,
+};
 use crate::{
     bindings::{TypstDiagnostic, TypstFileId},
     renderer::{
@@ -17,7 +20,7 @@ use crate::{
         },
     },
     source::{
-        RenderTarget, SegmentKind, Side, SourceContext, SynthBlock, SynthResult,
+        FrameTextFrame, RenderTarget, SegmentKind, Side, SourceContext, SynthBlock, SynthResult,
         delimiter_diagnostics, sync_source_context,
     },
     state::{RenderContext, TypstState},
@@ -110,6 +113,7 @@ pub fn chunk_by_items_with_blocks(
     let mut compiled_warnings = None;
 
     let mut chunks = Vec::new();
+    let mut text_frames = Vec::new();
     let mut overlays: Vec<EquationOverlay> = Vec::new();
 
     // Probe compiles the unmappable-error bisection may spend on this render.
@@ -121,7 +125,7 @@ pub fn chunk_by_items_with_blocks(
 
         // crate::log!("[DOING A THING]");
 
-        (chunks, document) = match compiled.output {
+        (chunks, text_frames, document) = match compiled.output {
             Ok(document) => {
                 // The memo is for this walk only. The loop below rewrites the
                 // render source between iterations, and a span from the previous
@@ -156,6 +160,7 @@ pub fn chunk_by_items_with_blocks(
                 let mut bound_frame_items = bound_frame_items.into_iter().peekable();
 
                 let mut chunks: Vec<FrameItemsChunk> = Vec::with_capacity(blocks.len());
+                let mut text_frames: Vec<FrameTextFrame> = Vec::with_capacity(blocks.len());
                 let mut remaining_items = Vec::<BoundFrameItem>::new();
 
                 for block in blocks.iter() {
@@ -332,6 +337,22 @@ pub fn chunk_by_items_with_blocks(
                         previous.height = block_start_height - previous.y_offset;
                     }
 
+                    let text_frame = context.find_text.then(|| {
+                        let text_runs = frame_text::frame_runs(
+                            &chunk_items,
+                            block_start_height,
+                            raw_source,
+                            context,
+                            world,
+                        );
+
+                        FrameTextFrame {
+                            from: raw_range_utf16.start,
+                            to: raw_range_utf16.end,
+                            runs: text_runs,
+                        }
+                    });
+
                     chunks.push(FrameItemsChunk {
                         items: chunk_items,
                         range: raw_range_utf16,
@@ -341,6 +362,10 @@ pub fn chunk_by_items_with_blocks(
                         y_offset: block_start_height,
                         list_item: block.list_item,
                     });
+
+                    if let Some(text_frame) = text_frame {
+                        text_frames.push(text_frame);
+                    }
                 }
 
                 if !remaining_items.is_empty()
@@ -354,7 +379,7 @@ pub fn chunk_by_items_with_blocks(
                     }
                 }
 
-                (chunks, Some(document))
+                (chunks, text_frames, Some(document))
             }
             Err(source_diagnostics) => {
                 *divergence += 1;
@@ -431,6 +456,7 @@ pub fn chunk_by_items_with_blocks(
                     // arm and never walked a document.
                     let marked_chunks = marked_render.chunks;
                     let marked_overlays = marked_render.overlays;
+                    let marked_text = marked_render.text;
 
                     return PagedRender {
                         tooltips: equation_tooltips(
@@ -442,6 +468,7 @@ pub fn chunk_by_items_with_blocks(
                             world,
                         ),
                         chunks: marked_chunks,
+                        text: marked_text,
                         overlays: marked_overlays,
                         diagnostics,
                         document: stable_render.document,
@@ -493,7 +520,7 @@ pub fn chunk_by_items_with_blocks(
                     blocks.remove(*idx);
                 }
 
-                (Vec::new(), None)
+                (Vec::new(), Vec::new(), None)
             }
         };
     }
@@ -506,6 +533,7 @@ pub fn chunk_by_items_with_blocks(
 
     PagedRender {
         chunks,
+        text: text_frames,
         tooltips,
         overlays,
         diagnostics,
