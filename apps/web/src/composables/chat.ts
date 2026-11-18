@@ -26,6 +26,7 @@ import {
   setChatWorkerStyle,
 } from "~/lib/chatWorker";
 import { customFontPayloads } from "~/lib/customFonts";
+import { fontPackPayloads, installedFontPackIds } from "~/lib/fontPacks";
 import { pageContextBinding } from "~/lib/pageContext";
 import { sanitizeHtml } from "~/lib/plugins/sanitize";
 import { publishPrelude } from "~/lib/publishPrelude";
@@ -72,6 +73,7 @@ function useChatState() {
   /** Bumped whenever the engine reports progress. */
   const chatRevision = ref(0);
   let styleKey = "";
+  let fontKey = "";
 
   onChatEvent(() => {
     chatRevision.value += 1;
@@ -100,13 +102,24 @@ function useChatState() {
       palette: palette ?? resolveAppTheme(settings).palette,
     };
     const key = JSON.stringify(style);
-    if (key === styleKey) return;
+    if (key !== styleKey) {
+      styleKey = key;
+      setChatWorkerStyle(style);
+    }
 
-    styleKey = key;
-    setChatWorkerStyle(style);
     // The chat renders the same document the editor does, so it needs the
-    // workspace's uploaded faces as well as its fonts.
-    void customFontPayloads(store).then(setChatWorkerFonts);
+    // workspace's uploaded faces and the device's language packs. Key the
+    // bytes separately: installing a pack must not wait for a style change.
+    const nextFontKey = JSON.stringify({
+      custom: settings.customFonts.map((font) => [font.family, font.hashes]),
+      packs: installedFontPackIds.value,
+    });
+    if (nextFontKey === fontKey) return;
+
+    fontKey = nextFontKey;
+    void Promise.all([customFontPayloads(store), fontPackPayloads()]).then(([custom, packs]) =>
+      setChatWorkerFonts([...custom, ...packs]),
+    );
   }
 
   function installDeps(store: ReturnType<typeof currentStore>): void {

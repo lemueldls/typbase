@@ -33,6 +33,7 @@ tar = { version = "0.4" }
 time = { version = "0.3", features = ["serde", "wasm-bindgen"] }
 # tiny-skia = { version = "0.11" }
 tsify = { version = "0.5.6", features = ["js"] }
+unicode-script = "0.5.9"
 typst = { version = "0.15.1" }
 typst-html = { version = "0.15.1" }
 typst-ide = { version = "0.15.1" }

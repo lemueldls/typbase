@@ -4,6 +4,7 @@ import type { ThemePaletteTokens } from "@typbase/typing";
 
 import { pushToast } from "~/composables/toasts";
 import { customFontPayloads, type FontPayload } from "~/lib/customFonts";
+import { fontPackPayloads } from "~/lib/fontPacks";
 import { isWasmTrap } from "~/lib/typstRecovery";
 import {
   resolveRequestPayloads,
@@ -82,6 +83,8 @@ let requestStore: WorkspaceStore | undefined;
  * bytes are sent with the configure message.
  */
 let renderFonts: FontPayload[] = [];
+/** Downloaded language packs, kept apart so a workspace font change cannot drop them. */
+let renderFallbackFonts: FontPayload[] = [];
 /**
  * Renders share one worker and its request loop. Run them one at a time so a
  * concurrent publish and export cannot interleave request passes.
@@ -105,6 +108,20 @@ export function setRenderFonts(fonts: FontPayload[]): void {
 
   renderFonts = fonts;
   stopWorker(new Error("Render fonts changed; the worker was restarted."));
+}
+
+/**
+ * Hands the render worker the device's language packs. Packs change only on a
+ * user install, so a restart here is rare.
+ */
+export function setRenderFallbackFonts(fonts: FontPayload[]): void {
+  const same =
+    fonts.length === renderFallbackFonts.length &&
+    fonts.every((font, index) => font.bytes === renderFallbackFonts[index]?.bytes);
+  if (same) return;
+
+  renderFallbackFonts = fonts;
+  stopWorker(new Error("Language fonts changed; the worker was restarted."));
 }
 
 interface PendingRender {
@@ -152,7 +169,7 @@ function ensureWorker(): Worker {
     id: 0,
     type: "configure",
     wasmUrl: wasmBinaryUrl,
-    fonts: renderFonts,
+    fonts: [...renderFonts, ...renderFallbackFonts],
   } satisfies RenderWorkerResponse);
 
   worker.addEventListener("message", (event: MessageEvent<RenderWorkerResponse>) => {
@@ -260,6 +277,7 @@ export function renderInWorker(input: {
   // cheap when nothing changed: `setRenderFonts` compares and returns.
   const run = renderQueue.then(async () => {
     if (requestStore) setRenderFonts(await customFontPayloads(requestStore));
+    setRenderFallbackFonts(await fontPackPayloads());
 
     return renderOnce(input);
   });

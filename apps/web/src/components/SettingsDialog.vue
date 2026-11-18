@@ -874,6 +874,10 @@ const missingFonts = ref<string[]>([]);
 const systemFontDialogOpen = ref(false);
 const webFontDialogOpen = ref(false);
 const fontPackDialogOpen = ref(false);
+
+watch(open, (value) => {
+  if (!value) fontPackDialogOpen.value = false;
+});
 const runtimeConfig = useRuntimeConfig();
 const fontProxyBase = computed(() => {
   const config = runtimeConfig.public;

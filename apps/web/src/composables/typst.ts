@@ -8,6 +8,7 @@ import { effectiveLocale } from "~/composables/appLocale";
 import { currentThemeColors } from "~/composables/theme";
 import { EDITOR_LINE_HEIGHT } from "~/lib/cmTheme";
 import { installCustomFonts } from "~/lib/customFonts";
+import { forgetInstalledFontPack, installedFontPacks, readFontPack } from "~/lib/fontPacks";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
 
 export function getTypstFontImports() {
@@ -409,6 +410,50 @@ function workspaceConfigId(typstState: TypstState, workspaceId: string): FileId 
 }
 
 /**
+ * Packs already installed into a given wasm instance. Panic recovery builds a
+ * fresh state, and the faces have to load again.
+ */
+const installedPacks = new WeakMap<TypstState, Set<string>>();
+
+/**
+ * Installs the device's downloaded language packs into one wasm instance.
+ *
+ * A pack whose cache entry disappeared is forgotten, so the page notice
+ * offers the download again instead of claiming the font is present.
+ */
+export async function installFontPacks(typstState: TypstState): Promise<void> {
+  let seen = installedPacks.get(typstState);
+  if (!seen) {
+    seen = new Set();
+    installedPacks.set(typstState, seen);
+  }
+
+  let added = false;
+  for (const pack of installedFontPacks.value) {
+    if (seen.has(pack.id)) continue;
+
+    // oxlint-disable-next-line no-await-in-loop
+    const bytes = await readFontPack(pack);
+    if (!bytes) {
+      forgetInstalledFontPack(pack.id);
+      continue;
+    }
+
+    try {
+      typstState.installFont(bytes);
+      seen.add(pack.id);
+      added = true;
+    } catch (cause) {
+      // A failed engine must not drop a verified download. The next style
+      // apply, usually after recovery, tries again.
+      console.warn("[fonts] language pack install failed:", pack.id, cause);
+    }
+  }
+
+  if (added) bumpRenderRevision();
+}
+
+/**
  * (Re)applies the workspace font settings to the wasm instance. Call after
  * settings change or once before opening the first page. Every page in a
  * workspace shares one space context, so one hidden file id per workspace is
@@ -440,6 +485,9 @@ export async function applyWorkspaceStyleToTypst(
   // they install separately. Without this a workspace font renders in the
   // picker and falls back in the document.
   await installCustomFonts(typstState, store);
+  // Device packs cover scripts the bundled faces do not. A fresh state needs
+  // them again, so this runs with every style apply.
+  await installFontPacks(typstState);
 
   applyWorkspaceStyle(typstState, workspaceConfigId(typstState, workspaceId), {
     font: settings.font,

@@ -2,8 +2,10 @@
 //! generated prelude turns on. Both feed settings the app cannot derive on its
 //! own, so they are pinned here.
 
+use typst::text::{Coverage, FontBook, FontFlags, FontInfo, FontVariant};
+
 use crate::{
-    fonts::{face_info, family_names},
+    fonts::{face_info, family_names, uncovered_scripts},
     state::TypstState,
     tests::harness,
     theme::ThemeColors,
@@ -77,4 +79,50 @@ fn typography_reaches_the_generated_prelude() {
     assert!(style(false, false).contains("ligatures:false,kerning:false"));
     // The two are independent, so one can be off without the other.
     assert!(style(false, true).contains("ligatures:false,kerning:true"));
+}
+
+#[test]
+fn reports_scripts_the_bundled_fonts_cannot_draw() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+
+        return;
+    }
+
+    let state = harness::state();
+    assert!(state.uncovered_scripts("Hello, world!").is_empty());
+    assert!(
+        state
+            .uncovered_scripts("你好")
+            .contains(&String::from("Hani"))
+    );
+    assert!(
+        state
+            .uncovered_scripts("😀")
+            .contains(&String::from("Emoji"))
+    );
+    // Fullwidth punctuation has no script of its own but only CJK faces carry it.
+    assert!(
+        state
+            .uncovered_scripts("，")
+            .contains(&String::from("Hani"))
+    );
+    // Joiners and variation selectors have no glyph of their own.
+    assert!(state.uncovered_scripts("\u{200D}\u{FE0F}").is_empty());
+}
+
+#[test]
+fn a_covering_face_clears_the_script() {
+    let book = FontBook::from_infos([FontInfo {
+        family: String::from("Test Han"),
+        variant: FontVariant::default(),
+        flags: FontFlags::empty(),
+        axes: Vec::new(),
+        coverage: Coverage::from_vec(vec!['你' as u32]),
+    }]);
+
+    assert!(uncovered_scripts(&book, "你").is_empty());
+    assert_eq!(uncovered_scripts(&book, "你好"), vec![String::from(
+        "Hani"
+    )]);
 }

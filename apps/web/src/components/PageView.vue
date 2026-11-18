@@ -382,7 +382,11 @@ async function handlePanic(options: { manual?: boolean } = {}) {
     typstState.value = fresh;
     // The current request service still points at the dead instance.
     requestService = createTypstRequestService(fresh, store);
-    await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
+    await applyWorkspaceStyleToTypst(
+      workspaceId.value,
+      store,
+      fontFamiliesInSource(`${text.value}\n${prelude.value}`),
+    );
     if (pageDisposed) return;
 
     // Every held cell shows the last output, which still belongs to the dead
@@ -692,7 +696,11 @@ async function setupPage() {
     requestService = createTypstRequestService(typstState.value, store);
     // The space context survives later createSourceId calls (see state.rs).
     // this one call is what gives pages their fonts/theme.
-    await applyWorkspaceStyleToTypst(workspaceId.value, store, fontFamiliesInSource(text.value));
+    await applyWorkspaceStyleToTypst(
+      workspaceId.value,
+      store,
+      fontFamiliesInSource(`${text.value}\n${prelude.value}`),
+    );
     if (pageDisposed || token !== setupToken) return;
 
     // Query JSON goes stale when pages/categories/settings change. Re-apply
@@ -703,20 +711,22 @@ async function setupPage() {
       void (async () => {
         if (engineHealth.value.status !== "ok") return;
 
-        await applyWorkspaceStyleToTypst(
-          workspaceId.value,
-          store,
-          fontFamiliesInSource(text.value),
-        );
-        requestService?.purge();
         // A prelude edit must recompile with the new text. The page context
         // moved with it, so the daily neighbors stay current.
-        prelude.value = [
+        const nextPrelude = [
           pageContextBinding(store, props.pageId),
           store.getSettings().pagePrelude ?? "",
         ]
           .filter(Boolean)
           .join("\n");
+        prelude.value = nextPrelude;
+        await applyWorkspaceStyleToTypst(
+          workspaceId.value,
+          store,
+          fontFamiliesInSource(`${text.value}\n${nextPrelude}`),
+        );
+        requestService?.purge();
+        void ensureSourceFonts();
         editorPane.value?.recompile();
         meta.value = store.getPage(props.pageId);
       })();
@@ -786,7 +796,7 @@ async function ensureSourceFonts(): Promise<void> {
   // `recovering` is allowed: the fresh state is already in place by then.
   if (!state || engineHealth.value.status === "failed") return;
 
-  const families = fontFamiliesInSource(text.value).filter(
+  const families = fontFamiliesInSource(`${text.value}\n${prelude.value}`).filter(
     (family) => !scannedFamilies.has(family),
   );
   if (families.length > 0) {
@@ -807,7 +817,9 @@ function refreshMissingScripts(state = typstState.value): void {
     return;
   }
 
-  const next = state.uncoveredScripts(text.value);
+  // The prelude carries the page context (title, category, tags), so a CJK
+  // title needs the same font as a CJK body.
+  const next = state.uncoveredScripts(`${text.value}\n${prelude.value}`);
   if (next.join("\u0000") === missingScripts.value.join("\u0000")) return;
 
   missingScripts.value = next;
@@ -2274,7 +2286,7 @@ function onModeKeydown(event: KeyboardEvent) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
   color: var(--color-text);
   background: var(--color-danger-soft);
   border-bottom: 1px solid var(--color-border);

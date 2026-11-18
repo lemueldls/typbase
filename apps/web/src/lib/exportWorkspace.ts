@@ -8,6 +8,7 @@ import {
   escapeHtml,
   fileBase,
   fontFiles,
+  fontPackFiles,
   inlineBlobs,
   renderFailure,
   setsPageConfiguration,
@@ -348,6 +349,10 @@ export async function buildWorkspaceExport(
     }
     if (options.fonts) {
       for (const font of await fontFiles(store)) addFile(font);
+      const sources = pages.map(
+        (page) => `${pageContextBinding(store, page.id)}\n${store.getPageText(page.id)}`,
+      );
+      for (const font of await fontPackFiles(sources)) addFile(font);
     }
     for (const file of editorConfigFiles()) {
       addFile({ name: file.name, bytes: encoder.encode(file.text) });

@@ -1374,6 +1374,7 @@ dependencies = [
  "typst-svg",
  "typst-syntax",
  "typst-timing",
+ "unicode-script",
  "walkdir",
  "wasm-bindgen",
  "wasm-bindgen-test",

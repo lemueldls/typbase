@@ -22,9 +22,9 @@ const pending = shallowRef<PendingConfirm | null>(null);
 const open = computed(() => pending.value !== null);
 
 /**
- * Settles the open request. Closing through the overlay, Escape, or Cancel
- * counts as a no; confirming settles first, so the dialog's close event that
- * follows does not turn it into a no.
+ * Settles the open request. Closing with Escape or Cancel counts as a no;
+ * confirming settles first, so the dialog's close event that follows does not
+ * turn it into a no.
  */
 function settle(confirmed: boolean): void {
   const request = pending.value;

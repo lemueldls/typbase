@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use tar::Archive;
 use tsify::{Ts, Tsify};
 use typst::{
+    World,
     ecow::EcoString,
     foundations::Bytes,
     introspection::{HtmlPosition, PagedPosition},
@@ -322,6 +323,16 @@ impl TypstState {
     pub fn install_font(&mut self, bytes: Vec<u8>) {
         self.world.install_font(bytes);
         self.revision += 1;
+    }
+
+    /// Scripts in `text` that none of the installed fonts can draw.
+    ///
+    /// The app uses this to offer a downloadable font when a page contains
+    /// Chinese, Arabic or another script the bundled faces do not cover.
+    #[must_use]
+    #[wasm_bindgen(js_name = "uncoveredScripts")]
+    pub fn uncovered_scripts(&self, text: &str) -> Vec<String> {
+        crate::fonts::uncovered_scripts(&self.world.book(), text)
     }
 
     /// The families a font file declares, so an upload can be filed under the

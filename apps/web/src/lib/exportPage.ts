@@ -5,6 +5,7 @@ import type { ThemePaletteTokens } from "@typbase/typing";
 import { stripCellAttributes } from "@typbase/codemirror";
 import { isTauri, saveExportFile, sniffMime } from "@typbase/storage";
 
+import { installedPacksForText, readFontPack } from "~/lib/fontPacks";
 import { pageContextBinding } from "~/lib/pageContext";
 import { THEME_COLOR_KEYS, paletteSlots } from "~/lib/palette";
 import { pluginBundleSummary, pluginProjectFiles } from "~/lib/pluginBundle";
@@ -223,6 +224,9 @@ export async function buildExport(
     }
     if (options.fonts) {
       for (const font of await fontFiles(store)) addFile(font);
+      // The generated prelude carries the page title and context, which can
+      // contain CJK even when the body does not.
+      for (const font of await fontPackFiles([page.title, pagedPrelude, source])) addFile(font);
     }
   }
 
@@ -351,6 +355,30 @@ export async function fontFiles(store?: WorkspaceStore): Promise<ExportFile[]> {
         bytes,
       );
     }
+  }
+
+  return files;
+}
+
+/**
+ * Downloadable language faces for the scripts the sources actually use.
+ *
+ * A pack can be 10 MB, so an English export must not carry a Chinese font just
+ * because one is installed on the device. The browser font stack handles HTML,
+ * but a project compiled elsewhere needs the face in `typbase/fonts`.
+ */
+export async function fontPackFiles(sources: string[]): Promise<ExportFile[]> {
+  const files: ExportFile[] = [];
+
+  for (const pack of installedPacksForText(...sources)) {
+    // oxlint-disable-next-line no-await-in-loop
+    const bytes = await readFontPack(pack);
+    if (!bytes) continue;
+
+    files.push({
+      name: `typbase/fonts/${pack.family.replace(/[^\w.-]+/g, "-")}-${pack.id}.${fontExtension(bytes)}`,
+      bytes,
+    });
   }
 
   return files;
