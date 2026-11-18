@@ -125,15 +125,15 @@
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
   --color-ok: #3f704e;
   --color-ok-soft: color-mix(in srgb, var(--color-ok) 12%, var(--color-surface));
-  --color-warning: #8f6a13;
+  --color-warning: #85600e;
   --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
   --color-info: #2f6f9f;
   --color-info-soft: color-mix(in srgb, var(--color-info) 12%, var(--color-surface));
   --color-red: #b3443e;
-  --color-orange: #a85c23;
-  --color-yellow: #8f6a13;
+  --color-orange: #9f5520;
+  --color-yellow: #85600e;
   --color-green: #3f704e;
-  --color-cyan: #2f6f9f;
+  --color-cyan: #2d7582;
   --color-blue: #2f6f9f;
   --color-violet: #6b538f;
   --color-code: #f1f4f2;
@@ -166,7 +166,7 @@
   --color-orange: #dc9d6d;
   --color-yellow: #d8b46b;
   --color-green: #a3c794;
-  --color-cyan: #8bb6e0;
+  --color-cyan: #8ec9d1;
   --color-blue: #8bb6e0;
   --color-violet: #b99bc7;
   --color-code: #121414;
