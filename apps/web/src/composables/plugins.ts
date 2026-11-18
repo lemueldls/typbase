@@ -27,7 +27,6 @@ import { completeForPlugin } from "~/lib/ai/engine";
 import { engineAvailable } from "~/lib/engineHealth";
 import { sectionsOf } from "~/lib/engineSyntax";
 import { todayISO } from "~/lib/format";
-import { openExternal } from "~/lib/openExternal";
 import { specString } from "~/lib/packages";
 import { installPluginBundle } from "~/lib/plugins/bundle";
 import {
@@ -129,7 +128,9 @@ export const DEFAULT_WINDOW_SIZE = { width: 620, height: 480 };
 export function usePluginHost() {
   const { workspace, backend, localState, dataRevision, pluginFilesRevision, atproto } =
     useWorkspace();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
+  const { confirm } = useConfirm();
+  const openExternalLink = useExternalLink();
   // Plugin AI actions go through the chat runtime. Instantiate it so the
   // engine deps exist even when no chat pane is open (for example /debug).
   useChat();
@@ -443,11 +444,17 @@ export function usePluginHost() {
       }
 
       const capabilities = manifest.capabilities.length ? manifest.capabilities.join(", ") : "none";
-      if (
-        !window.confirm(
-          `Install ${manifest.name} ${manifest.version} from ${uri}?\n\nCapabilities: ${capabilities}`,
-        )
-      ) {
+      const confirmed = await confirm({
+        title: t("plugins.installConfirmTitle", { name: manifest.name }),
+        description: t("plugins.installConfirm", {
+          version: manifest.version,
+          uri,
+          capabilities,
+        }),
+        confirmLabel: t("plugins.install"),
+        danger: false,
+      });
+      if (!confirmed) {
         return;
       }
 
@@ -1255,8 +1262,7 @@ export function usePluginHost() {
         if (/^(https?:|mailto:|tel:)/i.test(href)) {
           if (!capabilityOf(instanceId, "ui.external"))
             return deny(instanceId, action, "ui.external");
-          if (window.confirm(`Open external link?\n\n${href}`)) {
-            openExternal(href);
+          if (await openExternalLink(href)) {
             return { action: action.name, ok: true };
           }
           return { action: action.name, ok: false, message: "cancelled" };
@@ -1318,11 +1324,7 @@ export function usePluginHost() {
         if (!capabilityOf(instanceId, "ui.external"))
           return deny(instanceId, action, "ui.external");
         const url = String(action.args.url ?? "");
-        if (
-          /^(https?:|mailto:|tel:)/i.test(url) &&
-          window.confirm(`Open external link?\n\n${url}`)
-        ) {
-          openExternal(url);
+        if (/^(https?:|mailto:|tel:)/i.test(url) && (await openExternalLink(url))) {
           return { action: action.name, ok: true };
         }
         return { action: action.name, ok: false, message: "cancelled" };

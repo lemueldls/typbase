@@ -316,9 +316,9 @@ function ago(timestamp: number): string {
     </button>
 
     <div v-if="effectiveView === 'signin'" class="account-dialog__view">
-      <p class="account-dialog__intro">
+      <!-- <p class="account-dialog__intro">
         {{ atprotoStatus.signedIn ? $t("account.addAnotherIntro") : $t("account.signInIntro") }}
-      </p>
+      </p> -->
 
       <p v-if="!atprotoReady" class="account-dialog__hint">{{ $t("account.notReady") }}</p>
 

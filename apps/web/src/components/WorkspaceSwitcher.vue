@@ -56,8 +56,9 @@ const dialogMode = ref<"create" | "edit">("create");
 const editing = ref<WorkspaceInfo | null>(null);
 
 /**
- * Workspace queued for deletion. The target survives the dialog's close
- * event: reka's action closes the dialog before the confirm handler runs.
+ * Workspace queued for deletion. The confirm handler clears it before
+ * deleting, so a confirm click does not act on a target the dialog's close
+ * already dropped.
  */
 const pendingDelete = ref<WorkspaceInfo | null>(null);
 const confirmOpen = ref(false);

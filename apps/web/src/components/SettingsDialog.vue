@@ -36,6 +36,7 @@ import {
   missingFontFamilies,
   removeCustomFont,
 } from "~/lib/customFonts";
+import { installedFontPacks } from "~/lib/fontPacks";
 import { openExternal } from "~/lib/openExternal";
 import { PROJECT_URL } from "~/lib/projectLinks";
 import { normalizeDictionaryWords } from "~/lib/spellcheckSettings";
@@ -671,11 +672,13 @@ const uiRadius = computed({
 
 /** Current value first, so a configured font stays visible before it loads. */
 function fontOptionList(families: string[], current: string | null | undefined): ComboboxOption[] {
+  const downloaded = new Set(installedFontPacks.value.map((font) => font.family));
   const values = [
     ...new Set([
       ...(current ? [current] : []),
       ...families,
       ...settings.value.customFonts.map((font) => font.family),
+      ...downloaded,
     ]),
   ];
   const uploaded = new Set(settings.value.customFonts.map((font) => font.family));
@@ -687,9 +690,11 @@ function fontOptionList(families: string[], current: string | null | undefined):
     // long list cannot show.
     description: uploaded.has(family)
       ? t("settings.fontUploaded")
-      : BUNDLED_FONTS.text.includes(family) || BUNDLED_FONTS.math.includes(family)
-        ? t("settings.fontBundled")
-        : undefined,
+      : downloaded.has(family)
+        ? t("settings.fontDownloaded")
+        : BUNDLED_FONTS.text.includes(family) || BUNDLED_FONTS.math.includes(family)
+          ? t("settings.fontBundled")
+          : undefined,
   }));
 }
 
@@ -868,6 +873,7 @@ const fontUploadError = ref("");
 const missingFonts = ref<string[]>([]);
 const systemFontDialogOpen = ref(false);
 const webFontDialogOpen = ref(false);
+const fontPackDialogOpen = ref(false);
 const runtimeConfig = useRuntimeConfig();
 const fontProxyBase = computed(() => {
   const config = runtimeConfig.public;
@@ -1763,6 +1769,16 @@ async function copyWorkspaceId(): Promise<void> {
                   {{ $t("settings.browseWebFonts") }}
                 </UiButton>
               </SettingsRow>
+
+              <SettingsRow
+                :label="$t('settings.languageFonts')"
+                :hint="$t('settings.languageFontsHint')"
+                anchor="language-fonts"
+              >
+                <UiButton variant="primary" @click="fontPackDialogOpen = true">
+                  {{ $t("settings.manageLanguageFonts") }}
+                </UiButton>
+              </SettingsRow>
             </SettingsSection>
 
             <!-- <SettingsSection
@@ -1972,6 +1988,7 @@ async function copyWorkspaceId(): Promise<void> {
 
     <SystemFontDialog v-model:open="systemFontDialogOpen" :store="store" />
     <WebFontDialog v-model:open="webFontDialogOpen" :store="store" :api-base="fontProxyBase" />
+    <FontPackDialog v-model:open="fontPackDialogOpen" :store="store" />
 
     <div class="settings__close">
       <UiIconButton

@@ -33,6 +33,7 @@ import {
   useEngineHealth,
   type EngineFailure,
 } from "~/lib/engineHealth";
+import { SCRIPT_LABEL_KEYS } from "~/lib/fontPacks";
 import { fontFamiliesInSource } from "~/lib/fonts";
 import { matchesShortcut, shortcutLabel } from "~/lib/keybindings";
 import {
@@ -108,6 +109,20 @@ const prelude = ref("");
 const meta = shallowRef<PageMeta>();
 const pageError = ref<string>();
 const ready = ref(false);
+
+/** Scripts the installed faces cannot draw, from the last coverage scan. */
+const missingScripts = ref<string[]>([]);
+const fontPackDialogOpen = ref(false);
+const fontNoticeDismissed = ref(false);
+const missingScriptLabel = computed(() =>
+  missingScripts.value
+    .map((code) => {
+      const key = SCRIPT_LABEL_KEYS[code];
+
+      return key ? t(key) : code;
+    })
+    .join(", "),
+);
 
 const formatOpen = useLocalStorage("typbase:formatToolbar", true);
 const linksOpen = computed({
@@ -538,11 +553,18 @@ const aiEnabled = useWorkspaceValue(
 );
 
 const chat = useChat();
+const { confirm } = useConfirm();
 
 /** Opens the chat pane seeded with this page (or the selection). */
 async function askAi(): Promise<void> {
   if (!aiEnabled.value) {
-    if (!window.confirm(t("chat.enableConfirm"))) return;
+    const enable = await confirm({
+      title: t("chat.enableTitle"),
+      description: t("chat.enableConfirm"),
+      confirmLabel: t("common.enable"),
+      danger: false,
+    });
+    if (!enable) return;
 
     store.updateSettings({ ai: { ...store.getAiSettings(), enabled: true } });
   }
@@ -715,6 +737,7 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
   if (!store || !state) return;
 
   requestService?.setCurrentPage(pageId);
+  fontNoticeDismissed.value = false;
   setTypstInputs(state, {
     pageId,
     workspaceId: workspaceId.value,
@@ -766,12 +789,29 @@ async function ensureSourceFonts(): Promise<void> {
   const families = fontFamiliesInSource(text.value).filter(
     (family) => !scannedFamilies.has(family),
   );
-  if (families.length === 0) return;
+  if (families.length > 0) {
+    for (const family of families) scannedFamilies.add(family);
+    await ensureFontsInstalled(state, families).catch((cause) => {
+      console.warn("[page] font install failed:", cause);
+    });
+  }
 
-  for (const family of families) scannedFamilies.add(family);
-  await ensureFontsInstalled(state, families).catch((cause) => {
-    console.warn("[page] font install failed:", cause);
-  });
+  refreshMissingScripts(state);
+}
+
+/** Rechecks coverage after a font or text change, without reading the docs. */
+function refreshMissingScripts(state = typstState.value): void {
+  if (!state || engineHealth.value.status === "failed") {
+    missingScripts.value = [];
+
+    return;
+  }
+
+  const next = state.uncoveredScripts(text.value);
+  if (next.join("\u0000") === missingScripts.value.join("\u0000")) return;
+
+  missingScripts.value = next;
+  fontNoticeDismissed.value = false;
 }
 
 const scanSourceFonts = useDebounceFn(() => void ensureSourceFonts(), 1200);
@@ -1380,9 +1420,11 @@ watch(typstState, () => {
   if (findOpen.value) activatePageFind();
 });
 
-// System fonts were installed, so the typeface set changed under the docs.
+// System fonts or a language pack were installed, so the typeface set changed
+// under the docs.
 watch(renderRevision, () => {
   editorPane.value?.recompile();
+  refreshMissingScripts();
 });
 
 /** Which pane follows the other in split view. */
@@ -1719,6 +1761,12 @@ function onModeKeydown(event: KeyboardEvent) {
 
         <PublishDialog v-if="store" v-model:open="publishOpen" :page-id="pageId" :store="store" />
 
+        <FontPackDialog
+          v-model:open="fontPackDialogOpen"
+          :scripts="missingScripts"
+          :store="store"
+        />
+
         <ExportDialog
           v-if="store"
           v-model:open="exportOpen"
@@ -1884,6 +1932,25 @@ function onModeKeydown(event: KeyboardEvent) {
       @replace-all="replaceAllMatches"
       @close="closeFind"
     />
+
+    <div
+      v-if="missingScripts.length && !fontNoticeDismissed && !degraded"
+      class="page-view__engine page-view__fonts"
+      role="status"
+    >
+      <span class="page-view__engine-text">
+        {{ $t("fontPacks.missing", { scripts: missingScriptLabel }) }}
+      </span>
+      <UiButton size="small" variant="primary" @click="fontPackDialogOpen = true">
+        {{ $t("fontPacks.add") }}
+      </UiButton>
+      <UiIconButton
+        icon="close"
+        variant="ghost"
+        :label="$t('common.close')"
+        @click="fontNoticeDismissed = true"
+      />
+    </div>
 
     <NotebookToolbar
       v-if="store && meta?.kind === 'notebook'"
@@ -2217,6 +2284,10 @@ function onModeKeydown(event: KeyboardEvent) {
   flex: 1;
   min-width: 0;
   font-size: var(--text-sm);
+}
+
+.page-view__fonts {
+  background: var(--color-accent-soft);
 }
 
 .page-view__body {

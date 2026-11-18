@@ -48,6 +48,9 @@ export function installSharedDefs(defs: string | null | undefined): void {
  * Opens an external link for the host. Browsers get a new tab. The app passes
  * its `openExternal`, which hands the URL to the system browser in Tauri
  * (a webview has no tab strip, so `window.open` is dropped there).
+ *
+ * The opener owns any confirmation. Browsers have their own tab strip, but a
+ * host that wants to ask first (the app's modal) does so before opening.
  */
 export type ExternalLinkOpener = (url: string) => void;
 
@@ -112,10 +115,10 @@ export function createFrameContainer(frame: SvgRangedFrame): HTMLElement {
 
 /**
  * Click handling shared by inline widgets and notebook outputs: typbase://
- * links are left for the host's anchor router, external links confirm first
- * and go through `openExternal`, anything else maps back into the compiled
- * document and moves the cursor. Alt-click edits the link instead of
- * following it.
+ * links are left for the host's anchor router, external links go through
+ * `openExternal` (which owns any confirmation), anything else maps back into
+ * the compiled document and moves the cursor. Alt-click edits the link instead
+ * of following it.
  */
 export function attachFrameInteractions(
   container: HTMLElement,
@@ -137,10 +140,7 @@ export function attachFrameInteractions(
       const href = anchor.getAttribute("href") ?? "";
       if (href.startsWith("typbase://")) return;
 
-      if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
-        openExternal(href);
-      }
-
+      openExternal(href);
       return;
     }
 

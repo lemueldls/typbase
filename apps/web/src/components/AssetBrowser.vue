@@ -17,6 +17,7 @@ interface AssetRow extends BlobEntry {
 
 const { workspace } = useWorkspace();
 const { t } = useI18n();
+const { confirm } = useConfirm();
 
 const rows = ref<AssetRow[]>([]);
 const loading = ref(false);
@@ -148,7 +149,11 @@ async function download(row: AssetRow): Promise<void> {
 async function remove(row: AssetRow): Promise<void> {
   const store = workspace.value;
   if (!store) return;
-  if (!window.confirm(t("explorer.assetDeleteConfirm", { hash: row.hash.slice(0, 12) }))) return;
+  const confirmed = await confirm({
+    title: t("explorer.assetDelete"),
+    description: t("explorer.assetDeleteConfirm", { hash: row.hash.slice(0, 12) }),
+  });
+  if (!confirmed) return;
 
   try {
     await store.deleteBlob(row.hash);
@@ -161,7 +166,11 @@ async function remove(row: AssetRow): Promise<void> {
 async function pruneUnused(): Promise<void> {
   const store = workspace.value;
   if (!store) return;
-  if (!window.confirm(t("explorer.assetPruneConfirm"))) return;
+  const prune = await confirm({
+    title: t("explorer.assetPrune"),
+    description: t("explorer.assetPruneConfirm"),
+  });
+  if (!prune) return;
 
   const unused = rows.value.filter((row) => row.pageTitles.length === 0);
   try {

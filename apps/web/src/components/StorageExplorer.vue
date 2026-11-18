@@ -32,6 +32,7 @@ interface FileNode {
 const { backend, storageLocation, workspaces, activeWorkspaceId, workspace, deleteWorkspace } =
   useWorkspace();
 const { t, locale } = useI18n();
+const { confirm } = useConfirm();
 
 const props = defineProps<{ initialView?: "data" | "files" | "assets" }>();
 
@@ -126,7 +127,11 @@ async function toggleWorkspace(info: WorkspaceInfo): Promise<void> {
 async function deletePageEntry(info: WorkspaceInfo, page: PageMeta): Promise<void> {
   const active = backend.value;
   if (!active) return;
-  if (!window.confirm(t("explorer.deletePageConfirm", { title: page.title }))) return;
+  const remove = await confirm({
+    title: t("explorer.deletePageTitle"),
+    description: t("explorer.deletePageConfirm", { title: page.title }),
+  });
+  if (!remove) return;
 
   error.value = "";
   try {
@@ -150,7 +155,11 @@ async function toggleWorkspaceReopen(info: WorkspaceInfo): Promise<void> {
 }
 
 async function deleteWorkspaceEntry(info: WorkspaceInfo): Promise<void> {
-  if (!window.confirm(t("explorer.deleteWorkspaceConfirm", { name: info.name }))) return;
+  const remove = await confirm({
+    title: t("explorer.deleteWorkspaceTitle"),
+    description: t("explorer.deleteWorkspaceConfirm", { name: info.name }),
+  });
+  if (!remove) return;
 
   error.value = "";
   try {
@@ -320,7 +329,11 @@ async function upload(event: Event): Promise<void> {
 async function deleteNode(node: FileNode): Promise<void> {
   const active = backend.value;
   if (!active) return;
-  if (!window.confirm(t("explorer.deleteFileConfirm", { path: node.path }))) return;
+  const remove = await confirm({
+    title: t("explorer.deleteFileTitle"),
+    description: t("explorer.deleteFileConfirm", { path: node.path }),
+  });
+  if (!remove) return;
 
   error.value = "";
   try {

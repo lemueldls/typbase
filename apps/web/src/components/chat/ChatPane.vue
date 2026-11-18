@@ -33,6 +33,7 @@ const {
   providers,
 } = useChat();
 const { workspace } = useWorkspace();
+const { confirm } = useConfirm();
 
 const messages = ref<ChatMessage[]>([]);
 const draft = ref("");
@@ -185,7 +186,15 @@ async function insertMessage(message: ChatMessage): Promise<void> {
 
   // Only the acceptance gate makes a reply safe to graft into a note. The
   // user can still insist, but the warning names the risk.
-  if (message.status !== "verified" && !window.confirm(t("chat.insertUnverified"))) return;
+  if (message.status !== "verified") {
+    const insert = await confirm({
+      title: t("chat.insertUnverifiedTitle"),
+      description: t("chat.insertUnverified"),
+      confirmLabel: t("chat.insert"),
+      danger: false,
+    });
+    if (!insert) return;
+  }
 
   const current = await store.loadPageText(pageId);
   const separator = current.endsWith("\n") || current === "" ? "" : "\n";

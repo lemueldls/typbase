@@ -43,6 +43,7 @@ const error = ref<string>();
 
 const { ensure, workspace, workspaceId, dataRevision, wipeStorage } = useWorkspace();
 const plugins = usePlugins();
+const { confirm } = useConfirm();
 const router = useRouter();
 const typstState = shallowRef<TypstState>();
 
@@ -207,13 +208,13 @@ async function run() {
 }
 
 async function resetWorkspace() {
-  if (
-    !window.confirm(
+  const reset = await confirm({
+    title: "Reset workspace?",
+    description:
       "Delete every workspace from the active storage and reload? This cannot be undone.",
-    )
-  ) {
-    return;
-  }
+    confirmLabel: "Reset",
+  });
+  if (!reset) return;
 
   try {
     await ensure();

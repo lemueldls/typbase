@@ -14,6 +14,7 @@ const emit = defineEmits<{ (e: "openInstance", instanceId: string): void }>();
 const plugins = usePlugins();
 const router = useRouter();
 const { t } = useI18n();
+const { confirm } = useConfirm();
 const canImportFolder = isFsaSupported();
 
 const renameOpen = ref(false);
@@ -71,7 +72,13 @@ function instancesOf(pluginId: string) {
 }
 
 async function removePlugin(pluginId: string, name: string) {
-  if (!window.confirm(t("plugins.confirmRemove", { name }))) return;
+  const remove = await confirm({
+    title: t("plugins.remove"),
+    description: t("plugins.confirmRemove", { name }),
+    confirmLabel: t("plugins.remove"),
+  });
+  if (!remove) return;
+
   await plugins.uninstall(pluginId);
 }
 

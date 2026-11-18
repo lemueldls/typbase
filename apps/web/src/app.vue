@@ -44,6 +44,7 @@ useEventListener("keydown", onKeydown, { capture: true });
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
+    <ConfirmDialogHost />
     <UiToaster />
   </TooltipProvider>
 </template>

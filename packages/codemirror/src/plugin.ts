@@ -88,7 +88,8 @@ export interface TypstPluginOptions {
   onCompile?: () => void;
   /**
    * Opens a link clicked inside a rendered frame. Defaults to a new browser
-   * tab. The app passes its Tauri-aware `openExternal`.
+   * tab. The app passes its Tauri-aware opener, which confirms through the
+   * app dialog first.
    */
   onExternalLink?: (url: string) => void;
   /**

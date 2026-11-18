@@ -40,11 +40,6 @@ function manageAccount(): void {
   accountDialog.show(atprotoStatus.value.signedIn ? "accounts" : "signin");
 }
 
-function showData(): void {
-  open.value = false;
-  accountDialog.show("data");
-}
-
 function openProfile(): void {
   const did = atprotoStatus.value.did;
   if (!did) return;
@@ -82,10 +77,10 @@ const label = computed(() => {
 </script>
 
 <template>
-  <UiPopover v-model:open="open" align="end" class="app-bar-account">
+  <UiPopover v-if="atprotoStatus.signedIn" v-model:open="open" align="end" class="app-bar-account">
     <template #trigger>
       <UiTooltip :text="label">
-        <button type="button" class="app-bar-account__trigger" :class="tone">
+        <button type="button" class="app-bar-account__trigger" :class="tone" :aria-label="label">
           <img
             v-if="avatar && !avatarFailed"
             class="app-bar-account__avatar"
@@ -99,55 +94,54 @@ const label = computed(() => {
     </template>
 
     <div class="app-bar-account__card">
-      <template v-if="atprotoStatus.signedIn">
-        <div class="app-bar-account__identity">
-          <img
-            v-if="avatar && !avatarFailed"
-            class="app-bar-account__card-avatar"
-            :src="avatar"
-            alt=""
-            @error="avatarFailed = true"
-          />
-          <MsIcon
-            v-else
-            class="app-bar-account__card-avatar app-bar-account__card-avatar--placeholder"
-            name="account_circle"
-            :size="40"
-          />
-          <div class="app-bar-account__copy">
-            <span class="app-bar-account__name">{{ accountName }}</span>
-            <span v-if="handle" class="app-bar-account__handle">@{{ handle }}</span>
-            <span class="app-bar-account__did">{{ atprotoStatus.did }}</span>
-          </div>
+      <div class="app-bar-account__identity">
+        <img
+          v-if="avatar && !avatarFailed"
+          class="app-bar-account__card-avatar"
+          :src="avatar"
+          alt=""
+          @error="avatarFailed = true"
+        />
+        <MsIcon
+          v-else
+          class="app-bar-account__card-avatar app-bar-account__card-avatar--placeholder"
+          name="account_circle"
+          :size="40"
+        />
+        <div class="app-bar-account__copy">
+          <span class="app-bar-account__name">{{ accountName }}</span>
+          <span v-if="handle" class="app-bar-account__handle">@{{ handle }}</span>
+          <span class="app-bar-account__did">{{ atprotoStatus.did }}</span>
         </div>
+      </div>
 
-        <p class="app-bar-account__status">{{ statusLine }}</p>
+      <p class="app-bar-account__status">{{ statusLine }}</p>
 
-        <UiButton variant="primary" class="app-bar-account__wide" @click="manageAccount">
-          {{ $t("account.manage") }}
-        </UiButton>
+      <UiButton variant="primary" class="app-bar-account__wide" @click="manageAccount">
+        {{ $t("account.manage") }}
+      </UiButton>
 
-        <div class="app-bar-account__links">
-          <!-- <button type="button" class="app-bar-account__link" @click="showData">
-            {{ $t("account.whatWrites") }}
-          </button> -->
-          <button type="button" class="app-bar-account__link" @click="openProfile">
-            {{ $t("account.viewProfile") }}
-          </button>
-        </div>
-      </template>
-
-      <template v-else>
-        <p class="app-bar-account__status">{{ $t("account.appBarSignedOut") }}</p>
-        <UiButton variant="primary" class="app-bar-account__wide" @click="manageAccount">
-          {{ $t("account.signIn") }}
-        </UiButton>
-        <!-- <button type="button" class="app-bar-account__link" @click="showData">
-          {{ $t("account.whatWrites") }}
-        </button> -->
-      </template>
+      <div class="app-bar-account__links">
+        <button type="button" class="app-bar-account__link" @click="openProfile">
+          {{ $t("account.viewProfile") }}
+        </button>
+      </div>
     </div>
   </UiPopover>
+
+  <!-- Signed out: the corner opens the account dialog directly instead of a
+       one-button popover that only repeats the sign-in offer. -->
+  <UiTooltip v-else :text="label">
+    <button
+      type="button"
+      class="app-bar-account__trigger"
+      :class="tone"
+      :aria-label="label"
+      @click="manageAccount"
+    >
+      <MsIcon name="account_circle" :size="18" />
+    </button>
+  </UiTooltip>
 </template>
 
 <style>

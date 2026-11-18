@@ -111,6 +111,7 @@ const contentAttrs = computed(() => ({
   margin: 0 0 var(--space-4);
   font-size: var(--text-md);
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .dialog__form {

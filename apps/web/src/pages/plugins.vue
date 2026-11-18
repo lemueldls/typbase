@@ -20,6 +20,7 @@ definePageMeta({ ssr: false });
  */
 const plugins = usePlugins();
 const { backend, workspace, ensure, dataRevision } = useWorkspace();
+const { confirm } = useConfirm();
 const route = useRoute();
 const router = useRouter();
 
@@ -332,7 +333,11 @@ async function clearData(): Promise<void> {
   const store = workspace.value;
   const id = selectedInstanceId.value;
   if (!store || !id) return;
-  if (!window.confirm("Delete every record in this instance?")) return;
+  const clear = await confirm({
+    title: "Delete plugin data?",
+    description: "Remove every record in this instance? This cannot be undone.",
+  });
+  if (!clear) return;
 
   const state = await store.readPluginState(id);
   const ops: PluginPatchOp[] = [];

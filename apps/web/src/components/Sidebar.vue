@@ -135,8 +135,8 @@ const renamePath = computed(() =>
   renameTarget.value ? renamePagePathFor(renameTarget.value, renameTitle.value) : null,
 );
 /**
- * Page queued for deletion. The target survives the dialog's close event:
- * reka's action closes the dialog before the confirm handler runs.
+ * Page queued for deletion. The confirm handler clears it before deleting, so
+ * a confirm click does not act on a target the dialog's close already dropped.
  */
 const pendingDelete = ref<PageMeta>();
 const confirmOpen = ref(false);

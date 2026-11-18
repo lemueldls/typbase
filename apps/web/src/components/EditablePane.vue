@@ -53,7 +53,6 @@ import type { FindRect } from "~/lib/pageFind";
 
 import { typstEditorTheme } from "~/lib/cmTheme";
 import { editorDisplayCompartment, editorDisplayExtension } from "~/lib/editorDisplay";
-import { openExternal } from "~/lib/openExternal";
 import { requestSave } from "~/lib/saveRequest";
 import {
   spellcheckCompartment,
@@ -136,6 +135,7 @@ Vim.defineEx("write", "w", () => void requestSave());
 
 const container = useTemplateRef("container");
 const view = shallowRef<EditorView>();
+const openExternalLink = useExternalLink();
 const dragActive = ref(false);
 const dropTop = ref(0);
 
@@ -585,7 +585,7 @@ function createStateConfig(): EditorStateConfig {
             props.onCompile?.();
             props.onPagedCompile?.();
           },
-          onExternalLink: openExternal,
+          onExternalLink: openExternalLink,
           notebook: props.notebook,
           renderFrames: props.wysiwyg,
         },

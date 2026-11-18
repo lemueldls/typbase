@@ -25,6 +25,7 @@ const emit = defineEmits<{ (e: "applied"): void }>();
 
 const open = defineModel<boolean>("open", { default: false });
 const { t } = useI18n();
+const { confirm } = useConfirm();
 const { atproto, atprotoStatus } = useWorkspace();
 const accountDialog = useAccountDialog();
 
@@ -247,7 +248,12 @@ async function copyUri(target: string): Promise<void> {
 }
 
 async function unpublish(): Promise<void> {
-  if (!window.confirm(t("themes.unpublishConfirm"))) return;
+  const confirmed = await confirm({
+    title: t("themes.unpublish"),
+    description: t("themes.unpublishConfirm"),
+    confirmLabel: t("themes.unpublish"),
+  });
+  if (!confirmed) return;
   resetMessages();
   busy.value = true;
   try {

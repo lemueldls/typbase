@@ -19,6 +19,14 @@ const props = withDefaults(
 
 const emit = defineEmits<{ (e: "confirm"): void }>();
 
+// Confirm runs before the dialog closes, so a handler can still read the state
+// its request was built from. The promise-based useConfirm() relies on that
+// order: it settles the request first and lets the close event be a no-op.
+function confirm(): void {
+  emit("confirm");
+  open.value = false;
+}
+
 // Same reka-ui escape hatch as UiDialog: an empty description leaves the
 // internal aria-describedby id pointing at nothing.
 const describedBy = computed(() => (props.description ? {} : { "aria-describedby": undefined }));
@@ -40,11 +48,9 @@ const describedBy = computed(() => (props.description ? {} : { "aria-describedby
               {{ cancelLabel ?? $t("common.cancel") }}
             </UiButton>
           </AlertDialogCancel>
-          <AlertDialogAction as-child>
-            <UiButton :variant="danger ? 'danger' : 'primary'" @click="emit('confirm')">
-              {{ confirmLabel ?? $t("common.delete") }}
-            </UiButton>
-          </AlertDialogAction>
+          <UiButton :variant="danger ? 'danger' : 'primary'" @click="confirm">
+            {{ confirmLabel ?? $t("common.delete") }}
+          </UiButton>
         </div>
       </AlertDialogContent>
     </AlertDialogPortal>

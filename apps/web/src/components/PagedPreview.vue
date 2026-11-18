@@ -7,7 +7,7 @@ import { installSharedDefs } from "@typbase/codemirror";
 
 import type { FindRect } from "~/lib/pageFind";
 
-import { openExternal } from "~/lib/openExternal";
+const openExternalLink = useExternalLink();
 
 const props = defineProps<{
   fileId: FileId;
@@ -96,9 +96,7 @@ function onPreviewClick(event: MouseEvent) {
 
     if (/^(https?|mailto):/.test(href)) {
       event.preventDefault();
-      if (window.confirm(`Open external link?\n\n${href}\n\nIt opens in a new tab.`)) {
-        openExternal(href);
-      }
+      void openExternalLink(href);
     }
 
     return;
