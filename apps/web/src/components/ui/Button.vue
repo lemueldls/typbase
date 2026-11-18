@@ -3,22 +3,26 @@ import type { MaterialSymbol } from "material-symbols";
 
 defineOptions({ inheritAttrs: false });
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** "plain" is the default bordered button and "ghost" is borderless. */
     variant?: "plain" | "primary" | "danger" | "ghost";
     size?: "default" | "small" | "tiny" | "large";
     /** Optional leading glyph. */
     icon?: MaterialSymbol;
-    /** Glyph size in px. */
+    /** Glyph size in px. Defaults to the size tier's icon step. */
     iconSize?: number;
     /** Submit buttons inside forms. Everything else stays a plain button. */
     type?: "button" | "submit" | "reset";
     /** Render as a different element, e.g. a label wrapping a file input. */
     as?: string | Component;
   }>(),
-  { variant: "plain", size: "default", iconSize: 20, type: "button", as: "button" },
+  { variant: "plain", size: "default", iconSize: undefined, type: "button", as: "button" },
 );
+
+const ICON_STEPS = { tiny: 16, small: 18, default: 20, large: 22 } as const;
+
+const iconPx = computed(() => props.iconSize ?? ICON_STEPS[props.size]);
 </script>
 
 <template>
@@ -36,17 +40,24 @@ withDefaults(
       'button--large': size === 'large',
     }"
   >
-    <MsIcon v-if="icon" :name="icon" :size="iconSize" />
+    <MsIcon v-if="icon" :name="icon" :size="iconPx" />
     <slot />
   </Primitive>
 </template>
 
 <style>
 .button {
+  --button-pad-x: var(--space-3);
+  --button-pad-start: var(--button-pad-x);
+  --button-icon-inset: var(--space-2);
+  --button-gap: var(--space-2);
+
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1-5);
-  padding: var(--space-1-5) var(--space-2);
+  justify-content: center;
+  gap: var(--button-gap);
+  height: var(--control-md);
+  padding: 0 var(--button-pad-x) 0 var(--button-pad-start);
   font-size: var(--text-md);
   font-family: inherit;
   white-space: nowrap;
@@ -55,6 +66,10 @@ withDefaults(
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
+}
+
+.button:has(> .ms-icon:first-child) {
+  --button-pad-start: var(--button-icon-inset);
 }
 
 .button:disabled {
@@ -84,7 +99,12 @@ withDefaults(
 }
 
 .button--large {
-  padding: var(--space-2);
+  --button-pad-x: var(--space-4);
+  --button-icon-inset: var(--space-2-5);
+  --button-gap: var(--space-2);
+
+  height: var(--control-lg);
+  border-radius: var(--radius-md);
   /* font-size: var(--text-lg); */
 }
 
@@ -95,6 +115,7 @@ withDefaults(
   width: var(--control-md);
   height: var(--control-md);
   padding: 0;
+  gap: 0;
   line-height: var(--leading-none);
 }
 
@@ -107,18 +128,28 @@ withDefaults(
   background: var(--color-surface-2);
 }
 
-.button .ms-icon {
-  flex: none;
-}
-
 .button--tiny {
-  padding: var(--space-1) var(--space-2);
+  --button-pad-x: var(--space-2);
+  --button-icon-inset: var(--space-1-5);
+  --button-gap: var(--space-1);
+
+  height: var(--control-xs);
   font-size: var(--text-sm);
 }
 
 .button--small {
-  padding: var(--space-1-5) var(--space-3);
+  --button-pad-x: var(--space-2-5);
+  --button-icon-inset: var(--space-2);
+  --button-gap: var(--space-1-5);
+
+  height: var(--control-sm);
   font-size: var(--text-sm);
+}
+
+.button--large.button--icon {
+  width: var(--control-lg);
+  height: var(--control-lg);
+  padding: 0;
 }
 
 .button--small.button--icon {

@@ -1953,7 +1953,7 @@ function onModeKeydown(event: KeyboardEvent) {
       <span class="page-view__engine-text">
         {{ $t("fontPacks.missing", { scripts: missingScriptLabel }) }}
       </span>
-      <UiButton size="small" variant="primary" @click="fontPackDialogOpen = true">
+      <UiButton variant="primary" @click="fontPackDialogOpen = true">
         {{ $t("fontPacks.add") }}
       </UiButton>
       <UiIconButton

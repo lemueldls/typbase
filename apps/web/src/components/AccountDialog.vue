@@ -380,7 +380,6 @@ function ago(timestamp: number): string {
         <UiButton
           type="submit"
           variant="primary"
-          size="large"
           class="account-dialog__wide"
           :disabled="busy || !atprotoReady || !identifier.trim()"
         >
@@ -540,7 +539,7 @@ function ago(timestamp: number): string {
       <p v-if="error" class="account-dialog__error" role="alert">{{ error }}</p>
 
       <div class="account-dialog__actions">
-        <UiButton variant="plain" @click="backToSignIn">
+        <UiButton variant="plain" size="large" @click="backToSignIn">
           {{ $t("account.back") }}
         </UiButton>
         <UiButton variant="primary" size="large" :disabled="busy" @click="authorize">
@@ -629,7 +628,6 @@ function ago(timestamp: number): string {
             <span class="account-dialog__account-actions">
               <UiButton
                 variant="plain"
-                size="small"
                 :disabled="Boolean(switching) || signingOut || removing"
                 @click="switchAccount(account.did)"
               >

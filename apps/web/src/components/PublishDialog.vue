@@ -177,7 +177,7 @@ watch(
           :disabled="busy"
           @update:model-value="includePdf = $event"
         />
-        <UiButton size="tiny" variant="ghost" :disabled="busy" @click="saveDefaults">
+        <UiButton size="small" variant="ghost" :disabled="busy" @click="saveDefaults">
           {{ t("pageView.saveDefaults") }}
         </UiButton>
       </div>
@@ -190,22 +190,15 @@ watch(
 
     <div class="dialog__actions publish-dialog__actions">
       <DialogClose as-child>
-        <UiButton variant="ghost" size="small">{{ t("common.close") }}</UiButton>
+        <UiButton variant="ghost">{{ t("common.close") }}</UiButton>
       </DialogClose>
-      <UiButton
-        v-if="meta?.publishedAt"
-        variant="ghost"
-        size="small"
-        :disabled="busy"
-        @click="copyLink"
-      >
+      <UiButton v-if="meta?.publishedAt" variant="ghost" :disabled="busy" @click="copyLink">
         <MsIcon :name="copied ? 'check' : 'content_copy'" :size="20" />
         {{ copied ? t("common.copied") : t("pageView.copyLink") }}
       </UiButton>
       <UiButton
         v-if="meta?.publishedAt"
         variant="danger"
-        size="small"
         :disabled="busy || !atproto"
         @click="askUnpublish"
       >

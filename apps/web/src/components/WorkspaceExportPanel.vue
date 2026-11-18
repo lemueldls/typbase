@@ -138,7 +138,7 @@ async function run(): Promise<void> {
           <MsIcon class="workspace-export__search-icon" name="search" :size="20" />
         </template>
       </UiTextField>
-      <UiButton @click="setAll(!allSelected)" size="large">
+      <UiButton @click="setAll(!allSelected)">
         {{ allSelected ? $t("exportWorkspace.none") : $t("exportWorkspace.all") }}
       </UiButton>
     </div>

@@ -214,7 +214,6 @@ defineExpose({ focus, hasFocus });
       </UiTextField>
       <UiButton
         variant="primary"
-        size="large"
         :disabled="!canReplace"
         @mousedown.prevent
         @click="emit('replace')"
@@ -223,7 +222,6 @@ defineExpose({ focus, hasFocus });
       </UiButton>
       <UiButton
         variant="ghost"
-        size="large"
         :disabled="!replaceCount"
         @mousedown.prevent
         @click="emit('replaceAll')"
@@ -260,7 +258,8 @@ defineExpose({ focus, hasFocus });
   flex: none;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1);
+  height: var(--control-md);
+  padding: 0 var(--space-1);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);

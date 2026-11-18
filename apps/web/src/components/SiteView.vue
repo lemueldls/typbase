@@ -1345,7 +1345,6 @@ function copy(value: string): Promise<void> {
                   <span class="site-domain__suffix">.wisp.place</span>
                   <UiButton
                     variant="primary"
-                    size="large"
                     :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
                     @click="claimSubdomain"
                   >
@@ -1381,7 +1380,6 @@ function copy(value: string): Promise<void> {
                     />
                     <UiButton
                       variant="primary"
-                      size="large"
                       :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
                       @click="claimCustomDomain"
                     >
@@ -1389,7 +1387,6 @@ function copy(value: string): Promise<void> {
                     </UiButton>
                     <UiButton
                       variant="plain"
-                      size="large"
                       :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
                       @click="checkExistingCustomDomain"
                     >

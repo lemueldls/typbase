@@ -59,17 +59,26 @@ defineExpose({ input, focus: () => input.value?.focus() });
 
 <style>
 .ui-text-field {
+  --field-pad-x: var(--space-3);
+  --field-pad-start: var(--field-pad-x);
+  --field-icon-inset: var(--space-2);
+
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1-5);
+  gap: var(--space-2);
   width: 100%;
   min-width: 0;
   height: var(--control-md);
+  padding: 0 var(--field-pad-x) 0 var(--field-pad-start);
   font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+}
+
+.ui-text-field:has(> .ms-icon:first-child) {
+  --field-pad-start: var(--field-icon-inset);
 }
 
 .ui-text-field:focus-within {
@@ -82,16 +91,20 @@ defineExpose({ input, focus: () => input.value?.focus() });
 }
 
 .ui-text-field--small {
-  padding: var(--space-1) var(--space-1-5);
+  --field-pad-x: var(--space-2-5);
+  --field-icon-inset: var(--space-2);
+
+  gap: var(--space-1-5);
+  height: var(--control-sm);
   font-size: var(--text-sm);
 }
 
-.ui-text-field--default {
-  padding: var(--space-2);
-}
-
 .ui-text-field--large {
-  padding: var(--space-2-5) var(--space-3);
+  --field-pad-x: var(--space-4);
+  --field-icon-inset: var(--space-2-5);
+
+  gap: var(--space-2);
+  height: var(--control-lg);
   font-size: var(--text-lg);
   border-radius: var(--radius-md);
 }

@@ -18,7 +18,7 @@ withDefaults(
     /** Shown when no value is selected. */
     placeholder?: string;
     disabled?: boolean;
-    size?: "default" | "small";
+    size?: "default" | "small" | "large";
   }>(),
   { placeholder: undefined, disabled: false, size: "default" },
 );
@@ -35,7 +35,10 @@ useBackLayer(open);
     <SelectTrigger
       v-bind="$attrs"
       class="ui-select__trigger"
-      :class="{ 'ui-select__trigger--small': size === 'small' }"
+      :class="{
+        'ui-select__trigger--small': size === 'small',
+        'ui-select__trigger--large': size === 'large',
+      }"
       :aria-label="label"
     >
       <SelectValue class="ui-select__value" :placeholder="placeholder" />
@@ -121,10 +124,10 @@ useBackLayer(open);
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1-5);
+  gap: var(--space-2);
   min-width: 0;
   height: var(--control-md);
-  padding: var(--space-2);
+  padding: 0 var(--space-3);
   font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
@@ -144,9 +147,18 @@ useBackLayer(open);
 }
 
 .ui-select__trigger--small {
+  gap: var(--space-1-5);
   height: var(--control-sm);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1-5);
+  padding: 0 var(--space-2-5);
   font-size: var(--text-sm);
+}
+
+.ui-select__trigger--large {
+  gap: var(--space-2);
+  height: var(--control-lg);
+  padding: 0 var(--space-4);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-md);
 }
 
 .ui-select__value {

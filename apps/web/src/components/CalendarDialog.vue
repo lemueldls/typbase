@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { WorkspaceStore } from "@typbase/storage";
 
-import { getLocalTimeZone, isSameMonth, today, type DateValue } from "@internationalized/date";
+import { getLocalTimeZone, today, type DateValue } from "@internationalized/date";
+
+import { dailyDate } from "~/lib/dailyNav";
+import { formatDayLabel } from "~/lib/format";
 
 const props = defineProps<{
   store: WorkspaceStore;
@@ -11,7 +14,7 @@ const emit = defineEmits<{
   (e: "select", pageId: string): void;
 }>();
 
-const { t, locale } = useI18n();
+const { locale } = useI18n();
 
 const open = defineModel<boolean>("open", { default: false });
 
@@ -31,33 +34,52 @@ watch(selected, (day) => {
   void openDay(day);
 });
 
-/** Dates that already have a daily note, for the dot marker. */
-const dailyDates = useWorkspaceValue(
+/** Typed date from the field above the grid. Opens only on submit, so a year
+ *  typed one digit at a time does not create a note on every keystroke. */
+const typedDate = shallowRef<DateValue>();
+
+/** Daily notes in reverse date order. reka's dot marker and the recent list
+ *  both read this. */
+const dailyNotes = useWorkspaceValue(
   () => props.store,
   ["pages"],
   (store) => {
-    const dates = new Set<string>();
+    const notes: Array<{ id: string; iso: string }> = [];
     for (const page of store.listPages()) {
-      const match = /^daily\/(\d{4}-\d{2}-\d{2})\.typ$/.exec(page.path);
-      if (match) dates.add(match[1]!);
+      const iso = dailyDate(page.path);
+      if (iso) notes.push({ id: page.id, iso });
     }
 
-    return dates;
+    return notes.sort((a, b) => b.iso.localeCompare(a.iso));
   },
 );
+
+const dailyDates = computed(() => new Set(dailyNotes.value.map((note) => note.iso)));
+const recentNotes = computed(() => dailyNotes.value.slice(0, 6));
 
 function hasNote(day: DateValue): boolean {
   return dailyDates.value.has(day.toString());
 }
 
-async function openDay(day: DateValue) {
-  // Defensive: reka disables outside days, but a stale selection must not
-  // resolve to a date the view does not show.
-  if (!isSameMonth(day, placeholder.value)) return;
+function recentLabel(iso: string): string {
+  return formatDayLabel(iso, locale.value);
+}
 
+async function openDay(day: DateValue) {
   const page = await props.store.createDailyNote(day.toString());
   open.value = false;
   emit("select", page.id);
+}
+
+function openRecent(pageId: string): void {
+  open.value = false;
+  emit("select", pageId);
+}
+
+function openTyped(): void {
+  if (!typedDate.value) return;
+
+  void openDay(typedDate.value);
 }
 
 function goToToday() {
@@ -102,10 +124,36 @@ function goToToday() {
             <MsIcon name="chevron_right" :size="20" />
           </CalendarNext>
         </UiTooltip>
-        <UiButton variant="ghost" size="tiny" @click="goToToday">
+        <UiButton variant="ghost" @click="goToToday">
           {{ $t("common.today") }}
         </UiButton>
       </CalendarHeader>
+
+      <form class="calendar__jump" @submit.prevent="openTyped">
+        <span class="calendar__jump-label">{{ $t("calendar.jumpTo") }}</span>
+        <DateFieldRoot
+          v-model="typedDate"
+          :locale="locale"
+          granularity="day"
+          :aria-label="$t('calendar.jumpTo')"
+          class="calendar__date-field"
+          @keydown.enter.prevent="openTyped"
+        >
+          <template #default="{ segments }">
+            <DateFieldInput
+              v-for="(segment, index) in segments"
+              :key="`${segment.part}-${index}`"
+              :part="segment.part"
+              class="calendar__date-segment"
+            >
+              {{ segment.value }}
+            </DateFieldInput>
+          </template>
+        </DateFieldRoot>
+        <UiButton type="submit" variant="plain" size="small" :disabled="!typedDate">
+          {{ $t("calendar.openDate") }}
+        </UiButton>
+      </form>
 
       <CalendarGrid v-for="month in grid" :key="month.value.toString()" class="calendar__grid">
         <CalendarGridHead>
@@ -132,6 +180,22 @@ function goToToday() {
         </CalendarGridBody>
       </CalendarGrid>
     </CalendarRoot>
+
+    <div v-if="recentNotes.length" class="calendar__recent">
+      <p class="calendar__recent-title">{{ $t("calendar.recent") }}</p>
+      <div class="calendar__recent-list">
+        <button
+          v-for="note in recentNotes"
+          :key="note.id"
+          type="button"
+          class="calendar__recent-day"
+          @click="openRecent(note.id)"
+        >
+          <MsIcon name="event_note" :size="16" />
+          {{ recentLabel(note.iso) }}
+        </button>
+      </div>
+    </div>
   </UiDialog>
 </template>
 
@@ -148,6 +212,53 @@ function goToToday() {
   text-align: center;
   font-weight: 600;
   font-size: var(--text-lg);
+}
+
+.calendar__jump {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2-5);
+}
+
+.calendar__jump-label {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.calendar__date-field {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  height: var(--control-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.calendar__date-field:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.calendar__date-segment {
+  padding: 1px 2px;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.calendar__date-segment[data-reka-date-field-segment="literal"] {
+  color: var(--color-text-secondary);
+}
+
+.calendar__date-segment:focus {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .calendar__grid {
@@ -221,5 +332,42 @@ function goToToday() {
   height: 0.4rem;
   border-radius: var(--radius-full);
   background: var(--color-accent);
+}
+
+.calendar__recent {
+  margin-top: var(--space-2-5);
+  padding-top: var(--space-2-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.calendar__recent-title {
+  margin: 0 0 var(--space-1-5);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.calendar__recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.calendar__recent-day {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.calendar__recent-day:hover {
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 </style>

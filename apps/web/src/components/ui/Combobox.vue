@@ -105,11 +105,11 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
 .combobox {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
   min-width: var(--reka-combobox-trigger-width);
   max-width: min(24rem, calc(100vw - var(--space-8)));
   max-height: calc(50dvh - var(--space-8));
-  padding: var(--space-2);
+  padding: var(--space-1);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -124,10 +124,9 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
 
 .combobox__input {
   width: 100%;
-  padding: var(--space-1) var(--space-2);
-  font-family: inherit;
-  font-size: var(--text-md);
   height: var(--control-md);
+  padding: 0 var(--space-3);
+  font-family: inherit;
   font-size: var(--text-md);
   color: var(--color-text);
   background: var(--color-surface);
@@ -149,10 +148,10 @@ const emit = defineEmits<{ (e: "select", value: string): void }>();
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2);
   font-size: var(--text-md);
   color: var(--color-text);
-  border-radius: max(0px, calc(var(--radius-md) - var(--space-2)));
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-1)));
   cursor: pointer;
   user-select: none;
 }

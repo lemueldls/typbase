@@ -158,7 +158,7 @@ async function openToday(): Promise<void> {
         :label="backTitle"
         :disabled="!nav.canBack.value"
         variant="ghost"
-        class="app-bar__nav button--tiny"
+        class="app-bar__nav button--small"
         @click="nav.goBack()"
       />
       <UiIconButton
@@ -166,7 +166,7 @@ async function openToday(): Promise<void> {
         :label="forwardTitle"
         :disabled="!nav.canForward.value"
         variant="ghost"
-        class="app-bar__nav button--tiny"
+        class="app-bar__nav button--small"
         @click="nav.goForward()"
       />
 
@@ -197,7 +197,7 @@ async function openToday(): Promise<void> {
             :icon="themeIcon"
             :label="$t('settings.themeMode')"
             variant="ghost"
-            class="button--tiny"
+            class="button--small"
             :size="18"
           />
         </template>

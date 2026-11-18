@@ -363,7 +363,6 @@ function openRepository(entry: PackageEntry) {
               </span> -->
               <UiSelect
                 class="package-browser__select"
-                size="small"
                 :model-value="versionFor(entry)"
                 :options="
                   entry.versions.map((version) => ({
@@ -416,7 +415,6 @@ function openRepository(entry: PackageEntry) {
             />
 
             <UiButton
-              size="large"
               class="package-browser__action"
               :variant="isInstalled(entry.name, versionFor(entry)) ? 'plain' : 'primary'"
               :disabled="busy === rowKey(entry)"

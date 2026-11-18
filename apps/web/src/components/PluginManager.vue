@@ -105,7 +105,6 @@ function openInstance(instance: PluginInstance) {
           @keyup.enter="installFromUri"
         />
         <UiButton
-          size="small"
           variant="primary"
           :disabled="!installUri.trim() || installingUri"
           @click="installFromUri"
@@ -217,7 +216,6 @@ function openInstance(instance: PluginInstance) {
               "
               variant="ghost"
               size="small"
-              class="button--tiny"
               @click="openInstance(instance)"
             >
               {{ $t("plugins.open") }}
@@ -227,7 +225,7 @@ function openInstance(instance: PluginInstance) {
               :size="18"
               :label="$t('plugins.renameInstance')"
               variant="ghost"
-              class="button--tiny"
+              class="button--small"
               @click="startRename(instance)"
             />
             <UiIconButton
@@ -235,7 +233,7 @@ function openInstance(instance: PluginInstance) {
               :size="18"
               :label="$t('plugins.removeInstance')"
               variant="ghost"
-              class="button--tiny"
+              class="button--small"
               @click="plugins.removeInstance(instance.id)"
             />
           </div>
@@ -258,15 +256,10 @@ function openInstance(instance: PluginInstance) {
       <div class="plugin-manager__rename">
         <UiTextField v-model="renameTitle" :label="$t('plugins.instanceName')" />
         <div class="plugin-manager__rename-actions">
-          <UiButton
-            variant="primary"
-            size="small"
-            :disabled="!renameTitle.trim()"
-            @click="confirmRename"
-          >
+          <UiButton variant="primary" :disabled="!renameTitle.trim()" @click="confirmRename">
             {{ $t("common.save") }}
           </UiButton>
-          <UiButton size="small" @click="renameOpen = false">{{ $t("common.cancel") }}</UiButton>
+          <UiButton @click="renameOpen = false">{{ $t("common.cancel") }}</UiButton>
         </div>
       </div>
     </UiDialog>

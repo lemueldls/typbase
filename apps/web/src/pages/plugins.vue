@@ -445,10 +445,8 @@ function formatTime(at: number): string {
       <h1 class="studio__title">Plugin studio</h1>
       <span class="studio__muted">engine: {{ engineMode }}</span>
       <div class="studio__header-actions">
-        <UiButton size="small" variant="ghost" @click="plugins.refreshCatalog()">
-          Reload plugins
-        </UiButton>
-        <UiButton size="small" variant="primary" @click="newOpen = true">New plugin</UiButton>
+        <UiButton variant="ghost" @click="plugins.refreshCatalog()">Reload plugins</UiButton>
+        <UiButton variant="primary" @click="newOpen = true">New plugin</UiButton>
       </div>
     </header>
 
@@ -553,14 +551,12 @@ function formatTime(at: number): string {
             />
             <UiButton
               v-if="previewSurface !== 'widget'"
-              size="large"
               :disabled="!selectedInstanceId"
               @click="openPreview"
             >
               Open
             </UiButton>
             <UiButton
-              size="large"
               variant="ghost"
               :disabled="!selectedInstanceId"
               @click="plugins.renderInstance(selectedInstanceId, previewSurface)"
@@ -610,10 +606,8 @@ function formatTime(at: number): string {
               label="File"
               class="studio__select"
             />
-            <UiButton size="small" variant="primary" :disabled="!dirty" @click="saveFile">
-              Save
-            </UiButton>
-            <UiButton v-if="!selected.storageDir" size="small" @click="forkToLocal">
+            <UiButton variant="primary" :disabled="!dirty" @click="saveFile"> Save </UiButton>
+            <UiButton v-if="!selected.storageDir" @click="forkToLocal">
               Fork to workspace
             </UiButton>
             <span v-if="saveMessage" class="studio__muted">{{ saveMessage }}</span>
@@ -693,15 +687,10 @@ function formatTime(at: number): string {
           stylesheet.
         </p>
         <div class="studio__row">
-          <UiButton
-            size="small"
-            variant="primary"
-            :disabled="!newName.trim()"
-            @click="createPlugin"
-          >
+          <UiButton variant="primary" :disabled="!newName.trim()" @click="createPlugin">
             Create
           </UiButton>
-          <UiButton size="small" @click="newOpen = false">Cancel</UiButton>
+          <UiButton @click="newOpen = false">Cancel</UiButton>
         </div>
       </div>
     </UiDialog>

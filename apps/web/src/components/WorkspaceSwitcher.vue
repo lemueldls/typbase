@@ -340,7 +340,7 @@ function statusFor(info: WorkspaceInfo): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-1-5) var(--space-2-5) var(--space-2);
+  padding: var(--space-1-5);
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;

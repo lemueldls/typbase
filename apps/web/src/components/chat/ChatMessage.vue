@@ -133,19 +133,19 @@ async function copySource(): Promise<void> {
       <span class="chat-message__spacer" />
 
       <template v-if="isAssistant && hasSource && !streaming">
-        <UiButton size="tiny" variant="ghost" @click="sourceOpen = !sourceOpen">
+        <UiButton size="small" variant="ghost" @click="sourceOpen = !sourceOpen">
           {{ sourceOpen ? $t("chat.hideSource") : $t("chat.showSource") }}
         </UiButton>
-        <UiButton size="tiny" variant="ghost" @click="copySource">
+        <UiButton size="small" variant="ghost" @click="copySource">
           {{ $t("chat.copy") }}
         </UiButton>
-        <UiButton v-if="problem" size="tiny" variant="ghost" @click="emit('repair')">
+        <UiButton v-if="problem" size="small" variant="ghost" @click="emit('repair')">
           {{ $t("chat.repair") }}
         </UiButton>
-        <UiButton size="tiny" variant="ghost" @click="emit('insert')">
+        <UiButton size="small" variant="ghost" @click="emit('insert')">
           {{ $t("chat.insert") }}
         </UiButton>
-        <UiButton size="tiny" variant="ghost" @click="emit('createPage')">
+        <UiButton size="small" variant="ghost" @click="emit('createPage')">
           {{ $t("chat.createPage") }}
         </UiButton>
       </template>

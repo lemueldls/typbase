@@ -3,7 +3,6 @@ import type { MaterialSymbol } from "material-symbols";
 
 import type { WorkspaceSpaceSummary } from "~/lib/atproto";
 
-import { pushToast } from "~/composables/toasts";
 import { shortDid } from "~/lib/accountHandle";
 import { formatAgo } from "~/lib/format";
 import { openExternal } from "~/lib/openExternal";
@@ -161,12 +160,6 @@ async function onJoin(): Promise<void> {
   await openSpace(id);
 }
 
-async function copySpace(): Promise<void> {
-  if (!spaceUri.value || accountBusy.value) return;
-  await navigator.clipboard.writeText(spaceUri.value);
-  pushToast({ titleKey: "common.copied", duration: 1800 });
-}
-
 onMounted(loadSpaces);
 watch(
   () => [atprotoStatus.value.signedIn, atprotoStatus.value.syncing, spaceUri.value],
@@ -297,20 +290,14 @@ watch(
           </div>
 
           <div class="sync__space">
-            <div class="sync__space-head">
-              <p class="sync__label">{{ $t("settings.syncSpace") }}</p>
-              <UiButton
-                v-if="spaceUri"
-                variant="plain"
-                icon="content_copy"
-                :disabled="accountBusy"
-                @click="copySpace"
-              >
-                {{ $t("settings.syncCopySpace") }}
-              </UiButton>
-            </div>
+            <p class="sync__label">{{ $t("settings.syncSpace") }}</p>
             <p class="sync__hint">{{ $t("settings.syncSpaceHint") }}</p>
-            <code v-if="spaceUri" class="sync__space-uri">{{ spaceUri }}</code>
+            <UiCodeBlock
+              v-if="spaceUri"
+              :text="spaceUri"
+              :label="$t('settings.syncCopySpace')"
+              truncate
+            />
 
             <form class="sync__join-form" @submit.prevent="onJoin">
               <UiTextField
@@ -321,11 +308,7 @@ watch(
                 spellcheck="false"
                 :disabled="joining || accountBusy"
               />
-              <UiButton
-                type="submit"
-                size="large"
-                :disabled="joining || accountBusy || !joinInput.trim()"
-              >
+              <UiButton type="submit" :disabled="joining || accountBusy || !joinInput.trim()">
                 {{ $t("settings.syncJoin") }}
               </UiButton>
             </form>
@@ -651,23 +634,6 @@ watch(
   gap: var(--space-2);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
-}
-
-.sync__space-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.sync__space-uri {
-  display: block;
-  padding: var(--space-1-5) var(--space-2);
-  overflow-wrap: anywhere;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  background: var(--color-surface-2);
-  border-radius: var(--radius-sm);
 }
 
 .sync__join-form {

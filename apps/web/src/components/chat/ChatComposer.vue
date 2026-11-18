@@ -150,17 +150,11 @@ function commitModel(): void {
         />
       </Label>
       <span class="chat-composer__spacer" />
-      <UiButton v-if="busy" variant="plain" size="small" @click="emit('stop')">
+      <UiButton v-if="busy" variant="plain" @click="emit('stop')">
         <MsIcon name="stop_circle" :size="20" />
         {{ $t("chat.stop") }}
       </UiButton>
-      <UiButton
-        v-else
-        variant="primary"
-        size="small"
-        :disabled="!modelValue.trim()"
-        @click="emit('send')"
-      >
+      <UiButton v-else variant="primary" :disabled="!modelValue.trim()" @click="emit('send')">
         <MsIcon name="send" :size="20" />
         {{ $t("chat.send") }}
       </UiButton>
