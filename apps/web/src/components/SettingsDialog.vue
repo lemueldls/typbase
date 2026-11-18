@@ -184,7 +184,7 @@ function selectTheme(id: string) {
   props.store.updateSettings(patch);
   // Apply immediately. The structure-change echo also refreshes, but the
   // editor should not wait on it.
-  applyTheme(props.store.getSettings());
+  applyStoreTheme(props.store);
   bumpRenderRevision();
 }
 
@@ -231,7 +231,7 @@ function markThemeModified(): void {
 }
 
 function onThemeApplied(): void {
-  applyTheme(props.store.getSettings());
+  applyStoreTheme(props.store);
   bumpRenderRevision();
   syncPaletteDraft();
 }
@@ -251,7 +251,7 @@ function resetAppearance(): void {
     typography: DEFAULT_SETTINGS.typography,
     themeProvenance: DEFAULT_THEME_PROVENANCE,
   });
-  applyTheme(props.store.getSettings());
+  applyStoreTheme(props.store);
   bumpRenderRevision();
   syncPaletteDraft();
 }
@@ -271,7 +271,7 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
     themeCustom: { ...current, [paletteMode.value]: next },
   });
   markThemeModified();
-  applyTheme(props.store.getSettings());
+  applyStoreTheme(props.store);
   bumpRenderRevision();
 }
 
@@ -619,7 +619,7 @@ const themeMode = computed({
   get: () => settings.value.theme ?? "auto",
   set: (mode: string) => {
     props.store.updateSettings({ theme: mode as ThemeMode });
-    applyTheme(props.store.getSettings());
+    applyStoreTheme(props.store);
     bumpRenderRevision();
   },
 });
@@ -635,7 +635,7 @@ const uiSize = computed({
   set: (value: string) => {
     props.store.updateSettings({ uiSize: value as UiSize });
     markThemeModified();
-    applyTheme(props.store.getSettings());
+    applyStoreTheme(props.store);
   },
 });
 
@@ -650,7 +650,7 @@ const uiDensity = computed({
   set: (value: string) => {
     props.store.updateSettings({ uiDensity: value as UiDensity });
     markThemeModified();
-    applyTheme(props.store.getSettings());
+    applyStoreTheme(props.store);
   },
 });
 
@@ -665,7 +665,7 @@ const uiRadius = computed({
   set: (value: string) => {
     props.store.updateSettings({ uiRadius: value as UiRadius });
     markThemeModified();
-    applyTheme(props.store.getSettings());
+    applyStoreTheme(props.store);
   },
 });
 
@@ -830,7 +830,7 @@ const textSize = computed<number | null>({
 });
 
 onMounted(() => {
-  applyTheme(props.store.getSettings());
+  applyStoreTheme(props.store);
 });
 
 function supportsLocalFonts() {

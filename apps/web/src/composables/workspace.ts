@@ -30,10 +30,10 @@ import type { AtprotoService, AtprotoStatus } from "~/lib/atproto";
 
 import { initAiKeys, type AiKeyState } from "~/lib/ai/keys";
 import { AtprotoService as Atproto } from "~/lib/atproto";
-import { resolveTheme } from "~/lib/themes";
+import { clearCachedTheme, clearThemeCaches, resolveTheme } from "~/lib/themes";
 import { withTimeout } from "~/lib/timeout";
+import { LAST_WORKSPACE_KEY } from "~/lib/workspaceRoute";
 
-const LAST_WORKSPACE_KEY = "typbase:lastWorkspace";
 /** Set once the user deletes every workspace, so a reload shows the chooser. */
 const WORKSPACES_EMPTY_KEY = "typbase:workspacesEmpty";
 /** Browser storage choice: OPFS (default) or a picked folder handle. */
@@ -152,6 +152,12 @@ function useWorkspaceState() {
   });
   const atprotoReady = ref(false);
   let ensurePromise: Promise<WorkspaceStore | null> | undefined;
+  /**
+   * Workspace named by the route before boot. Kept while storage setup holds
+   * the boot, so choosing a location opens the linked workspace rather than
+   * the last one.
+   */
+  let bootWorkspaceId = "";
 
   /**
    * Bumped whenever workspace-level data changes (pages, categories,
@@ -658,10 +664,19 @@ function useWorkspaceState() {
     workspaces.value = await reg.list();
   }
 
-  /** Picks the workspace to boot: last opened, else first, else a legacy "local", else a fresh one. */
-  async function chooseWorkspaceId(reg: WorkspaceRegistry): Promise<string> {
+  /**
+   * Picks the workspace to boot: the one named by the route, else last opened,
+   * else first, else a legacy "local", else a fresh one. A route id that is not
+   * on this device falls back to the last workspace. It never joins a space.
+   */
+  async function chooseWorkspaceId(reg: WorkspaceRegistry, preferredId = ""): Promise<string> {
     const all = await reg.list();
     workspaces.value = all;
+    if (preferredId) {
+      const preferred = all.find((entry) => entry.id === preferredId);
+      if (preferred) return preferred.id;
+    }
+
     if (all.length > 0) {
       const last = localStorage.getItem(LAST_WORKSPACE_KEY);
       return all.find((entry) => entry.id === last)?.id ?? all[0]!.id;
@@ -696,8 +711,9 @@ function useWorkspaceState() {
     return id;
   }
 
-  async function ensure(): Promise<WorkspaceStore | null> {
+  async function ensure(preferredId = ""): Promise<WorkspaceStore | null> {
     if (workspace.value) return workspace.value;
+    if (preferredId) bootWorkspaceId = preferredId;
 
     ensurePromise ??= (async () => {
       await ensureBackend();
@@ -705,10 +721,12 @@ function useWorkspaceState() {
       // `packages/storage/src/migrate.ts` for the removal recipe.
       await migrateLayout(backendRef.value!);
       const reg = await ensureRegistry();
-      const id = await chooseWorkspaceId(reg);
+      const id = await chooseWorkspaceId(reg, bootWorkspaceId);
       if (!id) return null; // nothing to open. The shell shows the chooser
 
-      return openWorkspace(id);
+      const store = await openWorkspace(id);
+      bootWorkspaceId = "";
+      return store;
     })().catch((reason) => {
       if (reason instanceof StorageSetupPending) {
         // The shell renders the setup screen. `configureStorage` restarts
@@ -737,6 +755,7 @@ function useWorkspaceState() {
     try {
       ensurePromise = undefined;
       await openWorkspace(id, options);
+      bootWorkspaceId = "";
       // A switch may land on a workspace with no pages. The shell picks
       // home/first page off the generation key.
     } catch (reason) {
@@ -860,8 +879,10 @@ function useWorkspaceState() {
     }
 
     await removeWorkspace(backendRef.value!, id);
+    clearCachedTheme(id);
     await reg.remove(id);
     workspaces.value = await reg.list();
+    if (workspaces.value.length === 0) clearThemeCaches();
 
     if (deletingActive) {
       if (workspaces.value.length === 0) localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
@@ -884,6 +905,7 @@ function useWorkspaceState() {
     workspaceGeneration.value += 1;
     localStorage.removeItem(LAST_WORKSPACE_KEY);
     localStorage.setItem(WORKSPACES_EMPTY_KEY, "1");
+    clearThemeCaches();
 
     const reg = await ensureRegistry();
     for (const entry of await reg.list()) {

@@ -33,12 +33,18 @@ export function resolveAppTheme(settings: {
 
 export function applyTheme(
   settings: Parameters<typeof resolveAppTheme>[0] & AppChromeSettings,
+  workspaceId = "",
 ): ResolvedTheme {
   const resolved = resolveAppTheme(settings);
   applyThemeToDom(resolved, settings);
-  cacheThemeSettings(settings);
+  cacheThemeSettings(settings, workspaceId);
 
   return resolved;
+}
+
+/** Applies a store's settings and caches them under that workspace's route. */
+export function applyStoreTheme(store: WorkspaceStore): ResolvedTheme {
+  return applyTheme(store.getSettings(), store.workspaceId);
 }
 
 export function useTheme(getStore: () => WorkspaceStore | undefined) {
@@ -46,7 +52,7 @@ export function useTheme(getStore: () => WorkspaceStore | undefined) {
 
   function refresh(): void {
     const store = getStore();
-    if (store) applyTheme(store.getSettings());
+    if (store) applyStoreTheme(store);
   }
 
   // Follow the active workspace: a switch detaches the old doc's listener and

@@ -18,7 +18,7 @@ import {
 
 import type { AtprotoService } from "~/lib/atproto";
 
-import { applyTheme } from "~/composables/theme";
+import { applyStoreTheme } from "~/composables/theme";
 import { resolveTheme } from "~/lib/themes";
 
 export interface ThemePublishInput {
@@ -110,7 +110,7 @@ export function applyThemeFile(store: WorkspaceStore, theme: ThemeFile, source?:
       modified: false,
     }),
   );
-  applyTheme(store.getSettings());
+  applyStoreTheme(store);
   bumpRenderRevision();
 }
 
@@ -128,7 +128,7 @@ export async function applyPublishedTheme(store: WorkspaceStore, uri: string): P
       modified: false,
     },
   });
-  applyTheme(store.getSettings());
+  applyStoreTheme(store);
   bumpRenderRevision();
 
   return resolved.theme;

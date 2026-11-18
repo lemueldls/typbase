@@ -6,6 +6,7 @@ import type { AtprotoService } from "~/lib/atproto";
 import { pageContextBinding } from "~/lib/pageContext";
 import { publishPrelude, publishThemePalette } from "~/lib/publishPrelude";
 import { renderInWorker, setPublishRequestStore } from "~/lib/renderWorker";
+import { workspacePath } from "~/lib/workspaceRoute";
 
 export interface PublishOptions {
   /** Overrides the workspace publish defaults for this one publish. */
@@ -101,7 +102,7 @@ export async function publishPage(
     html: html.blob,
     ...(pdf ? { pdf: pdf.blob } : {}),
     source,
-    sourceUri: `${window.location.origin}/?page=${page.id}`,
+    sourceUri: `${window.location.origin}${workspacePath(store.workspaceId)}?page=${page.id}`,
     langs: effective.langs,
     tags: effective.tags,
     createdAt: now,

@@ -448,6 +448,15 @@ describe("typbase app", async () => {
     });
     await page.waitForSelector(".cm-searchMatch", { timeout: 10_000 });
 
+    // The toolbar action is a toggle and shows the bar's state.
+    const findToggle = page.getByRole("button", { name: "Find in page" });
+    expect(await findToggle.getAttribute("aria-pressed")).toBe("true");
+    await findToggle.click();
+    await page.waitForFunction(() => !document.querySelector(".page-find"), null, {
+      timeout: 10_000,
+    });
+    expect(await findToggle.getAttribute("aria-pressed")).toBe("false");
+
     await page.close();
   });
 
@@ -2401,6 +2410,30 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("keeps the workspace and page in the URL across reload", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const pageId = await createTestPage(page, {
+      title: "Reload workspace",
+      content: "= Reload\n",
+    });
+    await showPage(page, pageId, "write");
+
+    const workspaceId = await page.evaluate(() => window.__typbase.store.workspaceId);
+    expect(new URL(page.url()).pathname).toBe(`/w/${workspaceId}`);
+    expect(new URL(page.url()).searchParams.get("page")).toBe(pageId);
+
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(".cm-editor", { timeout: 120_000 });
+    await page.waitForFunction((id) => window.__typbase.pageId === id, pageId, {
+      timeout: 30_000,
+    });
+    expect(new URL(page.url()).pathname).toBe(`/w/${workspaceId}`);
+
+    await page.close();
+  });
+
   it("closes an open pane on back", async () => {
     const page = await createPage();
     await openApp(page);
@@ -3426,7 +3459,7 @@ describe("typbase app", async () => {
     await page.waitForSelector(".menubar__content", { timeout: 30_000 });
     await page.evaluate(() => window.history.back());
     await page.waitForSelector(".menubar__content", { state: "detached", timeout: 30_000 });
-    expect(new URL(page.url()).pathname).toBe("/");
+    expect(new URL(page.url()).pathname).toMatch(/^\/w\/[^/]+$/);
 
     await page.close();
   });

@@ -39,6 +39,7 @@
     "withoutSync": "running without sync",
     "openNav": "Open navigation",
     "closeNav": "Close navigation",
+    "workspaceNotFound": "That workspace is not on this device.",
     "createOne": "Create one from the sidebar."
   },
   "engine": {

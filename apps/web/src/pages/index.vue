@@ -14,6 +14,7 @@ import { requestReveal } from "~/lib/reveal";
 import { refreshSections, toSections } from "~/lib/sections";
 import { testApi } from "~/lib/testApi";
 import { VIEW_MODES, type ViewModeId } from "~/lib/view";
+import { isWorkspaceLocation, workspaceIdFromPath, workspacePath } from "~/lib/workspaceRoute";
 
 const {
   workspace,
@@ -26,6 +27,7 @@ const {
   bootNote,
   workspaceGeneration,
   switching,
+  switchWorkspace,
   storageSetup,
   atprotoStatus,
 } = useWorkspace();
@@ -73,6 +75,17 @@ const nav = useNavHistory();
 const { visible: appBarVisible, toggle: toggleAppBar } = useAppBar();
 
 const { t } = useI18n();
+
+const router = useRouter();
+const route = useRoute();
+const routeWorkspaceId = computed(() => workspaceIdFromPath(route.path));
+/**
+ * Target workspace while a route-driven switch opens its store. Query watchers
+ * stay out of the way until the new store has applied the link's state.
+ */
+let pendingRouteWorkspace: string | null = null;
+/** One-shot gate while an unknown workspace link is rejected. */
+let routeQueryGate = false;
 
 // Back closes the drawer and the palette before it navigates or leaves.
 const navLayer = useBackLayer(navOpen);
@@ -206,9 +219,23 @@ function fallbackPageId(): string {
 // remounts Sidebar/PageView, so the page id must be re-selected first. The
 // watcher runs pre-render in the same tick as the bump.
 watch(workspaceGeneration, () => {
-  currentPageId.value = fallbackPageId();
-  currentPluginId.value = null;
-  currentChatId.value = null;
+  const pending = pendingRouteWorkspace;
+  pendingRouteWorkspace = null;
+  const active = workspace.value?.workspaceId ?? "";
+  const routeId = workspaceIdFromPath(route.path);
+
+  if ((pending && pending === active) || (loaded.value && routeId && routeId === active)) {
+    // A workspace link's page, mode, and pane belong to the store that just
+    // opened. Apply them before the URL normalizes. The second case covers
+    // storage setup finishing after boot, where the link already named the
+    // workspace that just opened.
+    applyRouteState();
+  } else {
+    currentPageId.value = fallbackPageId();
+    currentPluginId.value = null;
+    currentChatId.value = null;
+  }
+
   // Another workspace is another set of pages, so the app's own history starts
   // over rather than pointing at ids the new workspace does not have.
   nav.reset(routeQuery());
@@ -252,8 +279,6 @@ const pageQuery = useRouteQuery<string>("page", "");
 const modeQuery = useRouteQuery<string>("mode", "write");
 const viewQuery = useRouteQuery<string>("view", "");
 const asideQuery = useRouteQuery<string>("aside", "");
-const router = useRouter();
-const route = useRoute();
 
 /** Query values can be string arrays or null. A page/mode id is a plain string. */
 function queryString(value: unknown): string {
@@ -266,27 +291,25 @@ function isViewMode(value: unknown): value is ViewModeId {
   );
 }
 
-/**
- * Everything that runs once a workspace is open. `retryBoot` runs it again
- * after a failure, so the setup cannot live in `onMounted` alone.
- */
-function afterBoot(): void {
-  // Dev builds run against a release channel they cannot install over, but the
-  // Settings row still needs to know which channel it is.
-  void appUpdates.detect();
-  if (!import.meta.dev) void appUpdates.check({ silent: true });
-
+/** Applies the page, mode, pane, and dock named by the current query. */
+function applyRouteState(): void {
   const store = workspace.value;
-  if (!store) return; // no workspaces, so the chooser handles it
+  if (!store) return;
+
+  currentChatId.value = null;
+  currentPluginId.value = null;
+  graphOpen.value = false;
+  filesOpen.value = false;
+  siteOpen.value = false;
+  dockChatId.value = null;
 
   const linkedId = queryString(pageQuery.value);
   const linked = linkedId ? store.getPage(linkedId) : undefined;
-  if (linked) currentPageId.value = linked.id;
-  else currentPageId.value = fallbackPageId();
+  currentPageId.value = linked ? linked.id : fallbackPageId();
 
   // A link's `?mode=` is the user's choice for that link, so it is recorded as
   // one. A link without one follows the page's kind.
-  if (isViewMode(modeQuery.value)) requestedMode.value = modeQuery.value;
+  requestedMode.value = isViewMode(modeQuery.value) ? modeQuery.value : null;
 
   // A ?view=plugin:<instance>, ?view=chat:<thread>, ?view=graph, or ?view=files
   // link reopens that pane.
@@ -310,10 +333,124 @@ function afterBoot(): void {
       currentChatId.value = dockId;
     }
   }
+}
 
-  // Normalize the URL so the first entry stores the resolved state, and back
-  // from a later page then restores this one instead of an empty query.
-  syncRoute("replace");
+/**
+ * Rejects a workspace path that is not on this device. Query watchers stay
+ * gated until the URL is back on the active workspace, so the link's page id
+ * cannot rewrite the page that was already open.
+ */
+function rejectRouteWorkspace(): void {
+  routeQueryGate = true;
+  pushToast({ titleKey: "boot.workspaceNotFound", duration: 4000 });
+  void nextTick(() => {
+    routeQueryGate = false;
+    syncRoute("replace");
+  });
+}
+
+/** Opens the workspace named by a route change, then applies the link's query. */
+function startRouteWorkspaceSwitch(id: string): void {
+  pendingRouteWorkspace = id;
+  void switchWorkspace(id)
+    .then(() => {
+      if (workspace.value?.workspaceId !== id && pendingRouteWorkspace === id) {
+        pendingRouteWorkspace = null;
+        syncRoute("replace");
+      }
+    })
+    .catch((cause) => {
+      // A newer route target superseded this switch. Its store never became
+      // the active one, so it must not report a failure.
+      if (pendingRouteWorkspace !== id) return;
+
+      pendingRouteWorkspace = null;
+      pushToast({
+        title: cause instanceof Error ? cause.message : String(cause),
+        variant: "danger",
+        duration: 5000,
+      });
+      syncRoute("replace");
+    });
+}
+
+/** Applies a workspace path, switching stores only when the id is local. */
+function handleRouteWorkspace(id: string): void {
+  if (!loaded.value) return;
+
+  const active = workspace.value?.workspaceId ?? "";
+
+  // The route moved before the pending switch opened its store. Re-target so
+  // the older switch's token is cancelled instead of winning the race.
+  if (pendingRouteWorkspace && pendingRouteWorkspace !== id) {
+    if (id && (id === active || workspaces.value.some((entry) => entry.id === id))) {
+      startRouteWorkspaceSwitch(id);
+      return;
+    }
+
+    if (active) startRouteWorkspaceSwitch(active);
+    else {
+      pendingRouteWorkspace = null;
+      syncRoute("replace");
+    }
+
+    if (id && id !== active) {
+      pushToast({ titleKey: "boot.workspaceNotFound", duration: 4000 });
+    }
+
+    return;
+  }
+
+  // This workspace is already opening; a second switch would only reopen it.
+  if (pendingRouteWorkspace === id) return;
+
+  if (!id) {
+    if (active && route.path !== workspacePath(active)) {
+      void nextTick(() => syncRoute("replace"));
+    }
+
+    return;
+  }
+
+  if (id === active) {
+    if (route.path !== workspacePath(active)) {
+      void nextTick(() => syncRoute("replace"));
+    }
+
+    return;
+  }
+
+  if (!workspaces.value.some((entry) => entry.id === id)) {
+    rejectRouteWorkspace();
+    return;
+  }
+
+  startRouteWorkspaceSwitch(id);
+}
+
+/**
+ * Everything that runs once a workspace is open. `retryBoot` runs it again
+ * after a failure, so the setup cannot live in `onMounted` alone.
+ */
+function afterBoot(): void {
+  // Dev builds run against a release channel they cannot install over, but the
+  // Settings row still needs to know which channel it is.
+  void appUpdates.detect();
+  if (!import.meta.dev) void appUpdates.check({ silent: true });
+
+  const store = workspace.value;
+  if (!store) return; // no workspaces, so the chooser handles it
+
+  const routeId = workspaceIdFromPath(route.path);
+  const routeExists = !!routeId && workspaces.value.some((entry) => entry.id === routeId);
+  const switchToRoute = !!routeId && routeId !== store.workspaceId && routeExists;
+  const routeMissing = !!routeId && routeId !== store.workspaceId && !routeExists;
+
+  // The target workspace's link state must be applied by the generation
+  // watcher after its store opens, not against the workspace being left. A
+  // missing workspace link keeps this workspace's own state.
+  if (!switchToRoute && !routeMissing) applyRouteState();
+  else if (routeMissing) currentPageId.value = fallbackPageId();
 
   setPluginNavigation({ openPage, openPlugin });
   setChatNavigation({ openChat, openPage });
@@ -345,11 +482,28 @@ function afterBoot(): void {
     },
     typstState: () => useTypst(),
   });
+
+  if (switchToRoute) {
+    startRouteWorkspaceSwitch(routeId);
+    return;
+  }
+
+  if (routeId && routeId !== store.workspaceId) {
+    rejectRouteWorkspace();
+    return;
+  }
+
+  // Normalize the URL so the first entry stores the resolved state, and back
+  // from a later page then restores this one instead of an empty query.
+  syncRoute("replace");
 }
 
 async function boot(): Promise<void> {
-  await ensure();
+  await ensure(workspaceIdFromPath(route.path));
   loaded.value = true;
+  if (!workspace.value && !storageSetup.value && route.path !== "/") {
+    void router.replace({ path: "/", query: route.query });
+  }
   afterBoot();
 }
 
@@ -383,10 +537,24 @@ watch(currentPageId, (id) => {
   testApi.pageId = id || null;
 });
 
+// A workspace path can arrive from a paste, back/forward, or the switcher's
+// normalized URL. Sync flush runs this before the query watchers, so a switch
+// can gate them while its store opens.
+watch(routeWorkspaceId, (id) => handleRouteWorkspace(id), { flush: "sync" });
+
 // Back/forward or a pasted link changes the query under us.
 watch(pageQuery, (raw) => {
   const id = queryString(raw);
-  if (!loaded.value || !id || id === currentPageId.value) return;
+  if (
+    !loaded.value ||
+    routeQueryGate ||
+    pendingRouteWorkspace ||
+    switching.value ||
+    !id ||
+    id === currentPageId.value
+  ) {
+    return;
+  }
 
   const store = workspace.value;
   if (store?.getPage(id)) {
@@ -405,7 +573,7 @@ watch(pageQuery, (raw) => {
 // `?mode=` means "follow the page's kind", which is what a replace from a
 // conversion writes.
 watch(modeQuery, (value) => {
-  if (!loaded.value) return;
+  if (!loaded.value || routeQueryGate || pendingRouteWorkspace || switching.value) return;
 
   requestedMode.value = isViewMode(value) ? value : null;
 });
@@ -450,6 +618,12 @@ function sameQuery(next: LocationQueryRaw): boolean {
   return true;
 }
 
+/** Canonical app path: the active workspace, or the root alias while none is open. */
+function routePath(): string {
+  const id = workspace.value?.workspaceId;
+  return id ? workspacePath(id) : "/";
+}
+
 /**
  * True when the last navigation replaced an overlay's entry. That entry sits one
  * position past the app's own, so the mirror appends where a plain replace would
@@ -489,8 +663,9 @@ function syncRoute(historyMode: "push" | "replace"): void {
 }
 
 function writeRoute(historyMode: "push" | "replace"): Promise<unknown> | void {
+  const path = routePath();
   const query = routeQuery();
-  if (sameQuery(query)) {
+  if (route.path === path && sameQuery(query)) {
     overlayEntryReplaced = false;
 
     return;
@@ -501,7 +676,7 @@ function writeRoute(historyMode: "push" | "replace"): Promise<unknown> | void {
   });
   overlayEntryReplaced = false;
 
-  return router[historyMode]({ query, state: { typbaseIndex: index } });
+  return router[historyMode]({ path, query, state: { typbaseIndex: index } });
 }
 
 /**
@@ -536,7 +711,7 @@ function closeNavLayer(): void {
 
 // Back/forward or a pasted link changes the open pane under us.
 watch(viewQuery, (raw) => {
-  if (!loaded.value) return;
+  if (!loaded.value || routeQueryGate || pendingRouteWorkspace || switching.value) return;
 
   const value = queryString(raw);
   if (value === "graph") {
@@ -608,7 +783,7 @@ watch(viewQuery, (raw) => {
 
 // Back/forward or a pasted link changes the dock under us.
 watch(asideQuery, (raw) => {
-  if (!loaded.value) return;
+  if (!loaded.value || routeQueryGate || pendingRouteWorkspace || switching.value) return;
 
   const value = queryString(raw);
   const id = value.startsWith("chat:") ? value.slice("chat:".length) : "";
@@ -630,6 +805,8 @@ watch(asideQuery, (raw) => {
 
 // A deleted page, instance, or thread must not leave the shell on an empty pane.
 watch(dataRevision, () => {
+  if (pendingRouteWorkspace || switching.value) return;
+
   let changed = false;
   // The sidebar tells the shell when it deletes the open page, but a plugin, a
   // peer over sync, or anything else reaching the store does not, and a stale id
@@ -928,7 +1105,15 @@ async function setMode(value: ViewModeId) {
   syncRoute(takeLayerHistory());
 }
 
-definePageMeta({ ssr: false });
+// One route owns the root alias and `/w/<id>`. A fixed key keeps the shell
+// mounted when boot normalizes `/` to the active workspace, so the page does
+// not boot twice. `validate` keeps unrelated paths on the normal 404.
+definePageMeta({
+  ssr: false,
+  path: "/:slug(.*)*",
+  key: "app",
+  validate: (candidate) => isWorkspaceLocation(candidate.path),
+});
 </script>
 
 <template>

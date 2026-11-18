@@ -39,6 +39,7 @@
     "withoutSync": "ohne Synchronisierung",
     "openNav": "Navigation öffnen",
     "closeNav": "Navigation schließen",
+    "workspaceNotFound": "Dieser Arbeitsbereich ist auf diesem Gerät nicht vorhanden.",
     "createOne": "Eine aus der Seitenleiste erstellen."
   },
   "engine": {

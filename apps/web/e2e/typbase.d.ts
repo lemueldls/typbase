@@ -7,6 +7,7 @@
 import type { EditorView } from "@codemirror/view";
 
 interface StoreHandle {
+  workspaceId: string;
   createPage(input: {
     title: string;
     content?: string;

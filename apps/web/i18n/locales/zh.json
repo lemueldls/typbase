@@ -39,6 +39,7 @@
     "withoutSync": "未同步",
     "openNav": "打开导航",
     "closeNav": "关闭导航",
+    "workspaceNotFound": "此设备上不存在该工作区。",
     "createOne": "从侧边栏创建一个。"
   },
   "engine": {

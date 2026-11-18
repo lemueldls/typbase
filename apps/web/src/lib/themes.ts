@@ -14,6 +14,7 @@ import { backdropFor, fontStacks, themeCssVar, uiScale as skinUiScale } from "@t
 
 import { expandSeeds, normalizeCssColor } from "./palette";
 import { themeColorsFromPalette } from "./rendererPalette";
+import { lastWorkspaceId, workspaceIdFromLocation } from "./workspaceRoute";
 
 export interface ThemeDefinition {
   id: string;
@@ -609,10 +610,11 @@ export function applyThemeToDom(resolved: ResolvedTheme, settings?: AppChromeSet
 
 // Last-applied settings cache. Workspace theme settings live in a Loro doc,
 // which is async and boot-time-slow. Painting the correct palette on page
-// load needs it earlier. Every apply writes the settings here, and a client
-// plugin restores them before the first app frame.
+// load needs it earlier. Every apply writes the workspace's copy, and a client
+// plugin restores it before the first app frame.
 
 const THEME_CACHE_KEY = "typbase:themeCache";
+const THEME_CACHE_PREFIX = `${THEME_CACHE_KEY}:`;
 
 type CachedThemeSettings = Parameters<typeof resolveTheme>[0] &
   AppChromeSettings & {
@@ -620,36 +622,50 @@ type CachedThemeSettings = Parameters<typeof resolveTheme>[0] &
     mode?: "light" | "dark";
   };
 
-export function cacheThemeSettings(settings: CachedThemeSettings): void {
+/** Storage key for one workspace's pre-paint theme. */
+function themeCacheKey(workspaceId: string): string {
+  return `${THEME_CACHE_PREFIX}${workspaceId}`;
+}
+
+/**
+ * Writes the applied settings for pre-paint. The workspace copy is what a
+ * direct `/w/<id>` link reads, so two tabs on different workspaces cannot
+ * overwrite each other's first frame. The global key stays as the fallback
+ * for older builds and for the root alias before a workspace opens.
+ */
+export function cacheThemeSettings(settings: CachedThemeSettings, workspaceId = ""): void {
   try {
     const resolved = resolveTheme(settings);
+    const payload = JSON.stringify({
+      theme: settings.theme ?? "auto",
+      themeName: settings.themeName ?? "default",
+      themeCustom: settings.themeCustom ?? null,
+      font: settings.font ?? null,
+      mathFont: settings.mathFont ?? null,
+      codeFont: settings.codeFont ?? null,
+      uiSize: settings.uiSize ?? "default",
+      uiDensity: settings.uiDensity ?? "default",
+      uiRadius: settings.uiRadius ?? "default",
+      textSize: settings.textSize ?? 16,
+      mode: resolved.mode,
+      vars: themeCssVars(resolved, settings),
+    } satisfies CachedThemeSettings);
 
-    localStorage.setItem(
-      THEME_CACHE_KEY,
-      JSON.stringify({
-        theme: settings.theme ?? "auto",
-        themeName: settings.themeName ?? "default",
-        themeCustom: settings.themeCustom ?? null,
-        font: settings.font ?? null,
-        mathFont: settings.mathFont ?? null,
-        codeFont: settings.codeFont ?? null,
-        uiSize: settings.uiSize ?? "default",
-        uiDensity: settings.uiDensity ?? "default",
-        uiRadius: settings.uiRadius ?? "default",
-        textSize: settings.textSize ?? 16,
-        mode: resolved.mode,
-        vars: themeCssVars(resolved, settings),
-      } satisfies CachedThemeSettings),
-    );
+    localStorage.setItem(THEME_CACHE_KEY, payload);
+    if (workspaceId) localStorage.setItem(themeCacheKey(workspaceId), payload);
   } catch {
     // Storage can be unavailable. The workspace apply still runs later.
   }
 }
 
 /** Pre-paint restore: tokens land before the first app frame. */
-export function restoreCachedTheme(): void {
+export function restoreCachedTheme(workspaceId = ""): void {
   try {
-    const raw = localStorage.getItem(THEME_CACHE_KEY);
+    const last = lastWorkspaceId();
+    const id = workspaceId || workspaceIdFromLocation() || last;
+    const keyed = id ? localStorage.getItem(themeCacheKey(id)) : null;
+    // A keyed miss on a different workspace must not paint the last one.
+    const raw = keyed ?? (id && last !== id ? null : localStorage.getItem(THEME_CACHE_KEY));
     if (!raw) return;
 
     const cached = JSON.parse(raw) as CachedThemeSettings;
@@ -658,6 +674,26 @@ export function restoreCachedTheme(): void {
     applyThemeToDom(resolveTheme(cached), cached);
   } catch {
     // Corrupt cache: fall back to the defaults in main.css.
+  }
+}
+
+/** Drops one workspace's pre-paint theme when that workspace is deleted. */
+export function clearCachedTheme(workspaceId: string): void {
+  try {
+    localStorage.removeItem(themeCacheKey(workspaceId));
+  } catch {
+    // Storage can be unavailable. A stale key is only a flash.
+  }
+}
+
+/** Drops every workspace's pre-paint theme when local storage is wiped. */
+export function clearThemeCaches(): void {
+  try {
+    const keys = Object.keys(localStorage).filter((key) => key.startsWith(THEME_CACHE_PREFIX));
+    for (const key of keys) localStorage.removeItem(key);
+    localStorage.removeItem(THEME_CACHE_KEY);
+  } catch {
+    // Storage can be unavailable. A stale key is only a flash.
   }
 }
 
