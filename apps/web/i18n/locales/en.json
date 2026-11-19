@@ -1380,5 +1380,12 @@
     "note": "Deleting a record removes it from your account. Other apps or archives may have copied it before that.",
     "browse": "You can browse and delete records on",
     "technicalDetails": "Technical details"
+  },
+  "privacy": {
+    "title": "Privacy",
+    "intro": "Typbase is local-first. A workspace lives on this device until you sign in and sync it. This page lists the data that can leave the device, who can read it, and how to remove it.",
+    "contact": "Questions or corrections? Open an issue on",
+    "source": "Typbase is open source under Apache-2.0. The code that writes each record is in the",
+    "sourceLink": "repository"
   }
 }

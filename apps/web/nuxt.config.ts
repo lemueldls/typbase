@@ -289,7 +289,12 @@ export default defineNuxtConfig({
       // websocket: true,
     },
     prerender: {
-      routes: ["/", "/oauth-client-metadata.json", "/oauth-client-metadata/native.json"],
+      routes: [
+        "/",
+        "/privacy",
+        "/oauth-client-metadata.json",
+        "/oauth-client-metadata/native.json",
+      ],
       crawlLinks: true,
     },
     routeRules: {
