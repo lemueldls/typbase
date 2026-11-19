@@ -9,9 +9,9 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 - **Inline WYSIWYG:** Compiled output replaces the source as you type, with split and read views beside it.
 - **Workspace queries:** `#typbase.query` reads pages, categories, daily notes, backlinks, and sections, and `#typbase.page-link` links any page by id.
 - **Notebook pages:** `//%` lines split a page into prose, code, log, and hidden cells.
-- **Plugins in Typst:** Sidebar widgets, panes, and floating windows written in the same language as your notes.
+- **Plugins in Typst:** Sidebar widgets, panes, and windows written in the same language as your notes.
 - **Local-first:** OPFS or native storage, content-addressed media, and optional atproto sync, collaboration, page posts, and site publishing.
-- **Portable output:** Export HTML, PDF, SVG, or a compilable Typst project with the library, data, and plugins it needs.
+- **Portable output:** Export HTML, PDF, SVG, or a compilable Typst project with the libraries and plugins it needs.
 
 ## What is Typst and the Atmosphere?
 
@@ -74,12 +74,12 @@ Most phones use `arm64-v8a`, older 32-bit devices use `armeabi-v7a`, and emulato
 
 <!-- - **App:** [Nuxt](https://nuxt.com) 5 (nightly) with Vue 3 handles routes, server metadata, and the app UI in the browser and native shells. -->
 
-- **Engine:** [Typst](https://typst.app) 0.15 compiled to WebAssembly, turns notes into HTML, SVG, and PDF and answers IDE queries.
+- **Engine:** [Typst](https://typst.app) 0.15 compiled to WebAssembly, resolves queries and turns notes into HTML, SVG, and PDF.
 - **Editor:** [CodeMirror](https://codemirror.net) 6 runs the Typst mode, inline frames, and autocomplete, with [Harper](https://writewithharper.com) for spellcheck.
 - **Sync:** [Loro](https://loro.dev) CRDTs and [airspace](https://getair.space) over the [AT Protocol](https://atproto.com) handle workspace docs, presence, and assets.
 - **Publishing:** [Wisp](https://wisp.place) hosts the generated site, and [Standard.site](https://standard.site) defines its publication records.
 - **Search:** [sqlite-wasm-vec](https://github.com/yangbooom/sqlite-wasm-vec) and [transformers.js](https://github.com/huggingface/transformers.js) provide full-text and optional vector search in the browser.
-- **Desktop and mobile:** [Tauri](https://tauri.app) 3 (alpha) supplies filesystem access, system fonts, deep links, and the native updater.
+- **Desktop and mobile:** [Tauri](https://tauri.app) 3 (alpha) for filesystem access, system fonts, deep links, and the updater.
 
 <!-- - **Services:** [Nitro](https://nitro.build) runs the live relay, and [unifont](https://unifont.dev) backs the font proxy. -->
 
