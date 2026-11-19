@@ -12,7 +12,13 @@ use engine::{
     bindings::TypstFileId,
     flatten::{extract_cells, flatten_document},
     links::extract_links,
-    renderer::{html, paged::items::chunk_by_items},
+    renderer::{
+        html,
+        paged::{
+            items::chunk_by_items,
+            svg::{render_svgs_by_items, render_svgs_by_items_with_options},
+        },
+    },
     source::{RenderTarget, Side, find_fixes, sync_source_state},
     state::TypstState,
 };
@@ -281,7 +287,8 @@ fn bench_compile(c: &mut Criterion) {
 
     let mut state = state();
     let id = page(&mut state, "notebook");
-    let mut next = varying(&large_notebook(300));
+    let notebook = large_notebook(300);
+    let mut next = varying(&notebook);
     group.bench_function("300_cells", |b| {
         b.iter(|| {
             let text = next();
@@ -296,6 +303,167 @@ fn bench_compile(c: &mut Criterion) {
             black_box(render.chunks.len());
         });
     });
+
+    group.finish();
+}
+
+fn bench_render_svg(c: &mut Criterion) {
+    if !fonts_available() {
+        eprintln!("skipping render_svg benches: bundled fonts missing");
+        return;
+    }
+
+    let cases = [
+        ("plain", PLAIN.to_string()),
+        ("math", MATH.to_string()),
+        ("large", large_document(300)),
+        ("notebook", large_notebook(300)),
+    ];
+
+    let mut group = c.benchmark_group("render_svg_full");
+    group.sample_size(10);
+
+    for (name, text) in &cases {
+        let mut state = state();
+        let id = page(&mut state, name);
+        let mut next = varying(text);
+
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
+            b.iter(|| {
+                let text = next();
+                let render = render_svgs_by_items(&id, black_box(&text), "", None, &mut state);
+                black_box(render.frames.len());
+                black_box(render.tooltips.len());
+            });
+        });
+    }
+
+    group.finish();
+
+    let mut group = c.benchmark_group("render_svg_no_tooltips");
+    group.sample_size(10);
+
+    for (name, text) in &cases {
+        let mut state = state();
+        let id = page(&mut state, name);
+        let mut next = varying(text);
+
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
+            b.iter(|| {
+                let text = next();
+                let render = render_svgs_by_items_with_options(
+                    &id,
+                    black_box(&text),
+                    "",
+                    None,
+                    false,
+                    &mut state,
+                );
+                black_box(render.frames.len());
+                black_box(render.tooltips.len());
+            });
+        });
+    }
+
+    group.finish();
+
+    let mut group = c.benchmark_group("render_svg_find");
+    group.sample_size(10);
+
+    for (name, text) in &cases {
+        let mut state = state();
+        let id = page(&mut state, name);
+        state.set_find_text(&id, true);
+        let mut next = varying(text);
+
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
+            b.iter(|| {
+                let text = next();
+                let render = render_svgs_by_items(&id, black_box(&text), "", None, &mut state);
+                black_box(render.frames.len());
+            });
+        });
+    }
+
+    group.finish();
+
+    // The math-heavy case shows the cost of building tooltips for a render
+    // that has no caret in any equation. `None` currently builds every
+    // equation overlay; a caret outside math has no use for any of them.
+    let mut math_state = state();
+    let id = page(&mut math_state, "tooltips");
+    let text = large_document(100);
+    let mut next_none = varying(&text);
+    let mut next_caret = varying(&text);
+    let mut next_plain = varying(&text);
+
+    let mut group = c.benchmark_group("render_svg_tooltips");
+    group.sample_size(10);
+
+    group.bench_function("all", |b| {
+        b.iter(|| {
+            let text = next_none();
+            let render = render_svgs_by_items(&id, black_box(&text), "", None, &mut math_state);
+            black_box(render.tooltips.len());
+        });
+    });
+    group.bench_function("outside_math", |b| {
+        b.iter(|| {
+            let text = next_caret();
+            let render = render_svgs_by_items(&id, black_box(&text), "", Some(0), &mut math_state);
+            black_box(render.tooltips.len());
+        });
+    });
+    group.bench_function("inside_math", |b| {
+        b.iter(|| {
+            let text = next_caret();
+            let caret = text.find('$').map_or(0, |index| index + 2);
+            let render =
+                render_svgs_by_items(&id, black_box(&text), "", Some(caret), &mut math_state);
+            black_box(render.tooltips.len());
+        });
+    });
+    group.bench_function("none", |b| {
+        b.iter(|| {
+            let text = next_plain();
+            let render = render_svgs_by_items_with_options(
+                &id,
+                black_box(&text),
+                "",
+                None,
+                false,
+                &mut math_state,
+            );
+            black_box(render.tooltips.len());
+        });
+    });
+
+    group.finish();
+
+    let mut group = c.benchmark_group("render_svg_find_no_tooltips");
+    group.sample_size(10);
+
+    for (name, text) in &cases {
+        let mut state = state();
+        let id = page(&mut state, name);
+        state.set_find_text(&id, true);
+        let mut next = varying(text);
+
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
+            b.iter(|| {
+                let text = next();
+                let render = render_svgs_by_items_with_options(
+                    &id,
+                    black_box(&text),
+                    "",
+                    None,
+                    false,
+                    &mut state,
+                );
+                black_box(render.frames.len());
+            });
+        });
+    }
 
     group.finish();
 }
@@ -428,6 +596,7 @@ criterion_group!(
     bench_source_map,
     bench_delimiters,
     bench_compile,
+    bench_render_svg,
     bench_recovery,
     bench_package,
     bench_syntax,

@@ -5,6 +5,7 @@ use std::{
 };
 
 use comemo::{Prehashed, Track, Tracked};
+use ecow::EcoString;
 use rustc_hash::FxBuildHasher;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -33,11 +34,31 @@ pub fn render_svgs_by_items(
     focus: TooltipFocus,
     state: &mut TypstState,
 ) -> SvgRender {
+    render_svgs_by_items_with_options(id, text, prelude, focus, true, state)
+}
+
+/// [`render_svgs_by_items`] with control over the equation tooltip pass.
+/// Previews that never open the math popup can skip it entirely.
+pub fn render_svgs_by_items_with_options(
+    id: &TypstFileId,
+    text: &str,
+    prelude: &str,
+    focus: TooltipFocus,
+    include_tooltips: bool,
+    state: &mut TypstState,
+) -> SvgRender {
     let line_height_ratio = state.get_space_context(id).line_height_ratio;
     let prelude = state.prelude(id, RenderTarget::Svg) + prelude + "\n";
     let mut ctx = state.render_context(id).unwrap();
 
-    render_svgs_by_items_ctx(&mut ctx, text, &prelude, focus, line_height_ratio)
+    render_svgs_by_items_ctx(
+        &mut ctx,
+        text,
+        &prelude,
+        focus,
+        include_tooltips,
+        line_height_ratio,
+    )
 }
 
 /// [`render_svgs_by_items`] over an explicit render context.
@@ -47,6 +68,7 @@ pub fn render_svgs_by_items_ctx(
     text: &str,
     prelude: &str,
     focus: TooltipFocus,
+    include_tooltips: bool,
     line_height_ratio: f64,
 ) -> SvgRender {
     let PagedRender {
@@ -56,11 +78,18 @@ pub fn render_svgs_by_items_ctx(
         diagnostics,
         document,
         text: frame_text,
-    } = chunk_by_items_ctx(ctx, text, prelude, focus, line_height_ratio);
+    } = chunk_by_items_ctx(
+        ctx,
+        text,
+        prelude,
+        focus,
+        include_tooltips,
+        line_height_ratio,
+    );
 
     ctx.note.frame_text = if ctx.note.find_text {
         FrameText {
-            frames: frame_text,
+            frames: frame_text.into(),
             source_hash: source_hash(text),
         }
     } else {
@@ -372,7 +401,7 @@ fn share_frame_defs(frames: &mut [SvgRangedFrame]) -> Option<String> {
         // references, which is what makes a wrong split a lost saving instead of
         // missing glyphs.
         if referenced_ids(&stripped).iter().all(|id| ids.contains(id)) {
-            frame.render.svg = stripped;
+            frame.render.svg = stripped.into();
         }
     }
 
@@ -411,7 +440,7 @@ fn render_svg(
     let y_offset = y_offset.to_pt();
 
     let render = SvgFrameRender {
-        svg,
+        svg: svg.into(),
         width,
         height,
         x_offset,
@@ -459,7 +488,8 @@ impl SvgRangedFrame {
 #[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
 pub struct SvgFrameRender {
     /// SVG markup as a string.
-    pub svg: String,
+    #[tsify(type = "string")]
+    pub svg: EcoString,
     /// Width of the frame in points.
     pub width: f64,
     /// Height of the frame in points.

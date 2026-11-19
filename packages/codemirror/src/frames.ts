@@ -5,15 +5,12 @@ import { Decoration } from "@codemirror/view";
 import { EditorView, WidgetType } from "@codemirror/view";
 import { LRUCache } from "lru-cache";
 
-// Frame geometry comes back in the app's display units: one Typst point per
-// CSS pixel, so pt values are used as px directly. Converting px <-> true pt
-// (96/72) would make frames render 4/3 larger than the editor's own text.
-
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 let sharedDefs: SVGDefsElement | undefined;
+let sharedDefsMarkup = "";
 
 /**
  * Places the glyph and gradient definitions a frame set references.
@@ -22,6 +19,8 @@ export function installSharedDefs(defs: string | null | undefined): void {
   // A compile that needed no definitions leaves whatever is already there. Ids
   // are content hashes, so a stale block still answers a reference correctly.
   if (!defs) return;
+
+  if (sharedDefs?.isConnected && defs === sharedDefsMarkup) return;
 
   if (!sharedDefs || !sharedDefs.isConnected) {
     // An `<svg>` wrapper sized to nothing, with a real `<defs>` inside, so the
@@ -42,6 +41,7 @@ export function installSharedDefs(defs: string | null | undefined): void {
   // nothing here can affect layout.
   sharedDefs.innerHTML = "";
   sharedDefs.innerHTML = defs;
+  sharedDefsMarkup = defs;
 }
 
 /**
@@ -273,6 +273,8 @@ export class TypstWidget extends WidgetType {
   public override eq(other: TypstWidget) {
     return (
       other.frame.render.hash === this.frame.render.hash &&
+      other.frame.range.start === this.frame.range.start &&
+      other.frame.range.end === this.frame.range.end &&
       other.size.width === this.size.width &&
       other.size.height === this.size.height
     );

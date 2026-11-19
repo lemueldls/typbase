@@ -151,7 +151,13 @@ const renderNow = async () => {
   try {
     let result;
     try {
-      result = props.typstState.compilePaged(props.fileId, props.text.value, props.prelude.value);
+      result = props.typstState.compilePaged(
+        props.fileId,
+        props.text.value,
+        props.prelude.value,
+        undefined,
+        false,
+      );
     } catch (error) {
       console.error("[typst] paged compile panicked:", error);
       props.onPanic?.();

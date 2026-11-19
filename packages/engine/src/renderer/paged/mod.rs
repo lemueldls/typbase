@@ -117,8 +117,16 @@ impl TypstState {
         text: &str,
         prelude: &str,
         caret: Option<usize>,
+        include_tooltips: Option<bool>,
     ) -> Result<Ts<CompilePagedResult>, JsError> {
-        let result = svg::render_svgs_by_items(id, text, prelude, caret, self);
+        let result = svg::render_svgs_by_items_with_options(
+            id,
+            text,
+            prelude,
+            caret,
+            include_tooltips.unwrap_or(true),
+            self,
+        );
 
         Ok(CompilePagedResult {
             frames: result.frames,
@@ -162,7 +170,8 @@ impl TypstState {
         let prelude = self.prelude(id, RenderTarget::Svg) + prelude + "\n";
         let mut ctx = self.render_context(id).unwrap();
 
-        let render = items::chunk_by_items_ctx(&mut ctx, text, &prelude, None, line_height_ratio);
+        let render =
+            items::chunk_by_items_ctx(&mut ctx, text, &prelude, None, false, line_height_ratio);
 
         Ok(CheckResult {
             diagnostics: render.diagnostics,

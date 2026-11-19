@@ -1159,12 +1159,12 @@ async function ensureFindFrames(): Promise<void> {
 
   findRenderPending = true;
   try {
-    let result = state.compilePaged(id, source, documentPrelude);
+    let result = state.compilePaged(id, source, documentPrelude, undefined, false);
 
     if (result.requests.length > 0) {
       const updated = await onRequests(result.requests, workspaceId.value);
       if (updated && typstState.value === state) {
-        result = state.compilePaged(id, source, documentPrelude);
+        result = state.compilePaged(id, source, documentPrelude, undefined, false);
       }
     }
 

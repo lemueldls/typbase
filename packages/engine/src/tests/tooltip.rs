@@ -4,7 +4,7 @@
 use serde::Serialize;
 
 use crate::{
-    renderer::paged::FrameItemsChunk,
+    renderer::paged::{FrameItemsChunk, svg::render_svgs_by_items_with_options},
     source::{RenderTarget, sync_source_state},
     tests::{fixtures, harness},
 };
@@ -49,6 +49,26 @@ fn math_fixture_has_equation_tooltips() {
     for tooltip in &render.tooltips {
         assert!(!tooltip.items.is_empty(), "empty tooltip chunk");
     }
+}
+
+#[test]
+fn tooltips_can_be_skipped() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let fixture = fixtures::get("clean", "math_nested");
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "no_tooltips");
+    state.insert_source(&id, fixture.source.clone());
+
+    let without =
+        render_svgs_by_items_with_options(&id, &fixture.source, "", None, false, &mut state);
+    assert!(without.tooltips.is_empty());
+
+    let with = render_svgs_by_items_with_options(&id, &fixture.source, "", None, true, &mut state);
+    assert!(!with.tooltips.is_empty());
 }
 
 /// An equation's overlay is built from the synth's AST ranges, so its range is

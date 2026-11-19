@@ -89,6 +89,7 @@ fn recovery_keeps_pristine_synth_and_mapper() {
             &mut blocks,
             &synth.equation_ranges,
             None,
+            true,
             &mut divergence,
             DEFAULT_LINE_HEIGHT_RATIO,
             context,

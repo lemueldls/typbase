@@ -105,12 +105,12 @@ pub(super) fn frame_runs(
         }
 
         runs.push(FrameTextRun {
-            text: run_text.to_string(),
+            text: run_text.into(),
             x: origin_x,
             y: top,
             width: x - origin_x,
             height,
-            glyphs,
+            glyphs: glyphs.into(),
         });
     }
 

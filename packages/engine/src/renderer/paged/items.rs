@@ -41,7 +41,7 @@ pub fn chunk_by_items(
     let prelude = state.prelude(id, render_target) + prelude + "\n";
     let mut ctx = state.render_context(id).unwrap();
 
-    chunk_by_items_ctx(&mut ctx, text, &prelude, focus, line_height_ratio)
+    chunk_by_items_ctx(&mut ctx, text, &prelude, focus, true, line_height_ratio)
 }
 
 /// [`chunk_by_items`] over an explicit render context, so the pipeline only
@@ -53,6 +53,7 @@ pub fn chunk_by_items_ctx(
     text: &str,
     prelude: &str,
     focus: TooltipFocus,
+    include_tooltips: bool,
     line_height_ratio: f64,
 ) -> PagedRender {
     let SynthResult {
@@ -71,6 +72,7 @@ pub fn chunk_by_items_ctx(
         &mut blocks,
         &equation_ranges,
         focus,
+        include_tooltips,
         &mut divergence,
         line_height_ratio,
         ctx.note,
@@ -102,6 +104,7 @@ pub fn chunk_by_items_with_blocks(
     blocks: &mut Vec<SynthBlock>,
     eq_ranges: &[Range<usize>],
     focus: TooltipFocus,
+    include_tooltips: bool,
     divergence: &mut u8,
     line_height_ratio: f64,
     context: &mut SourceContext,
@@ -349,7 +352,7 @@ pub fn chunk_by_items_with_blocks(
                         FrameTextFrame {
                             from: raw_range_utf16.start,
                             to: raw_range_utf16.end,
-                            runs: text_runs,
+                            runs: text_runs.into(),
                         }
                     });
 
@@ -413,6 +416,7 @@ pub fn chunk_by_items_with_blocks(
                         blocks,
                         eq_ranges,
                         focus,
+                        include_tooltips,
                         divergence,
                         line_height_ratio,
                         context,
@@ -439,6 +443,7 @@ pub fn chunk_by_items_with_blocks(
                         blocks,
                         eq_ranges,
                         focus,
+                        include_tooltips,
                         divergence,
                         line_height_ratio,
                         context,
@@ -459,14 +464,18 @@ pub fn chunk_by_items_with_blocks(
                     let marked_text = marked_render.text;
 
                     return PagedRender {
-                        tooltips: equation_tooltips(
-                            &marked_chunks,
-                            &marked_overlays,
-                            eq_ranges,
-                            focus,
-                            context,
-                            world,
-                        ),
+                        tooltips: if include_tooltips {
+                            equation_tooltips(
+                                &marked_chunks,
+                                &marked_overlays,
+                                eq_ranges,
+                                focus,
+                                context,
+                                world,
+                            )
+                        } else {
+                            Vec::new()
+                        },
                         chunks: marked_chunks,
                         text: marked_text,
                         overlays: marked_overlays,
@@ -529,7 +538,11 @@ pub fn chunk_by_items_with_blocks(
         diagnostics.extend(TypstDiagnostic::from_diagnostics(warnings, context, world));
     }
 
-    let tooltips = equation_tooltips(&chunks, &overlays, eq_ranges, focus, context, world);
+    let tooltips = if include_tooltips {
+        equation_tooltips(&chunks, &overlays, eq_ranges, focus, context, world)
+    } else {
+        Vec::new()
+    };
 
     PagedRender {
         chunks,
@@ -629,13 +642,32 @@ fn equation_tooltips(
     // entry.
     let mut owned: Vec<Vec<BoundFrameItem>> = vec![Vec::new(); overlays.len()];
 
-    for chunk in chunks {
-        for item in &chunk.items {
-            let mut current = item.equation;
+    if let Some(focused_index) = focused {
+        // Only the focused tooltip is rendered. Cloning every item into every
+        // overlay first made a caret inside one equation pay for all of them.
+        for chunk in chunks {
+            for item in &chunk.items {
+                let mut current = item.equation;
 
-            while let Some(index) = current {
-                owned[index].push(item.clone());
-                current = overlays[index].parent;
+                while let Some(index) = current {
+                    if index == focused_index {
+                        owned[focused_index].push(item.clone());
+                        break;
+                    }
+
+                    current = overlays[index].parent;
+                }
+            }
+        }
+    } else {
+        for chunk in chunks {
+            for item in &chunk.items {
+                let mut current = item.equation;
+
+                while let Some(index) = current {
+                    owned[index].push(item.clone());
+                    current = overlays[index].parent;
+                }
             }
         }
     }

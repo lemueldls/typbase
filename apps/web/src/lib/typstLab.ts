@@ -38,14 +38,14 @@ export async function compileForLab(
   typstState.insertSource(id, source);
 
   const t0 = performance.now();
-  let result = typstState.compilePaged(id, source, "");
+  let result = typstState.compilePaged(id, source, "", undefined, false);
   const resolvedRequests: TypstRequest[] = [];
 
   while (result.requests.length > 0) {
     resolvedRequests.push(...result.requests);
     const updated = await service.handler(result.requests, spaceId);
     if (!updated) break;
-    result = typstState.compilePaged(id, source, "");
+    result = typstState.compilePaged(id, source, "", undefined, false);
   }
 
   const durationMs = performance.now() - t0;

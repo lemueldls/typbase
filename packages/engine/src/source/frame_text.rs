@@ -5,13 +5,15 @@
 //! source ranges, and their boxes in frame coordinates. The host builds page
 //! search and exact highlights from it without re-reading the SVG.
 
+use ecow::{EcoString, EcoVec};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
 /// Text runs for every frame in the last paged render, in frame order.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct FrameText {
-    pub frames: Vec<FrameTextFrame>,
+    #[tsify(type = "FrameTextFrame[]")]
+    pub frames: EcoVec<FrameTextFrame>,
     /// FNV-1a hash of the raw source these frames were built from. The host
     /// compares it with its live text before trusting an index.
     pub source_hash: u32,
@@ -23,14 +25,16 @@ pub struct FrameTextFrame {
     /// Raw UTF-16 range of the chunk this frame renders.
     pub from: usize,
     pub to: usize,
-    pub runs: Vec<FrameTextRun>,
+    #[tsify(type = "FrameTextRun[]")]
+    pub runs: EcoVec<FrameTextRun>,
 }
 
 /// One shaped text run inside a frame.
 #[derive(Tsify, Serialize, Deserialize, Debug, Clone)]
 pub struct FrameTextRun {
     /// Visible text of the run, with glyph ranges indexing into it as UTF-16.
-    pub text: String,
+    #[tsify(type = "string")]
+    pub text: EcoString,
     /// Left edge of the run in frame points. Points are CSS pixels here.
     pub x: f64,
     /// Top edge of the run in frame points.
@@ -39,7 +43,8 @@ pub struct FrameTextRun {
     pub width: f64,
     /// Line box height of the run in frame points.
     pub height: f64,
-    pub glyphs: Vec<FrameTextGlyph>,
+    #[tsify(type = "FrameTextGlyph[]")]
+    pub glyphs: EcoVec<FrameTextGlyph>,
 }
 
 /// One glyph's text and box, plus the raw source range it came from.
