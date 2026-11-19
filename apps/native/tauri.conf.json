@@ -13,6 +13,7 @@
     "active": true,
     "license": "Apache-2.0",
     "licenseFile": "../../LICENSE",
+    "publisher": "Typbase",
     "category": "Productivity",
     "icon": [
       "icons/32x32.png",
