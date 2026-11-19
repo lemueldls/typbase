@@ -7,8 +7,10 @@ const props = withDefaults(
     description?: string;
     /** "top" stacks this dialog above another dialog that is already open. */
     layer?: "default" | "top";
+    /** Show the corner close button. Footer Cancel/Close dialogs can opt out. */
+    closable?: boolean;
   }>(),
-  { title: undefined, description: undefined, layer: "default" },
+  { title: undefined, description: undefined, layer: "default", closable: true },
 );
 
 const attrs = useAttrs();
@@ -43,7 +45,7 @@ const contentAttrs = computed(() => ({
       <DialogContent
         v-bind="contentAttrs"
         class="dialog"
-        :class="{ 'dialog--top': layer === 'top' }"
+        :class="{ 'dialog--top': layer === 'top', 'dialog--closable': closable }"
         @open-auto-focus="emit('openAutoFocus', $event)"
       >
         <DialogTitle v-if="title" class="dialog__title">{{ title }}</DialogTitle>
@@ -51,6 +53,14 @@ const contentAttrs = computed(() => ({
           {{ description }}
         </DialogDescription>
         <slot />
+        <DialogClose
+          v-if="closable"
+          type="button"
+          class="dialog__close"
+          :aria-label="$t('common.close')"
+        >
+          <MsIcon name="close" :size="20" />
+        </DialogClose>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>
@@ -94,6 +104,36 @@ const contentAttrs = computed(() => ({
 .dialog__title {
   margin: 0 0 var(--space-4);
   font-size: var(--text-2xl);
+}
+
+.dialog--closable .dialog__title {
+  padding-right: calc(var(--control-sm) + var(--space-3));
+}
+
+.dialog__close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.dialog__close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.dialog__close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* Dialogs opened from another dialog (Settings → updates) need a higher layer:

@@ -679,7 +679,7 @@ function formatTime(at: number): string {
       </section>
     </div>
 
-    <UiDialog :open="newOpen" title="New plugin" @update:open="newOpen = $event">
+    <UiDialog :open="newOpen" title="New plugin" :closable="false" @update:open="newOpen = $event">
       <div class="studio__group">
         <UiTextField v-model="newName" label="Name" placeholder="My plugin" />
         <p class="studio__muted">

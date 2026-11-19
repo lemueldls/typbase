@@ -251,6 +251,7 @@ function openInstance(instance: PluginInstance) {
       :open="renameOpen"
       :title="$t('plugins.renameInstance')"
       layer="top"
+      :closable="false"
       @update:open="renameOpen = $event"
     >
       <div class="plugin-manager__rename">

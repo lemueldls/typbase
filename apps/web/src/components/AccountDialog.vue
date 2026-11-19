@@ -306,15 +306,6 @@ function ago(timestamp: number): string {
 
 <template>
   <UiDialog v-model:open="open" class="account-dialog" layer="top" :title="dialogTitle">
-    <button
-      type="button"
-      class="account-dialog__close"
-      :aria-label="$t('common.close')"
-      @click="hide"
-    >
-      <MsIcon name="close" :size="20" />
-    </button>
-
     <div v-if="effectiveView === 'signin'" class="account-dialog__view">
       <!-- <p class="account-dialog__intro">
         {{ atprotoStatus.signedIn ? $t("account.addAnotherIntro") : $t("account.signInIntro") }}
@@ -689,30 +680,6 @@ function ago(timestamp: number): string {
 .account-dialog {
   width: min(560px, calc(100vw - var(--space-8)));
   max-height: calc(100dvh - var(--space-12) - var(--safe-top) - var(--safe-bottom));
-}
-
-.account-dialog .dialog__title {
-  padding-right: var(--space-8);
-}
-
-.account-dialog__close {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  display: grid;
-  width: var(--control-sm);
-  height: var(--control-sm);
-  place-items: center;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.account-dialog__close:hover {
-  color: var(--color-text);
-  background: var(--color-surface-2);
 }
 
 .account-dialog__view {

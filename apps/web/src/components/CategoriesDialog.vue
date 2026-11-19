@@ -63,6 +63,7 @@ function move(index: number, delta: -1 | 1): void {
     v-model:open="open"
     :title="$t('categories.title')"
     :description="$t('categories.description')"
+    :closable="false"
   >
     <template #trigger>
       <slot />

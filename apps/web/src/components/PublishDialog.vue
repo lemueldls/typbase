@@ -142,6 +142,7 @@ watch(
     class="publish-dialog"
     :title="t('pageView.publish')"
     :description="t('pageView.publishHint')"
+    :closable="false"
   >
     <div v-if="meta?.publishedAt" class="publish__status">
       <MsIcon name="public" :size="20" />

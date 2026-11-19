@@ -65,7 +65,7 @@ const busy = computed(() => status.value === "downloading" || status.value === "
 </script>
 
 <template>
-  <UiDialog v-model:open="open" layer="top" :title="$t('updates.title')">
+  <UiDialog v-model:open="open" layer="top" :title="$t('updates.title')" :closable="false">
     <div class="update">
       <template v-if="status === 'checking'">
         <p class="update__line">{{ $t("updates.checking") }}</p>

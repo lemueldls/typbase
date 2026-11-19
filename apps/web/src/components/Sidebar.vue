@@ -557,6 +557,7 @@ function onCreated(page: PageMeta) {
     <UiDialog
       :open="renameTarget !== undefined"
       :title="$t('sidebar.renameTitle')"
+      :closable="false"
       @update:open="onRenameOpenChange"
     >
       <form class="dialog__form" @submit.prevent="rename">

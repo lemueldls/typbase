@@ -107,6 +107,7 @@ async function addSelected(): Promise<void> {
     class="system-fonts-dialog"
     layer="top"
     :title="$t('settings.addSystemFonts')"
+    :closable="false"
   >
     <p class="system-fonts__hint">{{ $t("settings.systemFontsDialogHint") }}</p>
 

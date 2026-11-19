@@ -79,6 +79,7 @@ async function submit() {
     v-model:open="open"
     :title="$t('newPage.title')"
     :description="$t('newPage.description')"
+    :closable="false"
   >
     <template #trigger>
       <slot />

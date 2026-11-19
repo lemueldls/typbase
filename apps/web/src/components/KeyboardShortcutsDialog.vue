@@ -18,22 +18,10 @@ const groups = computed<Array<{ id: string; title: string; items: KeyboardShortc
   { id: "application", title: t("shortcuts.groupApp"), items: APPLICATION_SHORTCUTS },
   { id: "editor", title: t("shortcuts.groupEditor"), items: EDITOR_SHORTCUTS },
 ]);
-
-function close(): void {
-  open.value = false;
-}
 </script>
 
 <template>
   <UiDialog v-model:open="open" :title="t('shortcuts.title')" class="shortcuts-dialog">
-    <UiIconButton
-      icon="close"
-      :label="t('common.close')"
-      variant="ghost"
-      class="shortcuts__close"
-      @click="close"
-    />
-
     <p class="shortcuts__hint">{{ t("shortcuts.hint") }}</p>
 
     <div class="shortcuts__groups">
@@ -55,16 +43,6 @@ function close(): void {
 <style>
 .shortcuts-dialog {
   width: min(44rem, calc(100vw - var(--space-8)));
-}
-
-.shortcuts__close {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-}
-
-.shortcuts-dialog .dialog__title {
-  padding-right: var(--space-8);
 }
 
 .shortcuts__hint {

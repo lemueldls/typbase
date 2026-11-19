@@ -67,6 +67,7 @@ async function submit() {
   <UiDialog
     v-model:open="open"
     :title="mode === 'create' ? t('switcher.createTitle') : t('switcher.renameTitle')"
+    :closable="false"
     @open-auto-focus="onOpenAutoFocus"
   >
     <div class="ws-dialog__preview" aria-hidden="true">

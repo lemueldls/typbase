@@ -1967,15 +1967,6 @@ async function renameWorkspace(event: Event) {
     <SystemFontDialog v-model:open="systemFontDialogOpen" :store="store" />
     <WebFontDialog v-model:open="webFontDialogOpen" :store="store" :api-base="fontProxyBase" />
     <FontPackDialog v-model:open="fontPackDialogOpen" :store="store" />
-
-    <div class="settings__close">
-      <UiIconButton
-        icon="close"
-        variant="ghost"
-        :label="$t('common.close')"
-        @click="open = false"
-      />
-    </div>
   </UiDialog>
 </template>
 
@@ -2078,12 +2069,6 @@ async function renameWorkspace(event: Event) {
   /* padding-right: var(--space-1); */
   /* padding-bottom: var(--space-4); */
   overflow-y: auto;
-}
-
-.settings__close {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
 }
 
 @media (max-width: 56rem) {
