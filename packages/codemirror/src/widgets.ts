@@ -12,7 +12,14 @@ import type { NotebookCell, NotebookOptions } from "./notebook";
 import type { TextRef, TypstRequestHandler } from "./types";
 
 import { mergeTypstDiagnostics, rememberDiagnostics } from "./diagnostics";
-import { frameActiveDecorations, frameIsInactive, installSharedDefs, TypstWidget } from "./frames";
+import {
+  frameActiveDecorations,
+  frameIsInactive,
+  hydrateFrameSvgs,
+  installSharedDefs,
+  knownFrameHashes,
+  TypstWidget,
+} from "./frames";
 import { cellIndexAt, notebookRefreshEffect } from "./notebook";
 import { decorateNotebook } from "./notebook-widgets";
 
@@ -244,6 +251,8 @@ function decorate({
         text,
         prelude,
         update.state.selection.main.from,
+        undefined,
+        knownFrameHashes(),
       );
     } catch (error) {
       // A wasm panic aborts the instance: the host recreates it and remounts
@@ -277,6 +286,7 @@ function decorate({
     }
 
     installSharedDefs(compileResult.defs);
+    hydrateFrameSvgs(compileResult.frames);
 
     ({ frames, tooltips, equation_ranges: equationRanges } = compileResult);
     diagnostics = compileResult.diagnostics;

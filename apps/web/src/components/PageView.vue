@@ -12,6 +12,7 @@ import {
   duplicateCell,
   focusCell,
   insertCell,
+  knownFrameHashes,
   mergeCell,
   moveCell,
   setCellType,
@@ -1105,15 +1106,33 @@ function adoptFindFrames(frames: FrameText | null): void {
   findFrames.value = frames;
 }
 
+/** True when the cached index matches the live source and the last layout. */
+function findFramesMatchLayout(): boolean {
+  const cached = findFrames.value;
+  if (!cached || cached.source_hash !== currentFindHash.value) return false;
+
+  if (!typstState.value || !fileId.value) return false;
+
+  try {
+    return typstState.value.frameTextHash(boundFileId.value) === cached.layout_hash;
+  } catch (error) {
+    console.error("[typst] frame text hash failed:", error);
+
+    return false;
+  }
+}
+
 /** Called after a paged compile, so the index matches the frames on screen. */
 function onPagedCompile(): void {
-  if (!findOpen.value) return;
+  if (!findOpen.value || findFramesMatchLayout()) return;
 
   adoptFindFrames(readFindFrames());
 }
 
-/** Reuses the last paged index when it belongs to the live source. */
+/** Reuses the last paged index when it belongs to the live source and layout. */
 function syncFindFrames(): void {
+  if (findFramesMatchLayout()) return;
+
   const frames = readFindFrames();
   adoptFindFrames(frames?.source_hash === currentFindHash.value ? frames : null);
 }
@@ -1159,12 +1178,26 @@ async function ensureFindFrames(): Promise<void> {
 
   findRenderPending = true;
   try {
-    let result = state.compilePaged(id, source, documentPrelude, undefined, false);
+    let result = state.compilePaged(
+      id,
+      source,
+      documentPrelude,
+      undefined,
+      false,
+      knownFrameHashes(),
+    );
 
     if (result.requests.length > 0) {
       const updated = await onRequests(result.requests, workspaceId.value);
       if (updated && typstState.value === state) {
-        result = state.compilePaged(id, source, documentPrelude, undefined, false);
+        result = state.compilePaged(
+          id,
+          source,
+          documentPrelude,
+          undefined,
+          false,
+          knownFrameHashes(),
+        );
       }
     }
 

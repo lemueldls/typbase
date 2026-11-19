@@ -3,7 +3,7 @@ import type { TextRef } from "@typbase/codemirror";
 import type { FileId, SvgRangedFrame, TypstState } from "@typbase/engine";
 import type { EditorContentWidth } from "@typbase/typing";
 
-import { installSharedDefs } from "@typbase/codemirror";
+import { hydrateFrameSvgs, installSharedDefs, knownFrameHashes } from "@typbase/codemirror";
 
 import type { FindRect } from "~/lib/pageFind";
 
@@ -157,6 +157,7 @@ const renderNow = async () => {
         props.prelude.value,
         undefined,
         false,
+        knownFrameHashes(),
       );
     } catch (error) {
       console.error("[typst] paged compile panicked:", error);
@@ -174,6 +175,7 @@ const renderNow = async () => {
     }
 
     installSharedDefs(result.defs);
+    hydrateFrameSvgs(result.frames);
 
     frames.value = result.frames;
     framesText.value = props.text.value;

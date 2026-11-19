@@ -113,11 +113,16 @@ pub fn sync_source_context(
         && last.raw == text
         && last.prelude == prelude
     {
+        if context.restore_sources_changed() {
+            context.bump_source_revision();
+        }
+
         world.insert_source_object(context.synth_id, last.synth_source.clone());
         world.insert_source_object(context.ide_id, last.synth_source.clone());
         world.insert_source_object(context.render_id, last.render_source.clone());
         context.render_map = last.render_map.clone();
         context.marked_raw_ranges.clear();
+        context.mark_synced();
         world.main_id = Some(context.synth_id);
 
         return SynthResult {
@@ -178,6 +183,7 @@ pub fn sync_source_context(
         render_source,
     });
 
+    context.mark_synced();
     world.main_id = Some(context.synth_id);
 
     SynthResult {

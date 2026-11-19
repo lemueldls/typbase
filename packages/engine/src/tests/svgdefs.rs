@@ -8,7 +8,12 @@
 
 use std::collections::HashSet;
 
-use crate::{renderer::paged::svg::SvgRender, tests::harness};
+use rustc_hash::FxBuildHasher;
+
+use crate::{
+    renderer::paged::svg::{SvgRender, render_svgs_by_items_with_known},
+    tests::harness,
+};
 
 /// Twelve distinct paragraphs, which is enough glyph variety to make the
 /// duplication measurable and small enough to stay quick.
@@ -111,6 +116,76 @@ fn frames_carry_no_definitions_of_their_own() {
             "a frame still has its own definitions",
         );
     }
+}
+
+/// A caller that already holds a frame's markup gets an empty `svg` back for
+/// it. Definitions still cover it, since they were collected before the reply
+/// was cleared.
+#[test]
+fn known_frames_skip_their_markup_but_keep_definitions() {
+    if !harness::fonts_available() {
+        return;
+    }
+
+    let mut state = harness::state();
+    let source = prose(PARAGRAPHS);
+    let id = harness::page(&mut state, "known_frames");
+    state.insert_source(&id, source.clone());
+
+    let known = HashSet::default();
+    let first =
+        render_svgs_by_items_with_known(&id, &source, "", None, true, Some(&known), &mut state);
+    assert!(
+        first.frames.len() > 1,
+        "the fixture produced too few frames"
+    );
+
+    let all: HashSet<u32, FxBuildHasher> =
+        first.frames.iter().map(|frame| frame.render.hash).collect();
+    let full_bytes: usize = first
+        .frames
+        .iter()
+        .map(|frame| frame.render.svg.len())
+        .sum();
+    let reused =
+        render_svgs_by_items_with_known(&id, &source, "", None, true, Some(&all), &mut state);
+
+    for frame in &reused.frames {
+        assert!(
+            frame.render.svg.is_empty(),
+            "a known frame sent its markup again",
+        );
+    }
+
+    let reused_bytes: usize = reused
+        .frames
+        .iter()
+        .map(|frame| frame.render.svg.len())
+        .sum();
+    assert!(full_bytes > 0, "the fixture rendered no markup");
+    assert_eq!(reused_bytes, 0, "known frames still carried markup");
+
+    assert_eq!(
+        first.defs, reused.defs,
+        "reusing frames dropped definitions they still reference",
+    );
+
+    let one: HashSet<u32, FxBuildHasher> = first
+        .frames
+        .iter()
+        .take(1)
+        .map(|frame| frame.render.hash)
+        .collect();
+    let partial =
+        render_svgs_by_items_with_known(&id, &source, "", None, true, Some(&one), &mut state);
+
+    assert!(partial.frames[0].render.svg.is_empty());
+    assert!(
+        partial.frames[1..]
+            .iter()
+            .all(|frame| !frame.render.svg.is_empty()),
+        "a frame the caller did not list lost its markup",
+    );
 }
 
 /// The tooltip frames are left alone on purpose: they render for whichever

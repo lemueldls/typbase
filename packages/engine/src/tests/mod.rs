@@ -28,6 +28,7 @@ mod partition;
 mod plugins;
 mod prefix;
 mod recovery;
+mod span_index;
 mod svgdefs;
 mod synth;
 mod tooltip;

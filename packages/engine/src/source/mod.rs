@@ -41,6 +41,8 @@ mod synth;
 
 pub use context::{DEFAULT_LINE_HEIGHT_RATIO, SourceContext, SpaceContext};
 pub use delimiters::{DelimiterFix, RawFixups, delimiter_diagnostics, find_fixes};
-pub use frame_text::{FrameText, FrameTextFrame, FrameTextGlyph, FrameTextRun, source_hash};
+pub use frame_text::{
+    FrameText, FrameTextFrame, FrameTextGlyph, FrameTextRun, layout_hash, source_hash,
+};
 pub use map::{Segment, SegmentKind, Side, SourceBuilder, SourceMap};
 pub use synth::{RenderTarget, SynthBlock, SynthResult, sync_source_context, sync_source_state};

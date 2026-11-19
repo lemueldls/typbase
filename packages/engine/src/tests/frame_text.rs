@@ -117,6 +117,44 @@ fn frame_text_tracks_source_ranges_and_visible_content() {
 }
 
 #[test]
+fn layout_hash_tracks_the_layout_not_the_source() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let source = "= Hash\n\nA paragraph that wraps once the pane narrows.\n\n$ x + y $\n";
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "frame-text-hash");
+    state.set_find_text(&id, true);
+
+    let at = |state: &mut crate::state::TypstState| {
+        let _ = harness::compile_svg(state, &id, source);
+        let text = &state.get_source_context(&id).frame_text;
+
+        (text.source_hash, text.layout_hash)
+    };
+
+    let (first_source, first_layout) = at(&mut state);
+    let (again_source, again_layout) = at(&mut state);
+
+    assert_eq!(first_source, again_source);
+    assert_eq!(
+        first_layout, again_layout,
+        "an unchanged compile moved the layout hash",
+    );
+
+    state.resize(&id, Some(320.0), None);
+    let (narrow_source, narrow_layout) = at(&mut state);
+
+    assert_eq!(first_source, narrow_source, "the source did not change");
+    assert_ne!(
+        first_layout, narrow_layout,
+        "a pane resize kept the old layout hash",
+    );
+}
+
+#[test]
 fn frame_text_is_lazy() {
     let mut state = harness::state();
     let id = harness::page(&mut state, "frame-text-off");

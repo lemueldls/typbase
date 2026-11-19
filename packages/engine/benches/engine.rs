@@ -466,6 +466,50 @@ fn bench_render_svg(c: &mut Criterion) {
     }
 
     group.finish();
+
+    // A caret move recompiles with the same sources, so the memoized SVG
+    // frames come back from the cache. What this measures is the frame-set
+    // assembly around them: definition sharing, index reuse, and cloning.
+    let mut group = c.benchmark_group("render_svg_warm");
+    group.sample_size(10);
+
+    for (name, text) in &cases {
+        let mut state = state();
+        let id = page(&mut state, name);
+        let _ = render_svgs_by_items(&id, text, "", None, &mut state);
+
+        group.bench_function(BenchmarkId::from_parameter(name), |b| {
+            b.iter(|| {
+                let render =
+                    render_svgs_by_items(&id, black_box(text.as_str()), "", None, &mut state);
+                black_box(render.frames.len());
+            });
+        });
+    }
+
+    group.finish();
+
+    // The find bar asks for the layout hash on every paged compile and only
+    // reads the index when it changed.
+    let mut state = state();
+    let id = page(&mut state, "frame_text");
+    state.set_find_text(&id, true);
+    let text = large_document(300);
+    let _ = render_svgs_by_items(&id, &text, "", None, &mut state);
+
+    let mut group = c.benchmark_group("frame_text");
+    group.sample_size(20);
+    group.bench_function("hash", |b| {
+        b.iter(|| black_box(state.frame_text_hash(&id)));
+    });
+    group.bench_function("clone", |b| {
+        b.iter(|| {
+            let text = state.get_source_context(&id).frame_text.clone();
+            black_box(text.frames.len());
+        });
+    });
+
+    group.finish();
 }
 
 fn bench_recovery(c: &mut Criterion) {

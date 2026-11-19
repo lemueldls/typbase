@@ -22,7 +22,7 @@ use crate::{
         PagedRender,
         items::{TooltipFocus, chunk_by_items_ctx},
     },
-    source::{FrameText, RenderTarget, source_hash},
+    source::{FrameText, RenderTarget, layout_hash, source_hash},
     state::{RenderContext, TypstState},
 };
 
@@ -47,6 +47,23 @@ pub fn render_svgs_by_items_with_options(
     include_tooltips: bool,
     state: &mut TypstState,
 ) -> SvgRender {
+    render_svgs_by_items_with_known(id, text, prelude, focus, include_tooltips, None, state)
+}
+
+/// [`render_svgs_by_items_with_options`] where the caller already holds some
+/// frames' SVG.
+///
+/// Their `svg` comes back empty and the caller fills it from its cache.
+/// Definitions still cover them, so they share one block with the rest.
+pub fn render_svgs_by_items_with_known(
+    id: &TypstFileId,
+    text: &str,
+    prelude: &str,
+    focus: TooltipFocus,
+    include_tooltips: bool,
+    known: Option<&HashSet<u32, FxBuildHasher>>,
+    state: &mut TypstState,
+) -> SvgRender {
     let line_height_ratio = state.get_space_context(id).line_height_ratio;
     let prelude = state.prelude(id, RenderTarget::Svg) + prelude + "\n";
     let mut ctx = state.render_context(id).unwrap();
@@ -57,6 +74,7 @@ pub fn render_svgs_by_items_with_options(
         &prelude,
         focus,
         include_tooltips,
+        known,
         line_height_ratio,
     )
 }
@@ -69,6 +87,7 @@ pub fn render_svgs_by_items_ctx(
     prelude: &str,
     focus: TooltipFocus,
     include_tooltips: bool,
+    known: Option<&HashSet<u32, FxBuildHasher>>,
     line_height_ratio: f64,
 ) -> SvgRender {
     let PagedRender {
@@ -89,6 +108,7 @@ pub fn render_svgs_by_items_ctx(
 
     ctx.note.frame_text = if ctx.note.find_text {
         FrameText {
+            layout_hash: layout_hash(&frame_text),
             frames: frame_text.into(),
             source_hash: source_hash(text),
         }
@@ -164,6 +184,22 @@ pub fn render_svgs_by_items_ctx(
 
     let mut frames = frames;
     let defs = share_frame_defs(&mut frames);
+    let mut frames: Vec<SvgRangedFrame> = frames.into_iter().map(|frame| frame.frame).collect();
+
+    if let Some(known) = known {
+        // Cleared after sharing, so the definitions still include what these
+        // frames reference. An empty string is not valid frame markup, and only
+        // hashes the caller listed are cleared.
+        for frame in &mut frames {
+            if known.contains(&frame.render.hash) {
+                frame.render.svg = EcoString::new();
+            }
+        }
+    }
+
+    // Tooltips keep their own definitions, and no tooltip path asks for their
+    // metadata, so the scan that `render_svg` did for them is dropped here.
+    let tooltips: Vec<SvgRangedFrame> = tooltips.into_iter().map(|frame| frame.frame).collect();
 
     SvgRender {
         frames,
@@ -237,11 +273,6 @@ fn defs_block_spans(svg: &str) -> Vec<Range<usize>> {
     spans
 }
 
-/// The contents of one `<defs>` block, without its tags.
-fn defs_inner<'a>(svg: &'a str, block: &Range<usize>) -> &'a str {
-    &svg[block.start + DEFS_OPEN.len()..block.end - DEFS_CLOSE.len()]
-}
-
 /// The SVG with the given `<defs>` blocks removed.
 ///
 /// The spans are the blocks whole, so an empty block disappears rather than
@@ -269,7 +300,7 @@ fn strip_defs(svg: &str, blocks: &[Range<usize>]) -> String {
 /// instead would rescan everything after the current element once per element,
 /// and a frame's definitions contain twenty-odd of them, which cost more than the
 /// deduplication saves on a short note.
-fn split_def_elements(inner: &str) -> Vec<&str> {
+fn split_def_elements(inner: &str) -> Vec<Range<usize>> {
     let mut elements = Vec::new();
     let mut start = 0;
     let mut from = 0;
@@ -289,7 +320,7 @@ fn split_def_elements(inner: &str) -> Vec<&str> {
         };
 
         let end = at + tag.len();
-        elements.push(&inner[start..end]);
+        elements.push(start..end);
         start = end;
         from = end;
     }
@@ -305,20 +336,40 @@ fn def_id(element: &str) -> Option<&str> {
     Some(&element[at..end])
 }
 
-/// The `id` of every element in a block of definitions.
-fn def_ids(inner: &str) -> HashSet<&str> {
-    let mut ids = HashSet::new();
-    let mut rest = inner;
+/// Scans one rendered SVG's definitions once, so sharing a frame set later
+/// does not rescan the same markup.
+fn frame_defs(svg: &str) -> FrameDefs {
+    let blocks = defs_block_spans(svg);
+    let mut elements = Vec::new();
 
-    while let Some(at) = rest.find("id=\"") {
-        rest = &rest[at + "id=\"".len()..];
-        if let Some(end) = rest.find('"') {
-            ids.insert(&rest[..end]);
-            rest = &rest[end..];
+    for block in &blocks {
+        let inner_start = block.start + DEFS_OPEN.len();
+        let inner_end = block.end - DEFS_CLOSE.len();
+        let inner = &svg[inner_start..inner_end];
+
+        for element in split_def_elements(inner) {
+            let start = inner_start + element.start;
+            let end = inner_start + element.end;
+            let markup = &svg[start..end];
+            let key = def_id(markup).map_or_else(|| EcoString::from(markup), EcoString::from);
+
+            elements.push(DefElement {
+                key,
+                element: start..end,
+            });
         }
     }
 
-    ids
+    let refs = referenced_ids(svg)
+        .into_iter()
+        .map(EcoString::from)
+        .collect();
+
+    FrameDefs {
+        blocks,
+        elements,
+        refs,
+    }
 }
 
 /// The ids a block of SVG markup references through `href="#…"`.
@@ -355,30 +406,21 @@ fn referenced_ids(svg: &str) -> HashSet<&str> {
 /// Tooltip frames are left alone: they render for whichever equation the caret is
 /// in, so their glyphs need not be in this frame set, and a frame set from an
 /// earlier compile would leave them blank.
-fn share_frame_defs(frames: &mut [SvgRangedFrame]) -> Option<String> {
+fn share_frame_defs(frames: &mut [RenderedFrame]) -> Option<String> {
     // Collect first, strip second: the element slices borrow the frame markup,
-    // which the second pass rewrites. The spans come along so the second pass
-    // does not scan every frame's body a second time to find them again.
+    // which the second pass rewrites.
     let mut shared: Vec<&str> = Vec::new();
-    let mut seen: HashSet<&str> = HashSet::new();
-    let mut spans: Vec<Vec<Range<usize>>> = Vec::with_capacity(frames.len());
+    let mut keys: HashSet<EcoString> = HashSet::new();
 
     for frame in frames.iter() {
-        let blocks = defs_block_spans(&frame.render.svg);
-        spans.push(blocks.clone());
-
-        for block in &blocks {
-            for element in split_def_elements(defs_inner(&frame.render.svg, block)) {
-                // Keyed on the id rather than the element. A glyph outline runs to
-                // a few hundred bytes and a frame set has one per frame, so
-                // hashing the whole thing cost more than the deduplication saved.
-                // Same id means the same outline (see above), so this is the same
-                // test. An element without an id falls back to its own text.
-                let key = def_id(element).unwrap_or(element);
-
-                if seen.insert(key) {
-                    shared.push(element);
-                }
+        for element in &frame.defs.elements {
+            // Keyed on the id rather than the element. A glyph outline runs to
+            // a few hundred bytes and a frame set has one per frame, so hashing
+            // the whole thing cost more than the deduplication saved. Same id
+            // means the same outline (see above), so this is the same test. An
+            // element without an id falls back to its own text.
+            if keys.insert(element.key.clone()) {
+                shared.push(&frame.frame.render.svg[element.element.clone()]);
             }
         }
     }
@@ -388,20 +430,19 @@ fn share_frame_defs(frames: &mut [SvgRangedFrame]) -> Option<String> {
     }
 
     let defs = shared.concat();
-    let ids = def_ids(&defs);
+    drop(shared);
 
-    for (frame, blocks) in frames.iter_mut().zip(&spans) {
-        if blocks.is_empty() {
+    for frame in frames.iter_mut() {
+        if frame.defs.blocks.is_empty() {
             continue;
         }
-
-        let stripped = strip_defs(&frame.render.svg, blocks);
 
         // A frame keeps its own defs when the union does not cover what it
         // references, which is what makes a wrong split a lost saving instead of
         // missing glyphs.
-        if referenced_ids(&stripped).iter().all(|id| ids.contains(id)) {
-            frame.render.svg = stripped.into();
+        if frame.defs.refs.iter().all(|id| keys.contains(id)) {
+            let stripped = strip_defs(&frame.frame.render.svg, &frame.defs.blocks);
+            frame.frame.render.svg = stripped.into();
         }
     }
 
@@ -421,9 +462,19 @@ fn render_svg(
     y_offset: Abs,
     document_width: Abs,
     link_resolver: Tracked<LateLinkResolver>,
-) -> SvgRangedFrame {
+) -> RenderedFrame {
+    let item_hash = FxBuildHasher.hash_one(&items);
+    // The cache key includes geometry, not just item content: the same items at
+    // another page width produce different SVG.
     #[allow(clippy::cast_possible_truncation)]
-    let hash = FxBuildHasher.hash_one(&items) as u32;
+    let hash = FxBuildHasher.hash_one((
+        item_hash,
+        width.to_pt().to_bits(),
+        height.to_pt().to_bits(),
+        x_offset.to_pt().to_bits(),
+        y_offset.to_pt().to_bits(),
+        document_width.to_pt().to_bits(),
+    )) as u32;
 
     let mut frame = Frame::soft(Size::new(document_width, height));
     frame.push_multiple(items.into_inner().into_iter().map(|block| {
@@ -432,7 +483,9 @@ fn render_svg(
         (point, block.item)
     }));
 
-    let svg = svg_in_html(&frame, Abs::pt(1.0), false, None, "", &[], link_resolver);
+    let svg: EcoString =
+        svg_in_html(&frame, Abs::pt(1.0), false, None, "", &[], link_resolver).into();
+    let defs = frame_defs(&svg);
 
     let width = width.to_pt();
     let height = height.to_pt();
@@ -440,7 +493,7 @@ fn render_svg(
     let y_offset = y_offset.to_pt();
 
     let render = SvgFrameRender {
-        svg: svg.into(),
+        svg,
         width,
         height,
         x_offset,
@@ -448,7 +501,10 @@ fn render_svg(
         hash,
     };
 
-    SvgRangedFrame { range, render }
+    RenderedFrame {
+        frame: SvgRangedFrame { range, render },
+        defs,
+    }
 }
 
 /// Result of SVG rendering, containing SVG frames and diagnostics.
@@ -482,6 +538,28 @@ impl SvgRangedFrame {
     pub const fn new(range: Range<usize>, render: SvgFrameRender) -> Self {
         Self { range, render }
     }
+}
+
+/// One definition element, with the key used to deduplicate it.
+#[derive(Debug, Clone)]
+struct DefElement {
+    key: EcoString,
+    element: Range<usize>,
+}
+
+/// Cached definition metadata for one rendered SVG frame.
+#[derive(Debug, Clone, Default)]
+struct FrameDefs {
+    blocks: Vec<Range<usize>>,
+    elements: Vec<DefElement>,
+    refs: Vec<EcoString>,
+}
+
+/// A rendered frame plus the definition metadata computed with it.
+#[derive(Debug, Clone)]
+struct RenderedFrame {
+    frame: SvgRangedFrame,
+    defs: FrameDefs,
 }
 
 /// Rendered SVG data for a frame, including metadata.

@@ -4,8 +4,13 @@ pub mod items;
 pub mod svg;
 mod text;
 
-use std::{collections::VecDeque, hash::Hash, ops::Range};
+use std::{
+    collections::{HashSet, VecDeque},
+    hash::Hash,
+    ops::Range,
+};
 
+use rustc_hash::FxBuildHasher;
 use tsify::{Ts, Tsify};
 use typst::{
     compile,
@@ -110,6 +115,10 @@ impl Hash for BoundFrameItem {
 impl TypstState {
     /// The editor's paged render: one SVG frame per source chunk, plus the
     /// tooltip frames and diagnostics the editor needs.
+    ///
+    /// `known_frames` lists frame hashes whose SVG the caller already has. Those
+    /// frames come back with `svg: ""` and the caller fills them from its cache.
+    /// Sharing definitions still covers them.
     #[wasm_bindgen(js_name = "compilePaged")]
     pub fn compile_paged(
         &mut self,
@@ -118,13 +127,17 @@ impl TypstState {
         prelude: &str,
         caret: Option<usize>,
         include_tooltips: Option<bool>,
+        known_frames: Option<Vec<u32>>,
     ) -> Result<Ts<CompilePagedResult>, JsError> {
-        let result = svg::render_svgs_by_items_with_options(
+        let known: Option<HashSet<u32, FxBuildHasher>> =
+            known_frames.map(|frames| frames.into_iter().collect());
+        let result = svg::render_svgs_by_items_with_known(
             id,
             text,
             prelude,
             caret,
             include_tooltips.unwrap_or(true),
+            known.as_ref(),
             self,
         );
 
@@ -144,6 +157,15 @@ impl TypstState {
     #[wasm_bindgen(js_name = "frameText")]
     pub fn frame_text(&self, id: &TypstFileId) -> Result<Ts<FrameText>, JsError> {
         Ok(self.get_source_context(id).frame_text.clone().into_ts()?)
+    }
+
+    /// Layout hash of the last frame index, without cloning the index itself.
+    /// `None` when find text is off or no paged render has landed.
+    #[wasm_bindgen(js_name = "frameTextHash")]
+    pub fn frame_text_hash(&self, id: &TypstFileId) -> Option<u32> {
+        let frame_text = &self.get_source_context(id).frame_text;
+
+        (!frame_text.frames.is_empty()).then_some(frame_text.layout_hash)
     }
 
     /// Turns the frame text index on or off for this note. Page find enables

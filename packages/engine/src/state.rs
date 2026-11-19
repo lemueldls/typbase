@@ -224,11 +224,22 @@ impl TypstState {
     #[wasm_bindgen(js_name = "insertSource")]
     pub fn insert_source(&mut self, id: &TypstFileId, text: String) {
         self.world.insert_source(id.inner(), text);
+        self.bump_source_revisions();
     }
 
     #[wasm_bindgen(js_name = "insertFile")]
     pub fn insert_file(&mut self, id: &TypstFileId, bytes: Vec<u8>) {
         self.world.insert_file(id.inner(), Bytes::new(bytes));
+        self.bump_source_revisions();
+    }
+
+    /// Drops cached span offsets for every note. A file just replaced may be
+    /// imported by any of them, and its node numbers no longer mean the same
+    /// thing.
+    fn bump_source_revisions(&self) {
+        for context in self.source_context_map.values() {
+            context.bump_source_revision();
+        }
     }
 
     #[wasm_bindgen(js_name = "removeFile")]
@@ -245,6 +256,8 @@ impl TypstState {
         } else {
             self.world.remove_source(&id.inner());
         }
+
+        self.bump_source_revisions();
     }
 
     #[wasm_bindgen(js_name = "installPackage")]
@@ -291,6 +304,8 @@ impl TypstState {
             }
         }
 
+        self.bump_source_revisions();
+
         Ok(())
     }
 
@@ -299,6 +314,7 @@ impl TypstState {
         let package_spec =
             PackageSpec::from_str(spec).map_err(|e| JsValue::from_str(&e.to_string()))?;
         self.world.remove_package(&package_spec);
+        self.bump_source_revisions();
 
         Ok(())
     }

@@ -1,5 +1,5 @@
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::{HashMap, HashSet},
     ops::Range,
 };
@@ -203,8 +203,18 @@ pub struct SourceContext {
     /// bytes it came from.
     parsed: Option<(String, typst_syntax::SyntaxNode)>,
 
-    /// Span to byte range, for the frame walk in progress. Empty between walks.
+    /// Span to byte range, for the frame walk. Kept across walks until the
+    /// compile sources change, since a caret move re-walks the same frames.
     span_index: RefCell<SpanIndex>,
+
+    /// Bumped whenever a compile source is rewritten or rebuilt. The span index
+    /// compares it before answering a lookup.
+    source_revision: Cell<u64>,
+
+    /// The revision the last sync left the sources at. A sync that reuses its
+    /// cached build can restore them only while nothing has rewritten them
+    /// since.
+    synced_revision: Cell<u64>,
 }
 
 /// Every span in a source, resolved in one pass.
@@ -216,6 +226,8 @@ struct SpanIndex {
     /// traversal. A file with no source is recorded too, so a missing file is
     /// asked about once rather than every time.
     walked: HashSet<FileId>,
+    /// The source revision this index was built against.
+    revision: u64,
 }
 
 impl SpanIndex {
@@ -271,6 +283,8 @@ impl SourceContext {
             last_sync: None,
             parsed: None,
             span_index: RefCell::new(SpanIndex::default()),
+            source_revision: Cell::new(0),
+            synced_revision: Cell::new(0),
         }
     }
 
@@ -278,7 +292,38 @@ impl SourceContext {
         world.files.get(&self.synth_id)?.source()
     }
 
+    /// Marks the compile sources as changed, so the span index rebuilds on the
+    /// next lookup.
+    pub(crate) fn bump_source_revision(&self) {
+        self.source_revision
+            .set(self.source_revision.get().wrapping_add(1));
+    }
+
+    /// Records that the current source state is what the last sync produced.
+    pub(crate) fn mark_synced(&self) {
+        self.synced_revision.set(self.source_revision.get());
+    }
+
+    /// A cached sync rebuild restores the sources it saved. That is only the
+    /// same state the span index saw if no pass rewrote them since.
+    pub(crate) fn restore_sources_changed(&self) -> bool {
+        self.source_revision.get() != self.synced_revision.get()
+    }
+
+    /// Drops the span index if it was built against other compile sources.
+    fn refresh_span_index(&self) {
+        let revision = self.source_revision.get();
+        let mut index = self.span_index.borrow_mut();
+
+        if index.revision != revision {
+            index.ranges.clear();
+            index.walked.clear();
+            index.revision = revision;
+        }
+    }
+
     pub fn synth_source_mut<'a>(&self, world: &'a mut TypstWorld) -> Option<&'a mut Source> {
+        self.bump_source_revision();
         world.files.get_mut(&self.synth_id)?.source_mut()
     }
 
@@ -287,6 +332,7 @@ impl SourceContext {
     }
 
     pub fn raw_source_mut<'a>(&self, world: &'a mut TypstWorld) -> Option<&'a mut Source> {
+        self.bump_source_revision();
         world.files.get_mut(&self.raw_id)?.source_mut()
     }
 
@@ -295,6 +341,7 @@ impl SourceContext {
     }
 
     pub fn render_source_mut<'a>(&self, world: &'a mut TypstWorld) -> Option<&'a mut Source> {
+        self.bump_source_revision();
         world.files.get_mut(&self.render_id)?.source_mut()
     }
 
@@ -430,6 +477,8 @@ impl SourceContext {
 
     /// The byte range of a span within its own source.
     pub fn span_range(&self, world: &TypstWorld, span: Span) -> Option<Range<usize>> {
+        self.refresh_span_index();
+
         if let Some(range) = self.span_index.borrow().ranges.get(&span) {
             return Some(range.clone());
         }
@@ -463,12 +512,16 @@ impl SourceContext {
         range
     }
 
-    /// Starts a frame walk, dropping the span index. Everything the walk reads
-    /// about the compile sources is already in place by the time it is called.
+    /// Keeps the span index aligned with the compile sources before a frame
+    /// walk. When nothing was rewritten since the last walk, every span the
+    /// walk asks about is answered from it instead of a fresh traversal.
     pub fn begin_frame_walk(&self) {
-        let mut index = self.span_index.borrow_mut();
-        index.ranges.clear();
-        index.walked.clear();
+        self.refresh_span_index();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn span_index_entries(&self) -> usize {
+        self.span_index.borrow().ranges.len()
     }
 
     /// The tree for `text`, parsing it only when the cached one is for other

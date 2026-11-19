@@ -7,10 +7,40 @@ import { LRUCache } from "lru-cache";
 
 const containerCache = new LRUCache<number, HTMLElement>({ max: 128 });
 
+/**
+ * Frame markup by content hash. A compile sends these hashes to the engine, so
+ * frames that did not change come back empty instead of repeating their SVG.
+ */
+const frameSvgCache = new LRUCache<number, string>({ max: 512 });
+
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 let sharedDefs: SVGDefsElement | undefined;
 let sharedDefsMarkup = "";
+
+/** Hashes of frames the client can supply to a compile. */
+export function knownFrameHashes(): number[] {
+  return [...frameSvgCache.keys()];
+}
+
+/**
+ * Fills in frames the engine reused. A frame comes back with empty `svg` only
+ * when its hash was passed to [`knownFrameHashes`], so every empty frame has an
+ * entry here.
+ */
+export function hydrateFrameSvgs(frames: SvgRangedFrame[]): void {
+  // Fill reused frames first. Caching a new frame can evict an entry the same
+  // compile reused, so every lookup happens before any insert.
+  for (const frame of frames) {
+    if (!frame.render.svg) {
+      frame.render.svg = frameSvgCache.get(frame.render.hash) ?? "";
+    }
+  }
+
+  for (const frame of frames) {
+    if (frame.render.svg) frameSvgCache.set(frame.render.hash, frame.render.svg);
+  }
+}
 
 /**
  * Places the glyph and gradient definitions a frame set references.

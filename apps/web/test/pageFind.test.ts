@@ -54,6 +54,7 @@ function run(text: string, sourceFrom: number, sourceTo: number, x = 0, y = 0): 
 function pageText(): FrameText {
   return {
     source_hash: 0,
+    layout_hash: 0,
     frames: [
       {
         from: 0,
