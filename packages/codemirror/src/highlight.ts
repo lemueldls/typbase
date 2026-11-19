@@ -26,12 +26,15 @@ function buildDecorations(
 ): DecorationSet {
   let tokens: ReturnType<TypstState["highlight"]>;
   let equations: ReturnType<TypstState["extractEquations"]>;
+  let codeSpans: ReturnType<TypstState["extractCodeSpans"]>;
   try {
     tokens = typstState.highlight(fileId, state.doc.toString());
-    // The highlight pass just parsed this text, so the equation walk reuses
-    // the cached tree. A mark over the whole equation lets math use the
-    // monospaced face while prose keeps the workspace text font.
+    // The highlight pass just parsed this text, so the span walks reuse the
+    // cached tree. `typ-equation` covers the whole `$...$` and `typ-code`
+    // covers each embedded expression, so text without a token class follows
+    // the font too.
     equations = typstState.extractEquations(fileId, state.doc.toString());
+    codeSpans = typstState.extractCodeSpans(fileId, state.doc.toString());
   } catch (error) {
     console.error("[typst] highlight panicked:", error);
 
@@ -40,22 +43,27 @@ function buildDecorations(
 
   const builder = new RangeSetBuilder<Decoration>();
   const equationMark = Decoration.mark({ class: "typ-equation" });
-  let nextEquation = 0;
+  const codeMark = Decoration.mark({ class: "typ-code" });
+  // Outer spans nest inside each other and around the tokens, so they go in
+  // by start offset and widest first.
+  const spans = [
+    ...codeSpans.map((span) => ({ ...span, mark: codeMark })),
+    ...equations.map((span) => ({ ...span, mark: equationMark })),
+  ].sort((a, b) => a.from - b.from || b.to - a.to);
+  let nextSpan = 0;
 
-  // Equations start at or before their tokens (the opening `$`). Emitting the
-  // outer mark first keeps the builder's start-offset ordering.
   for (const token of tokens) {
-    while (nextEquation < equations.length && equations[nextEquation]!.from <= token.range.start) {
-      const equation = equations[nextEquation++]!;
-      builder.add(equation.from, equation.to, equationMark);
+    while (nextSpan < spans.length && spans[nextSpan]!.from <= token.range.start) {
+      const span = spans[nextSpan++]!;
+      builder.add(span.from, span.to, span.mark);
     }
 
     builder.add(token.range.start, token.range.end, Decoration.mark({ class: token.tag }));
   }
 
-  for (; nextEquation < equations.length; nextEquation++) {
-    const equation = equations[nextEquation]!;
-    builder.add(equation.from, equation.to, equationMark);
+  for (; nextSpan < spans.length; nextSpan++) {
+    const span = spans[nextSpan]!;
+    builder.add(span.from, span.to, span.mark);
   }
 
   return builder.finish();

@@ -13,6 +13,7 @@ mod harness;
 
 mod cells;
 mod characterize;
+mod code;
 mod equations;
 mod fonts;
 mod frame_text;

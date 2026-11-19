@@ -962,10 +962,12 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
   color: var(--color-warning);
 }
 
-/* Source in math and raw blocks is code: it gets the code face even though the
-   editor's prose uses the workspace text font. The equation mark wraps the
-   whole `$...$`, so math text (which has no token class) follows too. */
+/* Source in code, math, and raw blocks gets the code face even though the
+   editor's prose uses the workspace text font. The `typ-code` and
+   `typ-equation` marks cover the whole span, so text without a token class
+   follows too. */
 .typ-raw,
+.typ-code,
 .typ-equation,
 .typ-math-delim,
 .typ-math-op,

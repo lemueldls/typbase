@@ -23,7 +23,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     bindings::{TypstCompletion, TypstFileId, TypstHighlight, TypstJump},
-    flatten::{CellSpan, EquationSpan, FlattenedBlock, HeadingSpan, SectionSpan},
+    flatten::{CellSpan, CodeSpan, EquationSpan, FlattenedBlock, HeadingSpan, SectionSpan},
     links::LinkSpan,
     source::{
         RenderTarget, Side as MapSide, SourceContext, SpaceContext, SynthResult, sync_source_state,
@@ -702,6 +702,22 @@ impl TypstState {
         Ok(crate::flatten::extract_equations_root(&root, text)
             .into_iter()
             .map(|range| range.into_ts())
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    /// Extracts code expressions embedded with `#` (`#let x = 2`, `#f(1)`) as
+    /// UTF-16 spans. The editor marks them so scripting uses the monospaced
+    /// face while prose keeps the text font.
+    #[wasm_bindgen(js_name = "extractCodeSpans")]
+    pub fn extract_code_spans(
+        &mut self,
+        id: &TypstFileId,
+        text: &str,
+    ) -> Result<Vec<Ts<CodeSpan>>, JsError> {
+        let root = self.parse_shared(Some(id.clone()), text);
+        Ok(crate::flatten::extract_code_spans_root(&root, text)
+            .into_iter()
+            .map(|span| span.into_ts())
             .collect::<Result<Vec<_>, _>>()?)
     }
 

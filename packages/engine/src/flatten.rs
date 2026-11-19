@@ -57,6 +57,14 @@ pub struct EquationSpan {
     pub to: usize,
 }
 
+/// One code expression embedded with `#`, in UTF-16 offsets into the raw
+/// source. The editor sets these ranges in a monospaced face.
+#[derive(Tsify, Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CodeSpan {
+    pub from: usize,
+    pub to: usize,
+}
+
 /// A notebook cell: one `//%` attribute line plus the content below it, up to
 /// the next boundary or the end of the document. Ranges are UTF-16 offsets into
 /// the raw source, so they can be used as editor positions directly.
@@ -355,6 +363,84 @@ pub fn extract_equations_root(root: &typst_syntax::SyntaxNode, text: &str) -> Ve
             }
         })
         .collect()
+}
+
+/// Every code expression embedded with `#`, nested ones folded into their
+/// outer expression. The editor uses these ranges to set scripting in a
+/// monospaced face while prose beside it keeps the workspace text font.
+pub fn extract_code_spans(text: &str) -> Vec<CodeSpan> {
+    let root = typst_syntax::parse(text);
+    extract_code_spans_root(&root, text)
+}
+
+/// `extract_code_spans` over a tree the caller already has.
+pub fn extract_code_spans_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<CodeSpan> {
+    // Cheap out before walking: most notes have no scripting at all.
+    if !text.as_bytes().contains(&b'#') {
+        return Vec::new();
+    }
+
+    let mut ranges = Vec::new();
+    let mut stack = vec![LinkedNode::new(root)];
+
+    while let Some(node) = stack.pop() {
+        if node.kind() == SyntaxKind::Hash {
+            if let Some(range) = embedded_code_range(&node) {
+                ranges.push(range);
+            }
+            continue;
+        }
+        stack.extend(node.children());
+    }
+
+    ranges.sort_by_key(|range| range.start);
+
+    let mut folded: Vec<std::ops::Range<usize>> = Vec::new();
+    for range in ranges {
+        if let Some(last) = folded.last_mut() {
+            if range.start <= last.end {
+                last.end = last.end.max(range.end);
+                continue;
+            }
+        }
+        folded.push(range);
+    }
+
+    let bytes: Vec<usize> = folded
+        .iter()
+        .flat_map(|range| [range.start, range.end])
+        .collect();
+    let utf16 = utf16_offsets(text, &bytes);
+
+    folded
+        .into_iter()
+        .enumerate()
+        .map(|(index, _)| {
+            CodeSpan {
+                from: utf16[index * 2],
+                to: utf16[index * 2 + 1],
+            }
+        })
+        .collect()
+}
+
+/// Range covered by the expression after a `#`, with a directly following
+/// semicolon when the statement has one.
+fn embedded_code_range(hash: &LinkedNode) -> Option<std::ops::Range<usize>> {
+    let expr = hash.next_sibling()?;
+    if !expr.cast::<Expr>()?.hash() {
+        return None;
+    }
+
+    let mut end = expr.range().end;
+    if let Some(next) = expr.next_sibling()
+        && next.kind() == SyntaxKind::Semicolon
+        && next.range().start == end
+    {
+        end = next.range().end;
+    }
+
+    Some(hash.range().start..end)
 }
 
 fn section_span(call: &FuncCall, node: &LinkedNode, text: &str) -> Option<SectionSpan> {
