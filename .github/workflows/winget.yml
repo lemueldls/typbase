@@ -23,6 +23,8 @@ jobs:
     permissions:
       contents: read
     env:
+      # Komac needs a classic PAT with public_repo. Fine-grained tokens cannot
+      # open the winget-pkgs PR and may lack write access to the fork.
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     steps:
       - name: 🔄 Checkout
@@ -41,14 +43,14 @@ jobs:
         if: env.WINGET_TOKEN != ''
         uses: michidk/run-komac@9b27eadc6e9235c252444a437d246c139da2f57f # v2.1.0
         with:
-          komac-version: 2.16.0
+          komac-version: 2.17.2
           args: "sync-fork --token=${{ env.WINGET_TOKEN }}"
 
       - name: 🪟 Update the package
         if: env.WINGET_TOKEN != ''
         uses: michidk/run-komac@9b27eadc6e9235c252444a437d246c139da2f57f # v2.1.0
         with:
-          komac-version: 2.16.0
+          komac-version: 2.17.2
           args: >-
             update lemueldls.typbase
             --version ${{ steps.version.outputs.version }}
