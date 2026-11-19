@@ -1255,23 +1255,23 @@
     "createOn": "Konto bei {host} erstellen"
   },
   "dataLabel": {
-    "intro": "Das ist die Kurzfassung. Jede Zeile sagt, was gespeichert wird, wer es sehen kann und wie du es entfernst.",
+    "intro": "Jede Zeile sagt, was gespeichert wird, wer es sehen kann und wie du es löschst.",
     "groups": {
       "device": {
         "title": "Auf diesem Gerät",
-        "intro": "Diese Daten bleiben im Browser- oder App-Speicher. Sie gehen nicht an dein Konto."
+        "intro": "Bleibt im Browser- oder App-Speicher, nicht in deinem Konto."
       },
       "workspace": {
         "title": "In deinem Konto, mit dem Arbeitsbereich geteilt",
-        "intro": "Dies wird in einem privaten Arbeitsbereich gespeichert. Nur Mitglieder des Arbeitsbereichs können es lesen. Der Kontoanbieter und der Arbeitsbereichsdienst können es technisch lesen, und es ist nicht Ende-zu-Ende verschlüsselt."
+        "intro": "Mit Mitgliedern des Arbeitsbereichs geteilt. Der Kontoanbieter und der Arbeitsbereichsdienst können es lesen, und es ist nicht Ende-zu-Ende verschlüsselt."
       },
       "public": {
         "title": "Öffentlich in deinem Konto",
-        "intro": "Jeder kann das lesen. Das Löschen eines Datensatzes entfernt ihn aus deinem Konto, aber andere Apps oder Archive haben ihn möglicherweise schon kopiert."
+        "intro": "Jeder kann das lesen. Das Löschen eines Datensatzes entfernt keine Kopien, die andere erstellt haben."
       },
       "thirdParty": {
         "title": "An andere Dienste gesendet",
-        "intro": "Diese Anfragen verlassen Typbase und gehen an den in der jeweiligen Zeile genannten Dienst."
+        "intro": "Anfragen gehen an den in jeder Zeile genannten Dienst."
       }
     },
     "visibility": {
@@ -1289,7 +1289,7 @@
       "aiKeys": {
         "title": "Schlüssel für KI-Anbieter",
         "body": "Schlüssel für OpenAI-kompatible Dienste, Anthropic oder Ollama. Sie werden nie synchronisiert.",
-        "removal": "Entferne den Anbieter in Einstellungen → KI."
+        "removal": "Lösche den Anbieter in Einstellungen → KI."
       },
       "settings": {
         "title": "Einstellungen und Oberflächenzustand",
@@ -1343,7 +1343,7 @@
       },
       "installRecord": {
         "title": "Installationsdatensatz",
-        "body": "Ein Datensatz, der sagt, dass dieses Konto Typbase installiert hat. Er enthält die Plattform und Zeitstempel. Er enthält keinen Arbeitsbereichsinhalt und keine Geräte-ID.",
+        "body": "Ein Datensatz mit Plattform und Zeitstempeln. Keine Arbeitsbereichsinhalte und keine Gerätekennung.",
         "removal": "Lösche den Datensatz. Typbase schreibt ihn auf diesem Gerät nicht erneut."
       },
       "aiProviders": {
@@ -1353,13 +1353,13 @@
       },
       "fontRequests": {
         "title": "Schriftanfragen",
-        "body": "Beim Durchsuchen von Webschriften oder Herunterladen einer Sprachschrift fragt Typbase den Schrift-Proxy oder Google Fonts nach den Dateien. Der Anbieter sieht die Anfrage. Es wird kein Arbeitsbereichsinhalt gesendet.",
+        "body": "Beim Durchsuchen von Webfonts oder Herunterladen einer Sprachschrift werden Dateien vom Font-Proxy oder von Google Fonts angefordert. Der Anbieter sieht die Anfrage, aber es werden keine Arbeitsbereichsinhalte gesendet.",
         "removal": "Verwende lokale Schriften."
       },
       "typstPackages": {
         "title": "Typst-Pakete",
         "body": "Beim Installieren eines Pakets werden Index und Tarball von packages.typst.org heruntergeladen.",
-        "removal": "Entferne das Paket."
+        "removal": "Deinstalliere das Paket."
       },
       "accountServices": {
         "title": "Konto- und Website-Dienste",
@@ -1375,10 +1375,16 @@
       "workspace": "Kein Arbeitsbereichsinhalt im Installationsdatensatz.",
       "ads": "Keine Werbe-IDs."
     },
-    "removeLabel": "Entfernen:",
+    "removeLabel": "Zum Löschen:",
     "deleteInstall": "Installationsdatensatz löschen",
-    "note": "Das Löschen eines Datensatzes entfernt ihn aus deinem Konto. Andere Apps oder Archive haben ihn möglicherweise vorher kopiert.",
-    "browse": "Du kannst Datensätze ansehen und löschen auf",
-    "technicalDetails": "Technische Details"
+    "note": "Gelöschte Datensätze verlassen dein Konto, aber Kopien können anderswo bleiben.",
+    "browse": "Datensätze ansehen und löschen auf",
+    "recordTypes": "Datensatztypen"
+  },
+  "privacy": {
+    "title": "Datenschutz",
+    "intro": "Typbase speichert deinen Arbeitsbereich auf diesem Gerät. Diese Seite zeigt, was das Gerät verlassen kann und wer es lesen kann.",
+    "issues": "GitHub-Issues",
+    "source": "Quellcode"
   }
 }

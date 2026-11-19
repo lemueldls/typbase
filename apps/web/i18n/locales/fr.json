@@ -1255,23 +1255,23 @@
     "createOn": "Créer votre compte avec {host}"
   },
   "dataLabel": {
-    "intro": "Voici la version courte. Chaque ligne indique ce qui est enregistré, qui peut le voir et comment le supprimer.",
+    "intro": "Chaque ligne indique ce qui est enregistré, qui peut le voir et comment le supprimer.",
     "groups": {
       "device": {
         "title": "Sur cet appareil",
-        "intro": "Ces données restent dans le stockage du navigateur ou de l'app. Elles ne vont pas dans votre compte."
+        "intro": "Reste dans le stockage du navigateur ou de l'app, pas dans votre compte."
       },
       "workspace": {
         "title": "Dans votre compte, partagé avec l'espace de travail",
-        "intro": "Ces données sont stockées dans un espace de travail privé. Seuls les membres de l'espace peuvent les lire. Le fournisseur du compte et le service de l'espace peuvent techniquement les lire, et elles ne sont pas chiffrées de bout en bout."
+        "intro": "Partagé avec les membres de l'espace. Le fournisseur du compte et le service de l'espace peuvent les lire, et elles ne sont pas chiffrées de bout en bout."
       },
       "public": {
         "title": "Public dans votre compte",
-        "intro": "Tout le monde peut lire ces données. Supprimer un enregistrement le retire de votre compte, mais d'autres apps ou archives ont pu le copier."
+        "intro": "Tout le monde peut le lire. Supprimer un enregistrement ne supprime pas les copies faites par d'autres."
       },
       "thirdParty": {
         "title": "Envoyé à d'autres services",
-        "intro": "Ces requêtes quittent Typbase et vont au service indiqué dans chaque ligne."
+        "intro": "Les requêtes vont au service indiqué dans chaque ligne."
       }
     },
     "visibility": {
@@ -1343,7 +1343,7 @@
       },
       "installRecord": {
         "title": "Enregistrement d'installation",
-        "body": "Un enregistrement indiquant que ce compte a installé Typbase. Il contient la plateforme et les dates. Il ne contient aucun contenu de l'espace de travail ni identifiant d'appareil.",
+        "body": "Un enregistrement avec la plateforme et les horodatages. Aucun contenu de l'espace de travail ni identifiant d'appareil.",
         "removal": "Supprimez l'enregistrement. Typbase ne l'écrira plus sur cet appareil."
       },
       "aiProviders": {
@@ -1353,13 +1353,13 @@
       },
       "fontRequests": {
         "title": "Requêtes de polices",
-        "body": "Parcourir les polices web ou télécharger une police de langue demande les fichiers au proxy ou à Google Fonts. Le fournisseur voit la requête. Aucun contenu de l'espace de travail n'est envoyé.",
+        "body": "Parcourir des polices web ou télécharger une police de langue demande des fichiers au proxy de polices ou à Google Fonts. Le fournisseur voit la requête, mais aucun contenu de l'espace de travail n'est envoyé.",
         "removal": "Utilisez des polices locales."
       },
       "typstPackages": {
         "title": "Paquets Typst",
         "body": "Installer un paquet télécharge son index et son tarball depuis packages.typst.org.",
-        "removal": "Supprimez le paquet."
+        "removal": "Désinstallez le paquet."
       },
       "accountServices": {
         "title": "Services de compte et de site",
@@ -1375,10 +1375,16 @@
       "workspace": "Aucun contenu de l'espace de travail dans l'enregistrement d'installation.",
       "ads": "Aucun identifiant publicitaire."
     },
-    "removeLabel": "Supprimer :",
+    "removeLabel": "Pour supprimer :",
     "deleteInstall": "Supprimer l'enregistrement d'installation",
-    "note": "Supprimer un enregistrement le retire de votre compte. D'autres apps ou archives ont pu le copier avant.",
-    "browse": "Vous pouvez parcourir et supprimer des enregistrements sur",
-    "technicalDetails": "Détails techniques"
+    "note": "Les enregistrements supprimés quittent votre compte, mais des copies peuvent subsister ailleurs.",
+    "browse": "Parcourez et supprimez des enregistrements sur",
+    "recordTypes": "Types d'enregistrement"
+  },
+  "privacy": {
+    "title": "Confidentialité",
+    "intro": "Typbase conserve votre espace de travail sur cet appareil. Cette page indique ce qui peut en sortir et qui peut le lire.",
+    "issues": "Tickets GitHub",
+    "source": "Code source"
   }
 }

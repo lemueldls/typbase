@@ -1255,23 +1255,23 @@
     "createOn": "使用 {host} 创建账户"
   },
   "dataLabel": {
-    "intro": "这是简要版本。每一行说明保存了什么、谁可以看到，以及如何删除。",
+    "intro": "每一行说明保存了什么、谁可以看到，以及如何删除。",
     "groups": {
       "device": {
         "title": "在此设备上",
-        "intro": "这些数据保存在浏览器或应用存储中，不会进入你的账户。"
+        "intro": "保存在浏览器或应用存储中，不会进入你的账户。"
       },
       "workspace": {
         "title": "在你的账户中，与工作区共享",
-        "intro": "这些数据保存在私有工作区中。只有工作区成员可以读取。账户提供商和工作区服务在技术上可以读取，且没有端到端加密。"
+        "intro": "与工作区成员共享。账户提供商和工作区服务可以读取，且没有端到端加密。"
       },
       "public": {
         "title": "账户中的公开数据",
-        "intro": "任何人都可以读取。删除记录会将其从你的账户中移除，但其他应用或存档可能已经复制。"
+        "intro": "任何人都可以读取。删除记录不会删除他人制作的副本。"
       },
       "thirdParty": {
         "title": "发送到其他服务",
-        "intro": "这些请求会离开 Typbase，发往每一行中列出的服务。"
+        "intro": "请求会发送到每一行所列的服务。"
       }
     },
     "visibility": {
@@ -1289,7 +1289,7 @@
       "aiKeys": {
         "title": "AI 提供商密钥",
         "body": "用于 OpenAI 兼容服务、Anthropic 或 Ollama 的密钥。它们永远不会同步。",
-        "removal": "在设置 → AI 中移除提供商。"
+        "removal": "在设置 → AI 中删除提供商。"
       },
       "settings": {
         "title": "设置和界面状态",
@@ -1343,7 +1343,7 @@
       },
       "installRecord": {
         "title": "安装记录",
-        "body": "一条记录，表示此账户安装了 Typbase。它包含平台和时间戳，不含工作区内容或设备标识符。",
+        "body": "一条记录，包含平台和时间戳。不包含工作区内容或设备标识符。",
         "removal": "删除记录。Typbase 不会在此设备上再次写入。"
       },
       "aiProviders": {
@@ -1353,13 +1353,13 @@
       },
       "fontRequests": {
         "title": "字体请求",
-        "body": "浏览网络字体或下载语言字体时，Typbase 会向字体代理或 Google Fonts 请求文件。提供商会看到请求。不会发送工作区内容。",
+        "body": "浏览网页字体或下载语言字体时，会向字体代理或 Google Fonts 请求文件。提供商会看到请求，但不会发送工作区内容。",
         "removal": "使用本地字体。"
       },
       "typstPackages": {
         "title": "Typst 包",
         "body": "安装包时，会从 packages.typst.org 下载索引和 tarball。",
-        "removal": "移除该包。"
+        "removal": "卸载该包。"
       },
       "accountServices": {
         "title": "账户和网站服务",
@@ -1375,10 +1375,16 @@
       "workspace": "安装记录中没有工作区内容。",
       "ads": "没有广告标识符。"
     },
-    "removeLabel": "移除：",
+    "removeLabel": "删除：",
     "deleteInstall": "删除安装记录",
-    "note": "删除记录会将其从你的账户中移除。其他应用或存档可能已经复制。",
-    "browse": "你可以在以下网站查看和删除记录：",
-    "technicalDetails": "技术细节"
+    "note": "删除的记录会离开你的账户，但副本可能留在其他地方。",
+    "browse": "在以下网站查看和删除记录：",
+    "recordTypes": "记录类型"
+  },
+  "privacy": {
+    "title": "隐私",
+    "intro": "Typbase 将工作区保存在此设备上。本页说明哪些数据可能离开设备，以及谁可以读取。",
+    "issues": "GitHub 问题",
+    "source": "源代码"
   }
 }

@@ -1255,23 +1255,23 @@
     "createOn": "Crea tu cuenta con {host}"
   },
   "dataLabel": {
-    "intro": "Esta es la versión corta. Cada fila dice qué se guarda, quién puede verlo y cómo eliminarlo.",
+    "intro": "Cada fila dice qué se guarda, quién puede verlo y cómo eliminarlo.",
     "groups": {
       "device": {
         "title": "En este dispositivo",
-        "intro": "Estos datos se quedan en el almacenamiento del navegador o de la app. No van a tu cuenta."
+        "intro": "Permanece en el almacenamiento del navegador o la app, no en tu cuenta."
       },
       "workspace": {
         "title": "En tu cuenta, compartido con el espacio de trabajo",
-        "intro": "Esto se guarda en un espacio de trabajo privado. Solo los miembros del espacio pueden leerlo. El proveedor de la cuenta y el servicio del espacio pueden leerlo técnicamente, y no está cifrado de extremo a extremo."
+        "intro": "Compartido con los miembros del espacio. El proveedor de la cuenta y el servicio del espacio pueden leerlo, y no está cifrado de extremo a extremo."
       },
       "public": {
         "title": "Público en tu cuenta",
-        "intro": "Cualquiera puede leer esto. Eliminar un registro lo quita de tu cuenta, pero otras apps o archivos pueden haberlo copiado."
+        "intro": "Cualquiera puede leerlo. Eliminar un registro no borra las copias que otros hayan hecho."
       },
       "thirdParty": {
         "title": "Enviado a otros servicios",
-        "intro": "Estas solicitudes salen de Typbase y van al servicio indicado en cada fila."
+        "intro": "Las solicitudes van al servicio indicado en cada fila."
       }
     },
     "visibility": {
@@ -1343,7 +1343,7 @@
       },
       "installRecord": {
         "title": "Registro de instalación",
-        "body": "Un registro que indica que esta cuenta instaló Typbase. Incluye la plataforma y las fechas. No contiene datos del espacio de trabajo ni un identificador del dispositivo.",
+        "body": "Un registro con la plataforma y las marcas de tiempo. Sin contenido del espacio de trabajo ni identificador del dispositivo.",
         "removal": "Elimina el registro. Typbase no lo escribirá de nuevo en este dispositivo."
       },
       "aiProviders": {
@@ -1353,13 +1353,13 @@
       },
       "fontRequests": {
         "title": "Solicitudes de fuentes",
-        "body": "Al explorar fuentes web o descargar una fuente de idioma, Typbase pide los archivos al proxy o a Google Fonts. El proveedor ve la solicitud. No se envía contenido del espacio de trabajo.",
+        "body": "Al explorar fuentes web o descargar una fuente de idioma se solicitan archivos al proxy de fuentes o a Google Fonts. El proveedor ve la solicitud, pero no se envía contenido del espacio de trabajo.",
         "removal": "Usa fuentes locales."
       },
       "typstPackages": {
         "title": "Paquetes de Typst",
         "body": "Instalar un paquete descarga su índice y su tarball desde packages.typst.org.",
-        "removal": "Elimina el paquete."
+        "removal": "Desinstala el paquete."
       },
       "accountServices": {
         "title": "Servicios de cuenta y sitio",
@@ -1375,10 +1375,16 @@
       "workspace": "Sin contenido del espacio de trabajo en el registro de instalación.",
       "ads": "Sin identificadores publicitarios."
     },
-    "removeLabel": "Eliminar:",
+    "removeLabel": "Para eliminar:",
     "deleteInstall": "Eliminar registro de instalación",
-    "note": "Eliminar un registro lo quita de tu cuenta. Otras apps o archivos pueden haberlo copiado antes.",
-    "browse": "Puedes consultar y eliminar registros en",
-    "technicalDetails": "Detalles técnicos"
+    "note": "Los registros eliminados salen de tu cuenta, pero las copias pueden permanecer en otro lugar.",
+    "browse": "Consulta y elimina registros en",
+    "recordTypes": "Tipos de registro"
+  },
+  "privacy": {
+    "title": "Privacidad",
+    "intro": "Typbase guarda tu espacio de trabajo en este dispositivo. Esta página muestra qué puede salir de él y quién puede leerlo.",
+    "issues": "Issues de GitHub",
+    "source": "Código fuente"
   }
 }

@@ -5,7 +5,7 @@ const config = useRuntimeConfig();
 const pageUrl = `${String(config.public.appUrl).replace(/\/+$/, "")}/privacy`;
 const title = formatDocumentTitle("Privacy", APP_NAME);
 const description =
-  "What Typbase stores on your device, what it sends when you sign in, sync, publish, or use a plugin, and what it never collects.";
+  "Typbase keeps your workspace on your device. This page lists what can leave it and who can read it.";
 
 useSeoMeta({
   title,
@@ -35,24 +35,16 @@ useHead({ link: [{ rel: "canonical", href: pageUrl }] });
       <AccountDataLabel />
 
       <footer class="privacy__footer">
-        <p>
-          {{ $t("privacy.contact") }}
-          <a
-            href="https://github.com/lemueldls/typbase/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            >GitHub</a
-          >.
-        </p>
-        <p>
-          {{ $t("privacy.source") }}
-          <a
-            href="https://github.com/lemueldls/typbase"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ $t("privacy.sourceLink") }}</a
-          >.
-        </p>
+        <a
+          href="https://github.com/lemueldls/typbase/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{{ $t("privacy.issues") }}</a
+        >
+        <span class="privacy__footer-sep" aria-hidden="true">·</span>
+        <a href="https://github.com/lemueldls/typbase" target="_blank" rel="noopener noreferrer">{{
+          $t("privacy.source")
+        }}</a>
       </footer>
     </article>
   </main>
@@ -60,7 +52,7 @@ useHead({ link: [{ rel: "canonical", href: pageUrl }] });
 
 <style>
 .privacy {
-  max-width: 780px;
+  max-width: 680px;
   margin: 0 auto;
   padding: calc(var(--space-4) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))
     calc(var(--space-12) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
@@ -70,7 +62,7 @@ useHead({ link: [{ rel: "canonical", href: pageUrl }] });
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .privacy__brand {
@@ -86,7 +78,7 @@ useHead({ link: [{ rel: "canonical", href: pageUrl }] });
 .privacy__page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .privacy__page h1 {
@@ -96,8 +88,7 @@ useHead({ link: [{ rel: "canonical", href: pageUrl }] });
   color: var(--color-text);
 }
 
-.privacy__lead,
-.privacy__footer p {
+.privacy__lead {
   margin: 0;
   font-size: var(--text-md);
   line-height: var(--leading-normal);
@@ -106,13 +97,25 @@ useHead({ link: [{ rel: "canonical", href: pageUrl }] });
 
 .privacy__footer {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
+  font-size: var(--text-sm);
 }
 
 .privacy__footer a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.privacy__footer a:hover {
   color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.privacy__footer-sep {
+  color: var(--color-text-tertiary);
 }
 </style>

@@ -42,17 +42,20 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
           </div>
           <p class="account-label__body">{{ $t(entry.bodyKey) }}</p>
 
-          <details v-if="entry.collections?.length" class="account-label__technical">
-            <summary>{{ $t("dataLabel.technicalDetails") }}</summary>
-            <ul class="account-label__codes">
+          <UiCollapsible
+            v-if="entry.collections?.length"
+            class="account-label__technical"
+            :label="`${$t('dataLabel.recordTypes')} (${entry.collections.length})`"
+          >
+            <ul class="account-label__records">
               <li v-for="collection in entry.collections" :key="collection">
                 <code>{{ collection }}</code>
               </li>
             </ul>
-          </details>
+          </UiCollapsible>
 
           <p class="account-label__removal">
-            <strong>{{ $t("dataLabel.removeLabel") }}</strong>
+            <span class="account-label__removal-label">{{ $t("dataLabel.removeLabel") }}</span>
             {{ $t(entry.removalKey) }}
           </p>
 
@@ -79,13 +82,17 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
       </ul>
     </section>
 
-    <p class="account-label__note">
-      {{ $t("dataLabel.note") }}
-      {{ $t("dataLabel.browse") }}
-      <button type="button" class="account-label__link" @click="openExternal('https://aturi.to')">
-        aturi.to</button
-      >.
-    </p>
+    <div class="account-label__note">
+      <p>
+        {{ $t("dataLabel.note") }}
+      </p>
+      <p>
+        {{ $t("dataLabel.browse") }}
+        <button type="button" class="account-label__link" @click="openExternal('https://aturi.to')">
+          aturi.to</button
+        >.
+      </p>
+    </div>
   </div>
 </template>
 
@@ -93,7 +100,7 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 .account-label {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 
 .account-label__intro,
@@ -102,9 +109,22 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 .account-label__removal,
 .account-label__note {
   margin: 0;
-  font-size: var(--text-sm);
   line-height: var(--leading-normal);
   color: var(--color-text-secondary);
+}
+
+.account-label__intro {
+  font-size: var(--text-md);
+}
+
+.account-label__group-intro,
+.account-label__removal,
+.account-label__note {
+  font-size: var(--text-sm);
+}
+
+.account-label__body {
+  font-size: var(--text-md);
 }
 
 .account-label__group {
@@ -115,7 +135,7 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 
 .account-label__heading {
   margin: 0;
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -123,7 +143,7 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 .account-label__entries {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-2-5);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -141,6 +161,7 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 
 .account-label__entry-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
@@ -148,7 +169,7 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 
 .account-label__entry-title {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -156,24 +177,40 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 .account-label__badge {
   flex: none;
   padding: 0 var(--space-2);
-  font-size: var(--text-xs);
-  line-height: 1.6;
+  font-size: var(--text-2xs);
+  line-height: 1.7;
   color: var(--color-text-secondary);
   background: var(--color-surface-3);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-xs);
 }
 
 .account-label__badge--public {
   color: var(--color-warning);
 }
 
-.account-label__codes {
+.account-label__records {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-  margin: 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
+}
+
+.account-label__records li {
+  padding: 1px var(--space-2);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.account-label__records code {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 
 .account-label__technical {
@@ -181,15 +218,21 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
   color: var(--color-text-secondary);
 }
 
-.account-label__technical summary {
-  cursor: pointer;
+.account-label__technical .ui-collapsible__trigger {
+  justify-content: flex-start;
+  gap: var(--space-1);
+  width: auto;
+  padding: var(--space-1) 0;
 }
 
-.account-label__codes code {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+.account-label__technical .ui-collapsible__trigger:hover {
+  color: var(--color-text);
+}
+
+.account-label__removal-label {
+  margin-right: var(--space-1);
+  font-weight: 500;
   color: var(--color-text-tertiary);
-  overflow-wrap: anywhere;
 }
 
 .account-label__checks {
@@ -216,7 +259,7 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
 }
 
 .account-label__note {
-  padding-top: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
