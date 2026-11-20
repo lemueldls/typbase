@@ -8,6 +8,11 @@ import { effectiveLocale } from "~/composables/appLocale";
 import { currentThemeColors } from "~/composables/theme";
 import { EDITOR_LINE_HEIGHT } from "~/lib/cmTheme";
 import { installCustomFonts } from "~/lib/customFonts";
+import {
+  registerFontFaceSource,
+  syncCustomFontFaces,
+  unregisterFontFaceSource,
+} from "~/lib/fontFaces";
 import { forgetInstalledFontPack, installedFontPacks, readFontPack } from "~/lib/fontPacks";
 import { wasmBinaryUrl } from "~/lib/wasmUrl";
 
@@ -436,11 +441,19 @@ export async function installFontPacks(typstState: TypstState): Promise<void> {
     const bytes = await readFontPack(pack);
     if (!bytes) {
       forgetInstalledFontPack(pack.id);
+      unregisterFontFaceSource(`pack:${pack.id}`);
       continue;
     }
 
     try {
       typstState.installFont(bytes);
+      // The app chrome and source editor read CSS families. The engine copy
+      // alone leaves them on a system fallback. Packs can be large, so let the
+      // CSS face load alongside the compile instead of blocking the style
+      // apply.
+      void registerFontFaceSource(`pack:${pack.id}`, pack.family, bytes).catch((cause) => {
+        console.warn("[fonts] pack face registration failed:", pack.id, cause);
+      });
       seen.add(pack.id);
       added = true;
     } catch (cause) {
@@ -485,6 +498,9 @@ export async function applyWorkspaceStyleToTypst(
   // they install separately. Without this a workspace font renders in the
   // picker and falls back in the document.
   await installCustomFonts(typstState, store);
+  // Uploaded faces are engine-only until they reach the browser's font set.
+  // The source editor and chrome read CSS families, so register them too.
+  await syncCustomFontFaces(store);
   // Device packs cover scripts the bundled faces do not. A fresh state needs
   // them again, so this runs with every style apply.
   await installFontPacks(typstState);

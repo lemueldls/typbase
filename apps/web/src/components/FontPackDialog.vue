@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from "@typbase/typing";
 
 import { pushToast } from "~/composables/toasts";
 import { bumpRenderRevision, installFontPacks, useTypst } from "~/composables/typst";
+import { unregisterFontFaceSource } from "~/lib/fontFaces";
 import {
   deleteFontPack,
   downloadFontPack,
@@ -99,6 +100,7 @@ async function remove(pack: FontPack): Promise<void> {
   }
 
   await deleteFontPack(pack.id);
+  unregisterFontFaceSource(`pack:${pack.id}`);
   pushToast({
     titleKey: "fontPacks.removedToast",
     params: { font: pack.family },

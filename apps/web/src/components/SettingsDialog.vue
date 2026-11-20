@@ -691,7 +691,9 @@ function fontOptionList(families: string[], current: string | null | undefined):
       ? t("settings.fontUploaded")
       : downloaded.has(family)
         ? t("settings.fontDownloaded")
-        : BUNDLED_FONTS.text.includes(family) || BUNDLED_FONTS.math.includes(family)
+        : BUNDLED_FONTS.text.includes(family) ||
+            BUNDLED_FONTS.math.includes(family) ||
+            BUNDLED_FONTS.code.includes(family)
           ? t("settings.fontBundled")
           : undefined,
   }));
