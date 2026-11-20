@@ -54,24 +54,20 @@ async function clickSidebar(page, text) {
 
 /**
  * Clicks a rendered block to enter its source, the same way `click-to-source`
- * does. The Fibonacci note renders in a fixed order: heading, paragraph lines,
- * then the display equation. The recurrence line is the second paragraph line,
- * and a point just under a quarter of the way across lands inside its inline
- * math. The display equation is its own block.
- *
- * The tooltip is built by the recompile that follows the click, so wait for
- * the popup instead of guessing with a fixed pause.
+ * does. Ratios pick the point inside the block, so a click can land on inline
+ * math in the middle of a line. The Fibonacci note renders in a fixed order:
+ * heading, paragraph lines, then the display equation.
  */
-async function showMathTooltip(page, index, xRatio = 0.5, yRatio = 0.5, wait = 1600) {
+async function clickRenderedBlock(page, index, xRatio = 0.5, yRatio = 0.5) {
   const block = page.locator(".cm-content .typst-render").nth(index);
   await block.scrollIntoViewIfNeeded().catch(() => {});
   await pause(page, 300);
 
   const box = await block.boundingBox().catch(() => null);
   if (!box) {
-    console.warn(`[warn] no rendered block ${index} for the math tooltip`);
+    console.warn(`[warn] no rendered block ${index} to click`);
 
-    return;
+    return null;
   }
 
   const point = {
@@ -82,6 +78,17 @@ async function showMathTooltip(page, index, xRatio = 0.5, yRatio = 0.5, wait = 1
   await moveCursor(page, point.x, point.y, { duration: 420 });
   await pause(page, 180);
   await page.mouse.click(point.x, point.y);
+
+  return true;
+}
+
+/**
+ * Clicks a rendered block and waits for the math tooltip the recompile builds.
+ * The block usually sits higher up the note than the text just typed, so the
+ * helper scrolls it into view first.
+ */
+async function showMathTooltip(page, index, xRatio = 0.5, yRatio = 0.5, wait = 1600) {
+  if (!(await clickRenderedBlock(page, index, xRatio, yRatio))) return;
 
   await page.waitForSelector(".typst-popup-render", { timeout: 6000 }).catch(() => {
     console.warn(`[warn] math tooltip for block ${index} did not appear`);
@@ -213,10 +220,11 @@ async function main() {
     await pause(page, 500);
     // await hoverToken(page, "#count");
 
-    // Math tooltips. Click the rendered equation block, then the recurrence
-    // line at the point where its inline equation is drawn.
+    // Math tooltip on the display equation, then click the heading to open it
+    // for the inline math added next.
     await showMathTooltip(page, 4);
-    await showMathTooltip(page, 2, 0.27);
+    await clickRenderedBlock(page, 0);
+    await pause(page, 900);
 
     // Inline math at the end of the heading, so the rule just typed styles it.
     await page.evaluate(() => {
