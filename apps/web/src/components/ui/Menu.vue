@@ -121,4 +121,12 @@ useBackLayer(open);
   margin: var(--space-0-5) 0;
   background: var(--color-border);
 }
+
+/* Optional items can leave a section empty. Hide the divider that would sit at
+   the menu edge or double up against another. */
+.menu > .menu__separator:first-child,
+.menu > .menu__separator:last-child,
+.menu > .menu__separator + .menu__separator {
+  display: none;
+}
 </style>
