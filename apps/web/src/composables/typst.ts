@@ -1,12 +1,12 @@
 import type { FileId, ThemeColors } from "@typbase/engine";
 import type { WorkspaceStore } from "@typbase/storage";
 
+import { TYPST_EDITOR_LINE_HEIGHT } from "@typbase/codemirror";
 import init, { TypstState } from "@typbase/engine";
 import { isTauri } from "@typbase/storage";
 
 import { effectiveLocale } from "~/composables/appLocale";
 import { currentThemeColors } from "~/composables/theme";
-import { EDITOR_LINE_HEIGHT } from "~/lib/cmTheme";
 import { installCustomFonts } from "~/lib/customFonts";
 import {
   registerFontFaceSource,
@@ -381,7 +381,7 @@ export function applyWorkspaceStyle(
   typstState.setLocale(configId, settings.locale);
   // Frame crops start at the editor's line box, so a rendered block and the
   // source text it replaces share a baseline.
-  typstState.setLineHeightRatio(configId, EDITOR_LINE_HEIGHT);
+  typstState.setLineHeightRatio(configId, TYPST_EDITOR_LINE_HEIGHT);
   // Rendered pages follow the app theme: the palette derives from the same
   // tokens the chrome uses.
   typstState.setTheme(configId, settings.themeColors);

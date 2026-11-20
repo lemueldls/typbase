@@ -17,10 +17,15 @@
     "url": "https://github.com/lemueldls/typbase"
   },
   "files": [
-    "dist"
+    "dist",
+    "theme.css"
   ],
   "type": "module",
   "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme.css": "./theme.css"
+  },
   "publishConfig": {
     "main": "./dist/index.mjs",
     "types": "./dist/index.d.mts",
@@ -28,7 +33,8 @@
       ".": {
         "types": "./dist/index.d.mts",
         "default": "./dist/index.mjs"
-      }
+      },
+      "./theme.css": "./theme.css"
     },
     "access": "public",
     "registry": "https://registry.npmjs.org"

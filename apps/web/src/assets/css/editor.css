@@ -1,0 +1,59 @@
+/*
+ * The editor package's theme variables, fed from the workspace's design
+ * tokens. The package defaults are neutral, so every mapping the app needs
+ * lives here rather than inside the package.
+ */
+
+:root {
+  --typst-font-text: var(--font-sans);
+  --typst-font-mono: var(--font-mono);
+  --typst-font-size: var(--doc-text-size);
+  --typst-font-features: var(--doc-font-features, normal);
+  --typst-icon-font: var(--md-icon-font, "Material Symbols Rounded");
+
+  --typst-color-text: var(--color-text);
+  --typst-color-text-secondary: var(--color-text-secondary);
+  --typst-color-surface: var(--color-surface);
+  --typst-color-surface-2: var(--color-surface-2);
+  --typst-color-surface-3: var(--color-surface-3);
+  --typst-color-border: var(--color-border);
+  --typst-color-border-strong: var(--color-border-strong);
+  --typst-color-accent: var(--color-accent);
+  --typst-color-accent-soft: var(--color-accent-soft);
+  --typst-color-danger: var(--color-danger);
+  --typst-color-warning: var(--color-warning);
+  --typst-color-ok: var(--color-ok);
+  --typst-color-focus-ring: var(--color-focus-ring);
+  --typst-color-red: var(--color-red);
+  --typst-color-yellow: var(--color-yellow);
+  --typst-color-green: var(--color-green);
+  --typst-color-cyan: var(--color-cyan);
+  --typst-color-violet: var(--color-violet);
+
+  --typst-space-0-5: var(--space-0-5);
+  --typst-space-1: var(--space-1);
+  --typst-space-1-5: var(--space-1-5);
+  --typst-space-2: var(--space-2);
+  --typst-space-2-5: var(--space-2-5);
+  --typst-space-3: var(--space-3);
+  --typst-space-4: var(--space-4);
+  --typst-space-8: var(--space-8);
+
+  --typst-text-xs: var(--text-xs);
+  --typst-text-sm: var(--text-sm);
+  --typst-text-md: var(--text-md);
+  --typst-text-lg: var(--text-lg);
+
+  --typst-leading-none: var(--leading-none);
+  --typst-leading-tight: var(--leading-tight);
+
+  --typst-radius-xs: var(--radius-xs);
+  --typst-radius-sm: var(--radius-sm);
+  --typst-radius-md: var(--radius-md);
+  --typst-radius-full: var(--radius-full);
+
+  --typst-motion-fast: var(--motion-fast);
+
+  --typst-z-menu: var(--z-menu);
+  --typst-z-tooltip: var(--z-tooltip);
+}

@@ -46,6 +46,7 @@ import {
   typstStaticHighlighting,
   typstSyntaxHighlighting,
   typstSourceSync,
+  typstTheme,
   vimKeymapFacet,
 } from "@typbase/codemirror";
 
@@ -550,8 +551,9 @@ function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
 
   // Injected after CM's runtime base theme, so token-based colors win over
-  // the defaults (cursor, tooltip, selection, gutters).
-  extensions.push(typstEditorTheme);
+  // the defaults (cursor, tooltip, selection, gutters). The app theme comes
+  // last for its own overrides.
+  extensions.push(typstTheme, typstEditorTheme);
 
   if (props.degraded) {
     // Engine-free editing: keep text sync, keymap, language data, and
@@ -865,35 +867,8 @@ defineExpose({ view, recompile, revealRange, insertAt });
   }
 }
 
-/* CodeMirror internals: scrollbar, syntax tags, rendered frames, remote
-   cursors, and notebook cell widgets. The classes come from
-   @typbase/codemirror and the wasm highlighter. This editor is the only place
-   they render. */
-
-.cm-scroller {
-  scrollbar-color: auto;
-}
-
-.cm-scroller::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.cm-scroller::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.cm-scroller::-webkit-scrollbar-thumb {
-  background: var(--color-border-strong);
-  border: 2px solid transparent;
-  border-radius: var(--radius-full);
-  background-clip: content-box;
-}
-
-.cm-scroller::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-text-secondary);
-  background-clip: content-box;
-}
+/* Vim chrome. The editor itself is themed by @typbase/codemirror; these
+   classes come from @replit/codemirror-vim, which the app adds itself. */
 
 .cm-editor .cm-fat-cursor {
   color: var(--color-on-accent) !important;
@@ -930,145 +905,8 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
   color: var(--color-text);
 }
 
-/* Keep the drawn selection over active-line and search backgrounds. */
-.cm-selectionLayer {
-  z-index: 0;
-}
-
-/* Typst syntax tags from the wasm highlighter, mapped to theme tokens. */
-.typ-comment {
-  color: var(--color-text-secondary);
-}
-
-.typ-punct,
-.typ-escape {
-  color: var(--color-text-secondary);
-}
-
-.typ-strong {
-  font-weight: bold;
-}
-
-.typ-emph {
-  font-style: italic;
-}
-
-.typ-link {
-  color: var(--color-accent);
-  text-decoration: underline;
-}
-
-.typ-raw {
-  color: var(--color-warning);
-}
-
-/* Source in code, math, and raw blocks gets the code face even though the
-   editor's prose uses the workspace text font. The `typ-code` and
-   `typ-equation` marks cover the whole span, so text without a token class
-   follows too. */
-.typ-raw,
-.typ-code,
-.typ-equation,
-.typ-math-delim,
-.typ-math-op,
-.typ-math-group {
-  font-family: var(--font-mono);
-}
-
-.typ-label,
-.typ-ref {
-  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
-}
-
-.typ-heading {
-  color: var(--color-text);
-}
-
-.typ-heading-level-1 {
-  color: var(--color-accent);
-  font-size: 2em;
-  font-weight: 400;
-}
-
-.typ-heading-level-2 {
-  color: var(--color-violet);
-  font-size: 1.75em;
-  font-weight: 400;
-}
-
-.typ-heading-level-3 {
-  color: var(--color-cyan);
-  font-size: 1.5em;
-  font-weight: 400;
-}
-
-.typ-heading-level-4 {
-  color: var(--color-green);
-  font-size: 1.375em;
-  font-weight: 400;
-}
-
-.typ-heading-level-5 {
-  color: var(--color-yellow);
-  font-size: 1em;
-  font-weight: 500;
-}
-
-.typ-heading-level-6 {
-  color: var(--color-red);
-  font-size: 0.875em;
-  font-weight: 500;
-}
-
-.typ-marker {
-  color: var(--color-text-secondary);
-  font-weight: bold;
-}
-
-.typ-term {
-  font-weight: bold;
-}
-
-.typ-math-delim {
-  color: var(--color-text-secondary);
-}
-
-.typ-math-op,
-.typ-op {
-  color: var(--color-danger);
-}
-
-.typ-key {
-  color: var(--color-accent);
-}
-
-.typ-num,
-.typ-str {
-  color: var(--color-warning);
-}
-
-.typ-func {
-  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
-}
-
-.typ-pol {
-  color: var(--color-text);
-}
-
-.typ-error {
-  color: var(--color-danger);
-}
-
-.typst-render {
-  position: relative;
-  display: inline-block;
-  max-width: 100%;
-  overflow: visible;
-  vertical-align: top;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
+/* Page-find rectangles over rendered frames. The container is the package's
+   `.typst-render`, so the layer tracks its pinned size. */
 .typst-find-marks {
   position: absolute;
   top: 0;
@@ -1088,53 +926,6 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
 .typst-find-mark--active {
   background: color-mix(in srgb, var(--color-accent) 46%, transparent);
   box-shadow: 0 0 0 1px var(--color-accent);
-}
-
-/* A block-level SVG anchors at the container's top. Inline, it sits on the
-   container's text baseline, so a frame shorter than the editor's 22.4px line
-   box is pushed down and overflows the bottom.
-   The reset's `max-width: 100%` on media must not reach the frame: it would
-   scale the render down to the clamped container and change its aspect. The
-   SVG keeps the compiled size and the scroller clips the overflow instead. */
-.typst-render svg {
-  display: block;
-  width: var(--render-w) !important;
-  height: var(--render-h) !important;
-  max-width: none !important;
-}
-
-.cm-content[contenteditable="true"] .typst-render {
-  border-radius: var(--radius-xs);
-  transition: background-color var(--motion-fast);
-}
-
-.cm-content[contenteditable="true"] .typst-render:hover {
-  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
-}
-
-.cm-content[contenteditable="true"] .typst-render svg {
-  cursor: text;
-}
-
-.typst-popup-render {
-  padding: var(--space-4);
-  max-height: min(70vh, 32rem);
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-.typst-popup-render div {
-  position: relative;
-}
-
-.typst-popup-render svg {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.typst-hints {
-  color: var(--color-text-secondary);
-  font-size: var(--text-md);
 }
 
 .typbase-remote-cursor {
@@ -1178,156 +969,5 @@ body .cm-editor:not(.cm-focused) .cm-fat-cursor {
   border-radius: var(--radius-xs) var(--radius-xs) var(--radius-xs) 0;
   pointer-events: none;
   white-space: nowrap;
-}
-
-.tb-cell-rail {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 1.6rem;
-  padding: 0 var(--space-1);
-  margin-right: var(--space-2);
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  line-height: 1;
-  user-select: none;
-  vertical-align: middle;
-  opacity: 0.55;
-  transition: opacity var(--motion-fast);
-}
-
-.tb-cell-rail:hover,
-.tb-cell-rail:focus-within {
-  opacity: 1;
-}
-
-.tb-cell-active {
-  border-left: 2px solid var(--color-accent) !important;
-  margin-left: calc(-1 * var(--space-2) - 2px);
-  padding-left: var(--space-2) !important;
-}
-
-.tb-cell-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.tb-cell-held {
-  color: var(--color-warning);
-}
-
-.tb-cell-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: inherit;
-  font-size: var(--text-xs);
-  cursor: pointer;
-  transition:
-    color var(--motion-fast),
-    background-color var(--motion-fast);
-}
-
-.tb-cell-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-2);
-}
-
-.tb-cell-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-}
-
-.tb-cell-attribute {
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-}
-
-.tb-cell-attribute.cm-line {
-  margin-left: calc(-1 * var(--space-2) - 2px);
-  padding-left: var(--space-2);
-  border-left: 2px solid var(--color-border-strong);
-}
-
-.tb-cell-output {
-  margin: var(--space-1) 0 var(--space-3);
-  padding-left: var(--space-3);
-  border-left: 2px solid var(--color-border);
-}
-
-.tb-cell-output--cleared,
-.tb-cell-output--empty {
-  display: none;
-}
-
-.tb-cell-output--offscreen {
-  height: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-.tb-cell-output-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.tb-cell-frame {
-  overflow: hidden;
-}
-
-.tb-cell-frame .typst-render {
-  cursor: text;
-}
-
-.tb-cell-empty {
-  font-size: var(--text-xs);
-  font-style: italic;
-  color: var(--color-text-secondary);
-}
-
-.tb-cell-stale {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin-top: var(--space-1);
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.tb-cell-diagnostics {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin: var(--space-1) 0 var(--space-2);
-  padding-left: var(--space-3);
-  border-left: 2px solid var(--color-border);
-}
-
-.tb-cell-diagnostic {
-  padding: var(--space-1-5) var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
-  border-radius: var(--radius-sm);
-  white-space: pre-wrap;
-}
-
-.tb-cell-diagnostic ul {
-  margin: var(--space-1) 0 0;
-  padding-left: var(--space-4);
-  color: var(--color-text-secondary);
-}
-
-.tb-cell-menu {
-  z-index: 90;
 }
 </style>
