@@ -51,13 +51,6 @@ q = "straight-bottom-serifed"
 w = "straight-almost-flat-top-serifed"
 
 [buildPlans.IosevkaConcreteCode.variants.italic]
-capital-m = "flat-bottom-motion-serifed"
-capital-n = "standard-motion-serifed"
-capital-p = "closed-motion-serifed"
-capital-t = "motion-serifed"
-capital-u = "toothed-motion-serifed"
-capital-v = "straight-motion-serifed"
-capital-w = "straight-motion-serifed"
 b = "toothless-rounded-serifed"
 h = "tailed-motion-serifed"
 m = "tailed-top-left-serifed"
