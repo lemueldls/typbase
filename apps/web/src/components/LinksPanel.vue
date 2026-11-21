@@ -153,7 +153,7 @@ function mentionCount(group: BacklinkGroup): string {
             <button type="button" class="links__group-head" @click="emit('openPage', group.pageId)">
               <MsIcon name="description" :size="16" class="links__row-icon" />
               <UiTruncatedText class="links__row-title" :text="title(group.pageId)" />
-              <span class="links__mentions">{{ mentionCount(group) }}</span>
+              <!-- <span class="links__mentions">{{ mentionCount(group) }}</span> -->
             </button>
             <ul class="links__mentions-list">
               <li v-for="mention in group.mentions" :key="mention.from">
@@ -346,6 +346,7 @@ function mentionCount(group: BacklinkGroup): string {
 
 .links__row-title,
 .links__group-head .links__row-title {
+  font-size: var(--text-md);
   font-weight: 500;
 }
 
@@ -402,6 +403,7 @@ function mentionCount(group: BacklinkGroup): string {
 .links__mentions {
   flex: none;
   margin-left: auto;
+  margin-right: var(--space-1);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
