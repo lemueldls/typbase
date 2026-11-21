@@ -260,9 +260,12 @@ pub fn chunk_by_items_with_blocks(
                         }
                     }
 
+                    let mut text_top = 0.0;
+
                     if !block.math {
                         let mut desired_top: Option<Abs> = None;
                         let mut desired_bottom: Option<Abs> = None;
+                        let mut prose_top: Option<Abs> = None;
 
                         for item in &chunk_items {
                             if let FrameItem::Text(text) = &item.item {
@@ -279,6 +282,10 @@ pub fn chunk_by_items_with_blocks(
                                 desired_top = Some(desired_top.map_or(top, |it| it.min(top)));
                                 desired_bottom =
                                     Some(desired_bottom.map_or(bottom, |it| it.max(bottom)));
+
+                                if item.equation.is_none() {
+                                    prose_top = Some(prose_top.map_or(top, |it| it.min(top)));
+                                }
                             }
                         }
 
@@ -289,6 +296,10 @@ pub fn chunk_by_items_with_blocks(
                                 .map(|item| item.bounds.min.y)
                                 .min();
                             let start = painted_top.map_or(desired, |top| top.min(desired));
+
+                            if let Some(top) = prose_top {
+                                text_top = (top - start).to_pt().max(0.0);
+                            }
 
                             bounds.start_height = Some(start);
                         }
@@ -364,6 +375,7 @@ pub fn chunk_by_items_with_blocks(
                         x_offset: block_start_width,
                         y_offset: block_start_height,
                         list_item: block.list_item,
+                        text_top,
                     });
 
                     if let Some(text_frame) = text_frame {
@@ -619,40 +631,42 @@ fn equation_tooltips(
         (range.end <= bounds[index].1).then_some(index)
     };
 
-    // The equation the caller asked for, if the caret is inside one. The caret is
-    // a raw offset and the bounds are render offsets, so it goes through the same
-    // two maps the editor ranges take.
     let focused = focus.and_then(|caret| {
-        let byte = raw_lines.utf16_to_byte(caret)?;
-        let repaired = context.map_raw_to_repaired(byte, Side::Before);
-        let render = context.map_repaired_to_render(repaired, Side::Before);
+        let byte = raw_lines.utf16_to_byte(caret);
 
-        equation_of(&(render..render))
+        [Side::Before, Side::After].into_iter().find_map(|side| {
+            let repaired = context.map_raw_to_repaired(byte?, side);
+            let render = context.map_repaired_to_render(repaired, side);
+
+            equation_of(&(render..render))
+        })
     });
 
     if focus.is_some() && focused.is_none() {
         return Vec::new();
     }
 
-    // Every item goes to the overlay it was laid out inside and to each of that
-    // overlay's ancestors, so an overlay collects everything its own rendering drew.
-    // One pass, and the nesting falls out of the walk. No equation is laid out
-    // inside another today (an interpolated one reuses frames that were built
-    // with no tag of their own), so the ancestor list is normally just the one
-    // entry.
+    let overlay_equations: Vec<Option<usize>> = overlays
+        .iter()
+        .map(|overlay| overlay.range.as_ref().and_then(equation_of))
+        .collect();
+
     let mut owned: Vec<Vec<BoundFrameItem>> = vec![Vec::new(); overlays.len()];
 
-    if let Some(focused_index) = focused {
-        // Only the focused tooltip is rendered. Cloning every item into every
-        // overlay first made a caret inside one equation pay for all of them.
+    if let Some(focused_equation) = focused {
+        let mut focused_overlays = vec![false; overlays.len()];
+
+        for (index, equation) in overlay_equations.iter().enumerate() {
+            focused_overlays[index] = *equation == Some(focused_equation);
+        }
+
         for chunk in chunks {
             for item in &chunk.items {
                 let mut current = item.equation;
 
                 while let Some(index) = current {
-                    if index == focused_index {
-                        owned[focused_index].push(item.clone());
-                        break;
+                    if focused_overlays[index] {
+                        owned[index].push(item.clone());
                     }
 
                     current = overlays[index].parent;
@@ -675,10 +689,8 @@ fn equation_tooltips(
     let mut tooltips = Vec::new();
     let mut taken: Vec<bool> = vec![false; bounds.len()];
 
-    for (index, overlay) in overlays.iter().enumerate() {
-        // An overlay whose equation is not in the synth's list has no source text
-        // to anchor to. That happens for an equation written in the prelude.
-        let Some(equation) = overlay.range.as_ref().and_then(equation_of) else {
+    for index in 0..overlays.len() {
+        let Some(equation) = overlay_equations[index] else {
             continue;
         };
 
@@ -686,10 +698,6 @@ fn equation_tooltips(
             continue;
         }
 
-        // A binding used from several equations lays out one overlay per use and
-        // they all report the definition's range. The editor wants one popup per
-        // range, so the first use wins and the rest are dropped rather than
-        // rendered as SVGs nothing will read.
         if std::mem::replace(&mut taken[equation], true) {
             continue;
         }
@@ -807,6 +815,7 @@ fn tooltip_chunk(
         y_offset: block_start_height,
         // Tooltip chunks are overlays, not stacked content.
         list_item: false,
+        text_top: 0.0,
     })
 }
 

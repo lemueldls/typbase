@@ -37,13 +37,7 @@ export const tooltipViewPlugin = () =>
         return;
       }
 
-      if (!view.hasFocus) {
-        if (view.state.field(tooltipStateField)) {
-          view.dispatch({ effects: tooltipStateEffect.of(null) });
-        }
-
-        return;
-      }
+      const overlaysAtUpdate = view.state.field(tooltipsStateField);
 
       queueMicrotask(() => {
         if (!view.hasFocus) {
@@ -67,16 +61,24 @@ export const tooltipViewPlugin = () =>
           return;
         }
 
-        const { tooltips, ranges } = state.field(tooltipsStateField);
+        const overlays = state.field(tooltipsStateField);
+        const { tooltips, ranges } = overlays;
+        const compileLanded = overlays !== overlaysAtUpdate;
 
         if (!tooltips.some(({ range }) => pos >= range.start && pos <= range.end)) {
+          const effects = [];
+
+          if (state.field(tooltipStateField)) effects.push(tooltipStateEffect.of(null));
+
           const inMath = ranges.some(([start, end]) => pos >= start && pos <= end);
 
-          if (inMath && !tooltipsChanged) {
-            view.dispatch({ effects: typstRecompileEffect.of(null) });
-
-            return;
+          if (inMath && !tooltipsChanged && !compileLanded) {
+            effects.push(typstRecompileEffect.of(null));
           }
+
+          if (effects.length) view.dispatch({ effects });
+
+          return;
         }
 
         let tooltip: Tooltip | null = null;
@@ -98,15 +100,16 @@ export const tooltipViewPlugin = () =>
             container.append(svg);
 
             tooltip = {
-              pos: start,
-              end,
+              pos: Math.min(start, state.doc.length),
+              end: Math.min(end, state.doc.length),
               create(tooltipView) {
                 return {
                   dom: container,
                   getCoords(_pos) {
+                    const docLength = tooltipView.state.doc.length;
                     const content = tooltipView.contentDOM.getBoundingClientRect();
-                    const startCoords = tooltipView.coordsAtPos(start);
-                    const endCoords = tooltipView.coordsAtPos(end);
+                    const startCoords = tooltipView.coordsAtPos(Math.min(start, docLength));
+                    const endCoords = tooltipView.coordsAtPos(Math.min(end, docLength));
                     const top = Math.max(
                       content.top,
                       Math.min(content.bottom, startCoords?.top ?? content.top),

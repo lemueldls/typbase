@@ -78,6 +78,10 @@ pub struct FrameItemsChunk {
     /// spacing down to the next item, so the editor's stack of widgets
     /// reproduces the item stride instead of squeezing the spacing out.
     pub list_item: bool,
+    /// Distance from the chunk's top to the topmost prose line box's top, in
+    /// points. Nonzero when something taller than text (inline math, an image,
+    /// a box) sets the top of the crop.
+    pub text_top: f64,
 }
 
 /// A single frame item with bounds and range.

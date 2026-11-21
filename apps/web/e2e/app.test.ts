@@ -1265,6 +1265,176 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  // A rendering equation popup must close as soon as the caret leaves the
+  // equation or the equation is deleted. It used to stay when the editor lost
+  // focus: the view plugin dispatched from inside its own update pass, which
+  // CodeMirror rejects, and the throw skipped the close.
+  it("closes the equation popup on blur and after the equation is deleted", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Equation popup",
+      content: "#let m = $a+b$\n\n$x^2$\n",
+    });
+    await showPage(page, id, "write");
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 1, null, {
+      timeout: 60_000,
+    });
+
+    const select = (offset: number) =>
+      page.evaluate((delta) => {
+        const view = window.__typbase.view!;
+        const text = view.state.doc.toString();
+
+        view.focus();
+        view.dispatch({ selection: { anchor: text.lastIndexOf("$x^2$") + delta } });
+      }, offset);
+
+    await select(2);
+    await page.waitForSelector(".typst-popup-render", { timeout: 30_000 });
+
+    // Clicking outside the editor drops focus. The popup has to go, without
+    // the update pass throwing.
+    await page.evaluate(() => window.__typbase.view?.contentDOM.blur());
+    await page.waitForFunction(() => !document.querySelector(".typst-popup-render"), null, {
+      timeout: 10_000,
+    });
+
+    // Refocus and open it again, then delete the equation.
+    await page.evaluate(() => window.__typbase.view?.focus());
+    await select(2);
+    await page.waitForSelector(".typst-popup-render", { timeout: 30_000 });
+
+    await page.evaluate(() => {
+      const view = window.__typbase.view!;
+      const text = view.state.doc.toString();
+      const from = text.lastIndexOf("$x^2$");
+
+      view.dispatch({
+        changes: { from, to: from + 5, insert: "" },
+        selection: { anchor: from },
+      });
+    });
+    await page.waitForFunction(() => !document.querySelector(".typst-popup-render"), null, {
+      timeout: 10_000,
+    });
+    await page.close();
+  });
+
+  // An empty equation draws nothing, so its overlay list is empty while its
+  // range still contains the caret. The popup asked for a recompile on every
+  // compile result, which never produced an overlay and froze the tab. One
+  // compile without a result has to be the end of it.
+  it("does not loop compiling an empty equation", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Empty equation",
+      content: "Before.\n\n$$\n\nAfter.\n",
+    });
+    await showPage(page, id, "write");
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 1, null, {
+      timeout: 60_000,
+    });
+
+    await page.evaluate(() => {
+      const view = window.__typbase.view!;
+      const text = view.state.doc.toString();
+
+      view.focus();
+      view.dispatch({ selection: { anchor: text.indexOf("$$") + 2 } });
+    });
+
+    // The tab must still answer after the caret settles in the empty equation.
+    await page.waitForTimeout(1500);
+    await expect(page.evaluate(() => window.__typbase.engineStatus?.())).resolves.toBe("ok");
+    await expect(
+      page.evaluate(() => window.__typbase.view?.state.selection.main.head),
+    ).resolves.toBe("Before.\n\n$$".length);
+    await expect(page.locator(".typst-popup-render").count()).resolves.toBe(0);
+    await page.close();
+  });
+
+  // A taller inline element lifts the render's crop above the prose. Source
+  // used to start at the crop top, so the text hopped up by the difference
+  // when the block opened for editing. `textTop` carries that gap to the
+  // editor, which pads the first source line by it.
+  it("keeps inline math text on its rendered baseline", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Inline math stability",
+      content: "A $x^2 + y^2 = z^2$ inline.\n\nAfter.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
+      timeout: 60_000,
+    });
+    await page.waitForTimeout(800);
+
+    const rendered = await page.evaluate(() => {
+      const widgets = document.querySelectorAll(".typst-render");
+      const widget = widgets[0]!;
+      const rect = widget.getBoundingClientRect();
+      const svg = widget.querySelector("svg")!;
+      const baselines = [...svg.querySelectorAll("g[transform]")].map((group) => {
+        const match = group.getAttribute("transform")!.match(/matrix\(1 0 0 -1 [\d.]+ ([\d.]+)\)/);
+
+        return match ? Number(match[1]) : 0;
+      });
+
+      return {
+        top: rect.top,
+        baseline: Math.max(...baselines),
+        nextTop: widgets[1]!.getBoundingClientRect().top,
+      };
+    });
+
+    const target = await page.evaluate(() => {
+      const widget = document.querySelector(".typst-render")!;
+      const rect = widget.getBoundingClientRect();
+
+      return { x: rect.left + 5, y: rect.top + rect.height / 2 };
+    });
+    await page.mouse.click(target.x, target.y);
+    await page.waitForTimeout(500);
+
+    const source = await page.evaluate(() => {
+      const line = [...document.querySelectorAll(".cm-line")].find((element) =>
+        element.textContent.startsWith("A "),
+      )!;
+      const rect = line.getBoundingClientRect();
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+      line.append(probe);
+      const baseline = probe.getBoundingClientRect().top - rect.top;
+      probe.remove();
+      const next = [...document.querySelectorAll(".typst-render")].at(-1)!;
+
+      return {
+        top: rect.top,
+        baseline,
+        paddingTop: getComputedStyle(line).paddingTop,
+        nextTop: next.getBoundingClientRect().top,
+      };
+    });
+
+    expect(Number.parseFloat(source.paddingTop)).toBeGreaterThan(0.5);
+    // The block's top and the text's baseline both stay where the render had
+    // them; only the source's natural line box differs.
+    expect(Math.abs(source.top - rendered.top)).toBeLessThan(0.5);
+    expect(
+      Math.abs(source.top + source.baseline - (rendered.top + rendered.baseline)),
+    ).toBeLessThan(1);
+    // Padding the first line must not push the next block down.
+    expect(Math.abs(source.nextTop - rendered.nextTop)).toBeLessThan(0.5);
+    await page.close();
+  });
+
   // A completion query reads the engine's synth source, which used to be
   // rebuilt only as a side effect of a render. Write mode renders in a
   // microtask so it was always in step, but split and source mode render on a

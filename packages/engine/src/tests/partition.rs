@@ -127,6 +127,71 @@ fn chunk_ranges_are_in_source() {
     }
 }
 
+/// Taller neighbors pull a chunk's crop above its first text line. The editor
+/// pads the first source line by that gap while editing the block, so the text
+/// does not hop up when the render is replaced by source.
+#[test]
+fn text_top_is_the_space_above_the_first_text_line() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    for (name, source) in [
+        ("plain", "A plain paragraph.\n"),
+        ("inline_math", "A $x^2 + y^2 = z^2$ inline.\n"),
+    ] {
+        let mut state = harness::state();
+        let id = harness::page(&mut state, name);
+        state.resize(&id, Some(600.0), None);
+
+        let render = harness::compile(&mut state, &id, source);
+        let chunk = render.chunks.first().expect("the paragraph rendered");
+
+        let prose_top = chunk
+            .items
+            .iter()
+            .filter_map(|item| {
+                let FrameItem::Text(text) = &item.item else {
+                    return None;
+                };
+                if item.equation.is_some() {
+                    return None;
+                }
+
+                let metrics = text.font.metrics();
+                let ascender = metrics.ascender.at(text.size);
+                let descender = metrics.descender.at(text.size);
+                let half = (Abs::pt(DEFAULT_LINE_HEIGHT_RATIO * text.size.to_pt())
+                    - (ascender - descender))
+                    / 2.0;
+
+                Some((item.point.y - ascender - half).to_pt())
+            })
+            .reduce(f64::min)
+            .expect("the chunk has prose text");
+        let expected = (prose_top - chunk.y_offset).max(0.0);
+
+        assert!(
+            (chunk.text_top - expected).abs() < 0.01,
+            "{name}: text_top {} does not match the prose gap {expected}",
+            chunk.text_top,
+        );
+
+        if name == "plain" {
+            assert!(
+                chunk.text_top.abs() < 0.01,
+                "plain text starts its own crop",
+            );
+        } else {
+            assert!(
+                chunk.text_top > 0.5,
+                "inline math should lift the crop above the text",
+            );
+        }
+    }
+}
+
 /// A block whose only error sits in a nested equation survives: the mark is put
 /// on the expression and the block keeps rendering. Without an equation range
 /// for it, recovery has nothing to scope the mark to and deletes the block

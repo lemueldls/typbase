@@ -10,7 +10,7 @@ import { hydrateFrameSvgs, knownFrameHashes } from "../../../packages/codemirror
 function frame(hash: number, svg: string): SvgRangedFrame {
   return {
     range: { start: 0, end: 1 },
-    render: { svg, width: 10, height: 10, xOffset: 0, yOffset: 0, hash },
+    render: { svg, width: 10, height: 10, xOffset: 0, yOffset: 0, textTop: 0, hash },
   };
 }
 

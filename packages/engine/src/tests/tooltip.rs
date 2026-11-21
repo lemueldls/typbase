@@ -361,3 +361,83 @@ fn tooltip_snapshots() {
         );
     }
 }
+
+/// The synth lists every equation in the note, including one a binding stores
+/// but nothing renders. Such an equation gets no layout overlay, so the
+/// equation index and the overlay index drift apart. The focused-equation
+/// narrowing used the equation index against the overlay list, which made the
+/// caret find no overlay to draw.
+#[test]
+fn an_unused_math_binding_does_not_hide_later_popups() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    // With and without the trailing newline: typing the closing `$` leaves the
+    // caret at the equation's end, which is also the end of the note.
+    for source in ["#let m = $a+b$\n\n$x^2$\n", "#let m = $a+b$\n\n$x^2$"] {
+        let mut state = harness::state();
+        let id = harness::page(&mut state, "unused_math_binding");
+
+        let start = source.find("$x^2$").expect("fixture has the equation");
+        let end = start + "$x^2$".len();
+
+        for (where_, caret) in [("start", start), ("middle", start + 2), ("end", end)] {
+            let focused = crate::renderer::paged::items::chunk_by_items(
+                &id,
+                source,
+                "",
+                Some(caret),
+                RenderTarget::Svg,
+                &mut state,
+            );
+
+            let drawn: Vec<_> = focused
+                .tooltips
+                .iter()
+                .map(|tooltip| &source[tooltip.range.start..tooltip.range.end])
+                .collect();
+
+            assert_eq!(
+                drawn,
+                ["$x^2$"],
+                "a caret at the equation's {where_} produced no popup for {source:?}",
+            );
+        }
+    }
+}
+
+/// A caret inside an equation that uses a `let`-bound one must still get that
+/// equation's popup. The overlay's tag span points at the binding's definition,
+/// so narrowing by the equation's own range alone would find nothing.
+#[test]
+fn a_caret_inside_a_bound_use_gets_the_use_popup() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let source = "#let xn = $(x_n)_(n>=0)$\n\n$ sum_(k=0)^n xn $\n";
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "focused_bound_use");
+    state.resize(&id, Some(600.0), None);
+
+    let caret = source.find("sum").expect("fixture has the use") + 1;
+    let focused = crate::renderer::paged::items::chunk_by_items(
+        &id,
+        source,
+        "",
+        Some(caret),
+        RenderTarget::Svg,
+        &mut state,
+    );
+
+    let drawn: Vec<_> = focused
+        .tooltips
+        .iter()
+        .map(|tooltip| &source[tooltip.range.start..tooltip.range.end])
+        .collect();
+
+    assert_eq!(drawn, ["$ sum_(k=0)^n xn $"], "no popup for the use");
+}

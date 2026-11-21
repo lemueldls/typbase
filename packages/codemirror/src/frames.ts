@@ -239,17 +239,24 @@ export function frameActiveDecorations(
   const decorations: Range<Decoration>[] = [];
   let lineHeight = 0;
 
+  const textTop = Number.isFinite(frame.render.textTop) ? Math.max(0, frame.render.textTop) : 0;
+
   const { number: startLine } = state.doc.lineAt(frame.range.start);
   const { number: endLine } = state.doc.lineAt(frame.range.end);
 
   for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
     const line = state.doc.line(currentLine);
     let style = "";
-    if (currentLine == startLine)
+    if (currentLine == startLine) {
       style += "border-top-left-radius:0.25rem;border-top-right-radius:0.25rem;";
-    if (currentLine == endLine)
+      if (textTop > 0) style += `box-sizing:border-box;padding-top:${textTop}px;`;
+    }
+
+    if (currentLine == endLine) {
       style += `border-bottom-left-radius:0.25rem;border-bottom-right-radius:0.25rem;min-height:${Math.max(0, frame.render.height - lineHeight)}px`;
-    else lineHeight += lineHeights?.get(line.from) ?? view.lineBlockAt(line.from).height;
+    } else {
+      lineHeight += lineHeights?.get(line.from) ?? view.lineBlockAt(line.from).height;
+    }
 
     decorations.push(
       Decoration.line({

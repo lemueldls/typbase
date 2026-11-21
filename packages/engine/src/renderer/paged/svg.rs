@@ -146,6 +146,7 @@ pub fn render_svgs_by_items_ctx(
                     height,
                     x_offset,
                     y_offset,
+                    Abs::pt(chunk.text_top),
                     document_width,
                     link_resolver,
                 )
@@ -169,6 +170,7 @@ pub fn render_svgs_by_items_ctx(
                     height,
                     x_offset,
                     y_offset,
+                    Abs::zero(),
                     width,
                     link_resolver,
                 )
@@ -460,6 +462,7 @@ fn render_svg(
     height: Abs,
     x_offset: Abs,
     y_offset: Abs,
+    text_top: Abs,
     document_width: Abs,
     link_resolver: Tracked<LateLinkResolver>,
 ) -> RenderedFrame {
@@ -473,6 +476,7 @@ fn render_svg(
         height.to_pt().to_bits(),
         x_offset.to_pt().to_bits(),
         y_offset.to_pt().to_bits(),
+        text_top.to_pt().to_bits(),
         document_width.to_pt().to_bits(),
     )) as u32;
 
@@ -491,6 +495,7 @@ fn render_svg(
     let height = height.to_pt();
     let x_offset = x_offset.to_pt();
     let y_offset = y_offset.to_pt();
+    let text_top = text_top.to_pt();
 
     let render = SvgFrameRender {
         svg,
@@ -498,6 +503,7 @@ fn render_svg(
         height,
         x_offset,
         y_offset,
+        text_top,
         hash,
     };
 
@@ -575,9 +581,14 @@ pub struct SvgFrameRender {
     /// Offset from the left of the page in points.
     #[serde(rename = "xOffset")]
     pub x_offset: f64,
-    /// Hash of the frame items for change detection.
+    /// Offset from the top of the page in points.
     #[serde(rename = "yOffset")]
     pub y_offset: f64,
+    /// Distance from the frame's top to the topmost prose line box's top, in
+    /// points. The editor pads the first source line by this much while the
+    /// block is being edited, so the text stays where the render put it.
+    #[serde(rename = "textTop")]
+    pub text_top: f64,
     /// Hash of the frame items for change detection.
     pub hash: u32,
 }
