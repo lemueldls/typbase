@@ -346,9 +346,13 @@ pub fn chunk_by_items_with_blocks(
                     if let Some(previous) = chunks.last_mut()
                         && previous.list_item
                         && block.list_item
-                        && block_start_height > previous.y_offset + previous.height
                     {
-                        previous.height = block_start_height - previous.y_offset;
+                        let previous_end = previous.y_offset + previous.height;
+                        if block_start_height > previous_end {
+                            previous.height = block_start_height - previous.y_offset;
+                        } else if block_start_height < previous_end {
+                            previous.height = (block_start_height - previous.y_offset).max(0.0);
+                        }
                     }
 
                     let text_frame = context.find_text.then(|| {

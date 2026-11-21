@@ -1322,6 +1322,43 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  // Clicking a rendered block moves the caret into its source, but the frames
+  // come from the compile cache, which was built for the caret the user left
+  // behind. The cached overlays then look final because their ranges already
+  // cover the new caret, so the equation never compiles with the new focus.
+  it("opens the equation popup after clicking a rendered block", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Block equation popup",
+      content: "Before.\n\n$ a + b $\n\nAfter.\n",
+    });
+    await showPage(page, id, "write");
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
+      timeout: 60_000,
+    });
+
+    // Leave the caret in the last paragraph, so the equation is a widget.
+    await page.evaluate(() => {
+      const view = window.__typbase.view!;
+
+      view.focus();
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+    });
+    await page.waitForTimeout(500);
+
+    const target = await page.evaluate(() => {
+      const widget = document.querySelectorAll(".typst-render")[1]!;
+      const rect = widget.getBoundingClientRect();
+
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    await page.mouse.click(target.x, target.y);
+    await page.waitForSelector(".typst-popup-render", { timeout: 30_000 });
+    await page.close();
+  });
+
   // An empty equation draws nothing, so its overlay list is empty while its
   // range still contains the caret. The popup asked for a recompile on every
   // compile result, which never produced an overlay and froze the tab. One
@@ -1354,6 +1391,71 @@ describe("typbase app", async () => {
       page.evaluate(() => window.__typbase.view?.state.selection.main.head),
     ).resolves.toBe("Before.\n\n$$".length);
     await expect(page.locator(".typst-popup-render").count()).resolves.toBe(0);
+    await page.close();
+  });
+
+  // A block equation can span several source lines. The popup used to hang
+  // below the opening `$`, covering the lines still being edited. It has to
+  // stay clear of the whole equation.
+  it("keeps a multiline equation popup off its source", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Multiline equation",
+      content: "Before.\n\n$\n  a + b \\\n  c + d\n$\n\nAfter.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.evaluate(() => {
+      const view = window.__typbase.view!;
+      const text = view.state.doc.toString();
+
+      view.focus();
+      view.dispatch({ selection: { anchor: text.indexOf("a + b") + 2 } });
+    });
+    await page.waitForSelector(".typst-popup-render", { timeout: 30_000 });
+
+    const placement = await page.evaluate(() => {
+      const popup = document.querySelector(".typst-popup-render")!.getBoundingClientRect();
+      const equationLines = [...document.querySelectorAll(".cm-line")].filter((line) => {
+        const text = line.textContent.trim();
+
+        return text === "$" || text.includes("a + b") || text.includes("c + d");
+      });
+      const lines = equationLines.map((line) => {
+        const rect = line.getBoundingClientRect();
+
+        return {
+          text: line.textContent,
+          top: rect.top,
+          bottom: rect.bottom,
+          left: rect.left,
+          right: rect.right,
+        };
+      });
+      const overlaps = lines.filter((line) => {
+        const vertical = popup.top < line.bottom - 1 && popup.bottom > line.top + 1;
+        const horizontal = popup.left < line.right - 1 && popup.right > line.left + 1;
+
+        return vertical && horizontal;
+      });
+
+      return {
+        popup: { top: popup.top, bottom: popup.bottom },
+        lines,
+        first: lines[0] ?? null,
+        last: lines.at(-1) ?? null,
+        overlaps,
+      };
+    });
+
+    expect(placement.popup.top).toBeGreaterThan(0);
+    expect(placement.overlaps).toEqual([]);
+    expect(
+      (placement.last && placement.popup.top >= placement.last.bottom - 1) ||
+        (placement.first && placement.popup.bottom <= placement.first.top + 1),
+    ).toBe(true);
     await page.close();
   });
 
@@ -1624,6 +1726,32 @@ describe("typbase app", async () => {
       )
       .toMatchObject({ parent: "BODY", zIndex: "100", onTop: true, inside: true });
 
+    // Hover docs and completion details share the tooltip chrome. Both the
+    // <pre> docs block and inline `<code>` from the backtick parser use the
+    // mono face; inline spans would otherwise inherit the tooltip's text face.
+    const fonts = await page.evaluate(() => {
+      const tip = document.querySelector<HTMLElement>(".cm-tooltip-autocomplete")!;
+      const code = document.createElement("code");
+      code.textContent = "x";
+      const pre = document.createElement("pre");
+      pre.textContent = "x";
+      tip.append(code, pre);
+
+      const mono = getComputedStyle(document.documentElement)
+        .getPropertyValue("--font-mono")
+        .split(",")[0]
+        .replace(/["']/g, "")
+        .trim();
+
+      return {
+        code: getComputedStyle(code).fontFamily,
+        pre: getComputedStyle(pre).fontFamily,
+        mono,
+      };
+    });
+
+    expect(fonts.code).toContain(fonts.mono);
+    expect(fonts.pre).toContain(fonts.mono);
     await page.close();
   });
 

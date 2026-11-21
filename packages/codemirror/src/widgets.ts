@@ -31,6 +31,8 @@ export const compileCache = new LRUCache<
   {
     frames: SvgRangedFrame[];
     tooltips: SvgRangedFrame[];
+    /** Caret the tooltips were compiled for, so a cache hit cannot hide a moved caret. */
+    focus: number | null;
     /** Every equation in the note, not only the one the caret was in. */
     equationRanges: [number, number][];
     diagnostics: TypstDiagnostic[];
@@ -83,13 +85,15 @@ export interface EquationOverlays {
    * whose overlay the last render skipped.
    */
   ranges: [number, number][];
+  /** Caret the overlays were compiled for. Null when the compile had none. */
+  focus: number | null;
 }
 
 export const tooltipsStateEffect = StateEffect.define<EquationOverlays>();
 
 export const tooltipsStateField = StateField.define<EquationOverlays>({
   create() {
-    return { tooltips: [], ranges: [] };
+    return { tooltips: [], ranges: [], focus: null };
   },
   update(overlays, transaction) {
     const effect = transaction.effects.find((e) => e.is(tooltipsStateEffect));
@@ -185,6 +189,7 @@ interface DecorateResult {
   decorations: DecorationSet;
   tooltips: SvgRangedFrame[];
   equationRanges: [number, number][];
+  tooltipFocus: number | null;
   frames: SvgRangedFrame[];
   active: SvgRangedFrame[];
 }
@@ -237,6 +242,7 @@ function decorate({
   let tooltips: SvgRangedFrame[];
   let equationRanges: [number, number][];
   let diagnostics: TypstDiagnostic[];
+  let tooltipFocus: number | null;
 
   const mustCompile = forced || update.docChanged || widthChanged || !compileCache.has(cacheKey);
 
@@ -244,13 +250,15 @@ function decorate({
     if (isFlaggedForUpdate) updateFlagStore.delete(path);
     else updateFlagStore.add(path);
 
+    const focus = update.state.selection.main.from;
+
     let compileResult: ReturnType<TypstState["compilePaged"]>;
     try {
       compileResult = typstState.compilePaged(
         fileId,
         text,
         prelude,
-        update.state.selection.main.from,
+        focus,
         undefined,
         knownFrameHashes(),
       );
@@ -265,6 +273,7 @@ function decorate({
         decorations: Decoration.none,
         tooltips: [],
         equationRanges: [],
+        tooltipFocus: null,
         frames: [],
         active: [],
       };
@@ -290,15 +299,17 @@ function decorate({
 
     ({ frames, tooltips, equation_ranges: equationRanges } = compileResult);
     diagnostics = compileResult.diagnostics;
+    tooltipFocus = focus;
     compileCache.set(cacheKey, {
       frames,
       tooltips,
+      focus,
       equationRanges,
       diagnostics,
     });
   } else {
     const cached = compileCache.get(cacheKey)!;
-    ({ frames, tooltips, equationRanges, diagnostics } = cached);
+    ({ frames, tooltips, equationRanges, diagnostics, focus: tooltipFocus } = cached);
   }
 
   const { view, state } = update;
@@ -315,6 +326,7 @@ function decorate({
         decorations: Decoration.none,
         tooltips: [],
         equationRanges: [],
+        tooltipFocus: null,
         frames: [],
         active: [],
       };
@@ -348,6 +360,7 @@ function decorate({
       ),
       tooltips,
       equationRanges,
+      tooltipFocus,
       frames,
       // Notebook cells do their own source-height handling, so there is no
       // around-the-widget remeasure to schedule.
@@ -369,6 +382,7 @@ function decorate({
     decorations: built.decorations,
     tooltips,
     equationRanges,
+    tooltipFocus,
     frames,
     active: built.active,
   };
@@ -646,6 +660,7 @@ export const typstViewPlugin = (
                 tooltipsStateEffect.of({
                   tooltips: result.tooltips,
                   ranges: result.equationRanges,
+                  focus: result.tooltipFocus,
                 }),
               ];
               update.view.dispatch({ effects: stateEffects });

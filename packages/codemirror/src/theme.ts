@@ -314,6 +314,9 @@ export const typstTheme = EditorView.theme({
     whiteSpace: "pre-wrap",
     overflowWrap: "anywhere",
   },
+  ".cm-tooltip code": {
+    fontFamily: "var(--typst-font-mono)",
+  },
   ".cm-tooltip.cm-tooltip-above .cm-tooltip-arrow:before, .cm-tooltip.cm-tooltip-below .cm-tooltip-arrow:before":
     {
       borderTopColor: "var(--typst-color-border)",

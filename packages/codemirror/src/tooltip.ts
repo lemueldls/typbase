@@ -37,8 +37,6 @@ export const tooltipViewPlugin = () =>
         return;
       }
 
-      const overlaysAtUpdate = view.state.field(tooltipsStateField);
-
       queueMicrotask(() => {
         if (!view.hasFocus) {
           if (view.state.field(tooltipStateField)) {
@@ -62,8 +60,7 @@ export const tooltipViewPlugin = () =>
         }
 
         const overlays = state.field(tooltipsStateField);
-        const { tooltips, ranges } = overlays;
-        const compileLanded = overlays !== overlaysAtUpdate;
+        const { tooltips, ranges, focus } = overlays;
 
         if (!tooltips.some(({ range }) => pos >= range.start && pos <= range.end)) {
           const effects = [];
@@ -72,7 +69,7 @@ export const tooltipViewPlugin = () =>
 
           const inMath = ranges.some(([start, end]) => pos >= start && pos <= end);
 
-          if (inMath && !tooltipsChanged && !compileLanded) {
+          if (inMath && focus !== pos) {
             effects.push(typstRecompileEffect.of(null));
           }
 
@@ -105,6 +102,7 @@ export const tooltipViewPlugin = () =>
               create(tooltipView) {
                 return {
                   dom: container,
+                  offset: { x: 0, y: 4 },
                   getCoords(_pos) {
                     const docLength = tooltipView.state.doc.length;
                     const content = tooltipView.contentDOM.getBoundingClientRect();
@@ -116,7 +114,7 @@ export const tooltipViewPlugin = () =>
                     );
                     const bottom = Math.max(
                       top,
-                      Math.min(content.bottom, startCoords?.bottom ?? top),
+                      Math.min(content.bottom, endCoords?.bottom ?? startCoords?.bottom ?? top),
                     );
                     const left = Math.max(
                       content.left,
