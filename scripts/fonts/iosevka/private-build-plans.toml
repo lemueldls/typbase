@@ -34,8 +34,8 @@ css = "normal"
 
 [buildPlans.IosevkaConcreteCode.variants.design]
 four = "closed-serifed"
-six = "open-contour"
-nine = "open-contour"
+six = "closed-contour"
+nine = "closed-contour"
 zero = "unslashed"
 capital-e = "serifed-capped"
 capital-f = "serifed-capped"
