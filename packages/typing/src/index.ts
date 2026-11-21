@@ -429,9 +429,9 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   ].join("\n"),
   pagePrelude: "",
   locale: "auto",
-  font: "Maple Mono",
-  mathFont: "New Computer Modern Math",
-  codeFont: null,
+  font: "Iosevka Concrete Text",
+  mathFont: "Concrete Math",
+  codeFont: "Iosevka Concrete Code",
   textSize: 16,
   typography: {
     ligatures: true,

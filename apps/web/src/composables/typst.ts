@@ -19,14 +19,20 @@ import { wasmBinaryUrl } from "~/lib/wasmUrl";
 export function getTypstFontImports() {
   return [
     [
-      import("~~/public/fonts/maple/MapleMono-Regular.ttf?url"),
-      import("~~/public/fonts/maple/MapleMono-Italic.ttf?url"),
-      import("~~/public/fonts/maple/MapleMono-Bold.ttf?url"),
-      import("~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url"),
+      import("~~/public/fonts/code/IosevkaConcreteCode-Regular.ttf?url"),
+      import("~~/public/fonts/code/IosevkaConcreteCode-Italic.ttf?url"),
+      import("~~/public/fonts/code/IosevkaConcreteCode-Bold.ttf?url"),
+      import("~~/public/fonts/code/IosevkaConcreteCode-BoldItalic.ttf?url"),
     ],
     [
-      import("~~/public/fonts/math/NewCMMath-Regular.otf?url"),
-      import("~~/public/fonts/math/NewCMMath-Bold.otf?url"),
+      import("~~/public/fonts/text/IosevkaConcreteText-Regular.ttf?url"),
+      import("~~/public/fonts/text/IosevkaConcreteText-Italic.ttf?url"),
+      import("~~/public/fonts/text/IosevkaConcreteText-Bold.ttf?url"),
+      import("~~/public/fonts/text/IosevkaConcreteText-BoldItalic.ttf?url"),
+    ],
+    [
+      import("~~/public/fonts/math/ConcreteMath-Regular.otf?url"),
+      import("~~/public/fonts/math/ConcreteMath-Bold.otf?url"),
     ],
   ];
 }
@@ -144,9 +150,9 @@ export interface SystemFontOptions {
 
 /** Families that ship with the app, so a picker can label them as built in. */
 export const BUNDLED_FONTS: SystemFontOptions = {
-  text: ["Maple Mono"],
-  math: ["New Computer Modern Math"],
-  code: ["Maple Mono"],
+  text: ["Iosevka Concrete Text"],
+  math: ["Concrete Math"],
+  code: ["Iosevka Concrete Code"],
 };
 
 function freshOptions(): SystemFontOptions {

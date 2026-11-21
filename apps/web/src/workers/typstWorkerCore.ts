@@ -1,31 +1,20 @@
 import type { TypstRequest, TypstState } from "@typbase/engine";
 
 import init, { TypstState as TypstStateClass } from "@typbase/engine";
-import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
-import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
-import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";
-import mapleMono from "~~/public/fonts/maple/MapleMono-Regular.ttf?url";
-import newcmMathBold from "~~/public/fonts/math/NewCMMath-Bold.otf?url";
-import newcmMath from "~~/public/fonts/math/NewCMMath-Regular.otf?url";
 
 import type { RequestPayload } from "~/lib/typstRequests";
 
 import { specString } from "~/lib/packages";
+
+import { BUNDLED_FONT_URLS } from "./bundledFonts";
+
+export { BUNDLED_FONT_URLS };
 
 /**
  * Plumbing shared by the render and chat workers: the wasm instance with the
  * bundled fonts, and the request/payload keying the main thread uses to
  * resolve `#typbase.query`, embeds, media, and packages.
  */
-
-export const BUNDLED_FONT_URLS: string[] = [
-  mapleMono,
-  mapleMonoItalic,
-  mapleMonoBold,
-  mapleMonoBoldItalic,
-  newcmMath,
-  newcmMathBold,
-];
 
 export async function initTypstState(wasmUrl: string): Promise<TypstState> {
   await init({ module_or_path: wasmUrl });

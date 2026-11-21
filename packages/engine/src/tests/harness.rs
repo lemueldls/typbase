@@ -14,12 +14,14 @@ use crate::{
 };
 
 /// Font files the render tests install. Names must match what the prelude
-/// asks for: `Maple Mono` for text/code, `New Computer Modern Math` for math.
+/// asks for: `Iosevka Concrete Text` for text, `Iosevka Concrete Code` for code,
+/// `Concrete Math` for math.
 const FONTS: &[&str] = &[
-    "maple/MapleMono-Regular.ttf",
-    "maple/MapleMono-Bold.ttf",
-    "maple/MapleMono-Italic.ttf",
-    "math/NewCMMath-Regular.otf",
+    "text/IosevkaConcreteText-Regular.ttf",
+    "text/IosevkaConcreteText-Bold.ttf",
+    "text/IosevkaConcreteText-Italic.ttf",
+    "code/IosevkaConcreteCode-Regular.ttf",
+    "math/ConcreteMath-Regular.otf",
 ];
 
 #[must_use]

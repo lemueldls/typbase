@@ -24,12 +24,18 @@ fn reads_the_family_a_font_declares() {
     }
 
     // The typographic family is what a font menu shows.
-    assert_eq!(family_names(&bundled("maple/MapleMono-Regular.ttf")), vec![
-        String::from("Maple Mono")
-    ]);
-    assert_eq!(family_names(&bundled("math/NewCMMath-Regular.otf")), vec![
-        String::from("New Computer Modern Math")
-    ]);
+    assert_eq!(
+        family_names(&bundled("code/IosevkaConcreteCode-Regular.ttf")),
+        vec![String::from("Iosevka Concrete Code")]
+    );
+    assert_eq!(
+        family_names(&bundled("text/IosevkaConcreteText-Regular.ttf")),
+        vec![String::from("Iosevka Concrete Text")]
+    );
+    assert_eq!(
+        family_names(&bundled("math/ConcreteMath-Regular.otf")),
+        vec![String::from("Concrete Math")]
+    );
 }
 
 #[test]
@@ -40,17 +46,35 @@ fn reads_each_face_weight_and_style() {
         return;
     }
 
-    let regular = face_info(&bundled("maple/MapleMono-Regular.ttf"));
-    assert_eq!(regular.len(), 1);
-    assert_eq!(regular[0].family, "Maple Mono");
-    assert_eq!(regular[0].weight, 400);
-    assert_eq!(regular[0].style, "normal");
+    let iosevka_regular = face_info(&bundled("code/IosevkaConcreteCode-Regular.ttf"));
+    assert_eq!(iosevka_regular.len(), 1);
+    assert_eq!(iosevka_regular[0].family, "Iosevka Concrete Code");
+    assert_eq!(iosevka_regular[0].weight, 400);
+    assert_eq!(iosevka_regular[0].style, "normal");
 
-    let bold_italic = face_info(&bundled("maple/MapleMono-BoldItalic.ttf"));
-    assert_eq!(bold_italic.len(), 1);
-    assert_eq!(bold_italic[0].family, "Maple Mono");
-    assert_eq!(bold_italic[0].weight, 700);
-    assert_eq!(bold_italic[0].style, "italic");
+    let iosevka_bold_italic = face_info(&bundled("code/IosevkaConcreteCode-BoldItalic.ttf"));
+    assert_eq!(iosevka_bold_italic.len(), 1);
+    assert_eq!(iosevka_bold_italic[0].family, "Iosevka Concrete Code");
+    assert_eq!(iosevka_bold_italic[0].weight, 700);
+    assert_eq!(iosevka_bold_italic[0].style, "italic");
+
+    let text_regular = face_info(&bundled("text/IosevkaConcreteText-Regular.ttf"));
+    assert_eq!(text_regular.len(), 1);
+    assert_eq!(text_regular[0].family, "Iosevka Concrete Text");
+    assert_eq!(text_regular[0].weight, 400);
+    assert_eq!(text_regular[0].style, "normal");
+
+    let text_bold = face_info(&bundled("text/IosevkaConcreteText-Bold.ttf"));
+    assert_eq!(text_bold.len(), 1);
+    assert_eq!(text_bold[0].family, "Iosevka Concrete Text");
+    assert_eq!(text_bold[0].weight, 700);
+    assert_eq!(text_bold[0].style, "normal");
+
+    let math_bold = face_info(&bundled("math/ConcreteMath-Bold.otf"));
+    assert_eq!(math_bold.len(), 1);
+    assert_eq!(math_bold[0].family, "Concrete Math");
+    assert_eq!(math_bold[0].weight, 700);
+    assert_eq!(math_bold[0].style, "normal");
 }
 
 #[test]
@@ -64,7 +88,7 @@ fn style(ligatures: bool, kerning: bool) -> String {
     TypstState::style_prelude_export(
         ThemeColors::default(),
         16.0,
-        String::from("Maple Mono"),
+        String::from("Iosevka Concrete Text"),
         None,
         None,
         String::from("en"),

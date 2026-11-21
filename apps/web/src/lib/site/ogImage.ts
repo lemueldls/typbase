@@ -48,7 +48,7 @@ export async function renderSiteSocialImage(
     siteName: input.siteName,
     host: input.host || "typbase.at",
     iconGlyph: input.iconGlyph,
-    fontFamily: input.fontFamily || "Maple Mono",
+    fontFamily: input.fontFamily || "Iosevka Concrete Text",
     palette: {
       surface: input.palette.surface,
       surface2: input.palette.surface2,
@@ -74,16 +74,16 @@ async function loadFonts(): Promise<SiteSocialFont[]> {
   if (fontsPromise) return fontsPromise;
 
   const files: Array<[string, number]> = [
-    ["MapleMono-Regular.ttf", 400],
-    ["MapleMono-Bold.ttf", 700],
+    ["IosevkaConcreteText-Regular.ttf", 400],
+    ["IosevkaConcreteText-Bold.ttf", 700],
   ];
   fontsPromise = Promise.all(
     files.map(async ([file, weight]): Promise<SiteSocialFont> => {
-      const response = await fetch(new URL(`/fonts/maple/${file}`, window.location.origin));
+      const response = await fetch(new URL(`/fonts/text/${file}`, window.location.origin));
       if (!response.ok) throw new Error(`Could not load ${file}`);
 
       return {
-        name: "Maple Mono",
+        name: "Iosevka Concrete Text",
         data: new Uint8Array(await response.arrayBuffer()),
         weight,
       };

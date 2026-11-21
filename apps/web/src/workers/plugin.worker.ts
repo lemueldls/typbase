@@ -1,14 +1,10 @@
 import init, { takePanicGlobal, TypstState } from "@typbase/engine";
-import mapleMonoBold from "~~/public/fonts/maple/MapleMono-Bold.ttf?url";
-import mapleMonoBoldItalic from "~~/public/fonts/maple/MapleMono-BoldItalic.ttf?url";
-import mapleMonoItalic from "~~/public/fonts/maple/MapleMono-Italic.ttf?url";
-import mapleMono from "~~/public/fonts/maple/MapleMono-Regular.ttf?url";
-import newcmMathBold from "~~/public/fonts/math/NewCMMath-Bold.otf?url";
-import newcmMath from "~~/public/fonts/math/NewCMMath-Regular.otf?url";
 
 import type { PluginCompileRequest, PluginCompileResponse } from "~/lib/plugins/protocol";
 
 import { compileSurface } from "~/lib/plugins/compile";
+
+import { BUNDLED_FONT_URLS } from "./bundledFonts";
 
 /**
  * Worker entry: runs one TypstState for plugin surfaces. The host posts every
@@ -26,14 +22,7 @@ async function ensureState(url: string): Promise<TypstState> {
   // default `new URL(..., import.meta.url)` path in a worker corrupts the heap.
   await init({ module_or_path: url });
   const typstState = new TypstState();
-  for (const fontUrl of [
-    mapleMono,
-    mapleMonoItalic,
-    mapleMonoBold,
-    mapleMonoBoldItalic,
-    newcmMath,
-    newcmMathBold,
-  ]) {
+  for (const fontUrl of BUNDLED_FONT_URLS) {
     const response = await fetch(fontUrl);
     typstState.installFont(new Uint8Array(await response.arrayBuffer()));
   }

@@ -9,9 +9,9 @@ expression: summarize(&render.chunks)
       30
     ],
     "items": 13,
-    "width": 96.56,
-    "height": 47.71,
-    "x": -48.67,
+    "width": 96.42,
+    "height": 42.5,
+    "x": -48.62,
     "y": 0.0
   },
   {
@@ -20,10 +20,10 @@ expression: summarize(&render.chunks)
       65
     ],
     "items": 19,
-    "width": 186.41,
-    "height": 19.36,
-    "x": -93.2,
-    "y": 66.91
+    "width": 186.77,
+    "height": 20.12,
+    "x": -93.39,
+    "y": 61.7
   },
   {
     "range": [
@@ -31,10 +31,10 @@ expression: summarize(&render.chunks)
       86
     ],
     "items": 9,
-    "width": 45.36,
-    "height": 43.06,
-    "x": -22.68,
-    "y": 105.48
+    "width": 45.94,
+    "height": 43.16,
+    "x": -22.97,
+    "y": 101.02
   },
   {
     "range": [
@@ -42,10 +42,10 @@ expression: summarize(&render.chunks)
       131
     ],
     "items": 15,
-    "width": 101.01,
+    "width": 101.96,
     "height": 43.2,
-    "x": -49.95,
-    "y": 167.73
+    "x": -50.2,
+    "y": 163.38
   },
   {
     "range": [
@@ -53,10 +53,10 @@ expression: summarize(&render.chunks)
       164
     ],
     "items": 13,
-    "width": 73.51,
-    "height": 37.17,
-    "x": -36.75,
-    "y": 230.13
+    "width": 74.72,
+    "height": 37.44,
+    "x": -37.51,
+    "y": 225.78
   },
   {
     "range": [
@@ -64,9 +64,9 @@ expression: summarize(&render.chunks)
       203
     ],
     "items": 18,
-    "width": 126.61,
-    "height": 45.98,
-    "x": -63.7,
-    "y": 286.5
+    "width": 126.43,
+    "height": 45.65,
+    "x": -62.94,
+    "y": 282.42
   }
 ]

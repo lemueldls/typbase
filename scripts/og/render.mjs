@@ -9,8 +9,8 @@ const output = `${root}apps/web/public/og-image.png`;
 
 const [icon, regular, bold] = await Promise.all([
   readFile(`${root}apps/web/public/app-icon.png`),
-  readFile(`${root}apps/web/public/fonts/maple/MapleMono-Regular.ttf`),
-  readFile(`${root}apps/web/public/fonts/maple/MapleMono-Bold.ttf`),
+  readFile(`${root}apps/web/public/fonts/text/IosevkaConcreteText-Regular.ttf`),
+  readFile(`${root}apps/web/public/fonts/text/IosevkaConcreteText-Bold.ttf`),
 ]);
 
 const html = socialCardHtml({
@@ -37,8 +37,8 @@ const png = await render(html, {
   height: 630,
   format: "png",
   fonts: [
-    { name: "Maple Mono", data: regular, weight: 400 },
-    { name: "Maple Mono", data: bold, weight: 700 },
+    { name: "Iosevka Concrete Text", data: regular, weight: 400 },
+    { name: "Iosevka Concrete Text", data: bold, weight: 700 },
   ],
 });
 

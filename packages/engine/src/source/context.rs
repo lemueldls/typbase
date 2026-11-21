@@ -51,9 +51,9 @@ impl SpaceContext {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            font: String::from("Maple Mono"),
-            math_font: Some(String::from("New Computer Modern Math")),
-            code_font: Some(String::from("Maple Mono")),
+            font: String::from("Iosevka Concrete Text"),
+            math_font: Some(String::from("Concrete Math")),
+            code_font: Some(String::from("Iosevka Concrete Code")),
             theme: ThemeColors::default(),
             locale: String::from("en"),
             text_size: 16.0,

@@ -939,16 +939,16 @@ function socialFontFor(
   if (faces.length) return { family, faces };
 
   // A custom family can be configured before its file reaches this device.
-  // Maple Mono is already part of the site bundle, so keep the card readable.
+  // The bundled text face is always in the bundle, so keep the card readable.
   for (const face of bundle.faces) {
-    if (face.family !== "Maple Mono") continue;
+    if (face.family !== "Iosevka Concrete Text") continue;
     const data = byName.get(face.file);
     if (data) {
       faces.push({ name: face.family, data, weight: face.weight, style: face.style });
     }
   }
 
-  return { family: "Maple Mono", faces };
+  return { family: "Iosevka Concrete Text", faces };
 }
 
 function faceForCustom(
@@ -967,16 +967,23 @@ function faceForBundled(name: string): {
   weight: number;
   style: "normal" | "italic";
 } | null {
-  if (name.startsWith("MapleMono-")) {
+  if (name.startsWith("IosevkaConcreteText-")) {
     return {
-      family: "Maple Mono",
+      family: "Iosevka Concrete Text",
       weight: name.includes("Bold") ? 700 : 400,
       style: name.includes("Italic") ? "italic" : "normal",
     };
   }
-  if (name.startsWith("NewCMMath-")) {
+  if (name.startsWith("IosevkaConcreteCode-")) {
     return {
-      family: "New Computer Modern Math",
+      family: "Iosevka Concrete Code",
+      weight: name.includes("Bold") ? 700 : 400,
+      style: name.includes("Italic") ? "italic" : "normal",
+    };
+  }
+  if (name.startsWith("ConcreteMath-")) {
+    return {
+      family: "Concrete Math",
       weight: name.includes("Bold") ? 700 : 400,
       style: "normal",
     };

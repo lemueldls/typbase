@@ -38,7 +38,7 @@ function fixtureSkin(): Skin {
     },
     geometry: { size: "default", density: "default", radius: "default" },
     typography: {
-      font: "Maple Mono",
+      font: "Iosevka Concrete Text",
       mathFont: null,
       codeFont: null,
       textSize: 16,
@@ -91,12 +91,29 @@ describe("skin schema", () => {
     expect(canonicalJson({ b: 1, a: 2 })).toBe('{"a":2,"b":1}');
   });
 
+  it("maps removed bundled font families", () => {
+    const skin = fixtureSkin();
+    skin.typography.font = "Maple Mono";
+    skin.typography.mathFont = "New Computer Modern Math";
+    skin.typography.codeFont = null;
+
+    const settings = settingsFromSkin(skin);
+    expect(settings.font).toBe("Iosevka Concrete Text");
+    expect(settings.mathFont).toBe("Concrete Math");
+    expect(settings.codeFont).toBe("Iosevka Concrete Code");
+
+    const vars = skinToCssVars(skin, "light");
+    expect(vars["--font-sans"]).toContain("Iosevka Concrete Text");
+    expect(vars["--font-mono"]).toContain("Iosevka Concrete Code");
+    expect(vars["--font-math"]).toContain("Concrete Math");
+  });
+
   it("writes CSS variables used by the app", () => {
     const vars = skinToCssVars(fixtureSkin(), "light");
     expect(vars["--color-surface"]).toBe("#ffffff");
     expect(vars["--ui-density"]).toBe("1");
     expect(vars["--color-backdrop"]).toBe("#dddddd");
-    expect(vars["--font-sans"]).toContain("Maple Mono");
+    expect(vars["--font-sans"]).toContain("Iosevka Concrete Text");
   });
 
   it("derives a backdrop for skins written before the token", () => {

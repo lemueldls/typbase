@@ -38,6 +38,7 @@ export interface SkinTypography {
   codeFont: string | null;
   /** Body text size in pt. */
   textSize: number;
+  /** Standard ligatures, the `liga` and `clig` features. */
   ligatures: boolean;
   kerning: boolean;
 }
@@ -521,14 +522,35 @@ function cssFamily(family: string): string {
   return `"${family.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
+/** Old bundled family names in published skins map to their replacements. */
+function migratedTextFamily(family: string): string {
+  if (family === "Iosevka Concrete") return "Iosevka Concrete Code";
+  return family === "Maple Mono" || family === "CMU Concrete" ? "Iosevka Concrete Text" : family;
+}
+
+function migratedCodeFamily(family: string | null): string {
+  return !family ||
+    family === "Maple Mono" ||
+    family === "CMU Concrete" ||
+    family === "Iosevka Concrete"
+    ? "Iosevka Concrete Code"
+    : family;
+}
+
+function migratedMathFamily(family: string | null): string {
+  return !family || family === "New Computer Modern Math" || family === "CMU Concrete"
+    ? "Concrete Math"
+    : family;
+}
+
 export function fontStacks(settings: {
   font?: string | null;
   mathFont?: string | null;
   codeFont?: string | null;
 }): { sans: string; mono: string; math: string } {
-  const text = settings.font?.trim();
-  const code = settings.codeFont?.trim() || text;
-  const math = settings.mathFont?.trim() || text;
+  const text = migratedTextFamily(settings.font?.trim() || "Iosevka Concrete Text");
+  const code = migratedCodeFamily(settings.codeFont?.trim() ?? null);
+  const math = migratedMathFamily(settings.mathFont?.trim() ?? null);
   const family = (value?: string) => (value ? cssFamily(value) : null);
   const join = (...parts: Array<string | null>) =>
     parts.filter((part): part is string => !!part).join(", ");
@@ -536,7 +558,7 @@ export function fontStacks(settings: {
   return {
     sans: join(family(text), "ui-sans-serif", "system-ui", "sans-serif"),
     mono: join(family(code), "ui-monospace", "SFMono-Regular", "Menlo", "monospace"),
-    math: join(family(math), family("New Computer Modern Math"), "serif"),
+    math: join(family(math), "serif"),
   };
 }
 
@@ -603,9 +625,9 @@ export function settingsFromSkin(
     uiSize: skin.geometry.size,
     uiDensity: skin.geometry.density,
     uiRadius: skin.geometry.radius,
-    font: skin.typography.font,
-    mathFont: skin.typography.mathFont,
-    codeFont: skin.typography.codeFont,
+    font: migratedTextFamily(skin.typography.font),
+    mathFont: migratedMathFamily(skin.typography.mathFont),
+    codeFont: migratedCodeFamily(skin.typography.codeFont),
     textSize: skin.typography.textSize,
     typography: {
       ligatures: skin.typography.ligatures,

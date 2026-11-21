@@ -16,6 +16,7 @@
     "packages:build": "moon run engine:build typing:build storage:build spaces:build plugin-sdk:build skin:build cli:build codemirror:build",
     "packages:dev": "moon run typing:build-dev storage:build-dev spaces:build-dev plugin-sdk:build-dev skin:build-dev cli:build-dev codemirror:build-dev",
     "check:packages": "node scripts/ci/check-packages.mjs",
+    "fonts:iosevka": "bash scripts/fonts/iosevka/build.sh",
     "preview": "moon run web:preview",
     "symbols": "node scripts/symbols/transform.mjs",
     "test:e2e": "pnpm --filter @typbase/web test:e2e",

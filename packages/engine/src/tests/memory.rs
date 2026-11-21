@@ -113,7 +113,7 @@ fn recovery_marks_do_not_accumulate() {
 
 #[test]
 fn duplicate_font_installs_are_ignored() {
-    let path = harness::fonts_dir().join("maple/MapleMono-Regular.ttf");
+    let path = harness::fonts_dir().join("code/IosevkaConcreteCode-Regular.ttf");
     let Ok(bytes) = std::fs::read(&path) else {
         eprintln!("skipping: bundled fonts missing");
         return;

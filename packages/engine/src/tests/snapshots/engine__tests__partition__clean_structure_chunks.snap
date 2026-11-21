@@ -9,10 +9,10 @@ expression: summarize(&render.chunks)
       31
     ],
     "items": 6,
-    "width": 55.2,
-    "height": 89.6,
+    "width": 48.42,
+    "height": 88.42,
     "x": 0.0,
-    "y": -1.28
+    "y": -1.87
   },
   {
     "range": [
@@ -20,10 +20,10 @@ expression: summarize(&render.chunks)
       56
     ],
     "items": 9,
-    "width": 46.8,
-    "height": 134.4,
+    "width": 44.88,
+    "height": 131.44,
     "x": 0.0,
-    "y": 105.6
+    "y": 102.94
   },
   {
     "range": [
@@ -31,32 +31,32 @@ expression: summarize(&render.chunks)
       63
     ],
     "items": 7,
-    "width": 26.24,
-    "height": 22.4,
-    "x": 18.8,
-    "y": 257.92
+    "width": 26.02,
+    "height": 21.81,
+    "x": 18.99,
+    "y": 251.7
   },
   {
     "range": [
       64,
       80
     ],
-    "items": 15,
-    "width": 72.16,
-    "height": 62.72,
+    "items": 19,
+    "width": 74.58,
+    "height": 61.54,
     "x": 17.6,
-    "y": 280.32
+    "y": 273.51
   },
   {
     "range": [
       82,
       88
     ],
-    "items": 15,
-    "width": 35.82,
-    "height": 22.4,
-    "x": 28.5,
-    "y": 343.04
+    "items": 11,
+    "width": 35.49,
+    "height": 21.81,
+    "x": 25.52,
+    "y": 335.05
   },
   {
     "range": [
@@ -64,10 +64,10 @@ expression: summarize(&render.chunks)
       95
     ],
     "items": 6,
-    "width": 35.82,
+    "width": 35.49,
     "height": 22.4,
-    "x": 28.5,
-    "y": 365.44
+    "x": 25.52,
+    "y": 356.86
   },
   {
     "range": [
@@ -75,10 +75,10 @@ expression: summarize(&render.chunks)
       106
     ],
     "items": 11,
-    "width": 8.32,
-    "height": 112.0,
+    "width": 8.98,
+    "height": 109.63,
     "x": 0.0,
-    "y": 405.76
+    "y": 396.58
   },
   {
     "range": [
@@ -86,10 +86,10 @@ expression: summarize(&render.chunks)
       116
     ],
     "items": 4,
-    "width": 15.28,
-    "height": 67.2,
-    "x": -0.16,
-    "y": 535.68
+    "width": 21.46,
+    "height": 66.02,
+    "x": 0.0,
+    "y": 523.54
   },
   {
     "range": [
@@ -97,10 +97,10 @@ expression: summarize(&render.chunks)
       126
     ],
     "items": 6,
-    "width": 8.59,
-    "height": 112.0,
+    "width": 8.14,
+    "height": 109.63,
     "x": 0.0,
-    "y": 620.8
+    "y": 606.89
   },
   {
     "range": [
@@ -108,9 +108,9 @@ expression: summarize(&render.chunks)
       232
     ],
     "items": 18,
-    "width": 35.1,
-    "height": 117.6,
+    "width": 35.53,
+    "height": 114.94,
     "x": 0.0,
-    "y": 750.88
+    "y": 734.08
   }
 ]

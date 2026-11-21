@@ -230,6 +230,14 @@
   font-weight: bold;
 }
 
+.typ-equation {
+  font-style: italic;
+}
+
+.typ-equation > * {
+  font-style: normal;
+}
+
 .typ-math-delim {
   color: var(--typst-color-text-secondary);
 }

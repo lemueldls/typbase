@@ -1,0 +1,384 @@
+[buildPlans.IosevkaConcreteCode]
+family = "Iosevka Concrete Code"
+spacing = "normal"
+serifs = "slab"
+noCvSs = true
+exportGlyphNames = false
+
+[buildPlans.IosevkaConcreteCode.weights.Regular]
+shape = 400
+menu = 400
+css = 400
+
+[buildPlans.IosevkaConcreteCode.weights.Bold]
+shape = 700
+menu = 700
+css = 700
+
+[buildPlans.IosevkaConcreteCode.slopes.Upright]
+angle = 0
+shape = "upright"
+menu = "upright"
+css = "normal"
+
+[buildPlans.IosevkaConcreteCode.slopes.Italic]
+angle = 9.4
+shape = "italic"
+menu = "italic"
+css = "italic"
+
+[buildPlans.IosevkaConcreteCode.widths.Normal]
+shape = 600
+menu = 5
+css = "normal"
+
+[buildPlans.IosevkaConcreteCode.variants.design]
+four = "closed-serifed"
+six = "open-contour"
+nine = "open-contour"
+zero = "unslashed"
+capital-e = "serifed-capped"
+capital-f = "serifed-capped"
+capital-r = "standing-serifed"
+capital-q = "closed-swash"
+capital-w = "straight-almost-flat-top-serifed"
+b = "toothed-motion-serifed"
+c = "unilateral-inward-serifed"
+g = "double-storey"
+k = "straight-full-serifed"
+m = "serifed"
+q = "straight-bottom-serifed"
+w = "straight-almost-flat-top-serifed"
+
+[buildPlans.IosevkaConcreteCode.variants.italic]
+capital-m = "flat-bottom-motion-serifed"
+capital-n = "standard-motion-serifed"
+capital-p = "closed-motion-serifed"
+capital-t = "motion-serifed"
+capital-u = "toothed-motion-serifed"
+capital-v = "straight-motion-serifed"
+capital-w = "straight-motion-serifed"
+b = "toothless-rounded-serifed"
+h = "tailed-motion-serifed"
+m = "tailed-top-left-serifed"
+n = "tailed-motion-serifed"
+p = "eared-serifed"
+u = "tailed-motion-serifed"
+v = "cursive-serifed"
+w = "rounded-vertical-sides-flat-top-motion-serifed"
+f = "flat-hook-tailed"
+g = "single-storey-serifless"
+i = "serifed-flat-tailed"
+l = "serifed-flat-tailed"
+t = "narrow-bent-hook"
+
+[buildPlans.IosevkaConcreteCode.metricOverride]
+xHeight = 458
+cap = 683
+ascender = 683
+leading = 1283
+
+[buildPlans.IosevkaConcreteCode.ligations]
+inherits = "default-calt"
+disables = [
+  "brst",
+  "slash-asterisk",
+  "html-comment",
+  "ltgt-ne",
+  "ltgt-diamond",
+  "ltgt-diamond-tag",
+  "ltgt-slash-tag",
+  "trig",
+  "markdown-checkboxes",
+  "hash-hash",
+  "hash-hash-hash",
+  "underscore-underscore",
+  "underscore-underscore-underscore",
+  "tilde-tilde",
+  "tilde-tilde-tilde",
+  "minus-minus",
+  "minus-minus-minus",
+  "plus-plus",
+  "plus-plus-plus",
+  "colon-greater-as-colon-arrow",
+  "logic",
+]
+
+# Latin, Greek, Cyrillic, Vietnamese, punctuation, currency, letterlike,
+# arrows, math, box drawing, blocks, geometric shapes, symbols, dingbats,
+# braille, and Powerline. Rare scripts and CJK stay out.
+[buildPlans.IosevkaConcreteCode.subset.include]
+ranges = [
+  [
+    32,
+    126,
+  ],
+  [
+    160,
+    255,
+  ],
+  [
+    256,
+    591,
+  ],
+  [
+    880,
+    1023,
+  ],
+  [
+    1024,
+    1327,
+  ],
+  [
+    7680,
+    7935,
+  ],
+  [
+    8192,
+    8303,
+  ],
+  [
+    8304,
+    8351,
+  ],
+  [
+    8352,
+    8399,
+  ],
+  [
+    8448,
+    8527,
+  ],
+  [
+    8528,
+    8591,
+  ],
+  [
+    8592,
+    8703,
+  ],
+  [
+    8704,
+    8959,
+  ],
+  [
+    8960,
+    9215,
+  ],
+  [
+    9472,
+    9599,
+  ],
+  [
+    9600,
+    9631,
+  ],
+  [
+    9632,
+    9727,
+  ],
+  [
+    9728,
+    9983,
+  ],
+  [
+    9984,
+    10175,
+  ],
+  [
+    10176,
+    10239,
+  ],
+  [
+    10240,
+    10271,
+  ],
+  [
+    10272,
+    10495,
+  ],
+  [
+    10496,
+    10623,
+  ],
+  [
+    10624,
+    10751,
+  ],
+  [
+    10752,
+    11007,
+  ],
+  [
+    11008,
+    11263,
+  ],
+  [
+    11776,
+    11903,
+  ],
+  [
+    57504,
+    57599,
+  ],
+]
+
+[buildPlans.IosevkaConcreteText]
+family = "Iosevka Concrete Text"
+spacing = "quasi-proportional"
+serifs = "slab"
+noLigation = true
+noCvSs = true
+exportGlyphNames = false
+
+[buildPlans.IosevkaConcreteText.weights.Regular]
+shape = 400
+menu = 400
+css = 400
+
+[buildPlans.IosevkaConcreteText.weights.Bold]
+shape = 700
+menu = 700
+css = 700
+
+[buildPlans.IosevkaConcreteText.slopes.Upright]
+angle = 0
+shape = "upright"
+menu = "upright"
+css = "normal"
+
+[buildPlans.IosevkaConcreteText.slopes.Italic]
+angle = 9.4
+shape = "italic"
+menu = "italic"
+css = "italic"
+
+[buildPlans.IosevkaConcreteText.widths.Normal]
+shape = 600
+menu = 5
+css = "normal"
+
+[buildPlans.IosevkaConcreteText.variants]
+inherits = "buildPlans.IosevkaConcreteCode"
+
+[buildPlans.IosevkaConcreteText.metricOverride]
+xHeight = 458
+cap = 683
+ascender = 683
+leading = 1283
+
+[buildPlans.IosevkaConcreteText.subset.include]
+ranges = [
+  [
+    32,
+    126,
+  ],
+  [
+    160,
+    255,
+  ],
+  [
+    256,
+    591,
+  ],
+  [
+    880,
+    1023,
+  ],
+  [
+    1024,
+    1327,
+  ],
+  [
+    7680,
+    7935,
+  ],
+  [
+    8192,
+    8303,
+  ],
+  [
+    8304,
+    8351,
+  ],
+  [
+    8352,
+    8399,
+  ],
+  [
+    8448,
+    8527,
+  ],
+  [
+    8528,
+    8591,
+  ],
+  [
+    8592,
+    8703,
+  ],
+  [
+    8704,
+    8959,
+  ],
+  [
+    8960,
+    9215,
+  ],
+  [
+    9472,
+    9599,
+  ],
+  [
+    9600,
+    9631,
+  ],
+  [
+    9632,
+    9727,
+  ],
+  [
+    9728,
+    9983,
+  ],
+  [
+    9984,
+    10175,
+  ],
+  [
+    10176,
+    10239,
+  ],
+  [
+    10240,
+    10271,
+  ],
+  [
+    10272,
+    10495,
+  ],
+  [
+    10496,
+    10623,
+  ],
+  [
+    10624,
+    10751,
+  ],
+  [
+    10752,
+    11007,
+  ],
+  [
+    11008,
+    11263,
+  ],
+  [
+    11776,
+    11903,
+  ],
+  [
+    57504,
+    57599,
+  ],
+]

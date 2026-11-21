@@ -720,6 +720,35 @@ export class WorkspaceStore {
       map.get("customFonts"),
     );
     settings.customFonts = Array.isArray(customFonts) ? customFonts : [];
+
+    // The bundled Maple Mono, New Computer Modern Math, and CMU Concrete
+    // families were removed. Existing workspaces keep their old family names,
+    // so point them at the replacements. A custom upload with the same family
+    // is the user's own face; leave that alone.
+    const customFamilies = new Set(settings.customFonts.map((font) => font.family));
+    if (
+      settings.font === "CMU Concrete" ||
+      (settings.font === "Maple Mono" && !customFamilies.has("Maple Mono"))
+    ) {
+      settings.font = "Iosevka Concrete Text";
+    }
+    if (settings.font === "Iosevka Concrete" && !customFamilies.has("Iosevka Concrete")) {
+      settings.font = "Iosevka Concrete Code";
+    }
+    if (
+      settings.codeFont === null ||
+      settings.codeFont === "CMU Concrete" ||
+      settings.codeFont === "Iosevka Concrete" ||
+      (settings.codeFont === "Maple Mono" && !customFamilies.has("Maple Mono"))
+    ) {
+      settings.codeFont = "Iosevka Concrete Code";
+    }
+    if (
+      settings.mathFont === "New Computer Modern Math" &&
+      !customFamilies.has("New Computer Modern Math")
+    ) {
+      settings.mathFont = "Concrete Math";
+    }
     const themeName = map.get("themeName");
     settings.themeName = typeof themeName === "string" ? themeName : DEFAULT_SETTINGS.themeName;
     const themeCustom = decodeSetting<unknown>(map.get("themeCustom"));

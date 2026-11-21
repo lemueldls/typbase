@@ -19,7 +19,7 @@ export interface SocialCardInput {
   eyebrow?: string;
   host: string;
   footerRight?: string;
-  /** Font family used for the card. Defaults to the bundled Maple Mono. */
+  /** Font family used for the card. Defaults to the bundled Iosevka Concrete Text. */
   fontFamily?: string;
   palette: SocialPalette;
   /** A data URI for the app mark. The letter fallback is used when absent. */
@@ -30,7 +30,7 @@ export interface SocialCardInput {
 
 export function socialCardHtml(input: SocialCardInput): string {
   const palette = input.palette;
-  const fontFamily = cssFamily(input.fontFamily || "Maple Mono");
+  const fontFamily = cssFamily(input.fontFamily || "Iosevka Concrete Text");
   const icon = input.iconGlyph
     ? `<span class="mark-glyph">${escapeHtml(input.iconGlyph)}</span>`
     : input.icon

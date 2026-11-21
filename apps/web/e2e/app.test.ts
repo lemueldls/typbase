@@ -99,6 +99,108 @@ describe("typbase app", async () => {
     await setAppBar(page, false);
   }
 
+  /**
+   * Opens a page whose first paragraph has tall inline math and checks that
+   * entering it keeps the prose baseline and the following block where the
+   * render had them. With `font`, the workspace text face switches first and
+   * the same check runs against the recompiled frame.
+   */
+  async function checkInlineMathBaseline(font?: string): Promise<void> {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: font ? `Inline math ${font}` : "Inline math stability",
+      content: "A $x^2 + y^2 = z^2$ inline.\n\nAfter.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
+      timeout: 60_000,
+    });
+
+    if (font) {
+      const previousHash = await page.evaluate(
+        () => document.querySelector<HTMLElement>(".typst-render")!.dataset.hash,
+      );
+
+      await page.evaluate((requested) => {
+        const store = window.__typbase.store!;
+        const current = store.getSettings().font;
+
+        store.updateSettings({
+          font: current === requested ? "Iosevka Concrete Text" : requested,
+        });
+      }, font);
+
+      await page.waitForFunction(
+        (hash) => document.querySelector<HTMLElement>(".typst-render")?.dataset.hash !== hash,
+        previousHash,
+        { timeout: 60_000 },
+      );
+    }
+
+    await page.waitForTimeout(800);
+
+    const rendered = await page.evaluate(() => {
+      const widgets = document.querySelectorAll(".typst-render");
+      const widget = widgets[0]!;
+      const rect = widget.getBoundingClientRect();
+      const svg = widget.querySelector("svg")!;
+      const baselines = [...svg.querySelectorAll("g[transform]")].map((group) => {
+        const match = group.getAttribute("transform")!.match(/matrix\(1 0 0 -1 [\d.]+ ([\d.]+)\)/);
+
+        return match ? Number(match[1]) : 0;
+      });
+
+      return {
+        top: rect.top,
+        baseline: Math.max(...baselines),
+        nextTop: widgets[1]!.getBoundingClientRect().top,
+      };
+    });
+
+    const target = await page.evaluate(() => {
+      const widget = document.querySelector(".typst-render")!;
+      const rect = widget.getBoundingClientRect();
+
+      return { x: rect.left + 5, y: rect.top + rect.height / 2 };
+    });
+    await page.mouse.click(target.x, target.y);
+    await page.waitForTimeout(500);
+
+    const source = await page.evaluate(() => {
+      const line = [...document.querySelectorAll(".cm-line")].find((element) =>
+        element.textContent.startsWith("A "),
+      )!;
+      const rect = line.getBoundingClientRect();
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+      line.append(probe);
+      const baseline = probe.getBoundingClientRect().top - rect.top;
+      probe.remove();
+      const next = [...document.querySelectorAll(".typst-render")].at(-1)!;
+
+      return {
+        top: rect.top,
+        baseline,
+        paddingTop: getComputedStyle(line).paddingTop,
+        nextTop: next.getBoundingClientRect().top,
+      };
+    });
+
+    expect(Number.parseFloat(source.paddingTop)).toBeGreaterThan(0.5);
+    // The block's top and the text's baseline both stay where the render had
+    // them; only the source's natural line box differs.
+    expect(Math.abs(source.top - rendered.top)).toBeLessThan(0.5);
+    expect(
+      Math.abs(source.top + source.baseline - (rendered.top + rendered.baseline)),
+    ).toBeLessThan(1);
+    // Padding the first line must not push the next block down.
+    expect(Math.abs(source.nextTop - rendered.nextTop)).toBeLessThan(0.5);
+    await page.close();
+  }
+
   it("boots into a workspace with an editor", async () => {
     const page = await createPage();
     await openApp(page);
@@ -1463,79 +1565,12 @@ describe("typbase app", async () => {
   // used to start at the crop top, so the text hopped up by the difference
   // when the block opened for editing. `textTop` carries that gap to the
   // editor, which pads the first source line by it.
-  it("keeps inline math text on its rendered baseline", async () => {
-    const page = await createPage();
-    await openApp(page);
+  it("keeps inline math text on its rendered baseline", () => checkInlineMathBaseline());
 
-    const id = await createTestPage(page, {
-      title: "Inline math stability",
-      content: "A $x^2 + y^2 = z^2$ inline.\n\nAfter.\n",
-    });
-    await showPage(page, id, "write");
-
-    await page.waitForFunction(() => document.querySelectorAll(".typst-render").length >= 2, null, {
-      timeout: 60_000,
-    });
-    await page.waitForTimeout(800);
-
-    const rendered = await page.evaluate(() => {
-      const widgets = document.querySelectorAll(".typst-render");
-      const widget = widgets[0]!;
-      const rect = widget.getBoundingClientRect();
-      const svg = widget.querySelector("svg")!;
-      const baselines = [...svg.querySelectorAll("g[transform]")].map((group) => {
-        const match = group.getAttribute("transform")!.match(/matrix\(1 0 0 -1 [\d.]+ ([\d.]+)\)/);
-
-        return match ? Number(match[1]) : 0;
-      });
-
-      return {
-        top: rect.top,
-        baseline: Math.max(...baselines),
-        nextTop: widgets[1]!.getBoundingClientRect().top,
-      };
-    });
-
-    const target = await page.evaluate(() => {
-      const widget = document.querySelector(".typst-render")!;
-      const rect = widget.getBoundingClientRect();
-
-      return { x: rect.left + 5, y: rect.top + rect.height / 2 };
-    });
-    await page.mouse.click(target.x, target.y);
-    await page.waitForTimeout(500);
-
-    const source = await page.evaluate(() => {
-      const line = [...document.querySelectorAll(".cm-line")].find((element) =>
-        element.textContent.startsWith("A "),
-      )!;
-      const rect = line.getBoundingClientRect();
-      const probe = document.createElement("span");
-      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
-      line.append(probe);
-      const baseline = probe.getBoundingClientRect().top - rect.top;
-      probe.remove();
-      const next = [...document.querySelectorAll(".typst-render")].at(-1)!;
-
-      return {
-        top: rect.top,
-        baseline,
-        paddingTop: getComputedStyle(line).paddingTop,
-        nextTop: next.getBoundingClientRect().top,
-      };
-    });
-
-    expect(Number.parseFloat(source.paddingTop)).toBeGreaterThan(0.5);
-    // The block's top and the text's baseline both stay where the render had
-    // them; only the source's natural line box differs.
-    expect(Math.abs(source.top - rendered.top)).toBeLessThan(0.5);
-    expect(
-      Math.abs(source.top + source.baseline - (rendered.top + rendered.baseline)),
-    ).toBeLessThan(1);
-    // Padding the first line must not push the next block down.
-    expect(Math.abs(source.nextTop - rendered.nextTop)).toBeLessThan(0.5);
-    await page.close();
-  });
+  // The crop uses the configured font's metrics, so the same check has to
+  // hold after the workspace font changes and the frame recompiles.
+  it("keeps inline math text on its rendered baseline after a font change", () =>
+    checkInlineMathBaseline("Iosevka Concrete Code"));
 
   // A completion query reads the engine's synth source, which used to be
   // rebuilt only as a side effect of a render. Write mode renders in a

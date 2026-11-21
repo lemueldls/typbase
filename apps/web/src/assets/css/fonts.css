@@ -11,33 +11,81 @@ html:not(.icons-ready) .cm-completionIcon::after {
 }
 
 @font-face {
-  font-family: "Maple Mono";
-  src: url("~~/public/fonts/maple/MapleMono-Regular.ttf") format("truetype");
-  font-weight: normal;
+  font-family: "Iosevka Concrete Code";
+  src: url("~~/public/fonts/code/IosevkaConcreteCode-Regular.ttf") format("truetype");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Maple Mono";
-  src: url("~~/public/fonts/maple/MapleMono-Bold.ttf") format("truetype");
-  font-weight: bold;
+  font-family: "Iosevka Concrete Code";
+  src: url("~~/public/fonts/code/IosevkaConcreteCode-Bold.ttf") format("truetype");
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Maple Mono";
-  src: url("~~/public/fonts/maple/MapleMono-Italic.ttf") format("truetype");
-  font-weight: normal;
+  font-family: "Iosevka Concrete Code";
+  src: url("~~/public/fonts/code/IosevkaConcreteCode-Italic.ttf") format("truetype");
+  font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Maple Mono";
-  src: url("~~/public/fonts/maple/MapleMono-BoldItalic.ttf") format("truetype");
-  font-weight: bold;
+  font-family: "Iosevka Concrete Code";
+  src: url("~~/public/fonts/code/IosevkaConcreteCode-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
   font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iosevka Concrete Text";
+  src: url("~~/public/fonts/text/IosevkaConcreteText-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iosevka Concrete Text";
+  src: url("~~/public/fonts/text/IosevkaConcreteText-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iosevka Concrete Text";
+  src: url("~~/public/fonts/text/IosevkaConcreteText-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iosevka Concrete Text";
+  src: url("~~/public/fonts/text/IosevkaConcreteText-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Concrete Math";
+  src: url("~~/public/fonts/math/ConcreteMath-Regular.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Concrete Math";
+  src: url("~~/public/fonts/math/ConcreteMath-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
   font-display: swap;
 }

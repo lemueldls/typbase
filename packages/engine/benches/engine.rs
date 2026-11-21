@@ -27,10 +27,11 @@ use tar::{Builder, EntryType, Header};
 use typst_syntax::parse as parse_typst;
 
 const FONTS: &[&str] = &[
-    "maple/MapleMono-Regular.ttf",
-    "maple/MapleMono-Bold.ttf",
-    "maple/MapleMono-Italic.ttf",
-    "math/NewCMMath-Regular.otf",
+    "text/IosevkaConcreteText-Regular.ttf",
+    "text/IosevkaConcreteText-Bold.ttf",
+    "text/IosevkaConcreteText-Italic.ttf",
+    "code/IosevkaConcreteCode-Regular.ttf",
+    "math/ConcreteMath-Regular.otf",
 ];
 
 const PLAIN: &str =

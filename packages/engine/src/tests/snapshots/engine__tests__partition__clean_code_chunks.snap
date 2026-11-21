@@ -9,10 +9,10 @@ expression: summarize(&render.chunks)
       112
     ],
     "items": 7,
-    "width": 133.63,
-    "height": 89.6,
+    "width": 126.18,
+    "height": 88.42,
     "x": 0.0,
-    "y": -1.28
+    "y": -1.87
   },
   {
     "range": [
@@ -20,10 +20,10 @@ expression: summarize(&render.chunks)
       146
     ],
     "items": 5,
-    "width": 54.22,
-    "height": 89.6,
+    "width": 52.32,
+    "height": 87.82,
     "x": 0.0,
-    "y": 105.6
+    "y": 102.94
   },
   {
     "range": [
@@ -31,10 +31,10 @@ expression: summarize(&render.chunks)
       173
     ],
     "items": 2,
-    "width": 27.52,
+    "width": 27.28,
     "height": 22.4,
     "x": 0.0,
-    "y": 213.12
+    "y": 208.09
   },
   {
     "range": [
@@ -42,9 +42,9 @@ expression: summarize(&render.chunks)
       199
     ],
     "items": 4,
-    "width": 8.59,
-    "height": 67.2,
+    "width": 8.21,
+    "height": 66.02,
     "x": 0.0,
-    "y": 253.44
+    "y": 247.82
   }
 ]

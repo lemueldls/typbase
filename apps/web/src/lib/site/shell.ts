@@ -207,9 +207,9 @@ export function siteStyles(input: {
         `@font-face{font-family:"${face.family.replace(/"/g, '\\"')}";src:url("../${face.file}") format("${face.file.endsWith(".otf") ? "opentype" : "truetype"}");font-weight:${face.weight};font-style:${face.style};font-display:swap;}`,
     )
     .join("\n");
-  const textFont = settings.font || "Maple Mono";
-  const codeFont = settings.codeFont || settings.font || "Maple Mono";
-  const mathFont = settings.mathFont || "New Computer Modern Math";
+  const textFont = settings.font || "Iosevka Concrete Text";
+  const codeFont = settings.codeFont || "Iosevka Concrete Code";
+  const mathFont = settings.mathFont || "Concrete Math";
   const iconFont = input.site.showIcons
     ? `@font-face{font-family:"Material Symbols Rounded";src:url("../fonts/MaterialSymbolsRounded.woff2") format("woff2");font-weight:100 700;font-style:normal;font-display:block;}`
     : "";
