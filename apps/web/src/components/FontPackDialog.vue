@@ -148,7 +148,7 @@ async function remove(pack: FontPack): Promise<void> {
 </template>
 
 <style>
-.font-packs {
+.dialog.font-packs {
   width: min(34rem, calc(100vw - var(--space-8)));
 }
 

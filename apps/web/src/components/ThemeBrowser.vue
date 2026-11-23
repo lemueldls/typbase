@@ -513,7 +513,7 @@ async function reconnect(): Promise<void> {
 </template>
 
 <style>
-.theme-browser-dialog {
+.dialog.theme-browser-dialog {
   width: min(70rem, calc(100vw - var(--space-8)));
   max-height: min(56rem, calc(100dvh - var(--space-10)));
 }

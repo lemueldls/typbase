@@ -75,6 +75,8 @@ const contentAttrs = computed(() => ({
   background: var(--color-overlay);
 }
 
+/* Variants change the box with `.dialog.<variant>`: CSS chunks can load in any
+   order, so an equal-specificity class would lose to this rule. */
 .dialog {
   position: fixed;
   top: 50%;

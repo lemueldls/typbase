@@ -1974,7 +1974,7 @@ async function renameWorkspace(event: Event) {
 
 <style>
 /* Roomy dialog with a section rail instead of a popover. */
-.settings-dialog {
+.dialog.settings-dialog {
   display: flex;
   flex-direction: column;
   width: min(62rem, calc(100vw - var(--space-8)));
@@ -2005,7 +2005,7 @@ async function renameWorkspace(event: Event) {
 }
 
 @media (max-width: 48rem) {
-  .settings-dialog {
+  .dialog.settings-dialog {
     width: calc(100vw - var(--space-8) - var(--safe-left) - var(--safe-right));
     height: calc(100dvh - var(--space-16) - var(--safe-top) - var(--safe-bottom));
     padding: var(--space-4);

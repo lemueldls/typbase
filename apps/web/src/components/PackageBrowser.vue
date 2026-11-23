@@ -437,7 +437,7 @@ function openRepository(entry: PackageEntry) {
 
 <style>
 /* Wide enough for the list and the per-row actions. */
-.package-dialog {
+.dialog.package-dialog {
   width: min(760px, calc(100vw - var(--space-8)));
   /* The list, the skeleton, and the empty and error states all reserve the same
      height, so switching between them does not resize the dialog. */

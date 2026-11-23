@@ -41,7 +41,7 @@ const groups = computed<Array<{ id: string; title: string; items: KeyboardShortc
 </template>
 
 <style>
-.shortcuts-dialog {
+.dialog.shortcuts-dialog {
   width: min(44rem, calc(100vw - var(--space-8)));
 }
 

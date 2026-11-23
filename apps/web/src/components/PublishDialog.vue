@@ -228,7 +228,7 @@ watch(
 
 <style>
 /* Wide enough for the tag fields without filling a phone screen. */
-.publish-dialog {
+.dialog.publish-dialog {
   width: min(30rem, calc(100vw - var(--space-8)));
 }
 

@@ -677,7 +677,7 @@ function ago(timestamp: number): string {
 </template>
 
 <style>
-.account-dialog {
+.dialog.account-dialog {
   width: min(560px, calc(100vw - var(--space-8)));
   max-height: calc(100dvh - var(--space-12) - var(--safe-top) - var(--safe-bottom));
 }
@@ -1159,7 +1159,7 @@ function ago(timestamp: number): string {
 }
 
 @media (max-width: 40rem) {
-  .account-dialog {
+  .dialog.account-dialog {
     width: calc(100vw - var(--space-4));
     max-height: calc(100dvh - var(--space-8) - var(--safe-top) - var(--safe-bottom));
   }

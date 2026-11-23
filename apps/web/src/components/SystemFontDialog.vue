@@ -155,7 +155,7 @@ async function addSelected(): Promise<void> {
 </template>
 
 <style>
-.system-fonts-dialog {
+.dialog.system-fonts-dialog {
   width: min(38rem, calc(100vw - var(--space-8)));
 }
 

@@ -172,7 +172,7 @@ function openInstanceById(instanceId: string): void {
   border-radius: var(--radius-full);
 }
 
-.plugin-sidebar__dialog {
+.dialog.plugin-sidebar__dialog {
   width: min(44rem, 92vw);
   max-height: 82vh;
   overflow-y: auto;

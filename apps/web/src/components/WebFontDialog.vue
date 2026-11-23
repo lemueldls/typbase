@@ -329,7 +329,7 @@ async function addSelected(): Promise<void> {
 </template>
 
 <style>
-.web-fonts-dialog {
+.dialog.web-fonts-dialog {
   width: min(56rem, calc(100vw - var(--space-8)));
 }
 

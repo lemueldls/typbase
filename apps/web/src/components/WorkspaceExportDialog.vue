@@ -29,7 +29,7 @@ const open = defineModel<boolean>("open", { default: false });
 </template>
 
 <style>
-.workspace-export-dialog {
+.dialog.workspace-export-dialog {
   width: min(760px, calc(100vw - var(--space-8)));
 }
 </style>
