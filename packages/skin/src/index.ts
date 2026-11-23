@@ -20,6 +20,7 @@ export {
   backdropFor,
   canonicalJson,
   fontStacks,
+  paletteCssVars,
   parseSkin,
   parseThemeFile,
   settingsFromSkin,

@@ -118,8 +118,10 @@
   --color-text-secondary: #66716f;
   --color-accent: #1f6f6b;
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  --color-on-accent: #f9f9f8;
   --color-danger: #b3443e;
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
+  --color-on-danger: #f9f9f8;
   --color-ok: #3f704e;
   --color-ok-soft: color-mix(in srgb, var(--color-ok) 12%, var(--color-surface));
   --color-warning: #85600e;
@@ -151,8 +153,10 @@
   --color-text-secondary: #a0a8a5;
   --color-accent: #7fc4bc;
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  --color-on-accent: #18191a;
   --color-danger: #e28f87;
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
+  --color-on-danger: #18191a;
   --color-ok: #a3c794;
   --color-ok-soft: color-mix(in srgb, var(--color-ok) 12%, var(--color-surface));
   --color-warning: #d8b46b;

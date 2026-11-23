@@ -10,7 +10,13 @@ import type {
 } from "@typbase/typing";
 
 import { ThemeColors } from "@typbase/engine";
-import { backdropFor, fontStacks, themeCssVar, uiScale as skinUiScale } from "@typbase/skin";
+import {
+  backdropFor,
+  fontStacks,
+  paletteCssVars,
+  themeCssVar,
+  uiScale as skinUiScale,
+} from "@typbase/skin";
 
 import { expandSeeds, normalizeCssColor } from "./palette";
 import { themeColorsFromPalette } from "./rendererPalette";
@@ -546,14 +552,10 @@ export function themeCssVars(
   resolved: ResolvedTheme,
   settings?: AppChromeSettings,
 ): Record<string, string> {
-  const vars: Record<string, string> = {};
-
   // Token keys are camelCase (`surface2`). The stylesheets read kebab-case
   // (`--color-surface-2`). Without the conversion the multiword tokens never
   // reached the DOM and themes fell back to the default palette.
-  for (const [token, value] of Object.entries(resolved.palette)) {
-    vars[themeCssVar(token)] = value;
-  }
+  const vars = paletteCssVars(resolved.palette);
 
   // The chrome follows the workspace's text/math/code fonts.
   if (settings?.font) {

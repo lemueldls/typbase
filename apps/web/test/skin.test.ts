@@ -113,7 +113,18 @@ describe("skin schema", () => {
     expect(vars["--color-surface"]).toBe("#ffffff");
     expect(vars["--ui-density"]).toBe("1");
     expect(vars["--color-backdrop"]).toBe("#dddddd");
+    // A mid-gray solid is past the AA threshold for white, so black wins.
+    expect(vars["--color-on-accent"]).toBe("#000000");
+    expect(vars["--color-on-danger"]).toBe("#000000");
     expect(vars["--font-sans"]).toContain("Iosevka Concrete Text");
+  });
+
+  it("uses the page background for on-colors when it has enough contrast", () => {
+    const skin = fixtureSkin();
+    skin.palette.dark.danger = "#e28f87";
+
+    const vars = skinToCssVars(skin, "dark");
+    expect(vars["--color-on-danger"]).toBe("#111111");
   });
 
   it("derives a backdrop for skins written before the token", () => {

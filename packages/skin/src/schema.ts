@@ -15,6 +15,7 @@ import {
   mixHex,
   normalizeCssColor,
   parseColor,
+  readableOn,
   relativeLuminance,
 } from "./color";
 
@@ -566,6 +567,23 @@ export function themeCssVar(token: string): string {
   return `--color-${token.replace(/([a-z])([A-Z0-9])/g, "$1-$2").toLowerCase()}`;
 }
 
+/**
+ * `--color-*` custom properties for a palette. `on-accent` and `on-danger` are
+ * derived, not authored: text that reads on each solid fill. The renderer
+ * derives the same pair in `paletteSlots`.
+ */
+export function paletteCssVars(palette: ThemePaletteTokens): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const [token, value] of Object.entries(palette)) {
+    vars[themeCssVar(token)] = value;
+  }
+
+  vars[themeCssVar("onAccent")] = readableOn(palette.accent, palette.surface);
+  vars[themeCssVar("onDanger")] = readableOn(palette.danger, palette.surface);
+
+  return vars;
+}
+
 function fontFeatureSettings(typography: SkinTypography): string {
   const features: string[] = [];
   if (!typography.ligatures) features.push('"liga" 0', '"clig" 0');
@@ -593,11 +611,7 @@ export function backdropFor(
  * preview, and external preview tools read the same map.
  */
 export function skinToCssVars(skin: Skin, mode: "light" | "dark"): Record<string, string> {
-  const palette = skin.palette[mode];
-  const vars: Record<string, string> = {};
-  for (const [token, value] of Object.entries(palette)) {
-    vars[themeCssVar(token)] = value;
-  }
+  const vars = paletteCssVars(skin.palette[mode]);
 
   const stacks = fontStacks(skin.typography);
   vars["--font-sans"] = stacks.sans;

@@ -127,11 +127,16 @@ export function contrastRatio(foreground: string, background: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-/** Prefer the background as "on <color>" text when it reads well. */
+/**
+ * Text color for a solid fill.
+ */
 export function readableOn(accent: string, background: string): string {
-  const luminance = relativeLuminance(parseColor(accent));
+  const page = normalizeCssColor(background);
+  if (contrastRatio(page, accent) >= 4.5) return page;
 
-  return luminance > 0.45 ? normalizeCssColor(background) : "#ffffff";
+  return contrastRatio("#ffffff", accent) >= contrastRatio("#000000", accent)
+    ? "#ffffff"
+    : "#000000";
 }
 
 /** Swatches a theme card or registry page can render without extra data. */
