@@ -464,19 +464,20 @@ export class AtprotoService {
 
     if (!this.isCurrentAttach(session, epoch)) return;
 
-    let shared: ReturnType<typeof openSharedWorkspaceSpace> | null = openSharedWorkspaceSpace({
-      session,
-      ref: {
-        uri: this.spaceUriValue,
-        ownerDid,
-        skey,
-      },
-    });
+    let shared: Awaited<ReturnType<typeof openSharedWorkspaceSpace>> | null =
+      await openSharedWorkspaceSpace({
+        session,
+        ref: {
+          uri: this.spaceUriValue,
+          ownerDid,
+          skey,
+        },
+      });
 
     try {
       // A space credential is the only read path a non-owner has. Use it once
       // during attach so a broken invite fails before sync starts.
-      await shared.listWriters({ limit: 1 });
+      await shared.reader.listWriters({ limit: 1 });
     } catch (error) {
       if (!this.isCurrentAttach(session, epoch)) return;
       if (!ownSpace) {
@@ -546,7 +547,7 @@ export class AtprotoService {
 
   private async startSync(
     airspace: WorkspaceClient,
-    shared: ReturnType<typeof openSharedWorkspaceSpace> | null,
+    shared: Awaited<ReturnType<typeof openSharedWorkspaceSpace>> | null,
     session: OAuthSession,
     epoch: number,
     ownSpace: boolean,
@@ -707,10 +708,10 @@ export class AtprotoService {
   private startAssetSync(
     airspace: WorkspaceClient,
     session: OAuthSession,
-    shared: ReturnType<typeof openSharedWorkspaceSpace> | null,
+    shared: Awaited<ReturnType<typeof openSharedWorkspaceSpace>> | null,
   ): void {
     this.assetSync?.stop();
-    const own = createAssetRemote(airspace, session);
+    const own = createAssetRemote(shared?.client ?? airspace, session);
     this.assetSync = new AssetSync(
       createAssetHost(this.store),
       shared ? createSharedAssetRemote(shared, own) : own,
@@ -1023,9 +1024,9 @@ export class AtprotoService {
       throw new Error(`Space lookup failed (${response.status})`);
     }
 
-    const shared = openSharedWorkspaceSpace({ session, ref });
+    const shared = await openSharedWorkspaceSpace({ session, ref });
     try {
-      await shared.listWriters({ limit: 1 });
+      await shared.reader.listWriters({ limit: 1 });
 
       return true;
     } catch {

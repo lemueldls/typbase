@@ -1,17 +1,15 @@
 import type { DidString, NsidString, RecordKeyString } from "@atproto/lex-schema";
-import type { SpaceRefString } from "@atproto/lex-space";
 import type { OAuthSession } from "@atproto/oauth-client-browser";
 import type { WorkspaceInvite, WorkspaceSpaceRef } from "@typbase/typing";
+import type { SpaceReader } from "airspace";
 
 import { createDidResolver } from "@atproto-labs/did-resolver";
-import { buildAgent } from "@atproto/lex-client";
-import { l } from "@atproto/lex-schema";
-import { SpaceClient } from "@atproto/lex-space";
 import { SpaceRef } from "@atproto/syntax";
 
+import type { WorkspaceClient, WorkspaceSpace } from "./client";
 import type { SyncSnapshot, SyncTransport, SyncUpdate } from "./sync";
 
-import { WORKSPACE_SPACE_TYPE } from "./client";
+import { createAirspaceTransport, createWorkspaceClient, WORKSPACE_SPACE_TYPE } from "./client";
 import { collections } from "./collections";
 
 export type { WorkspaceSpaceRef };
@@ -50,12 +48,13 @@ export function parseWorkspaceSpaceRef(uri: string): WorkspaceSpaceRef | null {
 
 /** Reads raw update and snapshot records from every active writer. */
 export function createSharedTransport(space: SharedWorkspaceSpace): SyncTransport {
+  const own = createAirspaceTransport(space.own);
   const list = async (
     repo: string,
     collection: NsidString,
     cursor: string | null,
   ): Promise<{ records: Array<{ rkey: string; value: unknown }>; cursor: string | null }> => {
-    const page = await space.listRecords({
+    const page = await space.reader.listRecords({
       repo: repo as DidString,
       collection,
       limit: 100,
@@ -124,7 +123,7 @@ export function createSharedTransport(space: SharedWorkspaceSpace): SyncTranspor
   return {
     async listRepos() {
       const repos = new Set<string>();
-      for await (const writer of space.writers()) {
+      for await (const writer of space.reader.writers()) {
         if (!("repoRev" in writer)) continue;
         repos.add(writer.repo);
       }
@@ -133,66 +132,22 @@ export function createSharedTransport(space: SharedWorkspaceSpace): SyncTranspor
     },
     listUpdates,
     listSnapshots,
-    async createUpdate(record) {
-      const response = await space.createRecord({
-        $type: collections.update.nsid,
-        docId: record.docId,
-        update: record.update,
-        version: record.version,
-        createdAt: record.createdAt,
-      });
-
-      return response.body.uri.split("/").pop()!;
-    },
-    async createSnapshot(record) {
-      const response = await space.createRecord({
-        $type: collections.snapshot.nsid,
-        docId: record.docId,
-        snapshot: record.snapshot,
-        version: record.version,
-        createdAt: record.createdAt,
-      });
-
-      return response.body.uri.split("/").pop()!;
-    },
-    async deleteUpdates(rkeys) {
-      for (const rkey of rkeys) await space.deleteRecord(collections.update.nsid, rkey);
-    },
-    async deleteSnapshots(rkeys) {
-      for (const rkey of rkeys) await space.deleteRecord(collections.snapshot.nsid, rkey);
-    },
+    createUpdate: own.createUpdate,
+    createSnapshot: own.createSnapshot,
+    deleteUpdates: own.deleteUpdates,
+    deleteSnapshots: own.deleteSnapshots,
   };
 }
 
-/**
- * The workspace collections as a lex-schema space. The credential client uses
- * them for routing and does not validate records; callers validate with the
- * airspace collections.
- */
-const workspaceSpaceSchema = l.space("any", WORKSPACE_SPACE_TYPE, [
-  collections.update.nsid,
-  collections.snapshot.nsid,
-  collections.post.nsid,
-  collections.asset.nsid,
-]);
-
-/** The raw cross-repo methods of a space client. Typed collection helpers are left out. */
-export type SharedWorkspaceSpace = Pick<
-  SpaceClient,
-  | "uri"
-  | "listWriters"
-  | "writers"
-  | "listRecords"
-  | "getRecord"
-  | "getLatestCommit"
-  | "listRepoOps"
-  | "getRepo"
-  | "createRecord"
-  | "putRecord"
-  | "deleteRecord"
-  | "listBlobs"
-  | "getBlob"
->;
+/** A shared space's reader and the signed-in member's own repo in it. */
+export interface SharedWorkspaceSpace {
+  /** Reads writers and repos across the space with a space credential. */
+  reader: SpaceReader;
+  /** Writes updates, snapshots, and settings to the member's own repo. */
+  own: WorkspaceSpace;
+  /** The member's client for the shared space. */
+  client: WorkspaceClient;
+}
 
 export interface SharedWorkspaceOptions {
   session: OAuthSession;
@@ -204,34 +159,29 @@ export interface SharedWorkspaceOptions {
 }
 
 /**
- * Opens a workspace space owned by any account. Reads against the signed-in
- * member's own repo use their OAuth session; reads against another repo use a
- * space credential obtained from the space authority.
- *
- * Writing still targets the signed-in member's repo. A space credential cannot
- * write to the authority's or another member's repo.
+ * Opens a workspace space owned by any account. Reads use a space credential;
+ * writes stay on the signed-in member's own repo.
  */
-export function openSharedWorkspaceSpace(options: SharedWorkspaceOptions): SharedWorkspaceSpace {
+export async function openSharedWorkspaceSpace(
+  options: SharedWorkspaceOptions,
+): Promise<SharedWorkspaceSpace> {
   const { session, ref } = options;
   const fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
-
-  const agent = buildAgent({
-    did: session.did as DidString,
+  const client = createWorkspaceClient({
+    session,
+    did: session.did,
     service: session.serverMetadata.issuer,
-    fetch: (input, init) => {
-      const url = input instanceof Request ? new URL(input.url) : new URL(String(input));
-      return session.fetchHandler(`${url.pathname}${url.search}` as `/${string}`, init);
-    },
+    workspaceId: ref.skey,
+    skey: ref.skey,
+    ownerDid: ref.ownerDid,
   });
 
-  const didResolver = createDidResolver({
+  const reader = await client.workspace.reader({
     fetch,
-    plcDirectoryUrl: options.plcDirectoryUrl,
+    ...(options.plcDirectoryUrl
+      ? { didResolver: createDidResolver({ fetch, plcDirectoryUrl: options.plcDirectoryUrl }) }
+      : {}),
   });
 
-  return SpaceClient.openSpace(workspaceSpaceSchema, ref.uri as SpaceRefString, {
-    agent,
-    didResolver,
-    fetch,
-  });
+  return { reader, own: client.workspace, client };
 }

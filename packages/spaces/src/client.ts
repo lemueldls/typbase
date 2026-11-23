@@ -18,8 +18,12 @@ export interface WorkspaceClientOptions {
   session: OAuthSession;
   /** Signed-in account DID. */
   did: string;
-  /** Workspace id, used as the space key. */
+  /** Workspace id, used as the space key unless `skey` is given. */
   workspaceId: string;
+  /** Space key for a workspace whose id is not its key. */
+  skey?: string;
+  /** Account that owns the space. Defaults to the signed-in account. */
+  ownerDid?: string;
   /** PDS base URL, when it has already been resolved. */
   service?: string;
 }
@@ -35,7 +39,7 @@ export function createWorkspaceClient(options: WorkspaceClientOptions) {
 
   return createAirspace({
     identity: options.service ? { did, service: options.service } : { did },
-    spaces: { workspace: workspaceSpace(options.workspaceId) },
+    spaces: { workspace: workspaceSpace(options.skey ?? options.workspaceId, options.ownerDid) },
     session: options.session,
   });
 }

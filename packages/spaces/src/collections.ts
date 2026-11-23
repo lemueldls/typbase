@@ -1,3 +1,5 @@
+import type { DidString } from "@atproto/lex-schema";
+
 import { defineCollections, defineSpace } from "airspace";
 
 import lexicons from "./lexicons";
@@ -8,9 +10,10 @@ import lexicons from "./lexicons";
  */
 export const collections = defineCollections(lexicons);
 
-export function workspaceSpace(skey: string) {
+export function workspaceSpace(skey: string, ownerDid?: string) {
   return defineSpace(lexicons.workspace, {
     skey,
+    ...(ownerDid ? { authority: ownerDid as DidString } : {}),
     collections: {
       update: collections.update,
       snapshot: collections.snapshot,

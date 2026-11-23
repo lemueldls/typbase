@@ -119,49 +119,48 @@ describe.skipIf(!enabled)("cross-account workspace space", () => {
     const ref = parseWorkspaceSpaceRef(spaceUri);
     expect(ref).not.toBeNull();
 
-    const bobSpace = openSharedWorkspaceSpace({
+    const bobSpace = await openSharedWorkspaceSpace({
       session: bob.session,
       ref: ref!,
       plcDirectoryUrl: network.plc.url,
     });
 
-    const writers = await collect(bobSpace.writers());
+    const writers = await collect(bobSpace.reader.writers());
     expect(writers).toContainEqual(expect.objectContaining({ repo: alice.did }));
 
-    const { body } = await bobSpace.listRecords({
+    const { body } = await bobSpace.reader.listRecords({
       repo: alice.did,
       collection: "at.typbase.update",
     });
     expect(body.records).toHaveLength(1);
     expect(body.records[0]!.value).toMatchObject({ docId: "doc", update: "alice" });
 
-    const record = await bobSpace.getRecord("at.typbase.update", aliceRecordRkey, {
+    const record = await bobSpace.reader.getRecord("at.typbase.update", aliceRecordRkey, {
       repo: alice.did,
     });
     expect(record.body.value).toMatchObject({ docId: "doc", update: "alice" });
   });
 
   it("writes to the member's own repo", async () => {
-    const bobSpace = openSharedWorkspaceSpace({
+    const bobSpace = await openSharedWorkspaceSpace({
       session: bob.session,
       ref: parseWorkspaceSpaceRef(spaceUri)!,
       plcDirectoryUrl: network.plc.url,
     });
 
-    await bobSpace.createRecord({
-      $type: "at.typbase.update",
+    await bobSpace.own.update.create({
       docId: "bob-doc",
       update: "bob",
       version: "1",
       createdAt: new Date().toISOString(),
     });
 
-    const writers = await collect(bobSpace.writers());
+    const writers = await collect(bobSpace.reader.writers());
     expect(writers).toContainEqual(expect.objectContaining({ repo: bob.did }));
   });
 
   it("lists every writer and reads their raw update records", async () => {
-    const bobSpace = openSharedWorkspaceSpace({
+    const bobSpace = await openSharedWorkspaceSpace({
       session: bob.session,
       ref: parseWorkspaceSpaceRef(spaceUri)!,
       plcDirectoryUrl: network.plc.url,
@@ -181,12 +180,12 @@ describe.skipIf(!enabled)("cross-account workspace space", () => {
       dids: [bob.did],
     });
 
-    const bobSpace = openSharedWorkspaceSpace({
+    const bobSpace = await openSharedWorkspaceSpace({
       session: bob.session,
       ref: parseWorkspaceSpaceRef(spaceUri)!,
       plcDirectoryUrl: network.plc.url,
     });
 
-    await expect(bobSpace.listWriters()).rejects.toThrow();
+    await expect(bobSpace.reader.listWriters()).rejects.toThrow();
   });
 });

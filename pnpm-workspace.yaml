@@ -11,7 +11,7 @@ cargo:
 minimumReleaseAge: 0
 
 allowBuilds:
-  "airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f": true
+  "airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754": true
   better-sqlite3: true
   core-js: true
   esbuild: true

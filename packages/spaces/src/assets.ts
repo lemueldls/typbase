@@ -131,13 +131,13 @@ export function createSharedAssetRemote(
   return {
     async list() {
       const records: AssetRecord[] = [];
-      for await (const writer of space.writers()) {
+      for await (const writer of space.reader.writers()) {
         if (!("repoRev" in writer)) continue;
 
         try {
           let cursor: string | undefined;
           do {
-            const page = await space.listRecords({
+            const page = await space.reader.listRecords({
               repo: writer.repo,
               collection: collections.asset.nsid,
               limit: 100,
@@ -161,7 +161,7 @@ export function createSharedAssetRemote(
     async download(asset) {
       if (!asset.repo || !asset.cid) return own.download(asset);
 
-      const response = await space.getBlob({
+      const response = await space.reader.getBlob({
         repo: asset.repo as `did:${string}:${string}`,
         cid: asset.cid,
       });
