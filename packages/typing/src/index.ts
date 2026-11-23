@@ -47,6 +47,21 @@ export interface Category {
   order?: number;
 }
 
+/** A workspace space owned by one account. */
+export interface WorkspaceSpaceRef {
+  /** `at://owner/space/at.typbase.workspace/skey` */
+  uri: string;
+  ownerDid: string;
+  skey: string;
+}
+
+/** An invite is a space ref plus the role the owner is granting, as a UI hint. */
+export interface WorkspaceInvite extends WorkspaceSpaceRef {
+  role: "editor" | "viewer";
+}
+
+export type WorkspaceSpaceRole = "owner" | "editor" | "viewer";
+
 /** One workspace in the local registry (`workspaces.json`). */
 export interface WorkspaceInfo {
   id: string;
@@ -55,6 +70,16 @@ export interface WorkspaceInfo {
   accent?: string;
   createdAt: number;
   lastOpenedAt: number;
+  /**
+   * The remote space this workspace mirrors. Absent for a workspace created
+   * on the signed-in account, where the id is also the space key.
+   */
+  space?: WorkspaceSpaceRef;
+  /**
+   * The role from the invite that joined this workspace. A UI hint only:
+   * the space host's writer set decides whether an edit reaches other members.
+   */
+  spaceRole?: WorkspaceSpaceRole;
 }
 
 /** Typed-section metadata extracted from `#typbase.section(...)` blocks. */

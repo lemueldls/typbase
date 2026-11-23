@@ -12,7 +12,9 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { atprotoStatus } = useWorkspace();
 const open = defineModel<boolean>("open", { default: false });
+const readOnly = computed(() => props.store.readOnly || atprotoStatus.value.readOnly);
 
 const title = ref("");
 const categoryId = ref<string>("");
@@ -46,6 +48,10 @@ const categoryOptions = computed(() => [
 ]);
 
 async function submit() {
+  if (readOnly.value) {
+    error.value = t("settings.syncReadOnly");
+    return;
+  }
   const trimmed = title.value.trim();
   if (!trimmed) {
     error.value = t("newPage.givingTitle");
@@ -106,13 +112,14 @@ async function submit() {
       </Label>
 
       <p class="dialog__path">{{ pathPreview }}</p>
+      <p v-if="readOnly" class="dialog__error">{{ $t("settings.syncReadOnly") }}</p>
       <p v-if="error" class="dialog__error">{{ error }}</p>
 
       <div class="dialog__actions">
         <DialogClose as-child>
           <UiButton variant="ghost">{{ $t("common.cancel") }}</UiButton>
         </DialogClose>
-        <UiButton variant="primary" type="submit" :disabled="creating">
+        <UiButton variant="primary" type="submit" :disabled="creating || readOnly">
           {{ creating ? $t("common.working") : $t("newPage.create") }}
         </UiButton>
       </div>

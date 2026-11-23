@@ -1952,6 +1952,7 @@ function onModeKeydown(event: KeyboardEvent) {
 
           <UiMenuItem
             v-if="store && atprotoStatus.signedIn"
+            :disabled="atprotoStatus.readOnly"
             :icon="meta?.publishedAt ? 'cloud_done' : 'cloud_upload'"
             @select="publishOpen = true"
           >
@@ -1978,7 +1979,7 @@ function onModeKeydown(event: KeyboardEvent) {
       :active="findActive"
       :replacement="findReplacement"
       :options="findOptions"
-      :editable="modelValue !== 'read'"
+      :editable="modelValue !== 'read' && !store?.readOnly && !atprotoStatus.readOnly"
       :replace-count="findReplaceCount"
       :can-replace="findCanReplace"
       :invalid="findInvalid"
@@ -2068,6 +2069,7 @@ function onModeKeydown(event: KeyboardEvent) {
           :wysiwyg="modelValue === 'write'"
           :notebook="meta?.kind === 'notebook' ? notebookController?.options : undefined"
           :degraded="degraded"
+          :read-only="store?.readOnly || atprotoStatus.readOnly"
           :spellcheck="spellcheckMode"
           :spellcheck-words="spellcheckWords"
           :spellcheck-ignored-lints="spellcheckIgnoredLints"

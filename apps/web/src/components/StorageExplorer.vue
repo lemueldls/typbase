@@ -107,7 +107,10 @@ async function toggleWorkspace(info: WorkspaceInfo): Promise<void> {
   try {
     let store = storeCache.get(info.id);
     if (!store) {
-      store = await WorkspaceStore.open(active, info.id);
+      store = await WorkspaceStore.open(active, info.id, {
+        readOnly: info.spaceRole === "viewer",
+        ...(info.space ? { syncId: info.space.skey } : {}),
+      });
       storeCache.set(info.id, store);
     }
     const pages = store.listPages();
@@ -138,7 +141,12 @@ async function deletePageEntry(info: WorkspaceInfo, page: PageMeta): Promise<voi
     if (activeWorkspaceId.value === info.id && workspace.value) {
       await workspace.value.deletePage(page.id);
     } else {
-      const store = storeCache.get(info.id) ?? (await WorkspaceStore.open(active, info.id));
+      const store =
+        storeCache.get(info.id) ??
+        (await WorkspaceStore.open(active, info.id, {
+          readOnly: info.spaceRole === "viewer",
+          ...(info.space ? { syncId: info.space.skey } : {}),
+        }));
       storeCache.set(info.id, store);
       await store.deletePage(page.id);
     }

@@ -7,6 +7,7 @@ import { Client } from "@atproto/lex-client";
 import { l } from "@atproto/lex-schema";
 import { lexicons } from "@atproto/lex-space";
 import {
+  createSharedTransport,
   openSharedWorkspaceSpace,
   parseWorkspaceSpaceRef,
   WORKSPACE_SPACE_TYPE,
@@ -157,6 +158,21 @@ describe.skipIf(!enabled)("cross-account workspace space", () => {
 
     const writers = await collect(bobSpace.writers());
     expect(writers).toContainEqual(expect.objectContaining({ repo: bob.did }));
+  });
+
+  it("lists every writer and reads their raw update records", async () => {
+    const bobSpace = openSharedWorkspaceSpace({
+      session: bob.session,
+      ref: parseWorkspaceSpaceRef(spaceUri)!,
+      plcDirectoryUrl: network.plc.url,
+    });
+    const transport = createSharedTransport(bobSpace);
+    const repos = await transport.listRepos!();
+
+    expect(repos).toEqual(expect.arrayContaining([alice.did, bob.did]));
+
+    const updates = await transport.listUpdates(null, alice.did);
+    expect(updates.records).toContainEqual(expect.objectContaining({ docId: "doc" }));
   });
 
   it("refuses a fresh credential after the member is removed", async () => {

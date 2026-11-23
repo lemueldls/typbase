@@ -1,6 +1,9 @@
 import type { OAuthSession } from "@atproto/oauth-client-browser";
 
 import type { WorkspaceClient } from "./client";
+import type { SharedWorkspaceSpace } from "./sharing";
+
+import { collections } from "./collections";
 
 /** The kinds the asset browser and sync report. */
 export type AssetKind = "font" | "image" | "file";
@@ -17,6 +20,8 @@ export interface AssetRecord {
   kind: AssetKind;
   blob: unknown;
   createdAt: string;
+  /** Repo that holds the blob, for a space shared by several accounts. */
+  repo?: string;
 }
 
 /** The fields known before the PDS returns a blob ref. */
@@ -34,7 +39,7 @@ function assetKind(value: unknown): AssetKind {
   return value === "font" || value === "image" ? value : "file";
 }
 
-function toAssetRecord(value: unknown, key?: string): AssetRecord | null {
+function toAssetRecord(value: unknown, key?: string, repo?: string): AssetRecord | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Partial<AssetRecord>;
   const hash = typeof raw.hash === "string" && raw.hash ? raw.hash : (key ?? "");
@@ -49,6 +54,7 @@ function toAssetRecord(value: unknown, key?: string): AssetRecord | null {
     kind: assetKind(raw.kind),
     blob: raw.blob,
     createdAt: typeof raw.createdAt === "string" ? raw.createdAt : "",
+    ...(repo ? { repo } : {}),
   };
 }
 
@@ -69,7 +75,7 @@ export function createAssetRemote(client: WorkspaceClient, session: OAuthSession
           ...(cursor ? { cursor } : {}),
         });
         for (const record of page.records) {
-          const asset = toAssetRecord(record.value, String(record.rkey));
+          const asset = toAssetRecord(record.value, String(record.rkey), session.did);
           if (asset) records.push(asset);
         }
         cursor = page.cursor ?? undefined;
@@ -80,7 +86,7 @@ export function createAssetRemote(client: WorkspaceClient, session: OAuthSession
 
     async get(hash) {
       const record = await client.workspace.asset.get(hash);
-      return record ? toAssetRecord(record.value, hash) : null;
+      return record ? toAssetRecord(record.value, hash, session.did) : null;
     },
 
     async upload(asset, bytes) {
@@ -110,6 +116,57 @@ export function createAssetRemote(client: WorkspaceClient, session: OAuthSession
       }
 
       return new Uint8Array(await response.arrayBuffer());
+    },
+  };
+}
+
+/**
+ * Reads assets from every writer's repo in a shared space. Uploads still go to
+ * the signed-in member's repo; downloads fetch a blob from its origin repo.
+ */
+export function createSharedAssetRemote(
+  space: SharedWorkspaceSpace,
+  own: AssetRemote,
+): AssetRemote {
+  return {
+    async list() {
+      const records: AssetRecord[] = [];
+      for await (const writer of space.writers()) {
+        if (!("repoRev" in writer)) continue;
+
+        try {
+          let cursor: string | undefined;
+          do {
+            const page = await space.listRecords({
+              repo: writer.repo,
+              collection: collections.asset.nsid,
+              limit: 100,
+              ...(cursor ? { cursor } : {}),
+            });
+            for (const record of page.body.records) {
+              const asset = toAssetRecord(record.value, record.rkey, writer.repo);
+              if (asset) records.push(asset);
+            }
+            cursor = page.body.cursor;
+          } while (cursor);
+        } catch {
+          // A repo can be removed between the writer list and the read.
+        }
+      }
+
+      return records;
+    },
+    get: (hash) => own.get(hash),
+    upload: (asset, bytes) => own.upload(asset, bytes),
+    async download(asset) {
+      if (!asset.repo || !asset.cid) return own.download(asset);
+
+      const response = await space.getBlob({
+        repo: asset.repo as `did:${string}:${string}`,
+        cid: asset.cid,
+      });
+
+      return new Uint8Array(response.body);
     },
   };
 }

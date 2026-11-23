@@ -306,6 +306,16 @@ export interface WorkspaceStoreOptions {
    * remote history.
    */
   seed?: boolean;
+  /**
+   * Refuse local mutations for a workspace shared without write access. Sync
+   * imports still apply; only user and plugin writes are blocked.
+   */
+  readOnly?: boolean;
+  /**
+   * Doc id used in sync records. Defaults to `workspaceId`. A joined space
+   * uses its space key, so every member agrees on the workspace doc id.
+   */
+  syncId?: string;
 }
 
 export interface CreatePageInput {
@@ -354,7 +364,13 @@ export class WorkspaceStore {
     readonly workspaceId: string,
     private readonly doc: LoroDoc,
     private readonly snapshotDebounceMs = SNAPSHOT_DEBOUNCE_MS,
+    readonly readOnly = false,
+    readonly syncId = workspaceId,
   ) {}
+
+  private assertWritable(): void {
+    if (this.readOnly) throw new Error("This workspace is read-only");
+  }
 
   /** Backend-relative root of this workspace's own directory. */
   private get root(): string {
@@ -378,13 +394,15 @@ export class WorkspaceStore {
       workspaceId,
       doc,
       options.snapshotDebounceMs ?? SNAPSHOT_DEBOUNCE_MS,
+      options.readOnly ?? false,
+      options.syncId ?? workspaceId,
     );
     store.loro = loro;
     store.pathForDoc.set(doc, path);
 
     doc.subscribe((batch) => {
       store.scheduleSave(doc);
-      store.scheduleCommit(workspaceId);
+      store.scheduleCommit(store.syncId);
       store.emitStructure(batch.events.map((event) => event.path));
     });
 
@@ -554,6 +572,9 @@ export class WorkspaceStore {
    * Deleting a file never deletes a page. Remove those in the app.
    */
   syncSources(): Promise<SourceSyncResult> {
+    if (this.readOnly) {
+      return Promise.resolve({ imported: [], created: [], conflicts: [], exported: 0 });
+    }
     this.sourceSyncPromise ??= this.doSyncSources().finally(() => {
       this.sourceSyncPromise = undefined;
     });
@@ -835,6 +856,7 @@ export class WorkspaceStore {
   }
 
   updateSettings(patch: Partial<WorkspaceSettings>): void {
+    if (this.readOnly) return;
     const map = this.doc.getMap("settings");
     for (const [key, value] of Object.entries(patch)) {
       if (value === undefined) continue;
@@ -898,6 +920,7 @@ export class WorkspaceStore {
    * reorder inside one sidebar group stays consistent with the global order.
    */
   reorderPages(ids: readonly string[]): void {
+    if (this.readOnly) return;
     const pages = this.doc.getMap("pages");
 
     ids.forEach((id, index) => {
@@ -949,6 +972,7 @@ export class WorkspaceStore {
   }
 
   async createPage(input: CreatePageInput): Promise<PageMeta> {
+    this.assertWritable();
     const now = Date.now();
     const kind = input.kind ?? "document";
     // New pages land at the end of the manual order. A workspace that has
@@ -1002,6 +1026,7 @@ export class WorkspaceStore {
     title: string,
     options: { renameFile?: boolean } = {},
   ): Promise<void> {
+    this.assertWritable();
     const meta = this.getPage(id);
     if (!meta) return;
 
@@ -1036,6 +1061,7 @@ export class WorkspaceStore {
    * behind the editor's back.
    */
   async updatePageKind(id: string, kind: PageKind): Promise<void> {
+    this.assertWritable();
     const meta = this.getPage(id);
     if (!meta || meta.kind === kind) return;
 
@@ -1046,6 +1072,7 @@ export class WorkspaceStore {
 
   /** Moves a page into a category, or out of one when `categoryId` is null. */
   async updatePageCategory(id: string, categoryId: string | null): Promise<void> {
+    this.assertWritable();
     const meta = this.getPage(id);
     if (!meta) return;
 
@@ -1067,6 +1094,7 @@ export class WorkspaceStore {
     publishedAt: number | null,
     publishUri: string | null,
   ): Promise<void> {
+    this.assertWritable();
     const meta = this.getPage(id);
     if (!meta) return;
 
@@ -1077,6 +1105,7 @@ export class WorkspaceStore {
   }
 
   async deletePage(id: string): Promise<void> {
+    this.assertWritable();
     const meta = this.getPage(id);
 
     this.doc.getMap("pages").delete(id);
@@ -1136,6 +1165,7 @@ export class WorkspaceStore {
 
   /** Writes a manual order. Callers pass every category id in its new order. */
   reorderCategories(ids: readonly string[]): void {
+    if (this.readOnly) return;
     const list = this.doc.getList("categories");
     const positions = new Map<string, number>();
     (list.toJSON() as Category[]).forEach((category, index) => positions.set(category.id, index));
@@ -1151,6 +1181,7 @@ export class WorkspaceStore {
   }
 
   async addCategory(name: string): Promise<Category> {
+    this.assertWritable();
     const trimmed = name.trim();
     if (!trimmed) throw new Error("Category name is empty");
 
@@ -1167,6 +1198,7 @@ export class WorkspaceStore {
   }
 
   async removeCategory(id: string): Promise<void> {
+    this.assertWritable();
     const list = this.doc.getList("categories");
     const value: Category[] = list.toJSON();
 
@@ -1184,6 +1216,7 @@ export class WorkspaceStore {
 
   /** Returns the daily note for `date` (YYYY-MM-DD), creating it when missing. */
   async createDailyNote(date: string): Promise<PageMeta> {
+    this.assertWritable();
     const path = `daily/${date}.typ`;
     const existing = this.listPages().find((page) => page.path === path);
     if (existing) return existing;
@@ -1314,6 +1347,7 @@ export class WorkspaceStore {
    * added since the caller read it is deleted.
    */
   async setPageText(pageId: string, text: string): Promise<void> {
+    this.assertWritable();
     const doc = await this.openPageDoc(pageId);
     const content = doc.getText("content");
     if (content.toString() === text) return;
@@ -1328,6 +1362,7 @@ export class WorkspaceStore {
    * writing it makes the doc win instead of being deleted.
    */
   private replacePageTextIfCurrent(pageId: string, expected: string, text: string): boolean {
+    if (this.readOnly) return false;
     const doc = this.pageDocs.get(pageId);
     if (!doc) return false;
 
@@ -1350,6 +1385,7 @@ export class WorkspaceStore {
    * so the caller can fall back to a full-text write.
    */
   applyPageTextChanges(pageId: string, changes: readonly PageTextChange[]): boolean {
+    if (this.readOnly) return false;
     const doc = this.pageDocs.get(pageId);
     if (!doc) return false;
 
@@ -1384,6 +1420,7 @@ export class WorkspaceStore {
    * Returns the text after the append.
    */
   async appendPageText(pageId: string, text: string): Promise<string> {
+    this.assertWritable();
     const doc = await this.openPageDoc(pageId);
     const content = doc.getText("content");
     const current = content.toString();
@@ -1444,7 +1481,7 @@ export class WorkspaceStore {
 
   /** docId space: workspace id, page ids, `plugin:<id>` and `chat:<id>` docs. */
   async getDocById(docId: string): Promise<LoroDoc | null> {
-    if (docId === this.workspaceId) return this.doc;
+    if (docId === this.syncId || docId === this.workspaceId) return this.doc;
 
     // A remote snapshot or update can arrive before the workspace document
     // that registers the page, plugin, or chat. Open the target doc anyway:
@@ -1459,7 +1496,7 @@ export class WorkspaceStore {
   }
 
   async listDocIds(): Promise<string[]> {
-    const ids = [this.workspaceId];
+    const ids = [this.syncId];
     for (const page of this.listPages()) ids.push(page.id);
     for (const instance of this.listPluginInstances()) ids.push(pluginDocId(instance.id));
     for (const thread of this.listChats()) ids.push(chatDocId(thread.id));
@@ -1619,6 +1656,7 @@ export class WorkspaceStore {
   }
 
   setPluginInstall(install: PluginInstall): void {
+    if (this.readOnly) return;
     const plugins = this.doc.getMap("plugins");
     const map = plugins.ensureMergeableMap(install.id);
     map.set("id", install.id);
@@ -1637,6 +1675,7 @@ export class WorkspaceStore {
 
   /** Removes the install and every instance that belongs to it. */
   async uninstallPlugin(pluginId: string): Promise<void> {
+    this.assertWritable();
     for (const instance of this.listPluginInstances()) {
       if (instance.pluginId === pluginId) await this.deletePluginInstance(instance.id);
     }
@@ -1671,6 +1710,7 @@ export class WorkspaceStore {
     icon?: string;
     config?: Record<string, unknown>;
   }): Promise<PluginInstance> {
+    this.assertWritable();
     const instance: PluginInstance = {
       id: createId((id) => this.getPluginInstance(id) !== undefined),
       pluginId: input.pluginId,
@@ -1690,6 +1730,7 @@ export class WorkspaceStore {
     id: string,
     patch: Partial<Pick<PluginInstance, "title" | "icon" | "config">>,
   ): Promise<void> {
+    this.assertWritable();
     const instance = this.getPluginInstance(id);
     if (!instance) return;
 
@@ -1697,6 +1738,7 @@ export class WorkspaceStore {
   }
 
   async deletePluginInstance(id: string): Promise<void> {
+    this.assertWritable();
     this.doc.getMap("instances").delete(id);
     this.doc.commit();
 
@@ -1754,6 +1796,7 @@ export class WorkspaceStore {
    * layer only knows collections, record ids, and scalar values.
    */
   async applyPluginPatch(instanceId: string, ops: PluginPatchOp[]): Promise<void> {
+    this.assertWritable();
     if (ops.length === 0) return;
 
     const doc = await this.openPluginDoc(instanceId);
@@ -1856,6 +1899,7 @@ export class WorkspaceStore {
     model?: string | null;
     pageId?: string | null;
   }): Promise<ChatThread> {
+    this.assertWritable();
     const now = Date.now();
     const thread: ChatThread = {
       id: createId((id) => this.getChat(id) !== undefined),
@@ -1877,6 +1921,7 @@ export class WorkspaceStore {
     id: string,
     patch: Partial<Pick<ChatThread, "title" | "providerId" | "model" | "pageId">>,
   ): void {
+    if (this.readOnly) return;
     const thread = this.getChat(id);
     if (!thread) return;
 
@@ -1884,6 +1929,7 @@ export class WorkspaceStore {
   }
 
   async deleteChat(id: string): Promise<void> {
+    this.assertWritable();
     this.doc.getMap("chats").delete(id);
     this.doc.commit();
 
@@ -1954,6 +2000,7 @@ export class WorkspaceStore {
   }
 
   async appendChatMessage(threadId: string, message: ChatMessage): Promise<void> {
+    this.assertWritable();
     const doc = await this.openChatDoc(threadId);
     this.writeChatMessage(threadId, message);
     doc.commit();
@@ -1989,6 +2036,7 @@ export class WorkspaceStore {
       >
     >,
   ): Promise<void> {
+    this.assertWritable();
     const doc = await this.openChatDoc(threadId);
     const messages = doc.getMap("messages");
     const map = messages.get(messageId) as LoroMap | undefined;

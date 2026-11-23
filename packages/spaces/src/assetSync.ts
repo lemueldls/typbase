@@ -23,6 +23,8 @@ export interface AssetSyncHost {
 export interface AssetSyncOptions {
   /** How often to look for assets another device uploaded. */
   intervalMs?: number;
+  /** Pull only: do not upload local blobs to a shared space. */
+  readOnly?: boolean;
   onStatus?: (status: AssetSyncStatus) => void;
 }
 
@@ -71,6 +73,7 @@ export class AssetSync {
     if (this.timer) return;
     this.stopped = false;
     this.unsubscribe = this.host.onBlobStored((hash) => {
+      if (this.options.readOnly) return;
       void this.uploadAddress(hash).catch((cause) => {
         this.setState({ error: `Could not upload ${hash}: ${errorMessage(cause)}` });
       });
@@ -125,7 +128,9 @@ export class AssetSync {
       const downloads = [...remoteByAddress.values()].filter(
         (record) => !localAddresses.has(record.address),
       );
-      const uploads = local.filter((entry) => !remoteByAddress.has(entry.hash));
+      const uploads = this.options.readOnly
+        ? []
+        : local.filter((entry) => !remoteByAddress.has(entry.hash));
       this.setState({ pending: downloads.length + uploads.length });
 
       for (const record of downloads) {
@@ -177,7 +182,7 @@ export class AssetSync {
   }
 
   private async uploadAddress(address: string, known?: Set<string>): Promise<void> {
-    if (this.importing || this.stopped) return;
+    if (this.importing || this.stopped || this.options.readOnly) return;
 
     const bytes = await this.host.readBlob(address);
     if (!bytes) return;

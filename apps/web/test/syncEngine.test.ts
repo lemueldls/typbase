@@ -180,6 +180,88 @@ describe("TypbaseSync", () => {
     expect(sent.sort()).toEqual(["a", "b"]);
   });
 
+  it("pulls every writer with its own cursor", async () => {
+    let saved: unknown;
+    const store: SyncStore = {
+      get: async () => saved,
+      set: async (_key, value) => {
+        saved = value;
+      },
+    };
+    const calls: Array<[string | undefined, string | null]> = [];
+    const syncHost = host();
+    const sync = new TypbaseSync(syncHost, store, {
+      ...transport([]),
+      listRepos: async () => ["alice", "bob"],
+      listUpdates: async (cursor, repo) => {
+        calls.push([repo, cursor]);
+        const first = calls.length <= 2;
+
+        return {
+          records: [
+            {
+              rkey: first ? (repo === "alice" ? "a1" : "b1") : repo === "alice" ? "a0" : "b0",
+              docId,
+              update: btoa(repo ?? "own"),
+              version: JSON.stringify({ [repo ?? "own"]: first ? 1 : 2 }),
+            },
+          ],
+          cursor: null,
+        };
+      },
+    });
+
+    await sync.start();
+    await sync.pull();
+    sync.stop();
+
+    expect(calls).toEqual([
+      ["alice", null],
+      ["bob", null],
+      ["alice", null],
+      ["bob", null],
+    ]);
+    expect(saved).toMatchObject({
+      writerCursors: { updates: { alice: "a1", bob: "b1" } },
+    });
+    expect(syncHost.imported).toHaveLength(2);
+  });
+
+  it("does not export from a read-only member", async () => {
+    const syncHost = host();
+    syncHost.exportUpdatesSince = async () => ({
+      bytes: new TextEncoder().encode("local"),
+      version: '{"actor":1}',
+    });
+    const sent: string[] = [];
+    const sync = new TypbaseSync(
+      syncHost,
+      memoryStore(),
+      {
+        ...transport([]),
+        createUpdate: async () => {
+          sent.push("update");
+
+          return "rkey";
+        },
+        createSnapshot: async () => {
+          sent.push("snapshot");
+
+          return "rkey";
+        },
+      },
+      { readOnly: true },
+    );
+
+    await sync.start();
+    await sync.bootstrapSnapshots();
+    await sync.exportPending();
+    await sync.onLocalCommit(docId);
+    await sync.flushQueue();
+    sync.stop();
+
+    expect(sent).toEqual([]);
+  });
   it("exports edits a previous session never queued", async () => {
     const syncHost = host();
     syncHost.listDocIds = async () => [docId];

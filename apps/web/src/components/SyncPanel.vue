@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import type { WorkspaceSpaceRef, WorkspaceSpaceRole } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
+
+import {
+  parseWorkspaceInvite,
+  parseWorkspaceSpaceRef,
+  workspaceInviteUri,
+  workspaceSpaceRef,
+} from "@typbase/spaces";
 
 import type { WorkspaceSpaceSummary } from "~/lib/atproto";
 
@@ -62,7 +70,8 @@ const joinInput = ref("");
 const joining = ref(false);
 
 const spaceUri = computed(() => atprotoStatus.value.spaceUri);
-const currentSpaceId = computed(() => spaceUri.value?.split("/").pop() ?? workspaceId.value);
+const isOwner = computed(() => atprotoStatus.value.spaceRole === "owner");
+const readOnly = computed(() => atprotoStatus.value.readOnly);
 const exporting = computed(
   () => atprotoStatus.value.pendingUpdates > 0 || atprotoStatus.value.assets.pending > 0,
 );
@@ -71,7 +80,7 @@ const statusLabel = computed(() =>
 );
 
 function workspaceName(id: string): string {
-  return workspaces.value.find((entry) => entry.id === id)?.name ?? "";
+  return workspaces.value.find((entry) => entry.id === id || entry.space?.skey === id)?.name ?? "";
 }
 
 function spaceLabel(space: WorkspaceSpaceSummary): string {
@@ -80,33 +89,24 @@ function spaceLabel(space: WorkspaceSpaceSummary): string {
   );
 }
 
-function isCurrentSpace(id: string): boolean {
-  return id === currentSpaceId.value;
+function isCurrentSpace(space: WorkspaceSpaceSummary): boolean {
+  return space.uri === spaceUri.value || space.id === workspaceId.value;
 }
 
-function spaceIcon(id: string): MaterialSymbol {
-  const icon = workspaces.value.find((entry) => entry.id === id)?.icon;
+function localSpace(space: WorkspaceSpaceSummary) {
+  return workspaces.value.find((entry) => entry.space?.uri === space.uri || entry.id === space.id);
+}
+
+function spaceIcon(space: WorkspaceSpaceSummary): MaterialSymbol {
+  const icon = localSpace(space)?.icon;
 
   return (icon as MaterialSymbol | undefined) ?? DEFAULT_WORKSPACE_ICON;
 }
 
-function spaceStyle(id: string): Record<string, string> | undefined {
-  const accent = workspaces.value.find((entry) => entry.id === id)?.accent;
+function spaceStyle(space: WorkspaceSpaceSummary): Record<string, string> | undefined {
+  const accent = localSpace(space)?.accent;
 
   return accent ? { "--ws-accent": accent } : undefined;
-}
-
-/** A pasted space URI or a bare workspace id. */
-function parseSpaceId(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  if (trimmed.startsWith("at://")) {
-    const match = trimmed.match(/^at:\/\/[^/]+\/space\/[^/]+\/([^/]+)\/?$/);
-
-    return match?.[1] ?? "";
-  }
-
-  return trimmed.replace(/^\/+|\/+$/g, "");
 }
 
 async function loadSpaces(): Promise<void> {
@@ -128,20 +128,26 @@ async function loadSpaces(): Promise<void> {
   }
 }
 
-async function openSpace(id: string): Promise<void> {
-  if (!id || joining.value || accountBusy.value) return;
+async function openRef(
+  ref: WorkspaceSpaceRef,
+  role: WorkspaceSpaceRole,
+  name: string,
+): Promise<void> {
+  if (!atproto.value || joining.value || accountBusy.value) return;
   joining.value = true;
   spacesError.value = "";
   try {
-    if (!spaces.value.some((space) => space.id === id)) {
-      const exists = await atproto.value?.workspaceSpaceExists(id);
-      if (!exists) {
-        spacesError.value = t("settings.syncJoinNotFound");
+    const known = workspaces.value.some(
+      (entry) =>
+        entry.space?.uri === ref.uri ||
+        (!entry.space && entry.id === ref.skey && ref.ownerDid === atprotoStatus.value.did),
+    );
+    if (!known && !(await atproto.value.workspaceSpaceExists(ref))) {
+      spacesError.value = t("settings.syncJoinNotFound");
 
-        return;
-      }
+      return;
     }
-    await joinWorkspace(id, workspaceName(id) || t("settings.syncSharedWorkspace"));
+    await joinWorkspace(ref, role, name);
     settingsDialog.hide();
   } catch (cause) {
     spacesError.value = cause instanceof Error ? cause.message : String(cause);
@@ -150,14 +156,88 @@ async function openSpace(id: string): Promise<void> {
   }
 }
 
+async function openSpace(space: WorkspaceSpaceSummary): Promise<void> {
+  const did = atprotoStatus.value.did;
+  if (!did) return;
+
+  await openRef(workspaceSpaceRef(did, space.id), "owner", spaceLabel(space));
+}
+
 async function onJoin(): Promise<void> {
-  const id = parseSpaceId(joinInput.value);
-  if (!id) {
+  const value = joinInput.value.trim();
+  const invite = parseWorkspaceInvite(value);
+  if (invite) {
+    const role: WorkspaceSpaceRole =
+      invite.ownerDid === atprotoStatus.value.did ? "owner" : invite.role;
+    await openRef(invite, role, t("settings.syncSharedWorkspace"));
+
+    return;
+  }
+
+  const did = atprotoStatus.value.did;
+  const id = value.replace(/^\/+|\/+$/g, "");
+  if (!did || !id || id.includes("/")) {
     spacesError.value = t("settings.syncJoinInvalid");
 
     return;
   }
-  await openSpace(id);
+  await openRef(
+    workspaceSpaceRef(did, id),
+    "owner",
+    workspaceName(id) || t("settings.syncSharedWorkspace"),
+  );
+}
+
+const memberDid = ref("");
+const memberRole = ref<"editor" | "viewer">("editor");
+const memberBusy = ref(false);
+const inviteCopied = ref<"editor" | "viewer" | null>(null);
+
+async function addMember(): Promise<void> {
+  if (!atproto.value || !memberDid.value.trim()) return;
+  memberBusy.value = true;
+  spacesError.value = "";
+  try {
+    await atproto.value.putMember(memberDid.value.trim(), {
+      read: true,
+      write: memberRole.value === "editor",
+    });
+    memberDid.value = "";
+  } catch (cause) {
+    spacesError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    memberBusy.value = false;
+  }
+}
+
+async function removeMember(did: string): Promise<void> {
+  if (!atproto.value) return;
+  memberBusy.value = true;
+  spacesError.value = "";
+  try {
+    await atproto.value.removeMember(did);
+  } catch (cause) {
+    spacesError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    memberBusy.value = false;
+  }
+}
+
+async function copyInvite(role: "editor" | "viewer"): Promise<void> {
+  const ref = spaceUri.value ? parseWorkspaceSpaceRef(spaceUri.value) : null;
+  if (!ref) return;
+
+  try {
+    await navigator.clipboard.writeText(workspaceInviteUri(ref, role));
+  } catch (cause) {
+    spacesError.value = cause instanceof Error ? cause.message : String(cause);
+
+    return;
+  }
+  inviteCopied.value = role;
+  setTimeout(() => {
+    if (inviteCopied.value === role) inviteCopied.value = null;
+  }, 1600);
 }
 
 onMounted(loadSpaces);
@@ -285,14 +365,61 @@ watch(
             {{ atprotoStatus.error ?? $t("settings.syncPlaintext") }}
           </p> -->
 
-          <div v-if="atprotoStatus.members.length" class="sync__members">
+          <div v-if="isOwner" class="sync__members">
             <p class="sync__hint">{{ $t("settings.syncMembers") }}</p>
-            <ul>
-              <li v-for="member in atprotoStatus.members" :key="member.did">
-                {{ shortDid(member.did) }}
+            <ul v-if="atprotoStatus.members.length">
+              <li v-for="member in atprotoStatus.members" :key="member.did" class="sync__member">
+                <span class="sync__member-did">{{ shortDid(member.did) }}</span>
+                <UiBadge :tone="member.write ? 'accent' : 'neutral'" size="small">
+                  {{ member.write ? $t("settings.syncEditor") : $t("settings.syncViewer") }}
+                </UiBadge>
+                <UiIconButton
+                  icon="link"
+                  :size="16"
+                  :label="$t('settings.syncCopyInvite')"
+                  @click="copyInvite(member.write ? 'editor' : 'viewer')"
+                />
+                <UiIconButton
+                  icon="person_remove"
+                  :size="16"
+                  :label="$t('settings.syncRemoveMember')"
+                  :disabled="memberBusy"
+                  @click="removeMember(member.did)"
+                />
               </li>
             </ul>
+            <p v-else class="sync__hint">{{ $t("settings.syncNoMembers") }}</p>
+            <form class="sync__join-form" @submit.prevent="addMember">
+              <UiTextField
+                v-model="memberDid"
+                :label="$t('settings.syncAddMember')"
+                :placeholder="$t('settings.syncMemberPlaceholder')"
+                autocapitalize="none"
+                spellcheck="false"
+                :disabled="memberBusy"
+              />
+              <UiSelect
+                v-model="memberRole"
+                :label="$t('settings.syncRole')"
+                :options="[
+                  { value: 'editor', label: $t('settings.syncEditor') },
+                  { value: 'viewer', label: $t('settings.syncViewer') },
+                ]"
+              />
+              <UiButton type="submit" :disabled="memberBusy || !memberDid.trim()">
+                {{ $t("settings.syncAddMemberAction") }}
+              </UiButton>
+            </form>
           </div>
+
+          <p v-else-if="atprotoStatus.spaceRole" class="sync__hint">
+            {{ $t("settings.syncRoleHint", { role: atprotoStatus.spaceRole }) }}
+          </p>
+
+          <p v-if="readOnly" class="sync__warning">
+            <MsIcon name="lock" :size="18" />
+            <span>{{ $t("settings.syncReadOnly") }}</span>
+          </p>
 
           <div class="sync__space">
             <p class="sync__label">{{ $t("settings.syncSpace") }}</p>
@@ -303,6 +430,22 @@ watch(
               :label="$t('settings.syncCopySpace')"
               truncate
             />
+            <div v-if="isOwner" class="sync__invite-actions">
+              <UiButton size="small" variant="plain" icon="link" @click="copyInvite('editor')">
+                {{
+                  inviteCopied === "editor"
+                    ? $t("settings.syncInviteCopied")
+                    : $t("settings.syncInviteEditor")
+                }}
+              </UiButton>
+              <UiButton size="small" variant="plain" icon="link" @click="copyInvite('viewer')">
+                {{
+                  inviteCopied === "viewer"
+                    ? $t("settings.syncInviteCopied")
+                    : $t("settings.syncInviteViewer")
+                }}
+              </UiButton>
+            </div>
 
             <form class="sync__join-form" @submit.prevent="onJoin">
               <UiTextField
@@ -326,17 +469,17 @@ watch(
                 v-for="space in spaces"
                 :key="space.id"
                 class="sync__space-item"
-                :class="{ 'sync__space-item--current': isCurrentSpace(space.id) }"
+                :class="{ 'sync__space-item--current': isCurrentSpace(space) }"
               >
                 <span class="sync__space-main">
-                  <span class="sync__space-icon" :style="spaceStyle(space.id)" aria-hidden="true">
-                    <MsIcon :name="spaceIcon(space.id)" :size="22" />
+                  <span class="sync__space-icon" :style="spaceStyle(space)" aria-hidden="true">
+                    <MsIcon :name="spaceIcon(space)" :size="22" />
                   </span>
                   <span class="sync__space-copy">
                     <span class="sync__space-name">{{ spaceLabel(space) }}</span>
                     <span class="sync__space-meta">
                       <span class="sync__space-id">{{ space.id }}</span>
-                      <span v-if="isCurrentSpace(space.id)" class="sync__space-current">
+                      <span v-if="isCurrentSpace(space)" class="sync__space-current">
                         <MsIcon name="check" :size="13" />
                         {{ $t("settings.syncCurrent") }}
                       </span>
@@ -344,10 +487,10 @@ watch(
                   </span>
                 </span>
                 <UiButton
-                  v-if="!isCurrentSpace(space.id)"
+                  v-if="!isCurrentSpace(space)"
                   variant="plain"
                   :disabled="joining || accountBusy"
-                  @click="openSpace(space.id)"
+                  @click="openSpace(space)"
                 >
                   {{ workspaceName(space.id) ? $t("settings.syncOpen") : $t("settings.syncJoin") }}
                 </UiButton>
@@ -791,7 +934,33 @@ watch(
 
 .sync__members ul {
   margin: var(--space-1) 0 0;
+  padding: 0;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+  list-style: none;
+}
+
+.sync__member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sync__member:last-child {
+  border-bottom: none;
+}
+
+.sync__member-did {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sync__invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
 }
 </style>

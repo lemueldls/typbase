@@ -92,6 +92,8 @@ const props = defineProps<{
   spellcheck?: SpellcheckMode;
   /** Line numbers and scroll-past-end, reconfigured in place when they change. */
   editor?: EditorSettings;
+  /** Read-only for a workspace shared without write access. */
+  readOnly?: boolean;
   /** Harper's user dictionary. The native checker keeps its own. */
   spellcheckWords?: string[];
   /** Lints silenced with "Ignore". */
@@ -429,6 +431,12 @@ function vimExtension(): Extension {
 }
 
 const vimCompartment = new Compartment();
+const readOnlyCompartment = new Compartment();
+
+const readOnlyExtensions = (readOnly: boolean | undefined) => [
+  EditorView.editable.of(!readOnly),
+  EditorState.readOnly.of(!!readOnly),
+];
 /**
  * Last vim setting applied, so a display-only change does not recreate the
  * vim plugin and reset its mode.
@@ -559,6 +567,14 @@ function scheduleFrameMarks(): void {
 }
 
 watch(() => props.findFrameMarks, scheduleFrameMarks, { deep: true });
+watch(
+  () => props.readOnly,
+  (readOnly) => {
+    view.value?.dispatch({
+      effects: readOnlyCompartment.reconfigure(readOnlyExtensions(readOnly)),
+    });
+  },
+);
 
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
@@ -655,8 +671,7 @@ function createStateConfig(): EditorStateConfig {
     EditorView.exceptionSink.of((error) => {
       console.error(error);
     }),
-    EditorView.editable.of(true),
-    EditorState.readOnly.of(false),
+    readOnlyCompartment.of(readOnlyExtensions(props.readOnly)),
     highlightSpecialChars(),
     lintGutter(),
     history(),

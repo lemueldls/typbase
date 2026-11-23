@@ -16,6 +16,8 @@ const props = defineProps<{
   dragging: boolean;
   /** How the page appears in the workspace site. */
   siteVisibility: SiteVisibility;
+  /** A shared workspace without write access. */
+  readOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -48,7 +50,7 @@ async function copyId(): Promise<void> {
     class="sidebar__item"
     :class="{ 'sidebar__item--active': current, 'sidebar__item--drag': dragging }"
     data-drag-page
-    @pointerdown="emit('dragStart', $event)"
+    @pointerdown="readOnly ? undefined : emit('dragStart', $event)"
   >
     <button
       type="button"
@@ -76,16 +78,28 @@ async function copyId(): Promise<void> {
         />
       </template>
 
-      <UiMenuItem icon="edit" @select="emit('rename')">{{ $t("common.rename") }}</UiMenuItem>
+      <UiMenuItem icon="edit" :disabled="readOnly" @select="emit('rename')">
+        {{ $t("common.rename") }}
+      </UiMenuItem>
       <UiMenuItem icon="content_copy" @select="copyId">{{ $t("common.copyId") }}</UiMenuItem>
-      <UiMenuItem icon="keyboard_double_arrow_up" :disabled="first" @select="emit('move', -1)">
+      <UiMenuItem
+        icon="keyboard_double_arrow_up"
+        :disabled="readOnly || first"
+        @select="emit('move', -1)"
+      >
         {{ $t("common.moveUp") }}
       </UiMenuItem>
-      <UiMenuItem icon="keyboard_double_arrow_down" :disabled="last" @select="emit('move', 1)">
+      <UiMenuItem
+        icon="keyboard_double_arrow_down"
+        :disabled="readOnly || last"
+        @select="emit('move', 1)"
+      >
         {{ $t("common.moveDown") }}
       </UiMenuItem>
-      <UiMenuItem icon="home" @select="emit('setHome')">{{ $t("sidebar.setHome") }}</UiMenuItem>
-      <UiMenuSub icon="category" :label="$t('common.setCategory')">
+      <UiMenuItem icon="home" :disabled="readOnly" @select="emit('setHome')">
+        {{ $t("sidebar.setHome") }}
+      </UiMenuItem>
+      <UiMenuSub icon="category" :label="$t('common.setCategory')" :disabled="readOnly">
         <UiMenuItem :checked="!page.categoryId" @select="emit('setCategory', null)">
           {{ $t("newPage.noCategory") }}
         </UiMenuItem>
@@ -101,14 +115,20 @@ async function copyId(): Promise<void> {
       <UiMenuItem
         v-if="page.kind === 'notebook'"
         icon="description"
+        :disabled="readOnly"
         @select="emit('convert', 'document')"
       >
         {{ $t("common.convertToDocument") }}
       </UiMenuItem>
-      <UiMenuItem v-else icon="view_agenda" @select="emit('convert', 'notebook')">
+      <UiMenuItem
+        v-else
+        icon="view_agenda"
+        :disabled="readOnly"
+        @select="emit('convert', 'notebook')"
+      >
         {{ $t("common.convertToNotebook") }}
       </UiMenuItem>
-      <UiMenuSub icon="public" :label="$t('site.menu')">
+      <UiMenuSub v-if="!readOnly" icon="public" :label="$t('site.menu')">
         <UiMenuItem
           :checked="siteVisibility === 'public'"
           @select="emit('setSiteVisibility', 'public')"
@@ -129,7 +149,7 @@ async function copyId(): Promise<void> {
         </UiMenuItem>
       </UiMenuSub>
       <UiMenuSeparator />
-      <UiMenuItem danger icon="delete" @select="emit('remove')">
+      <UiMenuItem danger icon="delete" :disabled="readOnly" @select="emit('remove')">
         {{ $t("sidebar.delete") }}
       </UiMenuItem>
     </UiMenu>

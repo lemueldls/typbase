@@ -329,7 +329,7 @@ function onCreated(page: PageMeta) {
         <div class="sidebar__section-title">
           <span>{{ $t("sidebar.pages") }}</span>
           <div class="sidebar__section-actions">
-            <CategoriesDialog :store="store">
+            <CategoriesDialog v-if="!store.readOnly" :store="store">
               <UiIconButton
                 icon="category"
                 :label="$t('sidebar.categories')"
@@ -337,7 +337,7 @@ function onCreated(page: PageMeta) {
                 :size="20"
               />
             </CategoriesDialog>
-            <NewPageDialog :store="store" @created="onCreated">
+            <NewPageDialog v-if="!store.readOnly" :store="store" @created="onCreated">
               <UiIconButton icon="add" :label="$t('sidebar.newPage')" variant="ghost" :size="20" />
             </NewPageDialog>
           </div>
@@ -373,6 +373,7 @@ function onCreated(page: PageMeta) {
                 :last="pageIndex === pagesForCategory(null).length - 1"
                 :dragging="draggingPage === page.id"
                 :site-visibility="siteVisibility(page)"
+                :read-only="store.readOnly"
                 @select="selectPage(page)"
                 @rename="askRename(page)"
                 @set-home="setHome(page)"
@@ -433,6 +434,7 @@ function onCreated(page: PageMeta) {
                   :last="pageIndex === pagesForCategory(category.id).length - 1"
                   :dragging="draggingPage === page.id"
                   :site-visibility="siteVisibility(page)"
+                  :read-only="store.readOnly"
                   @select="selectPage(page)"
                   @rename="askRename(page)"
                   @set-home="setHome(page)"

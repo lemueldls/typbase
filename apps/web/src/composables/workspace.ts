@@ -1,5 +1,5 @@
 import type { StorageBackend, TauriStorageMode, TauriStorageState } from "@typbase/storage";
-import type { WorkspaceInfo } from "@typbase/typing";
+import type { WorkspaceInfo, WorkspaceSpaceRef, WorkspaceSpaceRole } from "@typbase/typing";
 
 import {
   FileSystemAccessBackend,
@@ -141,6 +141,8 @@ function useWorkspaceState() {
     did: null,
     profile: null,
     spaceUri: null,
+    spaceRole: null,
+    readOnly: false,
     pendingUpdates: 0,
     lastExportAt: 0,
     lastImportAt: 0,
@@ -443,6 +445,7 @@ function useWorkspaceState() {
     store: WorkspaceStore,
     activeBackend: StorageBackend,
     local: LocalState,
+    info: WorkspaceInfo,
   ): Promise<void> {
     const token = ++openingSeq;
     updateBootStep("atproto", { status: "active", detail: t("boot.inBackground") });
@@ -465,6 +468,8 @@ function useWorkspaceState() {
           ...(runtimeConfig.public.pdsUrl
             ? { handleResolver: String(runtimeConfig.public.pdsUrl) }
             : {}),
+          ...(info.space ? { space: info.space } : {}),
+          ...(info.spaceRole ? { role: info.spaceRole } : {}),
         }),
         12_000,
         "Atproto initialization",
@@ -518,6 +523,8 @@ function useWorkspaceState() {
       did: null,
       profile: null,
       spaceUri: null,
+      spaceRole: null,
+      readOnly: false,
       pendingUpdates: 0,
       lastExportAt: 0,
       lastImportAt: 0,
@@ -565,6 +572,8 @@ function useWorkspaceState() {
       const store = await WorkspaceStore.open(backendRef.value!, id, {
         name: info.name,
         seed: options.seed,
+        readOnly: info.spaceRole === "viewer",
+        ...(info.space ? { syncId: info.space.skey } : {}),
       });
       if (token !== openingSeq) return store;
 
@@ -613,7 +622,7 @@ function useWorkspaceState() {
       store.attachSourceSync(local);
 
       // atproto boots in the background, never gating the editor.
-      void bootAtproto(store, backendRef.value!, local);
+      void bootAtproto(store, backendRef.value!, local, info);
 
       // Mirror pages to their paths and pick up external edits.
       void store
@@ -787,29 +796,48 @@ function useWorkspaceState() {
    * local doc starts empty because the sync pull supplies the remote history.
    * Seeding it first would merge a second Welcome page into that history.
    */
-  async function joinWorkspace(id: string, name = "Workspace"): Promise<WorkspaceInfo> {
-    const clean = id.trim();
-    if (!clean || clean.includes("/")) throw new Error("Invalid workspace id");
-
+  async function joinWorkspace(
+    space: WorkspaceSpaceRef,
+    role: WorkspaceSpaceRole = "viewer",
+    name = "Workspace",
+  ): Promise<WorkspaceInfo> {
     const reg = await ensureRegistry();
-    const existing = await reg.get(clean);
+    const known = await reg.list();
+    const existing =
+      known.find((entry) => entry.space?.uri === space.uri) ??
+      known.find(
+        (entry) =>
+          !entry.space && entry.id === space.skey && atprotoStatus.value.did === space.ownerDid,
+      );
     if (existing) {
       // Reopening a joined workspace must not seed a second local copy of
       // the workspace document. The remote snapshot supplies its settings.
+      if (existing.spaceRole !== role || !existing.space) {
+        await reg.save({
+          ...existing,
+          space,
+          spaceRole: role,
+          lastOpenedAt: Date.now(),
+        });
+        workspaces.value = await reg.list();
+      }
       await switchWorkspace(existing.id, { seed: false });
       return existing;
     }
 
     const info: WorkspaceInfo = {
-      id: clean,
-      name,
+      // The local id is opaque. Two owners can use the same space key.
+      id: createId((candidate) => known.some((entry) => entry.id === candidate)),
+      name: name.trim() || "Shared workspace",
+      space,
+      spaceRole: role,
       createdAt: Date.now(),
       lastOpenedAt: Date.now(),
     };
     localStorage.removeItem(WORKSPACES_EMPTY_KEY);
     await reg.save(info);
     workspaces.value = await reg.list();
-    await switchWorkspace(clean, { seed: false });
+    await switchWorkspace(info.id, { seed: false });
 
     return info;
   }
@@ -833,7 +861,11 @@ function useWorkspaceState() {
     // Renaming a workspace that is not open still has to reach its doc: the
     // doc's settings name is what wins when it opens (and what syncs), so a
     // registry-only rename would be reverted on the next open.
-    const store = await WorkspaceStore.open(backendRef.value!, id, { name: trimmed });
+    const store = await WorkspaceStore.open(backendRef.value!, id, {
+      name: trimmed,
+      readOnly: entry.spaceRole === "viewer",
+      ...(entry.space ? { syncId: entry.space.skey } : {}),
+    });
     store.updateSettings({ name: trimmed });
     await store.flush();
   }
@@ -847,7 +879,11 @@ function useWorkspaceState() {
     if (id === activeWorkspaceId.value && workspace.value) {
       workspace.value.updateSettings({ icon: next });
     } else {
-      const store = await WorkspaceStore.open(backendRef.value!, id, { name: entry.name });
+      const store = await WorkspaceStore.open(backendRef.value!, id, {
+        name: entry.name,
+        readOnly: entry.spaceRole === "viewer",
+        ...(entry.space ? { syncId: entry.space.skey } : {}),
+      });
       store.updateSettings({ icon: next });
       await store.flush();
     }

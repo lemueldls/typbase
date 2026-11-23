@@ -66,11 +66,22 @@ export interface SyncSnapshot {
 
 /** The record operations the engine needs. See `createAirspaceTransport`. */
 export interface SyncTransport {
-  listUpdates(cursor: string | null): Promise<{
+  /**
+   * Repos to pull, when the space has more than the signed-in member. The
+   * engine keeps a cursor per repo. Omit for the single-repo backend.
+   */
+  listRepos?(): Promise<string[]>;
+  listUpdates(
+    cursor: string | null,
+    repo?: string,
+  ): Promise<{
     records: SyncUpdate[];
     cursor: string | null;
   }>;
-  listSnapshots(cursor: string | null): Promise<{
+  listSnapshots(
+    cursor: string | null,
+    repo?: string,
+  ): Promise<{
     records: SyncSnapshot[];
     cursor: string | null;
   }>;
@@ -98,9 +109,14 @@ interface DocSyncState {
 interface SyncState {
   docs: Record<string, DocSyncState>;
   queue: QueuedUpdate[];
-  /** Newest update rkey seen, so a poll can stop early. */
+  /** Newest update rkey seen for the single-repo backend. */
   lastUpdateRkey: string | null;
   lastSnapshotRkey: string | null;
+  /** Per-writer cursors for a multi-writer space. */
+  writerCursors: {
+    updates: Record<string, string | null>;
+    snapshots: Record<string, string | null>;
+  };
   lastFullScanAt: number;
   lastExportAt: number;
   lastImportAt: number;
@@ -112,6 +128,8 @@ export interface TypbaseSyncOptions {
   pollIntervalMs?: number;
   /** How often a poll ignores the saved rkeys and scans everything. */
   fullScanIntervalMs?: number;
+  /** Pull only. Used for a member with read access but no write access. */
+  readOnly?: boolean;
   now?: () => number;
 }
 
@@ -120,6 +138,7 @@ const emptyState = (): SyncState => ({
   queue: [],
   lastUpdateRkey: null,
   lastSnapshotRkey: null,
+  writerCursors: { updates: {}, snapshots: {} },
   lastFullScanAt: 0,
   lastExportAt: 0,
   lastImportAt: 0,
@@ -189,7 +208,7 @@ export class TypbaseSync {
       this.timer = setInterval(() => void this.tick(), this.options.pollIntervalMs ?? 5000);
       this.pollTimer = undefined;
 
-      await this.flushQueueNow();
+      if (!this.options.readOnly) await this.flushQueueNow();
       await this.pullNow();
     });
   }
@@ -214,6 +233,7 @@ export class TypbaseSync {
    * the delta. Safe to run once per account and workspace.
    */
   async bootstrapSnapshots(): Promise<void> {
+    if (this.options.readOnly) return;
     await this.enqueue(async () => {
       if (this.closed) return;
       await this.ensureLoaded();
@@ -251,6 +271,7 @@ export class TypbaseSync {
    * used to reload and overwrite the same queue state.
    */
   async onLocalCommit(docId: string): Promise<void> {
+    if (this.options.readOnly) return;
     await this.enqueue(async () => {
       if (this.closed) return;
       await this.ensureLoaded();
@@ -268,6 +289,7 @@ export class TypbaseSync {
    * when nothing new happens afterwards.
    */
   async exportPending(): Promise<void> {
+    if (this.options.readOnly) return;
     await this.enqueue(async () => {
       if (this.closed) return;
       await this.ensureLoaded();
@@ -297,11 +319,12 @@ export class TypbaseSync {
 
   /** Online now: push queued updates, compact where needed. */
   async flushQueue(): Promise<void> {
+    if (this.options.readOnly) return;
     await this.enqueue(() => this.flushQueueNow());
   }
 
   private async flushQueueNow(): Promise<void> {
-    if (this.closed) return;
+    if (this.closed || this.options.readOnly) return;
     if (this.state.queue.length === 0) return;
 
     try {
@@ -355,9 +378,18 @@ export class TypbaseSync {
     try {
       const changed = new Set<string>();
       const full = this.needsFullScan();
+      const repos = this.transport.listRepos ? await this.transport.listRepos() : [null];
 
-      imported += await this.pullUpdates(changed, full);
-      imported += await this.pullSnapshots(changed, full);
+      for (const repo of repos) {
+        try {
+          imported += await this.pullUpdates(changed, full, repo);
+          imported += await this.pullSnapshots(changed, full, repo);
+        } catch (error) {
+          // A repo can disappear between the writer list and the read. Keep
+          // pulling the others instead of starving the whole space.
+          this.host.engineLog("warn", `pull failed for ${repo ?? "own repo"}: ${String(error)}`);
+        }
+      }
 
       this.state.lastFullScanAt = this.now();
       if (changed.size > 0) {
@@ -443,16 +475,22 @@ export class TypbaseSync {
     this.pollTimer = undefined;
   }
 
-  private async pullUpdates(changed: Set<string>, full: boolean): Promise<number> {
+  private async pullUpdates(
+    changed: Set<string>,
+    full: boolean,
+    repo: string | null,
+  ): Promise<number> {
     let imported = 0;
+    const since =
+      repo === null ? this.state.lastUpdateRkey : (this.state.writerCursors.updates[repo] ?? null);
     let cursor: string | null = null;
     let reachedOld = false;
-    let newest = this.state.lastUpdateRkey;
+    let newest = since;
 
     do {
-      const page = await this.transport.listUpdates(cursor);
+      const page = await this.transport.listUpdates(cursor, repo ?? undefined);
       for (const record of page.records) {
-        if (!full && this.state.lastUpdateRkey && record.rkey <= this.state.lastUpdateRkey) {
+        if (!full && since && record.rkey <= since) {
           reachedOld = true;
           break;
         }
@@ -484,21 +522,30 @@ export class TypbaseSync {
       cursor = page.cursor;
     } while (cursor && !reachedOld);
 
-    this.state.lastUpdateRkey = newest;
+    if (repo === null) this.state.lastUpdateRkey = newest;
+    else this.state.writerCursors.updates[repo] = newest;
 
     return imported;
   }
 
-  private async pullSnapshots(changed: Set<string>, full: boolean): Promise<number> {
+  private async pullSnapshots(
+    changed: Set<string>,
+    full: boolean,
+    repo: string | null,
+  ): Promise<number> {
     let imported = 0;
+    const since =
+      repo === null
+        ? this.state.lastSnapshotRkey
+        : (this.state.writerCursors.snapshots[repo] ?? null);
     let cursor: string | null = null;
     let reachedOld = false;
-    let newest = this.state.lastSnapshotRkey;
+    let newest = since;
 
     do {
-      const page = await this.transport.listSnapshots(cursor);
+      const page = await this.transport.listSnapshots(cursor, repo ?? undefined);
       for (const record of page.records) {
-        if (!full && this.state.lastSnapshotRkey && record.rkey <= this.state.lastSnapshotRkey) {
+        if (!full && since && record.rkey <= since) {
           reachedOld = true;
           break;
         }
@@ -520,7 +567,8 @@ export class TypbaseSync {
       cursor = page.cursor;
     } while (cursor && !reachedOld);
 
-    this.state.lastSnapshotRkey = newest;
+    if (repo === null) this.state.lastSnapshotRkey = newest;
+    else this.state.writerCursors.snapshots[repo] = newest;
 
     return imported;
   }
@@ -585,6 +633,10 @@ export class TypbaseSync {
       ...(value ?? {}),
       docs: value?.docs ?? {},
       queue: Array.isArray(value?.queue) ? value.queue : [],
+      writerCursors: {
+        updates: value?.writerCursors?.updates ?? {},
+        snapshots: value?.writerCursors?.snapshots ?? {},
+      },
     };
   }
 

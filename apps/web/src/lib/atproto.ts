@@ -1,14 +1,23 @@
 import type { AssetSyncStatus, OAuthSession } from "@typbase/spaces";
 import type { LocalState, WorkspaceStore } from "@typbase/storage";
+import type { WorkspaceSpaceRef, WorkspaceSpaceRole } from "@typbase/typing";
 
-import { AssetSync, createAssetRemote, decodeRecordBytes } from "@typbase/spaces";
+import {
+  AssetSync,
+  createAirspaceTransport,
+  createAssetRemote,
+  createSharedAssetRemote,
+  createSharedTransport,
+  decodeRecordBytes,
+  openSharedWorkspaceSpace,
+} from "@typbase/spaces";
 import {
   RelayClient,
   SessionManager,
   TypbaseSync,
   WORKSPACE_SPACE_TYPE,
-  createAirspaceTransport,
   createWorkspaceClient,
+  workspaceSpaceRef,
   workspaceSpaceUri,
   type WorkspaceClient,
 } from "@typbase/spaces";
@@ -85,7 +94,11 @@ export interface AtprotoStatus {
   lastImportAt: number;
   /** Content-addressed blobs moving between this device and the space. */
   assets: AssetSyncStatus;
-  members: Array<{ did: string; handle: string | null }>;
+  members: Array<{ did: string; handle: string | null; read: boolean; write: boolean }>;
+  /** Owner, editor, or viewer, when a space is attached. */
+  spaceRole: WorkspaceSpaceRole | null;
+  /** True when the space is read-only in this app. */
+  readOnly: boolean;
   relayConnected: boolean;
   error: string | null;
   /** Accounts saved on this device, active account first when just used. */
@@ -117,7 +130,10 @@ export class AtprotoService {
   private statusDid: string | null = null;
   private statusProfile: PublicProfile | null = null;
   private statusError: string | null = null;
-  private members: Array<{ did: string; handle: string | null }> = [];
+  private members: Array<{ did: string; handle: string | null; read: boolean; write: boolean }> =
+    [];
+  private spaceRole: WorkspaceSpaceRole | null = null;
+  private spaceUriValue: string | null = null;
   private accounts: AtprotoAccount[] = [];
   private attachEpoch = 0;
   private disposed = false;
@@ -130,6 +146,8 @@ export class AtprotoService {
       oauthOrigin: string;
       handleResolver?: string;
       proxyUrl?: string;
+      space?: WorkspaceSpaceRef;
+      role?: WorkspaceSpaceRole;
     },
   ) {}
 
@@ -141,6 +159,8 @@ export class AtprotoService {
       oauthOrigin: string;
       handleResolver?: string;
       proxyUrl?: string;
+      space?: WorkspaceSpaceRef;
+      role?: WorkspaceSpaceRole;
     },
   ): Promise<AtprotoService> {
     const service = new AtprotoService(store, local, opts);
@@ -211,10 +231,9 @@ export class AtprotoService {
       syncing: this.sync !== null,
       did: this.statusDid,
       profile: this.statusProfile,
-      spaceUri:
-        this.sync && this.statusDid
-          ? workspaceSpaceUri(this.statusDid, this.store.workspaceId)
-          : null,
+      spaceUri: this.sync ? this.spaceUriValue : null,
+      spaceRole: this.spaceRole,
+      readOnly: this.spaceRole === "viewer",
       pendingUpdates: syncStatus?.pending ?? 0,
       lastExportAt: syncStatus?.lastExportAt ?? 0,
       lastImportAt: syncStatus?.lastImportAt ?? 0,
@@ -409,18 +428,26 @@ export class AtprotoService {
     if (!session || this.disposed) return;
     const epoch = this.attachEpoch;
 
+    const ownerDid = this.opts.space?.ownerDid ?? session.did;
+    const skey = this.opts.space?.skey ?? this.store.workspaceId;
+    const ownSpace = ownerDid === session.did;
+    this.spaceRole = ownSpace ? "owner" : this.opts.role === "editor" ? "editor" : "viewer";
+    this.spaceUriValue = this.opts.space?.uri ?? workspaceSpaceUri(session.did, skey);
+
     const airspace = createWorkspaceClient({
       session,
       did: session.did,
-      workspaceId: this.store.workspaceId,
+      workspaceId: skey,
     });
     this.airspace = airspace;
     void this.publishInstallRecord();
 
     try {
-      await airspace.workspace.manage.ensure({
-        policy: { type: "memberspace" },
-      });
+      if (ownSpace) {
+        await airspace.workspace.manage.ensure({
+          policy: { type: "memberspace" },
+        });
+      }
     } catch (error) {
       if (!this.isCurrentAttach(session, epoch)) return;
       // The session is fine. This PDS just cannot host the workspace space
@@ -436,10 +463,37 @@ export class AtprotoService {
     }
 
     if (!this.isCurrentAttach(session, epoch)) return;
-    this.airspace = airspace;
+
+    let shared: ReturnType<typeof openSharedWorkspaceSpace> | null = openSharedWorkspaceSpace({
+      session,
+      ref: {
+        uri: this.spaceUriValue,
+        ownerDid,
+        skey,
+      },
+    });
 
     try {
-      await this.startSync(airspace, session, epoch);
+      // A space credential is the only read path a non-owner has. Use it once
+      // during attach so a broken invite fails before sync starts.
+      await shared.listWriters({ limit: 1 });
+    } catch (error) {
+      if (!this.isCurrentAttach(session, epoch)) return;
+      if (!ownSpace) {
+        this.setError(
+          "This account cannot read this workspace space. Ask the owner to invite it again.",
+        );
+
+        return;
+      }
+      // An older PDS can host a space without serving listWriters or
+      // credentials. Keep syncing this account's own repo through airspace.
+      console.warn("[spaces] credential sync unavailable; using own repo:", error);
+      shared = null;
+    }
+
+    try {
+      await this.startSync(airspace, shared, session, epoch, ownSpace);
     } catch (error) {
       if (!this.isCurrentAttach(session, epoch)) return;
       throw error;
@@ -492,12 +546,17 @@ export class AtprotoService {
 
   private async startSync(
     airspace: WorkspaceClient,
+    shared: ReturnType<typeof openSharedWorkspaceSpace> | null,
     session: OAuthSession,
     epoch: number,
+    ownSpace: boolean,
   ): Promise<void> {
     if (this.disposed) return;
 
     const memberDid = session.did;
+    const ownerDid = this.opts.space?.ownerDid ?? memberDid;
+    const skey = this.opts.space?.skey ?? this.store.workspaceId;
+    const readOnly = this.spaceRole === "viewer";
     const syncHost = createSyncHost(
       this.store,
       (level, message) => console[level](`[sync] ${message}`),
@@ -514,22 +573,29 @@ export class AtprotoService {
     // old model. `v2` opened pre-metadata page docs, which fixed pages coming
     // in empty on a freshly joined workspace. The DID keeps a switch from
     // moving the old account's cursors and pending queue into the new space.
-    const syncStatePrefix = `sync:${WORKSPACE_SPACE_TYPE}:v2:${memberDid}:`;
+    const syncStatePrefix = `sync:${WORKSPACE_SPACE_TYPE}:v3:${ownerDid}:${skey}:${memberDid}:`;
     const syncStore = {
       get: (key: string) => this.local.get(`${syncStatePrefix}${key}`),
       set: (key: string, value: unknown) => this.local.set(`${syncStatePrefix}${key}`, value),
     };
 
-    const sync = new TypbaseSync(syncHost, syncStore, createAirspaceTransport(airspace.workspace), {
+    const transport = shared
+      ? createSharedTransport(shared)
+      : createAirspaceTransport(airspace.workspace);
+    const sync = new TypbaseSync(syncHost, syncStore, transport, {
       compactionThreshold: 100,
       pollIntervalMs: 5000,
+      readOnly,
     });
     this.sync = sync;
 
     this.commitUnsubscribe?.();
-    this.commitUnsubscribe = this.store.onLocalCommit((docId) => {
-      void this.handleLocalCommit(docId);
-    });
+    this.commitUnsubscribe = undefined;
+    if (!readOnly) {
+      this.commitUnsubscribe = this.store.onLocalCommit((docId) => {
+        void this.handleLocalCommit(docId);
+      });
+    }
 
     await sync.start();
     if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {
@@ -540,8 +606,8 @@ export class AtprotoService {
     // Once per account and space: push a snapshot of every doc so a fresh
     // device has a starting point, then send only deltas. The flag records
     // the space type, so another space starts its own bootstrap.
-    const bootstrapFlag = `synced:${memberDid}:${this.store.workspaceId}:${WORKSPACE_SPACE_TYPE}`;
-    if (!(await this.local.get<boolean>(bootstrapFlag))) {
+    const bootstrapFlag = `synced:${memberDid}:${ownerDid}:${skey}:${WORKSPACE_SPACE_TYPE}`;
+    if (!readOnly && !(await this.local.get<boolean>(bootstrapFlag))) {
       if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {
         sync.stop();
         return;
@@ -577,8 +643,12 @@ export class AtprotoService {
       sync.stop();
       return;
     }
-    this.startAssetSync(airspace, session);
-    this.startRelay();
+    this.startAssetSync(airspace, session, shared);
+    if (ownSpace) this.startRelay();
+    else {
+      this.relay?.disconnect();
+      this.relay = null;
+    }
     this.emit();
   }
 
@@ -634,12 +704,18 @@ export class AtprotoService {
     }, 300);
   }
 
-  private startAssetSync(airspace: WorkspaceClient, session: OAuthSession): void {
+  private startAssetSync(
+    airspace: WorkspaceClient,
+    session: OAuthSession,
+    shared: ReturnType<typeof openSharedWorkspaceSpace> | null,
+  ): void {
     this.assetSync?.stop();
+    const own = createAssetRemote(airspace, session);
     this.assetSync = new AssetSync(
       createAssetHost(this.store),
-      createAssetRemote(airspace, session),
+      shared ? createSharedAssetRemote(shared, own) : own,
       {
+        readOnly: this.spaceRole === "viewer",
         onStatus: () => this.emit(),
       },
     );
@@ -677,9 +753,11 @@ export class AtprotoService {
     // over. Without it the relay targets the app origin and just never opens,
     // which leaves the polling sync loop as the only path.
     const base = (this.opts.proxyUrl?.trim() || this.opts.appUrl).replace(/\/$/, "");
-    // Two accounts can use the same local workspace id. Scope the live room by
-    // DID so their relay traffic cannot cross.
-    const room = `${this.store.workspaceId}:${this.statusDid ?? ""}`;
+    // The local id can differ between devices that opened the same space.
+    // Scope the room by owner and space key instead.
+    const skey = this.opts.space?.skey ?? this.store.workspaceId;
+    const ownerDid = this.opts.space?.ownerDid ?? this.statusDid ?? "";
+    const room = `${ownerDid}:${skey}`;
     const url = `${base}/relay?workspace=${encodeURIComponent(room)}`;
     this.relay = new RelayClient(url, room, {
       onOpen: () => this.emit(),
@@ -796,18 +874,50 @@ export class AtprotoService {
 
   async refreshMembers(): Promise<void> {
     const airspace = this.airspace;
-    if (!airspace) return;
+    if (!airspace || this.spaceRole !== "owner") {
+      this.members = [];
+      return;
+    }
 
     try {
       const members = await airspace.workspace.manage.members.list();
       if (this.airspace !== airspace) return;
-      this.members = members.map((member) => ({ did: member.did, handle: null }));
+      this.members = members.map((member) => ({
+        did: member.did,
+        handle: null,
+        read: member.read,
+        write: member.write,
+      }));
       this.emit();
     } catch (error) {
       if (this.airspace !== airspace) return;
       this.members = [];
       this.setError(`Member list failed: ${String(error)}`);
     }
+  }
+
+  /** Adds or updates one member. Only the space authority may call this. */
+  async putMember(did: string, access: { read?: boolean; write?: boolean } = {}): Promise<void> {
+    const airspace = this.airspace;
+    if (!airspace || this.spaceRole !== "owner")
+      throw new Error("Only the owner can change members");
+    await airspace.workspace.manage.members.add(did as `did:${string}:${string}`, access);
+    if (access.write === false) {
+      await airspace.workspace.manage
+        .removeWriter(did as `did:${string}:${string}`)
+        .catch(() => {});
+    }
+    await this.refreshMembers();
+  }
+
+  /** Removes a member and their writer entry. */
+  async removeMember(did: string): Promise<void> {
+    const airspace = this.airspace;
+    if (!airspace || this.spaceRole !== "owner")
+      throw new Error("Only the owner can change members");
+    await airspace.workspace.manage.members.remove(did as `did:${string}:${string}`);
+    await airspace.workspace.manage.removeWriter(did as `did:${string}:${string}`).catch(() => {});
+    await this.refreshMembers();
   }
 
   /** Spaces the account can open as a workspace. */
@@ -894,21 +1004,33 @@ export class AtprotoService {
     return undefined;
   }
 
-  /** Confirm a space exists before opening it as a local workspace. */
-  async workspaceSpaceExists(id: string): Promise<boolean> {
+  /** Confirm the account can read a space before opening it as a local workspace. */
+  async workspaceSpaceExists(space: WorkspaceSpaceRef | string): Promise<boolean> {
     const session = this.sessionRef;
     const did = this.statusDid;
     if (!session || !did) return false;
 
-    const params = new URLSearchParams({ space: workspaceSpaceUri(did, id) });
-    const response = await session.fetchHandler(
-      `/xrpc/com.atproto.space.getSpace?${params.toString()}`,
-    );
-    if (response.ok) return true;
-    if (response.status === 404) return false;
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    if (body?.error === "SpaceNotFound") return false;
-    throw new Error(`Space lookup failed (${response.status})`);
+    const ref = typeof space === "string" ? workspaceSpaceRef(did, space) : space;
+    if (ref.ownerDid === did) {
+      const params = new URLSearchParams({ space: ref.uri });
+      const response = await session.fetchHandler(
+        `/xrpc/com.atproto.space.getSpace?${params.toString()}`,
+      );
+      if (response.ok) return true;
+      if (response.status === 404) return false;
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (body?.error === "SpaceNotFound") return false;
+      throw new Error(`Space lookup failed (${response.status})`);
+    }
+
+    const shared = openSharedWorkspaceSpace({ session, ref });
+    try {
+      await shared.listWriters({ limit: 1 });
+
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Stable per-device persona: name + color for remote cursors. */
@@ -980,6 +1102,8 @@ export class AtprotoService {
     this.relay?.disconnect();
     this.relay = null;
     this.airspace = null;
+    this.spaceRole = null;
+    this.spaceUriValue = null;
     this.members = [];
     this.presence.clear();
     this.relayVersions.clear();

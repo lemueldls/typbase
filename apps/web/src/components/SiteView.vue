@@ -222,6 +222,7 @@ const filteredPages = computed(() => {
 
 const publishBlockReason = computed(() => {
   if (!atprotoStatus.value.signedIn) return t("site.publishBlockedSignedOut");
+  if (atprotoStatus.value.readOnly) return t("site.publishBlockedReadOnly");
   if (!publishingReady.value) return t("site.publishBlockedScope");
   if (publisherMismatch.value) return t("site.publishBlockedPublisher");
   if (!includedCount.value) return t("site.publishBlockedNoPages");
@@ -232,6 +233,7 @@ const publishDisabled = computed(
   () =>
     busy.value ||
     !atprotoStatus.value.signedIn ||
+    atprotoStatus.value.readOnly ||
     !publishingReady.value ||
     publisherMismatch.value ||
     includedCount.value === 0,

@@ -1,4 +1,10 @@
-import { parseWorkspaceSpaceRef, WORKSPACE_SPACE_TYPE, workspaceSpaceRef } from "@typbase/spaces";
+import {
+  parseWorkspaceInvite,
+  parseWorkspaceSpaceRef,
+  WORKSPACE_SPACE_TYPE,
+  workspaceInviteUri,
+  workspaceSpaceRef,
+} from "@typbase/spaces";
 import { describe, expect, it } from "vitest";
 
 describe("workspace space ref", () => {
@@ -18,6 +24,16 @@ describe("workspace space ref", () => {
       ownerDid: "did:plc:bob",
       skey: "notes",
     });
+  });
+
+  it("carries the invite role as a fragment", () => {
+    const ref = workspaceSpaceRef("did:plc:alice", "work");
+    expect(parseWorkspaceInvite(workspaceInviteUri(ref, "editor"))).toEqual({
+      ...ref,
+      role: "editor",
+    });
+    expect(parseWorkspaceInvite(ref.uri)).toEqual({ ...ref, role: "viewer" });
+    expect(parseWorkspaceInvite(`${ref.uri}#viewer`)).toEqual({ ...ref, role: "viewer" });
   });
 
   it("rejects another space type and a public record URI", () => {

@@ -426,7 +426,7 @@
     "syncCopySpace": "Copy space URI",
     "syncJoinTitle": "Join a workspace",
     "syncJoinPlaceholder": "Space URI or workspace ID",
-    "syncJoinHint": "Paste the space URI from another browser or device signed in to this account.",
+    "syncJoinHint": "Paste a space URI or an invite link. An invite link may end with #editor or #viewer.",
     "syncJoin": "Join",
     "syncSpaces": "Spaces on this account",
     "syncSpacesLoading": "Loading spaces…",
@@ -434,8 +434,8 @@
     "syncOpen": "Open",
     "syncSharedWorkspace": "Workspace",
     "syncNoSpaces": "No spaces found.",
-    "syncJoinInvalid": "Enter a space URI or workspace ID.",
-    "syncJoinNotFound": "That space does not exist on this account.",
+    "syncJoinInvalid": "Enter a space URI, invite link, or workspace ID.",
+    "syncJoinNotFound": "That space is not readable by this account.",
     "syncExported": "Exported",
     "syncImported": "Imported",
     "syncPendingCount": "{count} pending",
@@ -484,7 +484,21 @@
     "sectionResetHint": "Return the workspace to the default skin.",
     "resetAppearance": "Reset appearance",
     "resetAppearanceHint": "Restores the default theme, fonts, and sizes.",
-    "resetAppearanceButton": "Reset appearance"
+    "resetAppearanceButton": "Reset appearance",
+    "syncEditor": "Editor",
+    "syncViewer": "Viewer",
+    "syncRole": "Role",
+    "syncRoleHint": "Role: {role}.",
+    "syncReadOnly": "This workspace is read-only in this app. Your edits stay on this device until the owner grants write access.",
+    "syncCopyInvite": "Copy invite",
+    "syncInviteEditor": "Copy editor invite",
+    "syncInviteViewer": "Copy viewer invite",
+    "syncInviteCopied": "Copied",
+    "syncRemoveMember": "Remove member",
+    "syncNoMembers": "No members yet.",
+    "syncAddMember": "Add member",
+    "syncMemberPlaceholder": "did:plc:…",
+    "syncAddMemberAction": "Add"
   },
   "switcher": {
     "title": "Open a workspace",
@@ -1136,7 +1150,8 @@
     "publicUrl": "Public URL",
     "draft": "Draft",
     "preserveNewlines": "Preserve line spacing",
-    "preserveNewlinesHint": "Keep the editor's line breaks and spacing on the website."
+    "preserveNewlinesHint": "Keep the editor's line breaks and spacing on the website.",
+    "publishBlockedReadOnly": "Only members with write access can publish the site."
   },
   "aux": {
     "title": "Auxiliary panel",
