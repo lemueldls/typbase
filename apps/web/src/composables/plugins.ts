@@ -1297,10 +1297,7 @@ export function usePluginHost() {
           return { action: action.name, ok: false, message: "no page" };
         }
 
-        const current = await store.loadPageText(page.id);
-        const separator = current.endsWith("\n") || current === "" ? "" : "\n";
-        const next = `${current}${separator}${text}\n`;
-        await store.setPageText(page.id, next);
+        const next = await store.appendPageText(page.id, text);
 
         // Sections feed the note index and plugin data. Refresh them now so
         // plugins see fresh content without a page switch.

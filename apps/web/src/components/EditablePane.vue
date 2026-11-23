@@ -2,6 +2,7 @@
 import type { NotebookOptions } from "@typbase/codemirror";
 import type { TypstRequest } from "@typbase/engine";
 import type { FileId, TypstState } from "@typbase/engine";
+import type { PageTextChange, PageTextDelta } from "@typbase/storage";
 import type { EditorSettings, IgnoredSpellcheckLint, SpellcheckMode } from "@typbase/typing";
 
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
@@ -15,10 +16,12 @@ import {
 import { lintGutter } from "@codemirror/lint";
 import { highlightSelectionMatches } from "@codemirror/search";
 import {
+  Annotation,
   Compartment,
   EditorState,
   type EditorStateConfig,
   type Extension,
+  Transaction,
 } from "@codemirror/state";
 import {
   EditorView,
@@ -126,7 +129,16 @@ const props = defineProps<{
     payload: { file?: File; hash?: string; mime?: string },
     position: number,
   ) => void | Promise<void>;
+  /**
+   * Local document changes, in the coordinates of the document before the
+   * transaction. The parent writes them to the page doc as text splices.
+   */
+  onTextChange?: (changes: PageTextChange[]) => void;
 }>();
+
+/** Marks a transaction that mirrors a peer's edit, not a local one. */
+const remoteTextChange = Annotation.define<boolean>();
+const remoteTextAnnotations = [remoteTextChange.of(true), Transaction.addToHistory.of(false)];
 
 const ASSET_MIME = "application/x-typbase-asset";
 
@@ -359,11 +371,11 @@ watch(
   },
 );
 
-// External writers replace the page text under an open editor: a plugin's
-// `app.page-append`, a source-mirror import, an atproto pull. Adopt the new
-// text when it differs from the doc. The editor's own edits echo back equal,
-// so this never fires mid-typing. PageView only updates `text` when the
-// editor is idle, so a pending keystroke cannot be clobbered here.
+// Full-text catch-up for a writer that replaces the whole document, or for a
+// delta that could not be applied. Remote edits arrive as deltas and are
+// applied by `applyTextDelta`; this only runs when the buffer still differs.
+// The replacement stays out of the undo history so local undo never reverts a
+// peer's edit.
 watch(
   () => props.text.value,
   (value) => {
@@ -375,6 +387,7 @@ watch(
     editor.dispatch({
       changes: { from: 0, to: editor.state.doc.length, insert: value },
       selection: { anchor, head },
+      annotations: remoteTextAnnotations,
     });
   },
 );
@@ -620,6 +633,22 @@ function createStateConfig(): EditorStateConfig {
             onCompile: props.onCompile,
           }),
         ]),
+    // Local edits go to the page doc as operations, not as a whole document
+    // replace. Remote transactions are skipped: their delta already came from
+    // the doc, and writing it back would duplicate it.
+    EditorView.updateListener.of((update) => {
+      if (!update.docChanged || !props.onTextChange) return;
+
+      for (const transaction of update.transactions) {
+        if (transaction.annotation(remoteTextChange)) continue;
+
+        const changes: PageTextChange[] = [];
+        transaction.changes.iterChanges((from, to, _fromNew, _toNew, inserted) => {
+          changes.push({ from, to, insert: inserted.toString() });
+        });
+        if (changes.length > 0) props.onTextChange(changes);
+      }
+    }),
     spellcheckCompartment.of(spellcheckExtension(props.spellcheck, spellcheckOptions())),
     editorDisplayCompartment.of(editorDisplayExtension(props.editor)),
     findCompartment.of(EditorView.decorations.of(findDecorations())),
@@ -698,7 +727,42 @@ function insertAt(position: number, text: string) {
   return pos + text.length;
 }
 
-defineExpose({ view, recompile, revealRange, insertAt });
+/**
+ * Mirrors a Loro text delta into the editor. Each operation is its own
+ * transaction outside the undo history, so undoing local typing cannot revert
+ * a peer's edit. Positions are UTF-16, matching both Loro and CodeMirror.
+ */
+function applyTextDelta(delta: readonly PageTextDelta[]): void {
+  const editor = view.value;
+  if (!editor) return;
+
+  let pos = 0;
+  for (const op of delta) {
+    if (typeof op.retain === "number") {
+      pos += op.retain;
+      continue;
+    }
+    if (typeof op.insert === "string") {
+      if (op.insert) {
+        editor.dispatch({
+          changes: { from: pos, insert: op.insert },
+          annotations: remoteTextAnnotations,
+        });
+      }
+      // The next original character sits after the inserted text.
+      pos += op.insert.length;
+      continue;
+    }
+    if (typeof op.delete === "number" && op.delete > 0) {
+      editor.dispatch({
+        changes: { from: pos, to: pos + op.delete },
+        annotations: remoteTextAnnotations,
+      });
+    }
+  }
+}
+
+defineExpose({ view, recompile, revealRange, insertAt, applyTextDelta });
 </script>
 
 <template>

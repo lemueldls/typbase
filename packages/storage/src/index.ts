@@ -37,6 +37,9 @@ export {
 export type {
   CreatePageInput,
   LoroPath,
+  PageTextChange,
+  PageTextDelta,
+  PageTextEvent,
   SourceSyncResult,
   SourceSyncStore,
   WorkspaceStoreOptions,

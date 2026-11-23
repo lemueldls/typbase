@@ -13,7 +13,7 @@ import type {
   Section,
   WorkspaceSettings,
 } from "@typbase/typing";
-import type { LoroDoc, LoroMap, VersionVector } from "loro-crdt";
+import type { LoroDoc, LoroEventBatch, LoroMap, VersionVector } from "loro-crdt";
 
 import { DEFAULT_SETTINGS } from "@typbase/typing";
 
@@ -32,6 +32,29 @@ const SNAPSHOT_DEBOUNCE_MS = 500;
  * (`["categories", 0]`, `["pages", "<id>"]`).
  */
 export type LoroPath = readonly (string | number)[];
+
+/** One text edit, in the coordinates of the document before it was applied. */
+export interface PageTextChange {
+  from: number;
+  to: number;
+  insert: string;
+}
+
+/**
+ * A Loro text delta item. Positions are UTF-16 code units, the same unit
+ * CodeMirror and the editor use.
+ */
+export interface PageTextDelta {
+  retain?: number;
+  insert?: string;
+  delete?: number;
+}
+
+export interface PageTextEvent {
+  delta: PageTextDelta[];
+  /** Commit origin. "editor" marks this app's own editor splices. */
+  origin?: string;
+}
 
 /**
  * True when one path is a prefix of the other. A change to a nested container
@@ -313,7 +336,7 @@ export class WorkspaceStore {
     paths: readonly LoroPath[];
     listener: () => void;
   }>();
-  private pageListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
+  private pageTextListeners = new Map<string, Set<(event: PageTextEvent) => void>>();
   private pluginListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
   private chatListeners = new Map<string, Set<(paths: LoroPath[]) => void>>();
   private commitListeners = new Set<(docId: string) => void>();
@@ -611,7 +634,20 @@ export class WorkspaceStore {
 
       if (!docChanged) {
         if (docText !== text) {
-          await this.setPageText(page.id, text);
+          // Conditional on the base text the caller read. A keystroke may have
+          // landed after that read, and the doc wins over a stale file.
+          if (!this.replacePageTextIfCurrent(page.id, docText, text)) {
+            result.conflicts.push(virtualPath);
+            const current = await this.loadPageText(page.id);
+            const stat = await this.writeSourceFile(page, current);
+            hashes[virtualPath] = {
+              pageId: page.id,
+              hash: hashText(current),
+              size: stat?.size,
+              modifiedAt: stat?.modifiedAt,
+            };
+            continue;
+          }
           // Stale section ranges would point into the old text.
           await this.setSections(page.id, []);
           result.imported.push(page.id);
@@ -1206,10 +1242,7 @@ export class WorkspaceStore {
 
     doc.subscribe((batch) => {
       this.scheduleSave(doc);
-      this.emitPage(
-        pageId,
-        batch.events.map((event) => event.path),
-      );
+      this.emitPageText(pageId, batch);
       this.scheduleCommit(pageId);
     });
 
@@ -1274,6 +1307,12 @@ export class WorkspaceStore {
     return this.getPageText(pageId);
   }
 
+  /**
+   * Replaces the whole document. This is a deliberate replacement for writers
+   * that own the file (source import, a seed script), not the editor save
+   * path: `content.update` diffs against the live doc, so text another device
+   * added since the caller read it is deleted.
+   */
   async setPageText(pageId: string, text: string): Promise<void> {
     const doc = await this.openPageDoc(pageId);
     const content = doc.getText("content");
@@ -1284,18 +1323,92 @@ export class WorkspaceStore {
   }
 
   /**
-   * Subscribe to a page doc's changes (content or meta). The listener gets
-   * the container paths that changed, for filtering.
+   * Replaces the whole document only while it still matches `expected`.
+   * Source import uses this so a keystroke between reading the file and
+   * writing it makes the doc win instead of being deleted.
    */
-  async onPageDocChange(
+  private replacePageTextIfCurrent(pageId: string, expected: string, text: string): boolean {
+    const doc = this.pageDocs.get(pageId);
+    if (!doc) return false;
+
+    const content = doc.getText("content");
+    if (content.toString() !== expected) return false;
+    if (content.toString() === text) return true;
+
+    content.update(text);
+    doc.commit();
+
+    return true;
+  }
+
+  /**
+   * Applies one editor transaction to the page text. Changes are in the
+   * coordinates of the document before the transaction; they are applied from
+   * the end so earlier positions stay valid.
+   *
+   * Returns false when the page doc is not open or a range is out of bounds,
+   * so the caller can fall back to a full-text write.
+   */
+  applyPageTextChanges(pageId: string, changes: readonly PageTextChange[]): boolean {
+    const doc = this.pageDocs.get(pageId);
+    if (!doc) return false;
+
+    const content = doc.getText("content");
+    const length = content.length;
+    for (const change of changes) {
+      if (
+        change.from < 0 ||
+        change.to < change.from ||
+        change.to > length ||
+        change.from > length
+      ) {
+        return false;
+      }
+    }
+
+    let applied = false;
+    for (let index = changes.length - 1; index >= 0; index--) {
+      const change = changes[index]!;
+      if (change.from === change.to && change.insert === "") continue;
+      content.splice(change.from, change.to - change.from, change.insert);
+      applied = true;
+    }
+    if (applied) doc.commit({ origin: "editor" });
+
+    return true;
+  }
+
+  /**
+   * Appends a block to a page. Reading and inserting happen in one turn, so a
+   * keystroke cannot land between them and get deleted by a stale write.
+   * Returns the text after the append.
+   */
+  async appendPageText(pageId: string, text: string): Promise<string> {
+    const doc = await this.openPageDoc(pageId);
+    const content = doc.getText("content");
+    const current = content.toString();
+    const separator = current === "" || current.endsWith("\n") ? "" : "\n";
+
+    content.insert(content.length, `${separator}${text}\n`);
+    doc.commit();
+
+    return content.toString();
+  }
+
+  /**
+   * Subscribe to changes of the page's `content` text. Each event carries the
+   * delta Loro applied, so an open editor can mirror the change instead of
+   * replacing its buffer from a string.
+   */
+  async onPageTextChange(
     pageId: string,
-    listener: (paths: LoroPath[]) => void,
+    listener: (event: PageTextEvent) => void,
   ): Promise<() => void> {
     await this.openPageDoc(pageId);
-    let listeners = this.pageListeners.get(pageId);
+    let listeners = this.pageTextListeners.get(pageId);
     if (!listeners) {
       listeners = new Set();
-      this.pageListeners.set(pageId, listeners);
+      this.pageTextListeners.set(pageId, listeners);
     }
     listeners.add(listener);
 
@@ -2072,8 +2185,18 @@ export class WorkspaceStore {
     }
   }
 
-  private emitPage(pageId: string, paths: LoroPath[]): void {
-    for (const listener of this.pageListeners.get(pageId) ?? []) listener(paths);
+  private emitPageText(pageId: string, batch: LoroEventBatch): void {
+    const listeners = this.pageTextListeners.get(pageId);
+    if (!listeners?.size) return;
+
+    for (const event of batch.events) {
+      if (event.diff.type !== "text") continue;
+      if (event.path.length !== 1 || event.path[0] !== "content") continue;
+
+      for (const listener of listeners) {
+        listener({ delta: event.diff.diff, origin: batch.origin });
+      }
+    }
   }
 
   private emitPlugin(instanceId: string, paths: LoroPath[]): void {

@@ -556,6 +556,21 @@ export class AtprotoService {
           this.setError(`Snapshot bootstrap failed: ${String(error)}`);
         }
       }
+    } else {
+      // Already has a remote starting point. Anything edited while signed out
+      // still has to be exported, even if the user makes no further edit.
+      if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {
+        sync.stop();
+        return;
+      }
+
+      try {
+        await sync.exportPending();
+      } catch (error) {
+        if (this.isCurrentAttach(session, epoch) && this.sync === sync) {
+          this.setError(`Sync export failed: ${String(error)}`);
+        }
+      }
     }
 
     if (!this.isCurrentAttach(session, epoch) || this.sync !== sync) {

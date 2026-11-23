@@ -196,10 +196,7 @@ async function insertMessage(message: ChatMessage): Promise<void> {
     if (!insert) return;
   }
 
-  const current = await store.loadPageText(pageId);
-  const separator = current.endsWith("\n") || current === "" ? "" : "\n";
-  const next = `${current}${separator}${message.source}\n`;
-  await store.setPageText(pageId, next);
+  const next = await store.appendPageText(pageId, message.source);
 
   const typstState = await useTypst().catch(() => null);
   if (typstState) {

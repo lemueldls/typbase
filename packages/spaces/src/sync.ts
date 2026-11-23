@@ -161,9 +161,11 @@ export class TypbaseSync {
   private state: SyncState = emptyState();
   private timer: ReturnType<typeof setInterval> | undefined;
   private pollTimer: ReturnType<typeof setTimeout> | undefined;
-  private flushing = false;
-  private pulling = false;
-  private disposed = false;
+  private closed = false;
+  private loaded: Promise<void> | undefined;
+  private tickPending = false;
+  /** Serializes every read-modify-write of `state`. */
+  private serial: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly host: SyncHost,
@@ -173,26 +175,28 @@ export class TypbaseSync {
   ) {}
 
   async start(): Promise<void> {
-    await this.load();
-    // A device can have cursors from an earlier session whose clock put its
-    // own updates ahead of another device's settings update. Start with a
-    // full scan so a join or a long-lived workspace cannot miss records that
-    // sort below the saved cursor.
-    this.state.lastFullScanAt = 0;
+    this.closed = false;
+    await this.enqueue(async () => {
+      if (this.closed) return;
+      await this.ensureLoaded();
+      // A device can have cursors from an earlier session whose clock put its
+      // own updates ahead of another device's settings update. Start with a
+      // full scan so a join or a long-lived workspace cannot miss records that
+      // sort below the saved cursor.
+      this.state.lastFullScanAt = 0;
 
-    this.stop();
-    this.timer = setInterval(() => void this.tick(), this.options.pollIntervalMs ?? 5000);
-    this.pollTimer = undefined;
+      this.clearTimers();
+      this.timer = setInterval(() => void this.tick(), this.options.pollIntervalMs ?? 5000);
+      this.pollTimer = undefined;
 
-    await this.flushQueue();
-    await this.pull();
+      await this.flushQueueNow();
+      await this.pullNow();
+    });
   }
 
   stop(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
-    if (this.pollTimer) clearTimeout(this.pollTimer);
-    this.pollTimer = undefined;
+    this.closed = true;
+    this.clearTimers();
   }
 
   /** Status line for the settings UI, always safe to read. */
@@ -210,33 +214,73 @@ export class TypbaseSync {
    * the delta. Safe to run once per account and workspace.
    */
   async bootstrapSnapshots(): Promise<void> {
-    const docIds = await this.host.listDocIds();
-    for (const docId of docIds) {
-      const snapshot = await this.host.exportSnapshot(docId);
-      const rkey = await this.transport.createSnapshot({
-        docId,
-        snapshot: await encodeRecordBytes(snapshot.bytes),
-        version: snapshot.version,
-        createdAt: this.iso(),
-      });
-      const doc = this.docState(docId);
-      doc.exportedVersion = snapshot.version;
-      doc.written = [];
-      doc.snapshots = [rkey];
-    }
-    if (docIds.length > 0) this.state.lastExportAt = this.now();
-    await this.save();
+    await this.enqueue(async () => {
+      if (this.closed) return;
+      await this.ensureLoaded();
+
+      const docIds = await this.host.listDocIds();
+      for (const docId of docIds) {
+        const snapshot = await this.host.exportSnapshot(docId);
+        const doc = this.docState(docId);
+        // Advance before the upload. An edit made while the snapshot record
+        // is in flight is then exported as a delta on top of this version,
+        // instead of being skipped when the snapshot version lands later.
+        doc.exportedVersion = snapshot.version;
+        doc.written = [];
+        doc.snapshots = [];
+
+        const rkey = await this.transport.createSnapshot({
+          docId,
+          snapshot: await encodeRecordBytes(snapshot.bytes),
+          version: snapshot.version,
+          createdAt: this.iso(),
+        });
+        doc.snapshots = [rkey];
+      }
+      if (docIds.length > 0) this.state.lastExportAt = this.now();
+      await this.save();
+    });
   }
 
   /**
    * Called by the storage layer after each local commit batch (debounced
    * upstream). Exports the update into the durable queue immediately. The
    * upload happens on flush, so offline edits never block typing.
+   *
+   * Runs are serialized: the export awaits the host, and two concurrent runs
+   * used to reload and overwrite the same queue state.
    */
   async onLocalCommit(docId: string): Promise<void> {
-    await this.load();
-    if (docId.startsWith("_")) return;
+    await this.enqueue(async () => {
+      if (this.closed) return;
+      await this.ensureLoaded();
+      if (docId.startsWith("_")) return;
 
+      await this.exportDoc(docId);
+    });
+
+    void this.flushQueue();
+  }
+
+  /**
+   * Queues changes a previous session never exported. Edits made while signed
+   * out never reach `onLocalCommit`, so a reattach has to export them even
+   * when nothing new happens afterwards.
+   */
+  async exportPending(): Promise<void> {
+    await this.enqueue(async () => {
+      if (this.closed) return;
+      await this.ensureLoaded();
+
+      for (const docId of await this.host.listDocIds()) {
+        await this.exportDoc(docId);
+      }
+    });
+
+    void this.flushQueue();
+  }
+
+  private async exportDoc(docId: string): Promise<void> {
     const doc = this.docState(docId);
     const latest = await this.host.exportUpdatesSince(docId, doc.exportedVersion);
     if (!latest) return;
@@ -249,16 +293,16 @@ export class TypbaseSync {
       createdAt: this.now(),
     });
     await this.save();
-
-    void this.flushQueue();
   }
 
   /** Online now: push queued updates, compact where needed. */
   async flushQueue(): Promise<void> {
-    if (this.flushing || this.disposed) return;
-    if (this.state.queue.length === 0) return;
+    await this.enqueue(() => this.flushQueueNow());
+  }
 
-    this.flushing = true;
+  private async flushQueueNow(): Promise<void> {
+    if (this.closed) return;
+    if (this.state.queue.length === 0) return;
 
     try {
       while (this.state.queue.length > 0) {
@@ -296,16 +340,16 @@ export class TypbaseSync {
       }
     } catch (error) {
       this.host.engineLog("warn", `update flush failed: ${String(error)}`);
-    } finally {
-      this.flushing = false;
     }
   }
 
   /** Pull records this device has not imported and apply them. */
   async pull(): Promise<number> {
-    if (this.pulling || this.disposed) return 0;
+    return this.enqueue(() => this.pullNow());
+  }
 
-    this.pulling = true;
+  private async pullNow(): Promise<number> {
+    if (this.closed) return 0;
 
     let imported = 0;
     try {
@@ -323,8 +367,6 @@ export class TypbaseSync {
       await this.save();
     } catch (error) {
       this.host.engineLog("error", `pull failed: ${String(error)}`);
-    } finally {
-      this.pulling = false;
     }
 
     return imported;
@@ -342,15 +384,63 @@ export class TypbaseSync {
 
   /** Called on visibilitychange/focus/wake. */
   async wake(): Promise<void> {
-    await this.load();
-    await this.flushQueue();
-    await this.pull();
+    await this.enqueue(async () => {
+      if (this.closed) return;
+      await this.ensureLoaded();
+      await this.flushQueueNow();
+      await this.pullNow();
+    });
   }
 
   private async tick(): Promise<void> {
-    if (this.disposed) return;
-    await this.flushQueue();
-    await this.pull();
+    // A poll that is slower than the interval would otherwise queue one task
+    // per tick, each waiting on the previous network call.
+    if (this.tickPending) return;
+    this.tickPending = true;
+
+    try {
+      await this.enqueue(async () => {
+        if (this.closed) return;
+        await this.ensureLoaded();
+        await this.flushQueueNow();
+        await this.pullNow();
+      });
+    } finally {
+      this.tickPending = false;
+    }
+  }
+
+  /**
+   * Runs tasks one at a time. `state` is a single mutable object shared by
+   * exports, imports, queue writes, and cursors; overlapping runs reloaded it
+   * from storage and overwrote each other's queue entries, so an edit could
+   * stay local forever.
+   */
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const result = this.serial.then(task);
+    this.serial = result.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return result;
+  }
+
+  private ensureLoaded(): Promise<void> {
+    this.loaded ??= this.load().catch((error) => {
+      // A failed read must be retried by the next task, not cached forever.
+      this.loaded = undefined;
+      throw error;
+    });
+
+    return this.loaded;
+  }
+
+  private clearTimers(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = undefined;
+    if (this.pollTimer) clearTimeout(this.pollTimer);
+    this.pollTimer = undefined;
   }
 
   private async pullUpdates(changed: Set<string>, full: boolean): Promise<number> {
@@ -377,9 +467,18 @@ export class TypbaseSync {
           record.version,
         );
         if (!coveredByLocal) {
-          await this.host.importUpdate(record.docId, await decodeRecordBytes(record.update));
-          changed.add(record.docId);
-          imported++;
+          try {
+            await this.host.importUpdate(record.docId, await decodeRecordBytes(record.update));
+            changed.add(record.docId);
+            imported++;
+          } catch (error) {
+            // Loro rejects updates that conflict with ops already in the doc.
+            // Skip that record instead of wedging every later one behind it.
+            this.host.engineLog(
+              "warn",
+              `update import failed for ${record.docId}: ${String(error)}`,
+            );
+          }
         }
       }
       cursor = page.cursor;
@@ -406,9 +505,16 @@ export class TypbaseSync {
         if (!newest || record.rkey > newest) newest = record.rkey;
 
         if (!versionCovers(await this.host.localVersion(record.docId), record.version)) {
-          await this.host.importSnapshot(record.docId, await decodeRecordBytes(record.snapshot));
-          changed.add(record.docId);
-          imported++;
+          try {
+            await this.host.importSnapshot(record.docId, await decodeRecordBytes(record.snapshot));
+            changed.add(record.docId);
+            imported++;
+          } catch (error) {
+            this.host.engineLog(
+              "warn",
+              `snapshot import failed for ${record.docId}: ${String(error)}`,
+            );
+          }
         }
       }
       cursor = page.cursor;
@@ -473,8 +579,13 @@ export class TypbaseSync {
   }
 
   private async load(): Promise<void> {
-    const value = await this.store.get("sync");
-    this.state = value ? { ...emptyState(), ...(value as SyncState) } : emptyState();
+    const value = (await this.store.get("sync")) as Partial<SyncState> | undefined;
+    this.state = {
+      ...emptyState(),
+      ...(value ?? {}),
+      docs: value?.docs ?? {},
+      queue: Array.isArray(value?.queue) ? value.queue : [],
+    };
   }
 
   private async save(): Promise<void> {

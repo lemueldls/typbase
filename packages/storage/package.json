@@ -32,7 +32,7 @@
   "dependencies": {
     "@paralleldrive/cuid2": "^3.3.0",
     "@typbase/typing": "workspace:*",
-    "loro-crdt": "^1.17.1"
+    "loro-crdt": "^1.19.0"
   },
   "devDependencies": {
     "tsdown": "0.23.7",

@@ -111,4 +111,109 @@ describe("TypbaseSync", () => {
     expect(syncHost.imported).toHaveLength(1);
     expect(syncHost.onImported).toHaveBeenCalledWith([docId]);
   });
+
+  it("skips an update the doc rejects and keeps reading", async () => {
+    const syncHost = host();
+    syncHost.importUpdate = async (_docId, bytes) => {
+      if (new TextDecoder().decode(bytes) === "bad") throw new Error("UsedOpID");
+
+      syncHost.imported.push(bytes);
+    };
+    const sync = new TypbaseSync(
+      syncHost,
+      memoryStore(),
+      transport([
+        { rkey: "b", docId, update: btoa("bad"), version: '{"actor":2}' },
+        { rkey: "a", docId, update: btoa("good"), version: '{"actor":1}' },
+      ]),
+    );
+
+    await sync.start();
+    sync.stop();
+
+    expect(syncHost.imported).toHaveLength(1);
+    expect(new TextDecoder().decode(syncHost.imported[0])).toBe("good");
+  });
+
+  it("queues both docs when commits overlap", async () => {
+    let releaseFirst!: () => void;
+    const firstExport = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    let enteredFirst!: () => void;
+    const firstEntered = new Promise<void>((resolve) => {
+      enteredFirst = resolve;
+    });
+    const syncHost = host();
+    syncHost.listDocIds = async () => ["a", "b"];
+    syncHost.exportUpdatesSince = async (id) => {
+      if (id === "a") {
+        enteredFirst();
+        await firstExport;
+      }
+
+      return {
+        bytes: new TextEncoder().encode(id),
+        version: JSON.stringify({ [id]: 1 }),
+      };
+    };
+
+    const sent: string[] = [];
+    const sync = new TypbaseSync(syncHost, memoryStore(), {
+      ...transport([]),
+      createUpdate: async (record) => {
+        sent.push(record.docId);
+
+        return `rkey-${sent.length}`;
+      },
+    });
+
+    await sync.start();
+    const first = sync.onLocalCommit("a");
+    await firstEntered;
+    const second = sync.onLocalCommit("b");
+    releaseFirst();
+    await Promise.all([first, second]);
+    await sync.flushQueue();
+    sync.stop();
+
+    expect(sent.sort()).toEqual(["a", "b"]);
+  });
+
+  it("exports edits a previous session never queued", async () => {
+    const syncHost = host();
+    syncHost.listDocIds = async () => [docId];
+    syncHost.exportUpdatesSince = async () => ({
+      bytes: new TextEncoder().encode("offline"),
+      version: '{"actor":1}',
+    });
+
+    const sent: string[] = [];
+    const sync = new TypbaseSync(syncHost, memoryStore(), {
+      ...transport([]),
+      createUpdate: async (record) => {
+        sent.push(record.docId);
+
+        return "rkey";
+      },
+    });
+
+    await sync.start();
+    await sync.exportPending();
+    await sync.flushQueue();
+    sync.stop();
+
+    expect(sent).toEqual([docId]);
+  });
 });
+
+function memoryStore(): SyncStore {
+  let saved: unknown;
+
+  return {
+    get: async () => saved,
+    set: async (_key, value) => {
+      saved = value;
+    },
+  };
+}

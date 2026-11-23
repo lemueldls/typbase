@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FileId, FrameText, TypstState } from "@typbase/engine";
-import type { WorkspaceStore } from "@typbase/storage";
+import type { PageTextChange, WorkspaceStore } from "@typbase/storage";
 import type { IgnoredSpellcheckLint, PageMeta, SplitScrollMode } from "@typbase/typing";
 import type { MaterialSymbol } from "material-symbols";
 
@@ -105,6 +105,11 @@ let heapEvicted = false;
 const boundState = computed(() => typstState.value as TypstState);
 const boundFileId = computed(() => fileId.value as FileId);
 
+/**
+ * The open page's text. It mirrors the page doc: local editor transactions
+ * become Loro text splices, remote deltas are applied to the view and land
+ * here, and no path writes this ref back as a whole document.
+ */
 const text = ref("");
 const prelude = ref("");
 const meta = shallowRef<PageMeta>();
@@ -496,9 +501,9 @@ watch(
 );
 
 let store: WorkspaceStore;
+let boundPageId: string | undefined;
 let requestService: TypstRequestService | undefined;
-let unsubscribeSave: (() => void) | undefined;
-let unsubscribePage: (() => void) | undefined;
+let unsubscribePageText: (() => void) | undefined;
 let unsubscribeStructure: (() => void) | undefined;
 let unsubscribeFontScan: (() => void) | undefined;
 let detachScrollSync: (() => void) | undefined;
@@ -581,57 +586,25 @@ async function askAi(): Promise<void> {
   });
 }
 
-const TEXT_PUSH_MS = 300;
-let pendingText: { pageId: string; text: string } | undefined;
-let textPushTimer: ReturnType<typeof setTimeout> | undefined;
 /** Invalidates a setupPage run when the page changes mid-flight. */
 let setupToken = 0;
 
-function queueTextPush(pageId: string, value: string): void {
-  pendingText = { pageId, text: value };
-  if (textPushTimer) return;
-
-  textPushTimer = setTimeout(() => void pushPendingText(), TEXT_PUSH_MS);
-}
-
-/** Writes pending editor text, resolving false when the store write failed. */
-async function pushPendingText(): Promise<boolean> {
-  if (textPushTimer) {
-    clearTimeout(textPushTimer);
-    textPushTimer = undefined;
-  }
-
-  const pending = pendingText;
-  pendingText = undefined;
-  if (!pending || !store) return true;
+/**
+ * Flushes the store snapshot. Editor changes are already in the page doc as
+ * Loro text operations, so there is no pending string to push first.
+ */
+async function flushText(): Promise<boolean> {
+  if (!store) return true;
 
   try {
-    await store.setPageText(pending.pageId, pending.text);
+    await store.flush();
 
     return true;
   } catch (reason) {
-    console.warn("[page] text save failed:", reason);
+    console.warn("[storage] flush failed:", reason);
 
     return false;
   }
-}
-
-/**
- * Flushes pending text and the store snapshot. False when either failed.
- * Pagehide and page-switch callers ignore it and let the next flush retry.
- */
-async function flushText(): Promise<boolean> {
-  let ok = await pushPendingText();
-  if (store) {
-    try {
-      await store.flush();
-    } catch (reason) {
-      console.warn("[storage] flush failed:", reason);
-      ok = false;
-    }
-  }
-
-  return ok;
 }
 
 watch(
@@ -648,6 +621,12 @@ async function setupPage() {
   const pageId = props.pageId;
   pageError.value = undefined;
   ready.value = false;
+  boundPageId = undefined;
+
+  // The previous page's listener must not write its text into this one while
+  // the new page loads.
+  unsubscribePageText?.();
+  unsubscribePageText = undefined;
 
   const opened = await ensure();
   if (pageDisposed || token !== setupToken) return;
@@ -678,11 +657,9 @@ async function setupPage() {
     .join("\n");
 
   if (engineHealth.value.status === "failed") {
-    // No wasm calls while failed. The text is loaded and the watchers from the
-    // previous page go away so they cannot write this page's text into that
-    // one. `handlePanic` rebinds the open page when the user retries.
-    unsubscribeSave?.();
-    unsubscribeSave = undefined;
+    // No wasm calls while failed. The text is loaded and the font watcher
+    // from the previous page goes away. `handlePanic` rebinds the open page
+    // when the user retries.
     unsubscribeFontScan?.();
     unsubscribeFontScan = undefined;
     fileId.value = undefined;
@@ -739,14 +716,15 @@ async function setupPage() {
 
 /**
  * Binds the open page to the current wasm state: request service page, file
- *  id and source, save watchers, and readiness. `meta` and `text` must already
- *  describe `pageId`. Recovery calls this again after swapping in a fresh
- * state, so a page opened while the engine was down gets its watchers too.
+ * id and source, text listener, and readiness. `meta` and `text` must already
+ * describe `pageId`. Recovery calls this again after swapping in a fresh
+ * state, so a page opened while the engine was down gets its listener too.
  */
 function bindPage(pageId: string, page: PageMeta, token: number): void {
   const state = typstState.value;
   if (!store || !state) return;
 
+  boundPageId = pageId;
   requestService?.setCurrentPage(pageId);
   fontNoticeDismissed.value = false;
   setTypstInputs(state, {
@@ -758,36 +736,74 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
   syncNotebookController();
 
   fileId.value = state.createSourceId(page.path, workspaceId.value);
+  // Recovery can rebind a page whose text changed while the engine was down.
+  const current = store.getPageText(pageId);
+  if (current !== text.value) text.value = current;
   state.insertSource(fileId.value, text.value);
-
-  unsubscribeSave?.();
-  unsubscribeSave = watch(text, (value) => {
-    if (value !== store.getPageText(pageId)) queueTextPush(pageId, value);
-  });
 
   unsubscribeFontScan?.();
   unsubscribeFontScan = watch(text, scanSourceFonts);
 
-  unsubscribePage?.();
+  unsubscribePageText?.();
   void store
-    .onPageDocChange(pageId, () => {
-      // Our own saves echo back through this listener. Overwriting text.value
-      // with the store's older content mid-typing reverted edits and could
-      // clobber a later save. Only apply the echo when the editor is idle.
-      if (editorPane.value?.view?.hasFocus) return;
+    .onPageTextChange(pageId, (event) => {
+      // The editor's own splices are already in its buffer and its update
+      // listener already refreshed `text`. Skip the full-document read.
+      if (event.origin === "editor") return;
 
-      const current = store.getPageText(pageId);
-      if (current !== text.value) text.value = current;
+      const nextText = store.getPageText(pageId);
+      // A full-text fallback write can echo back text the editor already has.
+      // Applying its delta again would duplicate the edit.
+      if (nextText === text.value) return;
+
+      // Every other change, including a peer's edit and a local writer like a
+      // plugin or the source mirror, arrived as a delta from the doc and is
+      // applied to the open view. The doc is the source of truth: never
+      // replace it from the buffer, or an unseen remote edit gets deleted on
+      // the next save.
+      try {
+        editorPane.value?.applyTextDelta(event.delta);
+      } catch (reason) {
+        // A failed delta leaves the buffer stale. The text ref below makes
+        // the full-text catch-up replace it.
+        console.warn("[page] text delta failed:", reason);
+      }
+
+      if (nextText !== text.value) text.value = nextText;
     })
     .then((stop) => {
       // The subscription promise can resolve after the page changed. Release
       // it instead of leaking a dead listener.
-      if (pageDisposed || token !== setupToken) stop();
-      else unsubscribePage = stop;
+      if (pageDisposed || token !== setupToken) {
+        stop();
+
+        return;
+      }
+
+      unsubscribePageText = stop;
+      // Catch a change that landed between the text read and this listener.
+      const nextText = store.getPageText(pageId);
+      if (nextText !== text.value) text.value = nextText;
     });
 
   ready.value = true;
   ensureSourceFonts();
+}
+
+/**
+ * Writes one editor transaction to the page doc as Loro text splices. Falling
+ * back to a full-text write only happens when the doc is not open, which the
+ * editor path guarantees is not the normal case.
+ */
+function applyLocalTextChanges(changes: PageTextChange[]): void {
+  const pageId = boundPageId;
+  if (!store || !pageId) return;
+  if (store.applyPageTextChanges(pageId, changes)) return;
+
+  const view = editorPane.value?.view;
+  if (!view) return;
+  console.warn("[page] page doc was not open; saving the full text instead");
+  void store.setPageText(pageId, view.state.doc.toString());
 }
 
 /** Fonts named in the source load on demand, debounced while typing. */
@@ -869,6 +885,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   pageDisposed = true;
   setupToken += 1;
+  boundPageId = undefined;
   setFindText(false);
   setEngineRetryHandler(undefined);
   setSaveHandler(undefined);
@@ -878,8 +895,7 @@ onBeforeUnmount(() => {
   testApi.crashEngine = null;
   if (heapTimer) clearInterval(heapTimer);
   cleanupScrollSync();
-  unsubscribeSave?.();
-  unsubscribePage?.();
+  unsubscribePageText?.();
   unsubscribeStructure?.();
   unsubscribeFontScan?.();
   scanSourceFonts.cancel();
@@ -2070,6 +2086,7 @@ function onModeKeydown(event: KeyboardEvent) {
           :on-navigate="(pageId) => emit('openPage', pageId)"
           :on-navigate-plugin="(instanceId) => emit('openPlugin', instanceId)"
           :on-asset-drop="handleAssetDrop"
+          :on-text-change="applyLocalTextChanges"
         />
 
         <div
