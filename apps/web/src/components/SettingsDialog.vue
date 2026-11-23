@@ -481,7 +481,7 @@ function openProject(): void {
 
 function openProfile(did: string): void {
   open.value = false;
-  void navigateTo(`/u/${did}`);
+  navigateFromLayer(`/u/${did}`);
 }
 
 /** The shortcut list lives outside Settings. Close this and show it. */

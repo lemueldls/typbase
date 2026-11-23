@@ -135,6 +135,15 @@ export function consumeTopBackLayer(): boolean {
   return true;
 }
 
+/**
+ * Navigate to another route from an open overlay. Consumes the overlay's
+ * history entry and replaces it, so its close watcher does not call
+ * `history.back()` after the new route loads.
+ */
+export function navigateFromLayer(to: string): void {
+  void navigateTo(to, { replace: consumeTopBackLayer() });
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("popstate", () => {
     if (ignoredBacks > 0) {

@@ -45,7 +45,7 @@ function openProfile(): void {
   if (!did) return;
 
   open.value = false;
-  void navigateTo(`/u/${did}`);
+  navigateFromLayer(`/u/${did}`);
 }
 
 const icon = computed<"account_circle" | "cloud_done" | "sync" | "sync_disabled">(() => {

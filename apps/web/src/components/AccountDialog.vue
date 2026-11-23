@@ -309,7 +309,7 @@ function openProfile(): void {
   if (!did) return;
 
   hide();
-  void navigateTo(`/u/${did}`);
+  navigateFromLayer(`/u/${did}`);
 }
 
 function ago(timestamp: number): string {
