@@ -114,6 +114,17 @@ export default defineNuxtConfig({
   compatibilityDate: "2026-11-01",
   devtools: { enabled: false },
   modules: ["@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        // Typecheck against airspace's built declarations instead of its source.
+        paths: {
+          airspace: ["../node_modules/airspace/dist/index.d.mts"],
+          "airspace/*": ["../node_modules/airspace/dist/*.d.mts"],
+        },
+      },
+    },
+  },
   css: ["~/assets/css/main.css"],
   app: {
     head: {

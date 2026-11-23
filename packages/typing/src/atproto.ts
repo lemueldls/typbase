@@ -9,12 +9,13 @@
 
 /**
  * Scopes requested at sign-in, verified against @atproto/oauth-scopes
- * 0.0.0-spaces-alpha-20261029171913 and the PDS's own `assertSpaceScope`
+ * 0.0.0-spaces-alpha-20261117141222 and the PDS's own `assertSpaceScope`
  * checks. `collection=*` covers read/create/update/delete on space records, and
  * `manage=create` creates a space. `manage=update` covers policy changes and
- * member management (`com.atproto.memberspace.putMember` and `removeMember`). The
- * wildcard blob scope covers the post HTML/PDF uploads and future assets.
- * Wide by design: access is per user, and a workspace gets its own skey.
+ * member management (`com.atproto.memberspace.putMembers` and
+ * `removeMembers`). The wildcard blob scope covers the post HTML/PDF uploads
+ * and future assets. Wide by design: access is per user, and a workspace gets
+ * its own skey.
  */
 export const OAUTH_SCOPES: readonly string[] = [
   "atproto",

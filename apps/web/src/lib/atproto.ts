@@ -400,9 +400,9 @@ export class AtprotoService {
   }
 
   /**
-   * Ensures the workspace space exists with member-list read/write and open app
-   * access, then starts syncing. Called on every boot with a session. `ensure`
-   * is a no-op once the space is configured.
+   * Ensures the workspace space exists with the shared member-list policy,
+   * then starts syncing. Called on every boot with a session. `ensure` is a
+   * no-op once the space is configured.
    */
   private async attach(): Promise<void> {
     const session = this.sessionRef;
@@ -419,9 +419,7 @@ export class AtprotoService {
 
     try {
       await airspace.workspace.manage.ensure({
-        read: "member-list",
-        write: "member-list",
-        appAccess: "open",
+        policy: { type: "memberspace" },
       });
     } catch (error) {
       if (!this.isCurrentAttach(session, epoch)) return;
@@ -810,7 +808,7 @@ export class AtprotoService {
     do {
       const params = new URLSearchParams({
         spaceType: WORKSPACE_SPACE_TYPE,
-        did,
+        spaceDid: did,
         limit: "100",
       });
       if (cursor) params.set("cursor", cursor);
@@ -819,11 +817,11 @@ export class AtprotoService {
       );
       if (!response.ok) throw new Error(`Listing spaces failed (${response.status})`);
       const body = (await response.json()) as {
-        spaces?: Array<{ uri?: string }>;
+        spaces?: Array<{ space?: string }>;
         cursor?: string;
       };
       for (const space of body.spaces ?? []) {
-        const uri = space.uri;
+        const uri = space.space;
         const id = typeof uri === "string" ? uri.split("/").pop() : "";
         if (uri && id) spaces.push({ id, uri });
       }

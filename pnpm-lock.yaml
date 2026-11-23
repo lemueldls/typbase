@@ -165,15 +165,15 @@ settings:
 overrides:
   '@internationalized/date': 3.12.4
   '@nuxt/cli': npm:@nuxt/cli-nightly@4.0.0-20260924-135740-11226da
-  '@atproto/syntax': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-builder': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-client': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-cbor': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-document': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-installer': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-resolver': 0.0.0-spaces-alpha-20261029171913
-  '@atproto/lex-schema': 0.0.0-spaces-alpha-20261029171913
+  '@atproto/syntax': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-builder': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-client': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-cbor': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-document': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-installer': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-resolver': 0.0.0-spaces-alpha-20261117141222
+  '@atproto/lex-schema': 0.0.0-spaces-alpha-20261117141222
 
 importers:
 
@@ -336,8 +336,8 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0(vue-router@5.4.0(@vue/compiler-sfc@3.5.45)(rolldown@1.3.1)(rollup@4.68.2)(vite@8.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3)))(vue@3.5.45(typescript@6.0.3))
       airspace:
-        specifier: github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059
-        version: https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059(@atproto/oauth-client-browser@0.5.14)
+        specifier: github:lemueldls/airspace#8a5b501ccbfc567f5bc23e0c962bec3aea412b4f
+        version: https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f(@atproto/oauth-client-browser@0.5.14)
       d3-force:
         specifier: ^3.0.1
         version: 3.0.1
@@ -412,8 +412,8 @@ importers:
         specifier: ^26.6.6
         version: 26.6.6
       airspace:
-        specifier: github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059
-        version: https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059(@atproto/oauth-client-browser@0.5.14)
+        specifier: github:lemueldls/airspace#8a5b501ccbfc567f5bc23e0c962bec3aea412b4f
+        version: https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f(@atproto/oauth-client-browser@0.5.14)
       tsdown:
         specifier: 0.23.7
         version: 0.23.7(@vue/language-core@3.3.13)(typescript@7.0.2)
@@ -498,9 +498,12 @@ importers:
         specifier: workspace:*
         version: link:../typing
       airspace:
-        specifier: github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059
-        version: https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059(@atproto/oauth-client-browser@0.5.14)
+        specifier: github:lemueldls/airspace#8a5b501ccbfc567f5bc23e0c962bec3aea412b4f
+        version: https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f(@atproto/oauth-client-browser@0.5.14)
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       tsdown:
         specifier: 0.23.7
         version: 0.23.7(@vue/language-core@3.3.13)(typescript@7.0.2)
@@ -590,16 +593,17 @@ packages:
     resolution: {integrity: sha512-tq7TUDmNfe1yDfpRgdGQMJdl9TUlJmREQNCag9yg5w8Evu+TOiFiLgiOCbo7X4ouRPSgd1DpOzXbUa8UyKKMZA==}
     engines: {node: '>=22'}
 
-  '@atproto/lex-client@0.0.0-spaces-alpha-20261029171913':
-    resolution: {integrity: sha512-5+O85kcNdvJv5EXtzQaTeM3419cN0yOq40GAX6ge7x7qkJYThtuUR6EXCJ4vD4D1VXYXGHG73NtARDeyqrSiPg==}
+  '@atproto/lex-client@0.0.0-spaces-alpha-20261117141222':
+    resolution: {integrity: sha512-15jB2NwythAJHXuLQM39L7R20IdDLWFetmHirU3pU4sqezfnUjJd5Q/z0SNGeg9FrYALat3zS8awIrnE+mYrdQ==}
     engines: {node: '>=22'}
 
-  '@atproto/lex-data@0.0.0-spaces-alpha-20261029171913':
-    resolution: {integrity: sha512-PO9JpQid8J9+lxEesn4k7gfHRcgXTmAXFjmS26gQhxgzoFeJnhbr5DEMPObAkyILgS5qFvyd0JTp2J4COaEQ6Q==}
+  '@atproto/lex-data@0.0.0-spaces-alpha-20261117141222':
+    resolution: {integrity: sha512-k9B+FcbItfqXx/dTZGARJWOgNt3ba0Yj/F+vRP5lXYLBne/r3DqV4+9W2MY10wHGiS/lifQXVhd4CaD2Hi3w6Q==}
     engines: {node: '>=22'}
 
-  '@atproto/lex-json@0.0.0':
-    resolution: {integrity: sha512-nS+oXtoDgehci0dgX7ikALNVIANF/AWm7Q6yHNN54+UEVWi23T8ENdf1ZRfnXY16xm+XacT9NCmf7j5o80e4XA==}
+  '@atproto/lex-json@0.0.0-spaces-alpha-20261117141222':
+    resolution: {integrity: sha512-rF7Ogq8ZSLjmO82l9ZMjlO7zcKTm/079pQPTdMx92bIdRuWRk3TT3bF+iNkkwE1KNfKpKGACGxpvTXosb4ircg==}
+    engines: {node: '>=22'}
 
   '@atproto/lex-json@0.1.9':
     resolution: {integrity: sha512-9geZuufwIVPSj9fniG7Ua3ZRq1DEpHCB9TGaHPHLpa0WKjjLvY2UMxvERpN97JIimusOWtPGOnzKtwQHMC371w==}
@@ -609,12 +613,16 @@ packages:
     resolution: {integrity: sha512-t1GazxtWH85pgSYfjMC40WLFKuH9udJwlCWNle5erjo82mSj7BM8kHCyTdk7zUyJTgNjavPiZQLxki+fxbLH2g==}
     engines: {node: '>=22'}
 
+  '@atproto/lex-rpc@0.0.0-spaces-alpha-20261117141222':
+    resolution: {integrity: sha512-h9yLS8ZTj6s9xr+VZeaUAV+OIgtWUNX26XO2K64At8yACQk9nFqUW5LIA+fWGCFOjTEXhSuQUEphhOkSZwnnWA==}
+    engines: {node: '>=22'}
+
   '@atproto/lex-rpc@0.0.3':
     resolution: {integrity: sha512-bR4Q4al9yrfFpZTr4+ta5/NnM6hTTQ6s7EZJDbFJXbmE3nmIr/0qxhYdUHhNEAT4W5Eck8D7klfDoDvRpgQExw==}
     engines: {node: '>=22'}
 
-  '@atproto/lex-schema@0.0.0-spaces-alpha-20261029171913':
-    resolution: {integrity: sha512-Kzk5o2q6Jt9LEM4nknj3wn0ixOfLLfq9EWnjjR0chnuKpV0UojjbSSugpBVLLQ1xf55OZWlDX5Sjl5oOKviq+w==}
+  '@atproto/lex-schema@0.0.0-spaces-alpha-20261117141222':
+    resolution: {integrity: sha512-jF1E7Pd86ikhFd1RVmDIctx4lebqELwj4IuDbZ9kvWIgJh6D0FFKGkYSRIKbNEfVqI0P6B1IHC3n7fkpqysqFg==}
     engines: {node: '>=22'}
 
   '@atproto/lexicon@0.7.19':
@@ -637,8 +645,8 @@ packages:
     resolution: {integrity: sha512-HhY0n6BJtFlxHJTOwT34uf7BiMaEluuwiZqHkamWoFvl+Gk7bPgWhPslr4kX2J/7ryFxhdsKVj1tjWjy0AhjTw==}
     engines: {node: '>=22'}
 
-  '@atproto/syntax@0.0.0-spaces-alpha-20261029171913':
-    resolution: {integrity: sha512-GQle+tl5im+7Z55D9PcWAGNpT3GpdNbD6fatZr68A20CPhd2e8cj68+n12HTL7k2E/3t8RmeLjjonmmuGFGXtw==}
+  '@atproto/syntax@0.0.0-spaces-alpha-20261117141222':
+    resolution: {integrity: sha512-EwGfevaQpSHFYl95a4r7Kl63PLSLeYm6Qwf3XWVzCjJO55HuuNLUQbsrF2iUlTy++82YoC/1dxHk57SWJCom8A==}
     engines: {node: '>=22'}
 
   '@atproto/xrpc@0.8.18':
@@ -3073,15 +3081,15 @@ packages:
     resolution: {integrity: sha512-Xwrja8nx9e5o2N1my4DsKCeKpdrnACyr1wtbPxBDgGzKzKyE9kRtBFA8mWldI+RVlD7CBZNWY/wQ2+ydwOR6kQ==}
     engines: {node: '>=14.0'}
 
-  airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059:
-    resolution: {gitHosted: true, integrity: sha512-I1G44clTzvu6rXvFc4gTcE0B1GMYU2FbI63niZoBYztwvMxcQMITP0g6kER68YsTQFIKXlaEEOA/0h+dDB8npg==, tarball: https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059}
+  airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f:
+    resolution: {gitHosted: true, integrity: sha512-97/wyASjdBpWf+G/QjnHpkhNvBPgxcVs5/5Nitmj967DuGlPB/27pmBZtQ2ba/nEaofNEaB/oMlZVcSetN7XgA==, tarball: https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f}
     version: 0.1.8
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
       '@atproto/oauth-client-browser': ^0.5.0
       '@atproto/oauth-client-node': ^0.5.0
-      comark: ^0.6.0 || ^0.7.0
+      comark: ^0.6.0 || ^0.7.0 || ^0.8.0
     peerDependenciesMeta:
       '@atproto/oauth-client-browser':
         optional: true
@@ -4605,9 +4613,9 @@ snapshots:
 
   '@atproto/common-web@0.5.17':
     dependencies:
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
       '@atproto/lex-json': 0.1.9
-      '@atproto/syntax': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/syntax': 0.0.0-spaces-alpha-20261117141222
       zod: 3.25.76
 
   '@atproto/did@0.5.6':
@@ -4630,53 +4638,60 @@ snapshots:
       multiformats: 13.4.2
       zod: 3.25.76
 
-  '@atproto/lex-client@0.0.0-spaces-alpha-20261029171913':
+  '@atproto/lex-client@0.0.0-spaces-alpha-20261117141222':
     dependencies:
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
-      '@atproto/lex-json': 0.0.0
-      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
+      '@atproto/lex-rpc': 0.0.0-spaces-alpha-20261117141222
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261117141222
       tslib: 2.9.1
 
-  '@atproto/lex-data@0.0.0-spaces-alpha-20261029171913':
+  '@atproto/lex-data@0.0.0-spaces-alpha-20261117141222':
     dependencies:
       multiformats: 13.4.2
       tslib: 2.9.1
       unicode-segmenter: 0.14.5
 
-  '@atproto/lex-json@0.0.0':
+  '@atproto/lex-json@0.0.0-spaces-alpha-20261117141222':
     dependencies:
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
       tslib: 2.9.1
 
   '@atproto/lex-json@0.1.9':
     dependencies:
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
       tslib: 2.9.1
 
   '@atproto/lex-password-session@0.3.2':
     dependencies:
       '@atproto/lex-rpc': 0.0.3
-      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261117141222
+      tslib: 2.9.1
+
+  '@atproto/lex-rpc@0.0.0-spaces-alpha-20261117141222':
+    dependencies:
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
+      '@atproto/lex-json': 0.0.0-spaces-alpha-20261117141222
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261117141222
       tslib: 2.9.1
 
   '@atproto/lex-rpc@0.0.3':
     dependencies:
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
       '@atproto/lex-json': 0.1.9
-      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261117141222
       tslib: 2.9.1
 
-  '@atproto/lex-schema@0.0.0-spaces-alpha-20261029171913':
+  '@atproto/lex-schema@0.0.0-spaces-alpha-20261117141222':
     dependencies:
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
-      '@atproto/syntax': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
+      '@atproto/syntax': 0.0.0-spaces-alpha-20261117141222
       '@standard-schema/spec': 1.1.0
       tslib: 2.9.1
 
   '@atproto/lexicon@0.7.19':
     dependencies:
       '@atproto/common-web': 0.5.17
-      '@atproto/syntax': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/syntax': 0.0.0-spaces-alpha-20261117141222
       multiformats: 13.4.2
       zod: 3.25.76
 
@@ -4725,7 +4740,7 @@ snapshots:
       '@atproto/jwk': 0.7.4
       zod: 3.25.76
 
-  '@atproto/syntax@0.0.0-spaces-alpha-20261029171913':
+  '@atproto/syntax@0.0.0-spaces-alpha-20261117141222':
     dependencies:
       iso-datestring-validator: 2.2.2
       tslib: 2.9.1
@@ -6832,13 +6847,13 @@ snapshots:
 
   adm-zip@0.6.1: {}
 
-  airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/26ed6f97f1cd729a41acc4076d209f6e8aa66059(@atproto/oauth-client-browser@0.5.14):
+  airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f(@atproto/oauth-client-browser@0.5.14):
     dependencies:
-      '@atproto/lex-client': 0.0.0-spaces-alpha-20261029171913
-      '@atproto/lex-data': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-client': 0.0.0-spaces-alpha-20261117141222
+      '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
       '@atproto/lex-json': 0.1.9
       '@atproto/lex-password-session': 0.3.2
-      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261029171913
+      '@atproto/lex-schema': 0.0.0-spaces-alpha-20261117141222
       image-meta: 0.3.1
     optionalDependencies:
       '@atproto/oauth-client-browser': 0.5.14

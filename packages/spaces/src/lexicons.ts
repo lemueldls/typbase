@@ -51,5 +51,5 @@ export default defineLexicons("at.typbase", {
     blob: field.blob(),
     createdAt: field.datetime(),
   },
-  workspace: space(["update", "snapshot", "post", "asset"], { name: "Typbase workspace" }),
+  workspace: space(["update", "snapshot", "post", "asset"], { title: "Typbase workspace" }),
 });

@@ -47,9 +47,10 @@
     "@atproto/oauth-client-browser": "0.5.14",
     "@typbase/skin": "workspace:*",
     "@typbase/typing": "workspace:*",
-    "airspace": "github:lemueldls/airspace#26ed6f97f1cd729a41acc4076d209f6e8aa66059"
+    "airspace": "github:lemueldls/airspace#8a5b501ccbfc567f5bc23e0c962bec3aea412b4f"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "tsdown": "0.23.7",
     "typescript": "^7.0.2"
   }
