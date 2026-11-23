@@ -12,6 +12,7 @@ minimumReleaseAge: 0
 
 allowBuilds:
   "airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/8a5b501ccbfc567f5bc23e0c962bec3aea412b4f": true
+  better-sqlite3: true
   core-js: true
   esbuild: true
   onnxruntime-node: true
@@ -28,6 +29,11 @@ overrides:
   # The override has to name the alias target, not the aliased package.
   "@nuxt/cli": "npm:@nuxt/cli-nightly@4.0.0-20260924-135740-11226da"
   "@atproto/syntax": "0.0.0-spaces-alpha-20261117141222"
+  "@atproto/did": "0.0.0-spaces-alpha-20261117141222"
+  "@atproto/crypto": "0.0.0-spaces-alpha-20261117141222"
+  "@atproto/space": "0.0.0-spaces-alpha-20261117141222"
+  "@atproto/lex-space": "0.0.0-spaces-alpha-20261117141222"
+  "@atproto-labs/did-resolver": "0.0.0-spaces-alpha-20261117141222"
   "@atproto/lex-data": "0.0.0-spaces-alpha-20261117141222"
   "@atproto/lex-builder": "0.0.0-spaces-alpha-20261117141222"
   "@atproto/lex-client": "0.0.0-spaces-alpha-20261117141222"

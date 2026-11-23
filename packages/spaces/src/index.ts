@@ -9,6 +9,7 @@ export * from "./collections";
 export { default as lexicons } from "./lexicons";
 export * from "./pluginRegistry";
 export * from "./relay";
+export * from "./sharing";
 export * from "./sites";
 export * from "./sync";
 export * from "./themeRegistry";
