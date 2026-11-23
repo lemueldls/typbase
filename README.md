@@ -11,7 +11,7 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 - **Notebook pages:** `//%` lines split a page into prose, code, log, and hidden cells.
 - **Plugins in Typst:** Sidebar widgets, panes, and windows written in the same language as your notes.
 - **Local-first:** OPFS or native storage, content-addressed media, and optional atproto sync, collaboration, page posts, and site publishing.
-- **Portable output:** Export HTML, PDF, SVG, or a compilable Typst project with the libraries and plugins it needs.
+- **Portable output:** Export HTML, PDF, SVG, or a full Typst project with the libraries and plugins it needs.
 
 ## What is Typst and the Atmosphere?
 
