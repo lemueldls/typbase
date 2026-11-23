@@ -40,6 +40,7 @@ const accountError = ref("");
 const removeTarget = ref<AtprotoAccount | null>(null);
 const installBusy = ref(false);
 const previousView = ref<AccountView>("accounts");
+const dialogBody = useTemplateRef<HTMLElement>("dialogBody");
 
 const defaultHost = defaultAccountHost();
 const otherHosts = computed(() => ACCOUNT_HOSTS.filter((host) => host.id !== defaultHost.id));
@@ -76,6 +77,17 @@ const effectiveView = computed<AccountView>(() =>
   view.value === "accounts" && !atprotoStatus.value.signedIn ? "signin" : view.value,
 );
 
+// Views share one scroll container. Keep the next view starting at its top
+// instead of inheriting the previous view's scroll position.
+watch(
+  effectiveView,
+  () => {
+    const dialog = dialogBody.value?.closest<HTMLElement>(".dialog");
+    if (dialog) dialog.scrollTop = 0;
+  },
+  { flush: "post" },
+);
+
 const titles: Record<AccountView, string> = {
   signin: "account.titleSignIn",
   create: "account.titleCreate",
@@ -104,6 +116,7 @@ const runSearch = useDebounceFn(async (value: string) => {
 watch(identifier, (value) => {
   suggestions.value = [];
   suggestionsOpen.value = false;
+  searchSequence++;
   if (value.trim().length < 2 || value.trim().startsWith("did:")) return;
   void runSearch(value);
 });
@@ -124,6 +137,7 @@ watch(open, (isOpen) => {
 });
 
 function resetSignIn(): void {
+  searchSequence++;
   identifier.value = "";
   error.value = "";
   unknownHandle.value = false;
@@ -171,6 +185,7 @@ function startSignIn(): void {
   identifier.value = handle;
   error.value = "";
   unknownHandle.value = false;
+  searchSequence++;
   suggestionsOpen.value = false;
   view.value = "permissions";
 }
@@ -306,7 +321,7 @@ function ago(timestamp: number): string {
 
 <template>
   <UiDialog v-model:open="open" class="account-dialog" layer="top" :title="dialogTitle">
-    <div v-if="effectiveView === 'signin'" class="account-dialog__view">
+    <div v-if="effectiveView === 'signin'" ref="dialogBody" class="account-dialog__view">
       <!-- <p class="account-dialog__intro">
         {{ atprotoStatus.signedIn ? $t("account.addAnotherIntro") : $t("account.signInIntro") }}
       </p> -->
@@ -323,50 +338,72 @@ function ago(timestamp: number): string {
       </p>
 
       <form class="account-dialog__form" @submit.prevent="startSignIn">
-        <div class="account-dialog__field">
+        <ComboboxRoot
+          v-model:open="suggestionsOpen"
+          class="account-dialog__field"
+          ignore-filter
+          :reset-search-term-on-blur="false"
+          :reset-search-term-on-select="false"
+          :disabled="busy || !atprotoReady"
+        >
           <label class="account-dialog__field-label" for="account-handle">
             {{ $t("account.handle") }}
           </label>
-          <UiTextField
-            id="account-handle"
-            v-model="identifier"
-            :placeholder="$t('account.handlePlaceholder')"
-            autocomplete="username"
-            autocapitalize="none"
-            spellcheck="false"
-            :disabled="busy || !atprotoReady"
-            :aria-label="$t('account.handle')"
-            @keydown.esc="suggestionsOpen = false"
-          />
-          <ul v-if="suggestionsOpen && suggestions.length" class="account-dialog__suggestions">
-            <li v-for="suggestion in suggestions" :key="suggestion.did">
-              <button
-                type="button"
-                class="account-dialog__suggestion"
-                @click="pickSuggestion(suggestion)"
-              >
-                <img
-                  v-if="suggestion.avatar"
-                  class="account-dialog__suggestion-avatar"
-                  :src="suggestion.avatar"
-                  alt=""
-                />
-                <MsIcon
-                  v-else
-                  class="account-dialog__suggestion-avatar account-dialog__suggestion-avatar--icon"
-                  name="account_circle"
-                  :size="28"
-                />
-                <span class="account-dialog__suggestion-copy">
-                  <span class="account-dialog__suggestion-name">
-                    {{ suggestion.displayName || suggestion.handle }}
+          <ComboboxAnchor as-child>
+            <span class="account-dialog__handle-field">
+              <ComboboxInput
+                id="account-handle"
+                v-model="identifier"
+                class="account-dialog__handle-field-input"
+                :placeholder="$t('account.handlePlaceholder')"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                :disabled="busy || !atprotoReady"
+                :aria-label="$t('account.handle')"
+              />
+            </span>
+          </ComboboxAnchor>
+          <ComboboxPortal>
+            <ComboboxContent
+              class="account-dialog__suggestions"
+              position="popper"
+              align="start"
+              :side-offset="4"
+              :body-lock="false"
+              hide-when-empty
+            >
+              <ComboboxViewport class="account-dialog__suggestion-list">
+                <ComboboxItem
+                  v-for="suggestion in suggestions"
+                  :key="suggestion.did"
+                  :value="suggestion.did"
+                  class="account-dialog__suggestion"
+                  @select.prevent="pickSuggestion(suggestion)"
+                >
+                  <img
+                    v-if="suggestion.avatar"
+                    class="account-dialog__suggestion-avatar"
+                    :src="suggestion.avatar"
+                    alt=""
+                  />
+                  <MsIcon
+                    v-else
+                    class="account-dialog__suggestion-avatar account-dialog__suggestion-avatar--icon"
+                    name="account_circle"
+                    :size="28"
+                  />
+                  <span class="account-dialog__suggestion-copy">
+                    <span class="account-dialog__suggestion-name">
+                      {{ suggestion.displayName || suggestion.handle }}
+                    </span>
+                    <span class="account-dialog__suggestion-handle">@{{ suggestion.handle }}</span>
                   </span>
-                  <span class="account-dialog__suggestion-handle">@{{ suggestion.handle }}</span>
-                </span>
-              </button>
-            </li>
-          </ul>
-        </div>
+                </ComboboxItem>
+              </ComboboxViewport>
+            </ComboboxContent>
+          </ComboboxPortal>
+        </ComboboxRoot>
 
         <UiButton
           type="submit"
@@ -405,7 +442,7 @@ function ago(timestamp: number): string {
       </div>
     </div>
 
-    <div v-else-if="effectiveView === 'create'" class="account-dialog__view">
+    <div v-else-if="effectiveView === 'create'" ref="dialogBody" class="account-dialog__view">
       <template v-if="!selectedHost">
         <p class="account-dialog__intro">{{ $t("account.createIntro") }}</p>
 
@@ -492,7 +529,7 @@ function ago(timestamp: number): string {
       </template>
     </div>
 
-    <div v-else-if="effectiveView === 'permissions'" class="account-dialog__view">
+    <div v-else-if="effectiveView === 'permissions'" ref="dialogBody" class="account-dialog__view">
       <p class="account-dialog__intro">
         {{ $t("account.permissionsIntro", { handle: identifier || $t("account.yourAccount") }) }}
       </p>
@@ -502,38 +539,32 @@ function ago(timestamp: number): string {
           <span class="account-dialog__scope-icon">
             <MsIcon :name="group.icon" :size="20" />
           </span>
-          <span class="account-dialog__scope-copy">
+          <div class="account-dialog__scope-copy">
             <span class="account-dialog__scope-title">{{ $t(group.titleKey) }}</span>
             <span class="account-dialog__scope-body">{{ $t(group.bodyKey) }}</span>
-          </span>
+            <UiCollapsible
+              class="account-dialog__scope-technical"
+              :label="$t('account.exactPermissions', { count: group.scopes.length })"
+            >
+              <ul class="account-dialog__scope-scopes">
+                <li v-for="scope in group.scopes" :key="scope">
+                  <code>{{ scope }}</code>
+                </li>
+              </ul>
+            </UiCollapsible>
+          </div>
         </li>
       </ul>
 
       <p class="account-dialog__hint">{{ $t("account.permissionsTogether") }}</p>
 
-      <details class="account-dialog__technical">
-        <summary>{{ $t("account.technicalDetails") }}</summary>
-        <div
-          v-for="group in ACCOUNT_SCOPE_GROUPS"
-          :key="group.id"
-          class="account-dialog__technical-group"
-        >
-          <h4>{{ $t(group.titleKey) }}</h4>
-          <ul>
-            <li v-for="scope in group.scopes" :key="scope">
-              <code>{{ scope }}</code>
-            </li>
-          </ul>
-        </div>
-      </details>
-
       <p v-if="error" class="account-dialog__error" role="alert">{{ error }}</p>
 
       <div class="account-dialog__actions">
-        <UiButton variant="plain" size="large" @click="backToSignIn">
+        <UiButton variant="plain" @click="backToSignIn">
           {{ $t("account.back") }}
         </UiButton>
-        <UiButton variant="primary" size="large" :disabled="busy" @click="authorize">
+        <UiButton variant="primary" :disabled="busy" @click="authorize">
           {{ busy ? $t("account.authorizing") : $t("account.authorize") }}
         </UiButton>
       </div>
@@ -543,7 +574,7 @@ function ago(timestamp: number): string {
       </button> -->
     </div>
 
-    <div v-else-if="effectiveView === 'accounts'" class="account-dialog__view">
+    <div v-else-if="effectiveView === 'accounts'" ref="dialogBody" class="account-dialog__view">
       <div class="account-dialog__active">
         <img v-if="activeAvatar" class="account-dialog__avatar" :src="activeAvatar" alt="" />
         <MsIcon
@@ -661,7 +692,7 @@ function ago(timestamp: number): string {
       </p>
     </div>
 
-    <div v-else class="account-dialog__view">
+    <div v-else ref="dialogBody" class="account-dialog__view">
       <AccountDataLabel
         :signed-in="atprotoStatus.signedIn"
         :busy="installBusy"
@@ -680,6 +711,7 @@ function ago(timestamp: number): string {
 .dialog.account-dialog {
   width: min(560px, calc(100vw - var(--space-8)));
   max-height: calc(100dvh - var(--space-12) - var(--safe-top) - var(--safe-bottom));
+  scrollbar-gutter: stable;
 }
 
 .account-dialog__view {
@@ -738,7 +770,6 @@ function ago(timestamp: number): string {
 }
 
 .account-dialog__field {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -749,21 +780,67 @@ function ago(timestamp: number): string {
   color: var(--color-text-secondary);
 }
 
+/* The handle field is a combobox input, not a UiTextField, so the field chrome
+   lives here. It matches the app's default text field. */
+.account-dialog__handle-field {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--control-md);
+  padding: 0 var(--space-3);
+  font-size: var(--text-md);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.account-dialog__handle-field:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.account-dialog__handle-field:has(> .account-dialog__handle-field-input:disabled) {
+  opacity: 0.55;
+}
+
+.account-dialog__handle-field-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.account-dialog__handle-field-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
 .account-dialog__suggestions {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  left: 0;
-  z-index: 2;
-  max-height: 14rem;
-  margin: var(--space-1) 0 0;
+  z-index: var(--z-menu);
+  width: var(--reka-combobox-trigger-width);
   padding: var(--space-1);
-  overflow-y: auto;
-  list-style: none;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-2);
+  animation: ui-overlay-fade-in var(--motion-fast);
+}
+
+.account-dialog__suggestions[data-state="closed"] {
+  animation: ui-overlay-fade-out var(--motion-exit);
+}
+
+.account-dialog__suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  max-height: 14rem;
+  overflow-y: auto;
 }
 
 .account-dialog__suggestion {
@@ -773,13 +850,13 @@ function ago(timestamp: number): string {
   width: 100%;
   padding: var(--space-2);
   text-align: left;
-  background: transparent;
-  border: 0;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  user-select: none;
 }
 
-.account-dialog__suggestion:hover {
+.account-dialog__suggestion:hover,
+.account-dialog__suggestion[data-highlighted] {
   background: var(--color-accent-soft);
 }
 
@@ -970,6 +1047,7 @@ function ago(timestamp: number): string {
 .account-dialog__scope-copy {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: var(--space-0-5);
 }
 
@@ -985,34 +1063,42 @@ function ago(timestamp: number): string {
   color: var(--color-text-secondary);
 }
 
-.account-dialog__technical {
-  font-size: var(--text-sm);
+.account-dialog__scope-technical {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
-.account-dialog__technical summary {
-  cursor: pointer;
+.account-dialog__scope-technical .ui-collapsible__trigger {
+  justify-content: flex-start;
+  gap: var(--space-1);
+  width: auto;
+  padding: 0;
 }
 
-.account-dialog__technical-group {
-  margin-top: var(--space-2);
-}
-
-.account-dialog__technical-group h4 {
-  margin: 0 0 var(--space-1);
-  font-size: var(--text-xs);
-  font-weight: 600;
+.account-dialog__scope-technical .ui-collapsible__trigger:hover {
   color: var(--color-text);
 }
 
-.account-dialog__technical-group ul {
-  margin: 0;
-  padding-left: var(--space-4);
+.account-dialog__scope-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.account-dialog__technical-group code {
+.account-dialog__scope-scopes li {
+  padding: 1px var(--space-2);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+}
+
+.account-dialog__scope-scopes code {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
+  color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
 

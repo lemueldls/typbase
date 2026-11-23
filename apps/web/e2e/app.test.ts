@@ -2892,9 +2892,10 @@ describe("typbase app", async () => {
     await page
       .locator(".account-dialog__scope-title", { hasText: "Sync your notes" })
       .waitFor({ state: "visible", timeout: 30_000 });
-    await page.locator(".account-dialog").getByText("Technical details").click();
-    await page
-      .locator(".account-dialog__technical code", { hasText: "repo:at.typbase.post" })
+    const pagesScope = page.locator(".account-dialog__scope", { hasText: "Publish pages" });
+    await pagesScope.getByText("Exact permissions").click();
+    await pagesScope
+      .locator("code", { hasText: "repo:at.typbase.post" })
       .waitFor({ state: "visible", timeout: 30_000 });
 
     await page.locator(".account-dialog").getByRole("button", { name: "Back" }).click();

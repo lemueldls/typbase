@@ -2,7 +2,7 @@ import type { MaterialSymbol } from "material-symbols";
 
 import { OAUTH_SCOPES } from "@typbase/typing";
 
-/** One plain-language permission group. The raw scopes stay under "Technical details". */
+/** One plain-language permission group. The raw scopes stay under "Exact permissions". */
 export interface AccountScopeGroup {
   id: string;
   icon: MaterialSymbol;
