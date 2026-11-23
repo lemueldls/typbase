@@ -26,6 +26,7 @@ import {
 
 import type { ComboboxOption } from "~/components/ui/Combobox.vue";
 import type { SelectOption } from "~/components/ui/Select.vue";
+import type { SettingsTab } from "~/composables/settingsDialog";
 
 import { BUNDLED_FONTS } from "~/composables/typst";
 import { getAiKeys, setAiKey } from "~/lib/ai/keys";
@@ -276,8 +277,6 @@ function setPaletteToken(key: ThemePaletteToken, value: string): void {
 }
 
 /** Settings tab ids. Each one maps to a panel below. */
-type SettingsTab = "general" | "appearance" | "editor" | "content" | "ai" | "sync" | "export";
-
 /** Section rail. Icons make the rail scannable on phones, where labels can truncate. */
 const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string; keywords?: string }> = [
   {
@@ -324,7 +323,7 @@ const tabs: Array<{ id: SettingsTab; icon: MaterialSymbol; label: string; keywor
   },
 ];
 
-const activeTab = ref<SettingsTab>("general");
+const { tab: activeTab } = useSettingsDialog();
 /** A small palette for the common case. The full picker is one click away. */
 const QUICK_ICONS: MaterialSymbol[] = [
   "folder",

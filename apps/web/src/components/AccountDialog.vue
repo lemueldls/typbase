@@ -19,6 +19,7 @@ import { openExternal } from "~/lib/openExternal";
 
 const { t, locale } = useI18n();
 const { open, view, hide } = useAccountDialog();
+const settingsDialog = useSettingsDialog();
 const { atproto, atprotoStatus, atprotoReady } = useWorkspace();
 
 const identifier = ref("");
@@ -312,6 +313,11 @@ function openProfile(): void {
   navigateFromLayer(`/u/${did}`);
 }
 
+function openSyncSettings(): void {
+  hide();
+  settingsDialog.show("sync");
+}
+
 function ago(timestamp: number): string {
   return timestamp
     ? new Intl.DateTimeFormat(locale.value, { dateStyle: "medium" }).format(timestamp)
@@ -603,9 +609,12 @@ function ago(timestamp: number): string {
         {{ atprotoStatus.profile.description }}
       </p>
 
-      <div class="account-dialog__actions">
+      <div class="account-dialog__actions account-dialog__actions--start">
         <UiButton variant="plain" icon="open_in_new" @click="openProfile">
           {{ $t("account.viewProfile") }}
+        </UiButton>
+        <UiButton variant="plain" icon="sync" @click="openSyncSettings">
+          {{ $t("account.syncSettings") }}
         </UiButton>
         <!-- <UiButton variant="plain" @click="openData">
           {{ $t("account.whatWrites") }}
@@ -1012,6 +1021,11 @@ function ago(timestamp: number): string {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+.account-dialog__actions--start {
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .account-dialog__scopes {
