@@ -2024,7 +2024,7 @@ describe("typbase app", async () => {
 
     const threadId = await page.evaluate((id) => window.__typbase.newChat(id), firstId);
     await openChatThread(page, threadId);
-    const chip = page.locator(".chat-composer__chip--action");
+    const chip = page.locator(".chat-composer__page-chip");
     const chipText = () => chip.innerText();
     await expect.poll(chipText, { timeout: 30_000 }).toContain("Context first");
 
@@ -2615,7 +2615,7 @@ describe("typbase app", async () => {
     );
     await expect(page.locator(".cm-editor").isVisible()).resolves.toBe(true);
     // The composer names the page the thread is about.
-    await expect(page.locator(".chat-composer__chip--action").innerText()).resolves.toContain(
+    await expect(page.locator(".chat-composer__page-chip").innerText()).resolves.toContain(
       "Dock host",
     );
 

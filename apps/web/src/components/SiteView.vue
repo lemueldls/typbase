@@ -508,7 +508,14 @@ const domainStatusKeys = {
   verified: "site.domainStatusVerified",
   error: "site.domainStatusError",
 } as const;
+const domainStatusTones = {
+  none: "neutral",
+  pending: "warning",
+  verified: "ok",
+  error: "danger",
+} as const;
 const domainStatusLabel = computed(() => t(domainStatusKeys[site.value.wisp.domainStatus]));
+const domainStatusTone = computed(() => domainStatusTones[site.value.wisp.domainStatus]);
 const activeDomain = computed(
   () =>
     site.value.wisp.customDomain ||
@@ -753,17 +760,14 @@ function copy(value: string): Promise<void> {
     <div ref="siteView" class="site-view__body">
       <div class="site-view__content">
         <div v-if="displayUrl" class="site-view__address">
-          <span
+          <UiBadge
+            :tone="site.wisp.lastDeploy ? 'ok' : 'neutral'"
+            size="default"
             class="site-view__address-status"
-            :class="
-              site.wisp.lastDeploy
-                ? 'site-view__address-status--live'
-                : 'site-view__address-status--draft'
-            "
           >
             <span v-if="site.wisp.lastDeploy" class="site-view__live-dot" aria-hidden="true" />
             {{ site.wisp.lastDeploy ? $t("site.live") : $t("site.draft") }}
-          </span>
+          </UiBadge>
           <div class="site-view__address-copy">
             <span class="site-view__address-label">{{ $t("site.publicUrl") }}</span>
             <code class="site-view__address-url" :title="displayUrl">{{ displayUrl }}</code>
@@ -804,21 +808,23 @@ function copy(value: string): Promise<void> {
                 <span class="site-view__tab-label">{{ entry.label }}</span>
                 <!-- <span class="site-view__tab-hint">{{ entry.hint }}</span> -->
               </span>
-              <span v-if="entry.id === 'pages' && includedCount" class="site-view__tab-count">
-                {{ includedCount }}
-              </span>
-              <span
-                v-else-if="entry.id === 'publish' && site.wisp.lastDeploy"
-                class="site-view__tab-status"
+              <UiBadge
+                v-if="entry.id === 'pages' && includedCount"
+                :tone="tab === entry.id ? 'accent' : 'neutral'"
+                :variant="tab === entry.id ? 'solid' : 'soft'"
               >
+                {{ includedCount }}
+              </UiBadge>
+              <UiBadge v-else-if="entry.id === 'publish' && site.wisp.lastDeploy" tone="ok">
                 {{ $t("site.live") }}
-              </span>
-              <span
+              </UiBadge>
+              <UiBadge
                 v-else-if="entry.id === 'publish' && includedCount"
-                class="site-view__tab-count"
+                :tone="tab === entry.id ? 'accent' : 'neutral'"
+                :variant="tab === entry.id ? 'solid' : 'soft'"
               >
                 {{ includedCount }}
-              </span>
+              </UiBadge>
             </button>
           </div>
 
@@ -1298,13 +1304,14 @@ function copy(value: string): Promise<void> {
                     <h2>{{ $t("site.wispSubdomain") }}</h2>
                     <p class="site-view__hint">{{ $t("site.wispSubdomainHint") }}</p>
                   </div>
-                  <span
+                  <UiBadge
                     v-if="site.wisp.subdomain && !site.wisp.customDomain"
+                    :tone="domainStatusTone"
+                    size="default"
                     class="site-domain__status"
-                    :class="`site-domain__status--${site.wisp.domainStatus}`"
                   >
                     {{ domainStatusLabel }}
-                  </span>
+                  </UiBadge>
                 </div>
                 <div v-if="site.wisp.subdomain" class="site-domain__record">
                   <div class="site-view__copy-row">
@@ -1360,13 +1367,14 @@ function copy(value: string): Promise<void> {
                     <h2>{{ $t("site.customDomain") }}</h2>
                     <p class="site-view__hint">{{ $t("site.customDomainHint") }}</p>
                   </div>
-                  <span
+                  <UiBadge
                     v-if="site.wisp.customDomain"
+                    :tone="domainStatusTone"
+                    size="default"
                     class="site-domain__status"
-                    :class="`site-domain__status--${site.wisp.domainStatus}`"
                   >
                     {{ domainStatusLabel }}
-                  </span>
+                  </UiBadge>
                 </div>
 
                 <div v-if="!site.wisp.customDomain" class="site-domain__claim">
@@ -1539,16 +1547,16 @@ function copy(value: string): Promise<void> {
                   </p>
                   <p v-else class="site-view__hint">{{ $t("site.selectPagesHint") }}</p>
                   <div v-if="includedPages.length" class="site-selection-card__chips">
-                    <span
+                    <UiChip
                       v-for="page in includedPages.slice(0, 8)"
                       :key="page.id"
                       class="site-selection-chip"
                     >
                       {{ pageSettings(page).title || page.title }}
-                    </span>
-                    <span v-if="includedPages.length > 8" class="site-selection-chip">
+                    </UiChip>
+                    <UiChip v-if="includedPages.length > 8" class="site-selection-chip">
                       +{{ includedPages.length - 8 }}
-                    </span>
+                    </UiChip>
                   </div>
                 </div>
                 <UiButton
@@ -1851,25 +1859,7 @@ function copy(value: string): Promise<void> {
 }
 
 .site-view__address-status {
-  display: inline-flex;
-  align-items: center;
   justify-self: start;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 999px;
-}
-
-.site-view__address-status--live {
-  color: var(--color-ok);
-  background: var(--color-ok-soft);
-}
-
-.site-view__address-status--draft {
-  color: var(--color-text-secondary);
-  background: var(--color-surface-2);
 }
 
 .site-view__address-copy {
@@ -1929,7 +1919,7 @@ function copy(value: string): Promise<void> {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   width: 100%;
 }
 
@@ -1996,31 +1986,6 @@ function copy(value: string): Promise<void> {
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
   line-height: var(--leading-normal);
-}
-
-.site-view__tab-count,
-.site-view__tab-status {
-  flex: none;
-  /* align-self: flex-start; */
-  min-width: 1.25rem;
-  padding: 0 var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  line-height: 1.25rem;
-  text-align: center;
-  background: var(--color-surface-2);
-  border-radius: 999px;
-}
-
-.site-view__tab-status {
-  color: var(--color-ok);
-  background: var(--color-ok-soft);
-}
-
-.site-view__tab--active .site-view__tab-count {
-  color: var(--color-on-accent);
-  background: var(--color-accent);
 }
 
 .site-view__panel {
@@ -2200,7 +2165,7 @@ function copy(value: string): Promise<void> {
 .site-pages__filter {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-1-5);
   padding: var(--space-1) var(--space-2);
   color: var(--color-text-secondary);
   font: inherit;
@@ -2368,7 +2333,7 @@ function copy(value: string): Promise<void> {
 .site-page__controls {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex: none;
 }
 
@@ -2469,32 +2434,6 @@ function copy(value: string): Promise<void> {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
   white-space: nowrap;
-}
-
-.site-domain__status {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  padding: 1px var(--space-1-5);
-}
-
-.site-domain__status--verified {
-  color: var(--color-ok);
-  background: var(--color-ok-soft);
-  border-color: color-mix(in srgb, var(--color-ok) 30%, var(--color-border));
-}
-
-.site-domain__status--pending {
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
-  border-color: color-mix(in srgb, var(--color-warning) 30%, var(--color-border));
-}
-
-.site-domain__status--error {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
 }
 
 .site-domain__record {
@@ -2622,14 +2561,6 @@ function copy(value: string): Promise<void> {
 
 .site-selection-chip {
   max-width: 16rem;
-  padding: 1px var(--space-1-5);
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: var(--color-surface-2);
-  border-radius: 999px;
 }
 
 .site-publish-card--hero {
@@ -2900,8 +2831,7 @@ function copy(value: string): Promise<void> {
   }
 
   .site-view__tab-hint,
-  .site-view__tab-count,
-  .site-view__tab-status {
+  .site-view__tab > .ui-badge {
     display: none;
   }
 
