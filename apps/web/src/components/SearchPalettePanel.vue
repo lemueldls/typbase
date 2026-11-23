@@ -438,9 +438,9 @@ async function retryIndex() {
                 @mousemove="active = entry.index"
                 @click="openEntry(entry.hit)"
               >
-                <span v-if="kindKey(entry.hit.kind)" class="search-palette-panel__kind">
+                <UiBadge v-if="kindKey(entry.hit.kind)" variant="outline" shape="rounded">
                   {{ $t(kindKey(entry.hit.kind)!) }}
-                </span>
+                </UiBadge>
                 <div class="search-palette-panel__snippet">
                   <template
                     v-for="(segment, segmentIndex) in entry.hit.snippet"
@@ -871,16 +871,6 @@ async function retryIndex() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.search-palette-panel__kind {
-  display: inline-block;
-  margin-bottom: 2px;
-  padding: 0 4px;
-  font-size: var(--text-2xs);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
 }
 
 .search-palette-panel__path {

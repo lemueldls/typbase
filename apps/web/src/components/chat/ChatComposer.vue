@@ -99,26 +99,29 @@ function commitModel(): void {
         @select="selectPage"
       >
         <template #trigger>
-          <button type="button" class="chat-composer__chip chat-composer__chip--action">
-            <MsIcon name="description" :size="14" aria-hidden="true" />
+          <UiChip as="button" type="button" class="chat-composer__page-chip">
+            <template #leading>
+              <MsIcon name="description" :size="14" aria-hidden="true" />
+            </template>
             {{ pageTitle ?? t("chat.noPage") }}
-            <MsIcon name="keyboard_arrow_down" :size="14" aria-hidden="true" />
-          </button>
+            <template #trailing>
+              <MsIcon name="keyboard_arrow_down" :size="14" aria-hidden="true" />
+            </template>
+          </UiChip>
         </template>
       </UiCombobox>
 
-      <span v-if="selectionChars" class="chat-composer__chip">
-        <MsIcon name="highlight" :size="14" aria-hidden="true" />
+      <UiChip
+        v-if="selectionChars"
+        removable
+        :remove-label="$t('chat.clearSelection')"
+        @remove="emit('clearSelection')"
+      >
+        <template #leading>
+          <MsIcon name="highlight" :size="14" aria-hidden="true" />
+        </template>
         {{ $t("chat.selectionChip", { count: selectionChars }) }}
-        <button
-          type="button"
-          class="chat-composer__chip-remove"
-          :aria-label="$t('chat.clearSelection')"
-          @click="emit('clearSelection')"
-        >
-          <MsIcon name="close" :size="12" />
-        </button>
-      </span>
+      </UiChip>
     </div>
 
     <textarea
@@ -176,38 +179,6 @@ function commitModel(): void {
   align-items: center;
   gap: var(--space-1-5);
   flex-wrap: wrap;
-}
-
-.chat-composer__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-0-5) var(--space-1-5);
-  font-family: inherit;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.chat-composer__chip--action {
-  cursor: pointer;
-}
-
-.chat-composer__chip--action:hover,
-.chat-composer__chip--action:focus-visible {
-  color: var(--color-text);
-  border-color: var(--color-accent);
-}
-
-.chat-composer__chip-remove {
-  display: inline-flex;
-  padding: 0;
-  color: inherit;
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 
 .chat-composer__input {

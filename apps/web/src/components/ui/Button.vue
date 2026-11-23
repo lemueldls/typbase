@@ -50,7 +50,7 @@ const iconPx = computed(() => props.iconSize ?? ICON_STEPS[props.size]);
   --button-pad-x: var(--space-3);
   --button-pad-start: var(--button-pad-x);
   --button-icon-inset: var(--space-2);
-  --button-gap: var(--space-2);
+  --button-gap: var(--space-1-5);
 
   display: inline-flex;
   align-items: center;
@@ -82,13 +82,13 @@ const iconPx = computed(() => props.iconSize ?? ICON_STEPS[props.size]);
 }
 
 .button--primary {
-  color: var(--color-surface);
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border-color: var(--color-accent);
 }
 
 .button--danger {
-  color: var(--color-surface);
+  color: var(--color-on-danger);
   background: var(--color-danger);
   border-color: var(--color-danger);
 }

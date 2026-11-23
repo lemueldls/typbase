@@ -248,9 +248,14 @@ watch(
             <div class="sync__status-head">
               <span class="sync__status-dot" aria-hidden="true" />
               <span class="sync__status-label">{{ statusLabel }}</span>
-              <span v-if="atprotoStatus.pendingUpdates" class="sync__status-count">
+              <UiBadge
+                v-if="atprotoStatus.pendingUpdates"
+                tone="warning"
+                size="default"
+                class="sync__status-count"
+              >
                 {{ $t("settings.syncPendingCount", { count: atprotoStatus.pendingUpdates }) }}
-              </span>
+              </UiBadge>
             </div>
             <div class="sync__status-meta">
               <span class="sync__status-meta-item">
@@ -601,11 +606,6 @@ watch(
 
 .sync__status-count {
   margin-left: auto;
-  padding: 1px var(--space-1-5);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
-  background: var(--color-warning-soft);
-  border-radius: 999px;
 }
 
 .sync__status-meta {

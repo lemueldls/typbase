@@ -271,7 +271,15 @@ onBeforeUnmount(() => {
           <UiButton variant="plain">
             <MsIcon name="filter_list" :size="20" />
             {{ t("graph.filters") }}
-            <span v-if="activeFilters" class="graph__filters-count">{{ activeFilters }}</span>
+            <UiBadge
+              v-if="activeFilters"
+              tone="accent"
+              variant="solid"
+              size="default"
+              class="graph__filters-count"
+            >
+              {{ activeFilters }}
+            </UiBadge>
           </UiButton>
         </template>
 
@@ -490,17 +498,10 @@ onBeforeUnmount(() => {
 }
 
 .graph__filters-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   min-width: 1.05rem;
   height: 1.05rem;
-  padding: 0 var(--space-1);
-  font-size: var(--text-xs);
+  padding: 0;
   line-height: 1;
-  color: var(--color-surface);
-  background: var(--color-accent);
-  border-radius: var(--radius-full);
 }
 
 .graph__body {

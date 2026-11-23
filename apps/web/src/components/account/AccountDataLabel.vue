@@ -36,9 +36,9 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
         <li v-for="entry in group.entries" :key="entry.id" class="account-label__entry">
           <div class="account-label__entry-head">
             <h4 class="account-label__entry-title">{{ $t(entry.titleKey) }}</h4>
-            <span class="account-label__badge" :class="`account-label__badge--${entry.visibility}`">
+            <UiBadge shape="rounded" :tone="entry.visibility === 'public' ? 'warning' : 'neutral'">
               {{ $t(visibilityKeys[entry.visibility]) }}
-            </span>
+            </UiBadge>
           </div>
           <p class="account-label__body">{{ $t(entry.bodyKey) }}</p>
 
@@ -172,20 +172,6 @@ const visibilityKeys: Record<DataLabelVisibility, string> = {
   font-size: var(--text-md);
   font-weight: 600;
   color: var(--color-text);
-}
-
-.account-label__badge {
-  flex: none;
-  padding: 0 var(--space-2);
-  font-size: var(--text-2xs);
-  line-height: 1.7;
-  color: var(--color-text-secondary);
-  background: var(--color-surface-3);
-  border-radius: var(--radius-xs);
-}
-
-.account-label__badge--public {
-  color: var(--color-warning);
 }
 
 .account-label__records {

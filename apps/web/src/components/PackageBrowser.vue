@@ -343,9 +343,9 @@ function openRepository(entry: PackageEntry) {
                   <template v-else>{{ part.text }}</template>
                 </template>
               </span>
-              <span v-if="hasUpdate(entry)" class="package-browser__badge">
+              <UiBadge v-if="hasUpdate(entry)" tone="accent">
                 {{ $t("packages.updateAvailable") }}
-              </span>
+              </UiBadge>
               <!-- <span
                 v-for="pkg in installedFor(entry.name)"
                 :key="specString(pkg)"
@@ -504,16 +504,6 @@ function openRepository(entry: PackageEntry) {
   font-weight: 600;
   font-size: var(--text-xl);
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.package-browser__badge {
-  padding: 0 var(--space-1-5);
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  color: var(--color-accent);
-  font-size: var(--text-2xs);
-  font-weight: 600;
   white-space: nowrap;
 }
 

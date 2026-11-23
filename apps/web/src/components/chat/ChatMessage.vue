@@ -76,7 +76,9 @@ async function copySource(): Promise<void> {
   </article>
 
   <article v-else class="chat-message chat-message--assistant" :data-status="message.status">
-    <div v-if="message.repairOf" class="chat-message__badge">{{ $t("chat.repairBadge") }}</div>
+    <UiBadge v-if="message.repairOf" class="chat-message__badge">
+      {{ $t("chat.repairBadge") }}
+    </UiBadge>
 
     <div v-if="html" class="chat-message__render" v-html="html" />
 
@@ -245,11 +247,6 @@ async function copySource(): Promise<void> {
 
 .chat-message__badge {
   align-self: flex-start;
-  padding: 0 var(--space-1-5);
-  font-size: var(--text-2xs);
-  color: var(--color-text-secondary);
-  background: var(--color-surface-3);
-  border-radius: var(--radius-full);
 }
 
 .chat-message__tools {

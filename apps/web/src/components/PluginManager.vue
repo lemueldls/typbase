@@ -146,9 +146,9 @@ function openInstance(instance: PluginInstance) {
           <span v-if="entry.source === 'local'" class="plugin-manager__version">
             {{ $t("plugins.sourceLocal") }}
           </span>
-          <span v-if="plugins.errorsFor(entry.manifest.id).length" class="plugin-manager__issues">
+          <UiBadge v-if="plugins.errorsFor(entry.manifest.id).length" tone="danger">
             {{ $t("plugins.issues") }}
-          </span>
+          </UiBadge>
 
           <span class="plugin-manager__actions">
             <UiButton
@@ -185,13 +185,9 @@ function openInstance(instance: PluginInstance) {
         </p>
 
         <div v-if="entry.manifest.capabilities.length" class="plugin-manager__chips">
-          <span
-            v-for="capability in entry.manifest.capabilities"
-            :key="capability"
-            class="plugin-manager__chip"
-          >
+          <UiChip v-for="capability in entry.manifest.capabilities" :key="capability">
             {{ $t(CAPABILITY_LABELS[capability]) }}
-          </span>
+          </UiChip>
         </div>
 
         <div v-if="installOf(entry.manifest.id)" class="plugin-manager__instances">
@@ -335,14 +331,6 @@ function openInstance(instance: PluginInstance) {
   color: var(--color-text-secondary);
 }
 
-.plugin-manager__issues {
-  padding: 0 var(--space-1-5);
-  font-size: var(--text-2xs);
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-radius: var(--radius-full);
-}
-
 .plugin-manager__actions {
   display: inline-flex;
   align-items: center;
@@ -364,13 +352,6 @@ function openInstance(instance: PluginInstance) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-}
-
-.plugin-manager__chip {
-  padding: var(--space-0-5) var(--space-2);
-  font-size: var(--text-xs);
-  background: var(--color-surface-3);
-  border-radius: var(--radius-full);
 }
 
 .plugin-manager__instances {
