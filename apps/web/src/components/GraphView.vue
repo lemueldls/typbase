@@ -501,7 +501,7 @@ onBeforeUnmount(() => {
   min-width: 1.05rem;
   height: 1.05rem;
   padding: 0;
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .graph__body {

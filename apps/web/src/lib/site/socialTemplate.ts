@@ -137,7 +137,7 @@ export function socialCardHtml(input: SocialCardInput): string {
     margin-top: auto;
     color: ${palette.textSecondary};
     font-size: 16px;
-    line-height: 1.3;
+    line-height: 1.25;
   }
   .footer-line { width: 54px; height: 3px; background: ${palette.accent}; }
   .footer-dot { color: ${palette.accent}; }

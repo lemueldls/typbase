@@ -38,13 +38,13 @@ withDefaults(
   padding: 0 var(--space-1-5);
   font-size: var(--text-2xs);
   font-weight: 500;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   white-space: nowrap;
   border-radius: var(--radius-full);
 }
 
 .ui-badge--default {
-  padding: 1px var(--space-1-5);
+  padding: var(--space-0-5) var(--space-1-5);
   font-size: var(--text-xs);
 }
 

@@ -24,7 +24,7 @@ withDefaults(
   font-family: var(--font-mono, monospace);
   font-size: var(--text-xs);
   font-weight: 500;
-  line-height: 1.4;
+  line-height: var(--leading-snug);
   color: var(--color-text-secondary);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
