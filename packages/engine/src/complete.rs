@@ -1,10 +1,15 @@
 //! Completions for the app stdlib's string arguments.
 //!
 //! `typst_ide::autocomplete` completes expressions, field accesses, and
-//! parameter names, but never the contents of a string. `#typbase.query` takes
-//! its kind and filter as strings, so this pass supplies those values. It reads
-//! the raw source and returns raw byte offsets, the coordinates the editor
-//! already uses.
+//! parameter names, but never the contents of a string. The `typbase` stdlib
+//! takes page ids, query kinds, and filters as strings, so this pass supplies
+//! those values. It reads the raw source and returns raw byte offsets, the
+//! coordinates the editor already uses.
+//!
+//! Fixed values (query kinds, filter prefixes) live here. Values that belong
+//! to the workspace (page ids, categories, months, dates, plugin instances)
+//! arrive through [`crate::state::TypstState::set_completion_data`], so the
+//! engine does not need a copy of the workspace store.
 //!
 //! A native `query` could expose `kind` through `CastInfo::Value` and get
 //! completion from Typst's IDE, but the stdlib is a Typst module so exported
@@ -12,6 +17,7 @@
 //! implementation, and a parameter cast still cannot vary the filter prefixes
 //! by the `kind` value.
 
+use serde::Deserialize;
 use typst_syntax::{LinkedNode, Side, SyntaxKind, ast};
 
 use crate::bindings::{TypstCompletion, TypstCompletionKind};
@@ -42,20 +48,58 @@ const KINDS: &[(&str, &str)] = &[
 /// belongs to. Kinds whose filter is a bare id (sections, content, backlinks,
 /// plugin-data) have no static prefix to offer.
 const FILTERS: &[(&str, &str, &str)] = &[
-    ("pages", "by-id", "One page by id."),
-    ("pages", "by-category", "Pages in one category."),
-    ("daily", "by-month", "Daily notes in one YYYY-MM month."),
+    ("pages", "by-id/", "One page by id."),
+    ("pages", "by-category/", "Pages in one category."),
+    ("daily", "by-month/", "Daily notes in one YYYY-MM month."),
 ];
 
-/// Which argument of `#typbase.query` the cursor is in.
-#[derive(Clone, Copy)]
+/// Workspace values supplied by the host for completion. Keys match
+/// `workspaceCompletionData` in `apps/web/src/lib/typstCompletions.ts`.
+#[derive(Debug, Default, Clone, Deserialize)]
+pub(crate) struct CompletionData {
+    #[serde(default)]
+    pub(crate) pages: Vec<CompletionItem>,
+    #[serde(default)]
+    pub(crate) categories: Vec<CompletionItem>,
+    #[serde(default)]
+    pub(crate) months: Vec<CompletionItem>,
+    #[serde(default)]
+    pub(crate) dates: Vec<CompletionItem>,
+    #[serde(default)]
+    pub(crate) plugins: Vec<CompletionItem>,
+}
+
+/// One host value: label shown in the list, text inserted into the source, and
+/// an optional detail line.
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct CompletionItem {
+    pub(crate) label: String,
+    pub(crate) value: String,
+    #[serde(default)]
+    pub(crate) detail: Option<String>,
+}
+
+/// The `typbase` function whose arguments are being completed.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Function {
+    Query,
+    PageLink,
+    Embed,
+}
+
+/// Which argument of the call the cursor is in.
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Slot {
+    /// The first positional query kind.
     Kind,
+    /// The `filter:` argument of `query`.
     Filter,
+    /// The first positional page id of `page-link` or `embed`.
+    Page,
 }
 
 /// How the selected value replaces the text at the cursor.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Insert {
     /// Inside a closed string: replace the contents and keep the closing quote.
     Closed,
@@ -65,11 +109,13 @@ enum Insert {
     Bare,
 }
 
-/// Completions for a cursor inside `#typbase.query(...)`, or `None` when the
-/// cursor is somewhere this pass does not own.
-pub(crate) fn query_completions(
+/// Completions for a cursor inside `#typbase.query`, `page-link`, or `embed`,
+/// or `None` when the cursor is somewhere this pass does not own.
+pub(crate) fn typbase_completions(
     root: &typst_syntax::SyntaxNode,
+    text: &str,
     cursor: usize,
+    data: &CompletionData,
 ) -> Option<(usize, Vec<TypstCompletion>)> {
     let linked = LinkedNode::new(root);
     let leaf = linked.leaf_at(cursor, Side::Before)?;
@@ -84,47 +130,206 @@ pub(crate) fn query_completions(
     }
 
     let call = ancestor(&leaf, SyntaxKind::FuncCall)?;
-    if !is_query_call(&call) {
-        return None;
-    }
-
+    let function = typbase_function(&call)?;
     let args = ancestor(&leaf, SyntaxKind::Args)?;
-    let kind = query_kind(&args);
+    let kind = match function {
+        Function::Query => query_kind(&args),
+        Function::PageLink | Function::Embed => None,
+    };
 
     if let Some((start, closed)) = string_body(&leaf, cursor) {
-        let slot = match filter_named(&leaf, &args) {
-            Some(_) => Slot::Filter,
-            None if first_positional(&leaf, &args) => Slot::Kind,
-            None => return None,
-        };
+        let slot = string_slot(&leaf, &args, function)?;
         let insert = if closed { Insert::Closed } else { Insert::Open };
-        let completions = build(slot, kind.as_deref(), insert);
 
-        return (!completions.is_empty()).then_some((start, completions));
+        return build(slot, start, cursor, text, kind.as_deref(), insert, data);
     }
 
     // Empty argument slots. The previous significant leaf decides which slot
-    // the cursor opens: the call's `(` for the first positional argument, or a
-    // `filter:` colon for its value.
+    // the cursor opens: the call's `(` for the first positional argument, or
+    // a `filter:` colon for its value.
     let previous = previous_non_trivia(&leaf)?;
     let slot = if previous.kind() == SyntaxKind::LeftParen && previous.offset() == args.offset() {
-        Slot::Kind
-    } else if previous.kind() == SyntaxKind::Colon && is_filter_colon(&previous, &args) {
+        match function {
+            Function::Query => Slot::Kind,
+            Function::PageLink | Function::Embed => Slot::Page,
+        }
+    } else if previous.kind() == SyntaxKind::Colon
+        && function == Function::Query
+        && is_filter_colon(&previous, &args)
+    {
         Slot::Filter
     } else {
         return None;
     };
 
-    // Do not insert a new quoted value when one is already being typed at the
-    // cursor. `#typbase.query(|"pages")` and `filter: |"by-id"` land here.
+    // Do not insert a new value when one is already being typed at the cursor.
+    // `#typbase.page-link(|"welcome")` lands here.
     if let Some(next) = next_non_trivia(&leaf)
         && !matches!(next.kind(), SyntaxKind::RightParen | SyntaxKind::Comma)
     {
         return None;
     }
 
-    let completions = build(slot, kind.as_deref(), Insert::Bare);
-    (!completions.is_empty()).then_some((cursor, completions))
+    build(
+        slot,
+        cursor,
+        cursor,
+        text,
+        kind.as_deref(),
+        Insert::Bare,
+        data,
+    )
+}
+
+fn build(
+    slot: Slot,
+    start: usize,
+    cursor: usize,
+    text: &str,
+    kind: Option<&str>,
+    insert: Insert,
+    data: &CompletionData,
+) -> Option<(usize, Vec<TypstCompletion>)> {
+    let (from, completions) = match slot {
+        Slot::Kind => (start, kind_completions(insert)),
+        Slot::Filter => filter_completions(start, cursor, text, kind, insert, data)?,
+        Slot::Page => (start, page_completions(insert, data)),
+    };
+
+    (!completions.is_empty()).then_some((from, completions))
+}
+
+fn kind_completions(insert: Insert) -> Vec<TypstCompletion> {
+    KINDS
+        .iter()
+        .map(|(label, detail)| completion(label, detail, insert, false))
+        .collect()
+}
+
+fn page_completions(insert: Insert, data: &CompletionData) -> Vec<TypstCompletion> {
+    let mut completions = item_completions(&data.pages, insert);
+
+    // `none` is a value, not a string, so it only fits the empty argument slot.
+    // Inside a quote it would complete to the page id `"none"`.
+    if insert == Insert::Bare {
+        completions.insert(0, TypstCompletion {
+            kind: TypstCompletionKind::Constant,
+            label: String::from("none"),
+            apply: Some(String::from("none")),
+            detail: Some(String::from("No page.")),
+        });
+    }
+
+    completions
+}
+
+fn filter_completions(
+    start: usize,
+    cursor: usize,
+    text: &str,
+    kind: Option<&str>,
+    insert: Insert,
+    data: &CompletionData,
+) -> Option<(usize, Vec<TypstCompletion>)> {
+    let typed = text.get(start..cursor)?;
+
+    // Prefixed filters. Once the user has typed the slash, complete the value
+    // from the host list.
+    let prefixed: &[(&str, &[CompletionItem])] = match kind {
+        Some("pages") => &[("by-id", &data.pages), ("by-category", &data.categories)],
+        Some("daily") => &[("by-month", &data.months)],
+        None => {
+            &[
+                ("by-id", &data.pages),
+                ("by-category", &data.categories),
+                ("by-month", &data.months),
+            ]
+        }
+        _ => &[],
+    };
+
+    for (prefix, items) in prefixed {
+        if let Some(rest) = typed.strip_prefix(prefix)
+            && rest.starts_with('/')
+        {
+            let from = start + prefix.len() + 1;
+            let completions = item_completions(items, insert);
+
+            return Some((from, completions));
+        }
+    }
+
+    if typed.contains('/') {
+        return None;
+    }
+
+    // Filters that take a bare id or date.
+    match kind {
+        Some("sections" | "backlinks") => {
+            return Some((start, item_completions(&data.pages, insert)));
+        }
+        Some("content") => {
+            let mut completions = item_completions(&data.pages, insert);
+            completions.extend(item_completions(&data.dates, insert));
+
+            return Some((start, completions));
+        }
+        Some("plugin-data") => {
+            return Some((start, item_completions(&data.plugins, insert)));
+        }
+        _ => {}
+    }
+
+    // Static prefixes. The snippet placeholder makes the editor reopen the
+    // list at the value position after the slash.
+    let completions = FILTERS
+        .iter()
+        .filter(|(filter_kind, ..)| kind.is_none_or(|kind| kind == *filter_kind))
+        .map(|(filter_kind, label, detail)| {
+            let detail = if kind.is_some() {
+                (*detail).to_string()
+            } else {
+                format!("{detail} {filter_kind} queries.")
+            };
+
+            completion(label, &detail, insert, true)
+        })
+        .collect();
+
+    Some((start, completions))
+}
+
+fn item_completions(items: &[CompletionItem], insert: Insert) -> Vec<TypstCompletion> {
+    items
+        .iter()
+        .map(|item| {
+            TypstCompletion {
+                kind: TypstCompletionKind::Constant,
+                label: item.label.clone(),
+                apply: Some(match insert {
+                    Insert::Closed => item.value.clone(),
+                    Insert::Open => format!("{}\"", item.value),
+                    Insert::Bare => format!("\"{}\"", item.value),
+                }),
+                detail: item.detail.clone(),
+            }
+        })
+        .collect()
+}
+
+fn completion(label: &str, detail: &str, insert: Insert, snippet: bool) -> TypstCompletion {
+    let placeholder = if snippet { "${}" } else { "" };
+
+    TypstCompletion {
+        kind: TypstCompletionKind::Constant,
+        label: label.to_string(),
+        apply: Some(match insert {
+            Insert::Closed => format!("{label}{placeholder}"),
+            Insert::Open => format!("{label}{placeholder}\""),
+            Insert::Bare => format!("\"{label}{placeholder}\""),
+        }),
+        detail: Some(detail.to_string()),
+    }
 }
 
 /// First ancestor of `leaf` with `kind`, including `leaf` itself.
@@ -241,20 +446,41 @@ fn query_kind(args: &LinkedNode) -> Option<String> {
     }
 }
 
-fn is_query_call(call: &LinkedNode) -> bool {
-    let Some(call) = call.get().cast::<ast::FuncCall>() else {
-        return false;
-    };
-
+fn typbase_function(call: &LinkedNode) -> Option<Function> {
+    let call = call.get().cast::<ast::FuncCall>()?;
     let ast::Expr::FieldAccess(access) = call.callee() else {
-        return false;
+        return None;
     };
 
     let ast::Expr::Ident(target) = access.target() else {
-        return false;
+        return None;
     };
 
-    target.as_str() == "typbase" && access.field().as_str() == "query"
+    if target.as_str() != "typbase" {
+        return None;
+    }
+
+    match access.field().as_str() {
+        "query" => Some(Function::Query),
+        "page-link" => Some(Function::PageLink),
+        "embed" => Some(Function::Embed),
+        _ => None,
+    }
+}
+
+fn string_slot(leaf: &LinkedNode, args: &LinkedNode, function: Function) -> Option<Slot> {
+    if function == Function::Query && filter_named(leaf, args).is_some() {
+        return Some(Slot::Filter);
+    }
+
+    if !first_positional(leaf, args) {
+        return None;
+    }
+
+    match function {
+        Function::Query => Some(Slot::Kind),
+        Function::PageLink | Function::Embed => Some(Slot::Page),
+    }
 }
 
 fn previous_non_trivia<'a>(leaf: &LinkedNode<'a>) -> Option<LinkedNode<'a>> {
@@ -279,44 +505,4 @@ fn next_non_trivia<'a>(leaf: &LinkedNode<'a>) -> Option<LinkedNode<'a>> {
     }
 
     None
-}
-
-fn build(slot: Slot, kind: Option<&str>, insert: Insert) -> Vec<TypstCompletion> {
-    match slot {
-        Slot::Kind => {
-            KINDS
-                .iter()
-                .map(|(label, detail)| completion(label, detail, insert))
-                .collect()
-        }
-        Slot::Filter => {
-            FILTERS
-                .iter()
-                .filter(|(filter_kind, ..)| kind.is_none_or(|kind| kind == *filter_kind))
-                .map(|(filter_kind, label, detail)| {
-                    let detail = if kind.is_some() {
-                        (*detail).to_string()
-                    } else {
-                        format!("{detail} {filter_kind} queries.")
-                    };
-                    completion(label, &detail, insert)
-                })
-                .collect()
-        }
-    }
-}
-
-fn completion(label: &str, detail: &str, insert: Insert) -> TypstCompletion {
-    let apply = match insert {
-        Insert::Closed => label.to_string(),
-        Insert::Open => format!("{label}\""),
-        Insert::Bare => format!("\"{label}\""),
-    };
-
-    TypstCompletion {
-        kind: TypstCompletionKind::Constant,
-        label: label.to_string(),
-        apply: Some(apply),
-        detail: Some(detail.to_string()),
-    }
 }

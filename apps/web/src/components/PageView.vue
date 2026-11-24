@@ -64,6 +64,7 @@ import { revealRequests } from "~/lib/reveal";
 import { setSaveHandler } from "~/lib/saveRequest";
 import { addDictionaryWord, addIgnoredLint } from "~/lib/spellcheckSettings";
 import { testApi } from "~/lib/testApi";
+import { applyCompletionData } from "~/lib/typstCompletions";
 import { setTypstInputs } from "~/lib/typstInputs";
 import { recreateTypstState, takeEngineFailure } from "~/lib/typstRecovery";
 import { createTypstRequestService, type TypstRequestService } from "~/lib/typstRequests";
@@ -689,6 +690,9 @@ async function setupPage() {
       void (async () => {
         if (engineHealth.value.status !== "ok") return;
 
+        const state = typstState.value;
+        if (state) applyCompletionData(state, store);
+
         // A prelude edit must recompile with the new text. The page context
         // moved with it, so the daily neighbors stay current.
         const nextPrelude = [
@@ -724,6 +728,7 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
   const state = typstState.value;
   if (!store || !state) return;
 
+  applyCompletionData(state, store);
   boundPageId = pageId;
   requestService?.setCurrentPage(pageId);
   fontNoticeDismissed.value = false;

@@ -359,9 +359,9 @@ export async function buildQueryJson(
       return JSON.stringify(await store.readPluginState(filterValue));
     }
     case "backlinks": {
-      if (!query.filterValue) return JSON.stringify([]);
+      if (!filterValue) return JSON.stringify([]);
 
-      const target = pages.find((page) => page.id === query.filterValue);
+      const target = pages.find((page) => page.id === filterValue);
       if (!target) return JSON.stringify([]);
 
       const incoming = await incomingPages(store, pages, target.id);

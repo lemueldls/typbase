@@ -377,15 +377,17 @@ fn jump_maps_repaired_positions_to_raw() {
 
 /// Runs a completion query with the cursor at the end of `marker`, which
 /// includes the text already typed at the completion site.
-fn query_result(
+fn query_result_data(
     text: &str,
     marker: &str,
+    data: crate::complete::CompletionData,
 ) -> Option<(usize, Vec<crate::bindings::TypstCompletion>)> {
     let start = text.find(marker).expect("marker missing from source");
     let cursor = utf16_offset(text, start + marker.len());
 
     let mut state = harness::state();
     let id = harness::page(&mut state, "query_completion");
+    state.set_completion_data(data);
     let _ = harness::compile(&mut state, &id, text);
 
     state.autocomplete_at(&id, cursor, true).map(|result| {
@@ -394,8 +396,19 @@ fn query_result(
     })
 }
 
-fn query_completion(text: &str, marker: &str) -> Option<(usize, Vec<(String, Option<String>)>)> {
-    query_result(text, marker).map(|(offset, completions)| {
+fn query_result(
+    text: &str,
+    marker: &str,
+) -> Option<(usize, Vec<crate::bindings::TypstCompletion>)> {
+    query_result_data(text, marker, crate::complete::CompletionData::default())
+}
+
+fn query_completion_data(
+    text: &str,
+    marker: &str,
+    data: crate::complete::CompletionData,
+) -> Option<(usize, Vec<(String, Option<String>)>)> {
+    query_result_data(text, marker, data).map(|(offset, completions)| {
         (
             offset,
             completions
@@ -404,6 +417,49 @@ fn query_completion(text: &str, marker: &str) -> Option<(usize, Vec<(String, Opt
                 .collect(),
         )
     })
+}
+
+fn query_completion(text: &str, marker: &str) -> Option<(usize, Vec<(String, Option<String>)>)> {
+    query_completion_data(text, marker, crate::complete::CompletionData::default())
+}
+
+fn sample_completions() -> crate::complete::CompletionData {
+    use crate::complete::{CompletionData, CompletionItem};
+
+    CompletionData {
+        pages: vec![
+            CompletionItem {
+                label: String::from("Welcome"),
+                value: String::from("page-welcome"),
+                detail: Some(String::from("pages/welcome.typ")),
+            },
+            CompletionItem {
+                label: String::from("Meeting notes"),
+                value: String::from("page-notes"),
+                detail: None,
+            },
+        ],
+        categories: vec![CompletionItem {
+            label: String::from("Work"),
+            value: String::from("cat-work"),
+            detail: None,
+        }],
+        months: vec![CompletionItem {
+            label: String::from("2026-11"),
+            value: String::from("2026-11"),
+            detail: None,
+        }],
+        dates: vec![CompletionItem {
+            label: String::from("2026-11-23"),
+            value: String::from("2026-11-23"),
+            detail: None,
+        }],
+        plugins: vec![CompletionItem {
+            label: String::from("Calendar"),
+            value: String::from("instance-calendar"),
+            detail: Some(String::from("calendar")),
+        }],
+    }
 }
 
 fn labels(options: &[(String, Option<String>)]) -> Vec<&str> {
@@ -478,8 +534,8 @@ fn query_filter_completions_at_an_empty_value() {
         query_completion(text, "#typbase.query(\"pages\", filter: ").expect("completion missing");
 
     assert!(
-        options.contains(&(String::from("by-id/"), Some(String::from("\"by-id/\"")))),
-        "an empty filter slot gets the quotes: {options:?}",
+        options.contains(&(String::from("by-id/"), Some(String::from("\"by-id/${}\"")))),
+        "an empty filter slot gets the quotes and a value placeholder: {options:?}",
     );
 }
 
@@ -511,5 +567,178 @@ fn query_parameter_completion_still_works() {
             .is_some_and(|detail| detail.contains("Optional filter")),
         "the parameter detail comes from the stdlib doc comment: {:?}",
         filter.detail,
+    );
+}
+
+#[test]
+fn page_link_completions_offer_pages_and_none() {
+    let text = "Before.\n\n#typbase.page-link()";
+    let marker = "#typbase.page-link(";
+    let cursor = utf16_offset(text, text.find(marker).unwrap() + marker.len());
+    let (offset, options) =
+        query_completion_data(text, marker, sample_completions()).expect("completion missing");
+
+    assert_eq!(offset, cursor);
+    assert!(
+        options.contains(&(
+            String::from("Welcome"),
+            Some(String::from("\"page-welcome\""))
+        )),
+        "a page id is inserted as a quoted string: {options:?}",
+    );
+    assert!(
+        options.contains(&(String::from("none"), Some(String::from("none")))),
+        "the empty target stays unquoted: {options:?}",
+    );
+}
+
+#[test]
+fn page_link_completions_replace_a_typed_string() {
+    let text = "Before.\n\n#typbase.page-link(\"Wel\")";
+    let (offset, options) =
+        query_completion_data(text, "#typbase.page-link(\"Wel", sample_completions())
+            .expect("completion missing");
+
+    let content = utf16_offset(text, text.find("\"Wel").unwrap() + 1);
+    assert_eq!(offset, content, "replacement starts inside the quote");
+    assert!(
+        options.contains(&(String::from("Welcome"), Some(String::from("page-welcome")))),
+        "the closing quote is kept: {options:?}",
+    );
+    assert!(
+        !options.iter().any(|(label, _)| label == "none"),
+        "none is a value, not a string: {options:?}",
+    );
+}
+
+#[test]
+fn embed_completions_use_host_pages() {
+    let text = "Before.\n\n#typbase.embed(\"Wel\")";
+    let (_, options) = query_completion_data(text, "#typbase.embed(\"Wel", sample_completions())
+        .expect("completion missing");
+
+    assert!(
+        options.contains(&(String::from("Welcome"), Some(String::from("page-welcome")))),
+        "embed completes page ids: {options:?}",
+    );
+}
+
+#[test]
+fn page_link_body_does_not_complete_page_ids() {
+    let text = "Before.\n\n#typbase.page-link(\"page-welcome\", body: \"Re\")";
+    let (_, options) = query_completion_data(
+        text,
+        "#typbase.page-link(\"page-welcome\", body: \"Re",
+        sample_completions(),
+    )
+    .expect("completion call");
+
+    assert!(
+        !options.iter().any(|(label, _)| label == "Welcome"),
+        "body text is not a page id: {options:?}",
+    );
+}
+
+#[test]
+fn query_filter_values_use_host_data() {
+    let by_id = "Before.\n\n#typbase.query(\"pages\", filter: \"by-id/\")";
+    let (offset, options) = query_completion_data(
+        by_id,
+        "#typbase.query(\"pages\", filter: \"by-id/",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    let value_start = utf16_offset(by_id, by_id.find("by-id/").unwrap() + "by-id/".len());
+    assert_eq!(offset, value_start, "the page id replaces after the slash");
+    assert!(
+        options.contains(&(String::from("Welcome"), Some(String::from("page-welcome")))),
+        "page ids follow by-id: {options:?}",
+    );
+
+    let by_category = "Before.\n\n#typbase.query(\"pages\", filter: \"by-category/\")";
+    let (_, options) = query_completion_data(
+        by_category,
+        "#typbase.query(\"pages\", filter: \"by-category/",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    assert!(
+        options.contains(&(String::from("Work"), Some(String::from("cat-work")))),
+        "categories follow by-category: {options:?}",
+    );
+
+    let by_month = "Before.\n\n#typbase.query(\"daily\", filter: \"by-month/\")";
+    let (_, options) = query_completion_data(
+        by_month,
+        "#typbase.query(\"daily\", filter: \"by-month/",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    assert!(
+        options.contains(&(String::from("2026-11"), Some(String::from("2026-11")))),
+        "months follow by-month: {options:?}",
+    );
+
+    let sections = "Before.\n\n#typbase.query(\"sections\", filter: \"Wel\")";
+    let (_, options) = query_completion_data(
+        sections,
+        "#typbase.query(\"sections\", filter: \"Wel",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    assert!(
+        options.contains(&(String::from("Welcome"), Some(String::from("page-welcome")))),
+        "sections takes a page id: {options:?}",
+    );
+
+    let content = "Before.\n\n#typbase.query(\"content\", filter: \"2026\")";
+    let (_, options) = query_completion_data(
+        content,
+        "#typbase.query(\"content\", filter: \"2026",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    assert!(
+        options.contains(&(String::from("2026-11-23"), Some(String::from("2026-11-23")))),
+        "content accepts a daily date: {options:?}",
+    );
+
+    let backlinks = "Before.\n\n#typbase.query(\"backlinks\", filter: \"Wel\")";
+    let (_, options) = query_completion_data(
+        backlinks,
+        "#typbase.query(\"backlinks\", filter: \"Wel",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    assert!(
+        options.contains(&(String::from("Welcome"), Some(String::from("page-welcome")))),
+        "backlinks takes a page id: {options:?}",
+    );
+
+    let plugin_data = "Before.\n\n#typbase.query(\"plugin-data\", filter: \"Cal\")";
+    let (_, options) = query_completion_data(
+        plugin_data,
+        "#typbase.query(\"plugin-data\", filter: \"Cal",
+        sample_completions(),
+    )
+    .expect("completion missing");
+    assert!(
+        options.contains(&(
+            String::from("Calendar"),
+            Some(String::from("instance-calendar"))
+        )),
+        "plugin-data takes an instance id: {options:?}",
+    );
+}
+
+#[test]
+fn query_filter_prefix_reopens_at_the_value() {
+    let text = "Before.\n\n#typbase.query(\"pages\", filter: \"by\")";
+    let (_, options) = query_completion(text, "#typbase.query(\"pages\", filter: \"by")
+        .expect("completion missing");
+
+    assert!(
+        options.contains(&(String::from("by-id/"), Some(String::from("by-id/${}")))),
+        "the prefix leaves a placeholder for the value: {options:?}",
     );
 }

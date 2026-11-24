@@ -79,9 +79,8 @@ const QUERY_SHAPES = `## \`#typbase.query\` kinds and shapes
   updatedAt, pinned, publishedAt, publishUri }>\`; filter \`by-category/<id>\`
   or \`by-id/<id>\` returns a single page object for by-id.
 - \`"categories"\` -> \`Array<{ id, name }>\`
-- \`"daily"\` -> page array for all daily notes; filter by \`<YYYY-MM>\`
-- \`"backlinks"\` -> pages with a link call to the current page (\`page-link\`,
-  \`embed\`, or a \`typbase://page/\` URL)
+- \`"daily"\` -> page array for all daily notes; filter \`by-month/<YYYY-MM>\`
+- \`"backlinks"\` -> pages with a link call to the page id used as the filter
 - \`"sections"\` -> all pages with their flattened blocks
 - \`"content"\` -> a page's text; filter by page id or daily date
 - \`"plugin-data"\` -> one plugin instance's stored collections`;

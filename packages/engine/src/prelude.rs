@@ -46,9 +46,9 @@ pub const TYPBASE_LIB: &str = r#"
 //   "pages"       -> all pages. Filter "by-id/<page-id>" or "by-category/<id>"
 //   "categories"  -> [{ id, name }]
 //   "daily"       -> all daily notes. Filter "by-month/<YYYY-MM>"
-//   "backlinks"   -> pages that link the page id in the filter
-//   "sections"    -> one page's sections with "sections/<page-id>", or every
-//                    page's without a filter
+//   "backlinks"   -> pages that link the page id used as the filter
+//   "sections"    -> one page's sections when the filter is a page id, or
+//                    every page's without a filter
 //   "content"     -> { id, title, path, text } for a page id or daily date
 //   "plugin-data" -> one plugin instance's stored collections
 // The app synthesizes the JSON from the workspace while it compiles.

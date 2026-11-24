@@ -50,6 +50,9 @@ pub struct TypstState {
     /// its compile cache on it, so installing system fonts mid-session makes
     /// open documents re-render.
     pub(crate) revision: u32,
+    /// Workspace values the host supplies for autocomplete. Replaced when the
+    /// page, category, daily, or plugin lists change, not on every query.
+    pub(crate) completion_data: crate::complete::CompletionData,
 }
 
 #[wasm_bindgen]
@@ -131,6 +134,18 @@ impl TypstState {
     ) {
         self.world.set_inputs(page, workspace, reason, target);
         self.revision += 1;
+    }
+
+    /// Replaces the workspace values autocomplete uses: page ids and titles,
+    /// categories, daily months and dates, and plugin instances. The host calls
+    /// this when one of those lists changes, not on every completion query.
+    #[wasm_bindgen(js_name = "setCompletionData")]
+    pub fn set_completion_data_js(&mut self, data: JsValue) -> Result<(), JsError> {
+        let data = serde_wasm_bindgen::from_value(data)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        self.set_completion_data(data);
+
+        Ok(())
     }
 
     /// The editor's line-height as a multiple of the text size. Frame crops
@@ -385,6 +400,12 @@ impl TypstState {
 }
 
 impl TypstState {
+    /// Replaces the values completion reads. The wasm binding
+    /// `setCompletionData` deserializes the host object into this.
+    pub(crate) fn set_completion_data(&mut self, data: crate::complete::CompletionData) {
+        self.completion_data = data;
+    }
+
     /// The raw-to-synth map for a note. Read-only. The debug lab and the
     /// benches use it to inspect segment counts.
     #[must_use]
@@ -612,9 +633,12 @@ impl TypstState {
 
             // The stdlib's string arguments are not expressions Typst's IDE can
             // resolve, so they get a dedicated pass first.
-            if let Some((raw_offset, completions)) =
-                crate::complete::query_completions(&raw_root, raw_cursor)
-            {
+            if let Some((raw_offset, completions)) = crate::complete::typbase_completions(
+                &raw_root,
+                raw_source.text(),
+                raw_cursor,
+                &self.completion_data,
+            ) {
                 return Some(Autocomplete {
                     offset: raw_lines.byte_to_utf16(raw_offset)?,
                     completions: completions.into(),
