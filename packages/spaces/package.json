@@ -50,7 +50,7 @@
     "@atproto/syntax": "0.0.0-spaces-alpha-20261117141222",
     "@typbase/skin": "workspace:*",
     "@typbase/typing": "workspace:*",
-    "airspace": "github:lemueldls/airspace#a38c919a2e938cb7d85c0a548ac34fe00d5b6754"
+    "airspace": "file:../../vendor/airspace-0.1.8.tgz"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
