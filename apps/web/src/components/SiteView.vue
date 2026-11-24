@@ -1278,25 +1278,16 @@ function copy(value: string): Promise<void> {
                     <p class="site-view__hint">{{ $t("site.sharedUrlHint") }}</p>
                   </div>
                 </div>
-                <div class="site-view__copy-row">
-                  <code>{{ sharedUrl || $t("site.notPublished") }}</code>
-                  <UiButton
-                    v-if="sharedUrl"
-                    variant="plain"
-                    icon="content_copy"
-                    @click="copy(sharedUrl)"
-                  >
-                    {{ $t("site.copy") }}
-                  </UiButton>
-                  <UiButton
-                    v-if="openSiteUrl"
-                    variant="plain"
-                    icon="open_in_new"
-                    @click="openExternal(openSiteUrl)"
-                  >
-                    {{ $t("site.openSite") }}
-                  </UiButton>
-                </div>
+                <UiCodeBlock v-if="sharedUrl" :text="sharedUrl" :label="$t('site.copy')">
+                  <template v-if="openSiteUrl" #actions>
+                    <UiIconButton
+                      icon="open_in_new"
+                      :label="$t('site.openSite')"
+                      @click="openExternal(openSiteUrl)"
+                    />
+                  </template>
+                </UiCodeBlock>
+                <p v-else class="site-view__hint">{{ $t("site.notPublished") }}</p>
               </section>
 
               <section class="site-domain-card">
@@ -1350,8 +1341,11 @@ function copy(value: string): Promise<void> {
                     placeholder="notes"
                     autocapitalize="none"
                     spellcheck="false"
-                  />
-                  <span class="site-domain__suffix">.wisp.place</span>
+                  >
+                    <template #trailing>
+                      <span class="site-domain__suffix">.wisp.place</span>
+                    </template>
+                  </UiTextField>
                   <UiButton
                     variant="primary"
                     :disabled="domainBusy || !atprotoStatus.signedIn || !publishingReady"
@@ -1422,23 +1416,15 @@ function copy(value: string): Promise<void> {
                     </div>
                   </div>
 
-                  <div class="site-view__copy-row">
-                    <code>{{ site.wisp.customDomain }}</code>
-                    <UiIconButton
-                      icon="content_copy"
-                      :label="$t('site.copy')"
-                      :size="20"
-                      @click="copy(site.wisp.customDomain)"
-                    />
-                    <UiButton
-                      v-if="deployedOnDomain"
-                      variant="plain"
-                      icon="open_in_new"
-                      @click="openExternal(`https://${site.wisp.customDomain}`)"
-                    >
-                      {{ $t("site.openSite") }}
-                    </UiButton>
-                  </div>
+                  <UiCodeBlock :text="site.wisp.customDomain" :label="$t('site.copy')">
+                    <template v-if="deployedOnDomain" #actions>
+                      <UiIconButton
+                        icon="open_in_new"
+                        :label="$t('site.openSite')"
+                        @click="openExternal(`https://${site.wisp.customDomain}`)"
+                      />
+                    </template>
+                  </UiCodeBlock>
 
                   <div
                     v-if="domainInfo && site.wisp.domainStatus !== 'verified'"
@@ -1627,23 +1613,19 @@ function copy(value: string): Promise<void> {
                 </p>
 
                 <div v-if="openSiteUrl" class="site-publish__live">
-                  <span class="site-publish__live-dot" aria-hidden="true" />
-                  <div class="site-publish__live-copy">
-                    <span class="site-publish__live-label">{{ $t("site.liveAt") }}</span>
-                    <code>{{ openSiteUrl }}</code>
-                  </div>
-                  <UiIconButton
-                    icon="content_copy"
-                    :label="$t('site.copy')"
-                    :size="20"
-                    @click="copy(openSiteUrl)"
-                  />
-                  <UiIconButton
-                    icon="open_in_new"
-                    :label="$t('site.openSite')"
-                    :size="20"
-                    @click="openExternal(openSiteUrl)"
-                  />
+                  <span class="site-publish__live-label">
+                    <span class="site-publish__live-dot" aria-hidden="true" />
+                    {{ $t("site.liveAt") }}
+                  </span>
+                  <UiCodeBlock :text="openSiteUrl" :label="$t('site.copy')">
+                    <template #actions>
+                      <UiIconButton
+                        icon="open_in_new"
+                        :label="$t('site.openSite')"
+                        @click="openExternal(openSiteUrl)"
+                      />
+                    </template>
+                  </UiCodeBlock>
                 </div>
 
                 <div v-if="progress" class="site-publish__progress">
@@ -1659,18 +1641,11 @@ function copy(value: string): Promise<void> {
 
                 <div class="site-publish__actions">
                   <div class="site-publish__secondary-actions">
-                    <UiButton
-                      variant="plain"
-                      icon="preview"
-                      size="large"
-                      :disabled="busy"
-                      @click="openPreview"
-                    >
+                    <UiButton variant="plain" icon="preview" :disabled="busy" @click="openPreview">
                       {{ $t("site.preview") }}
                     </UiButton>
                     <UiButton
                       variant="plain"
-                      size="large"
                       icon="download"
                       :disabled="busy"
                       @click="downloadSite"
@@ -1680,7 +1655,6 @@ function copy(value: string): Promise<void> {
                     <UiButton
                       v-if="site.wisp.lastDeploy && !publisherMismatch"
                       variant="danger"
-                      size="large"
                       icon="cloud_off"
                       :disabled="busy"
                       @click="confirmUnpublish = true"
@@ -1691,7 +1665,6 @@ function copy(value: string): Promise<void> {
                   <UiButton
                     class="site-publish__cta"
                     variant="primary"
-                    size="large"
                     icon="cloud_upload"
                     :icon-size="22"
                     :disabled="publishDisabled"
@@ -1705,15 +1678,11 @@ function copy(value: string): Promise<void> {
               <section class="site-publish-card">
                 <h2>{{ $t("site.standardTitle") }}</h2>
                 <p class="site-view__hint">{{ $t("site.standardHint") }}</p>
-                <p v-if="site.standard.publicationUri" class="site-view__copy-row">
-                  <code>{{ site.standard.publicationUri }}</code>
-                  <UiIconButton
-                    icon="content_copy"
-                    :label="$t('site.copy')"
-                    :size="20"
-                    @click="copy(site.standard.publicationUri)"
-                  />
-                </p>
+                <UiCodeBlock
+                  v-if="site.standard.publicationUri"
+                  :text="site.standard.publicationUri"
+                  :label="$t('site.copy')"
+                />
               </section>
             </div>
           </div>
@@ -1787,7 +1756,7 @@ function copy(value: string): Promise<void> {
 .site-view__content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
   max-width: var(--site-content-width);
   margin-inline: auto;
@@ -1854,7 +1823,7 @@ function copy(value: string): Promise<void> {
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -2408,7 +2377,7 @@ function copy(value: string): Promise<void> {
 .site-view__copy-row {
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
-  padding: var(--space-1-5) var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   overflow-wrap: anywhere;
 }
 
@@ -2460,7 +2429,7 @@ function copy(value: string): Promise<void> {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
   background: var(--color-surface-2);
@@ -2647,31 +2616,16 @@ function copy(value: string): Promise<void> {
 
 .site-publish__live {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-2);
-  border-radius: var(--radius-sm);
-}
-
-.site-publish__live-copy {
-  display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: 1px;
-  min-width: 0;
+  gap: var(--space-1);
 }
 
 .site-publish__live-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
-}
-
-.site-publish__live code {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  overflow-wrap: anywhere;
 }
 
 .site-publish__actions {
@@ -2696,7 +2650,7 @@ function copy(value: string): Promise<void> {
   /* min-height: var(--control-lg); */
   margin-left: auto;
   /* padding-inline: var(--space-6); */
-  font-weight: 600;
+  /* font-weight: 600; */
 }
 
 .site-publish__progress {
@@ -2748,6 +2702,10 @@ function copy(value: string): Promise<void> {
 }
 
 @container site-view (max-width: 52rem) {
+  .site-view__content {
+    gap: 0;
+  }
+
   /* .site-view__header-inner {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -2765,6 +2723,7 @@ function copy(value: string): Promise<void> {
   }
 
   .site-view__address {
+    align-items: start;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-2);
   }
@@ -2796,7 +2755,7 @@ function copy(value: string): Promise<void> {
     z-index: 3;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-0-5);
+    gap: var(--space-1);
     width: calc(100% + 2 * var(--space-2) + var(--safe-left) + var(--safe-right));
     margin-inline: calc(-1 * var(--space-2) - var(--safe-left))
       calc(-1 * var(--space-2) - var(--safe-right));
@@ -2875,6 +2834,10 @@ function copy(value: string): Promise<void> {
 
   .site-view__inline-form .ui-text-field {
     flex-basis: 100%;
+  }
+
+  .site-view__inline-form .button--primary {
+    flex: 1;
   }
 
   .site-selection-card {

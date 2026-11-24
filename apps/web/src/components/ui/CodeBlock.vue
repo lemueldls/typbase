@@ -30,6 +30,7 @@ const copyLabel = computed(() => (copied.value ? t("common.copied") : props.labe
       :disabled="!isSupported"
       @click="copy()"
     />
+    <slot name="actions" />
   </div>
 </template>
 
