@@ -96,6 +96,12 @@ const props = defineProps<{
   readOnly?: boolean;
   /** Harper's user dictionary. The native checker keeps its own. */
   spellcheckWords?: string[];
+  /**
+   * Opaque workspace ids that appear inside `typbase` calls. Harper treats
+   * them as spelling mistakes unless its lints on these exact spans are
+   * dropped.
+   */
+  spellcheckIgnoreIds?: string[];
   /** Lints silenced with "Ignore". */
   spellcheckIgnoredLints?: IgnoredSpellcheckLint[];
   /** Adds a word to the workspace dictionary (the lint tooltip action). */
@@ -399,6 +405,7 @@ function spellcheckOptions(): SpellcheckOptions {
   return {
     words: props.spellcheckWords,
     ignoredLints: props.spellcheckIgnoredLints,
+    ignoreIds: props.spellcheckIgnoreIds,
     onAddWord: props.onAddSpellcheckWord,
     onIgnoreLint: props.onIgnoreSpellcheckLint,
   };
@@ -411,6 +418,7 @@ const spellcheckSignature = computed(() =>
   JSON.stringify([
     props.spellcheck ?? "off",
     props.spellcheckWords ?? [],
+    props.spellcheckIgnoreIds ?? [],
     (props.spellcheckIgnoredLints ?? []).map((entry) => entry.hash),
   ]),
 );

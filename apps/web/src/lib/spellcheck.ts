@@ -10,7 +10,9 @@ import { EditorView } from "@codemirror/view";
 import {
   dictionaryWord,
   ignoredLintsJson,
+  isOpaqueIdLint,
   normalizeDictionaryWords,
+  SPELLING_LINT_KINDS,
 } from "~/lib/spellcheckSettings";
 
 export const spellcheckCompartment = new Compartment();
@@ -22,14 +24,16 @@ export const spellcheckCompartment = new Compartment();
 const SUGGESTION_REMOVE = 1;
 const SUGGESTION_INSERT_AFTER = 2;
 
-/** Kinds the user dictionary can fix. Everything else is "Ignore" territory. */
-const SPELLING_KINDS = new Set(["Spelling", "Typo"]);
-
 export interface SpellcheckOptions {
   /** Harper's user dictionary. Unused by the native checker. */
   words?: readonly string[];
   /** Silenced lints. Unused by the native checker. */
   ignoredLints?: readonly IgnoredSpellcheckLint[];
+  /**
+   * Opaque workspace ids that are source, not prose. Spelling lints on these
+   * are dropped after Harper runs, so the ids never enter the dictionary.
+   */
+  ignoreIds?: readonly string[];
   /** Adds one word to the workspace dictionary (the lint tooltip action). */
   onAddWord?: (word: string) => void;
   /** Silences one lint in the workspace (the lint tooltip action). */
@@ -108,7 +112,7 @@ function syncHarper(
 }
 
 function severityFor(kind: string): Diagnostic["severity"] {
-  return SPELLING_KINDS.has(kind) ? "info" : "warning";
+  return SPELLING_LINT_KINDS.has(kind) ? "info" : "warning";
 }
 
 function actionName(kind: number, replacement: string): string {
@@ -171,7 +175,7 @@ function toDiagnostic(
     };
   });
 
-  if (SPELLING_KINDS.has(kind)) {
+  if (SPELLING_LINT_KINDS.has(kind)) {
     const word = dictionaryWord(doc.sliceString(from, to));
     if (word && options.onAddWord) {
       actions.push({
@@ -201,6 +205,8 @@ function toDiagnostic(
 }
 
 function harperSource(options: SpellcheckOptions): Extension {
+  const ignoreIds = new Set(options.ignoreIds ?? []);
+
   return linter(
     async (view) => {
       const text = view.state.doc.toString();
@@ -209,7 +215,9 @@ function harperSource(options: SpellcheckOptions): Extension {
       await syncHarper(options.words ?? [], options.ignoredLints ?? []);
       const lints = await (await harperLinter()).lint(text, { language: "typst" });
 
-      return lints.map((lint) => toDiagnostic(view.state.doc, text, lint, options));
+      return lints
+        .filter((lint) => !isOpaqueIdLint(lint.lint_kind(), lint.get_problem_text(), ignoreIds))
+        .map((lint) => toDiagnostic(view.state.doc, text, lint, options));
     },
     { delay: 800 },
   );

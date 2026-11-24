@@ -533,6 +533,22 @@ const spellcheckIgnoredLints = useWorkspaceValue(
   [],
 );
 
+/**
+ * Opaque workspace ids are source values, not prose. Harper marks them as
+ * spelling mistakes inside `#typbase` calls unless its lints on these exact
+ * spans are dropped.
+ */
+const spellcheckIgnoreIds = useWorkspaceValue(
+  workspace,
+  ["pages", "categories", "instances"],
+  (value) => [
+    ...value.listPages().map((page) => page.id),
+    ...value.listCategories().map((category) => category.id),
+    ...value.listPluginInstances().map((instance) => instance.id),
+  ],
+  [],
+);
+
 /** The lint tooltip's "Add to dictionary" action writes through here. */
 function addSpellcheckWord(word: string): void {
   const next = addDictionaryWord(store.getSettings().spellcheckWords, word);
@@ -2077,6 +2093,7 @@ function onModeKeydown(event: KeyboardEvent) {
           :read-only="store?.readOnly || atprotoStatus.readOnly"
           :spellcheck="spellcheckMode"
           :spellcheck-words="spellcheckWords"
+          :spellcheck-ignore-ids="spellcheckIgnoreIds"
           :spellcheck-ignored-lints="spellcheckIgnoredLints"
           :editor="editorDisplay"
           :on-add-spellcheck-word="addSpellcheckWord"

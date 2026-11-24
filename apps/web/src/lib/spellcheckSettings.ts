@@ -6,6 +6,19 @@ import type { IgnoredSpellcheckLint } from "@typbase/typing";
  * without CodeMirror or the Harper worker.
  */
 
+/** Lint kinds a dictionary word can fix. Everything else is "Ignore" territory. */
+export const SPELLING_LINT_KINDS = new Set(["Spelling", "Typo"]);
+
+/**
+ * True when a lint points at an opaque workspace id (a page, category, or
+ * plugin instance id). These are source values, not prose, so Harper's
+ * spelling lint is dropped before it reaches the editor. Doing it here keeps
+ * the id out of the user dictionary.
+ */
+export function isOpaqueIdLint(kind: string, problem: string, ids: ReadonlySet<string>): boolean {
+  return SPELLING_LINT_KINDS.has(kind) && ids.has(problem);
+}
+
 /** Trims, drops empties, and removes case-insensitive duplicates. */
 export function normalizeDictionaryWords(raw: readonly unknown[] | null | undefined): string[] {
   const seen = new Set<string>();

@@ -5,6 +5,7 @@ import {
   addIgnoredLint,
   dictionaryWord,
   ignoredLintsJson,
+  isOpaqueIdLint,
   normalizeDictionaryWords,
 } from "../src/lib/spellcheckSettings";
 
@@ -78,6 +79,20 @@ describe("dictionaryWord", () => {
   it("rejects phrases and empties", () => {
     expect(dictionaryWord("two words")).toBeNull();
     expect(dictionaryWord("  ")).toBeNull();
+  });
+});
+
+describe("isOpaqueIdLint", () => {
+  const ids = new Set(["k3j9x2m4n5p6q7r8"]);
+
+  it("drops spelling and typo lints on a workspace id", () => {
+    expect(isOpaqueIdLint("Spelling", "k3j9x2m4n5p6q7r8", ids)).toBe(true);
+    expect(isOpaqueIdLint("Typo", "k3j9x2m4n5p6q7r8", ids)).toBe(true);
+  });
+
+  it("keeps ordinary typos and non-spelling lints", () => {
+    expect(isOpaqueIdLint("Spelling", "sentance", ids)).toBe(false);
+    expect(isOpaqueIdLint("Grammar", "k3j9x2m4n5p6q7r8", ids)).toBe(false);
   });
 });
 
