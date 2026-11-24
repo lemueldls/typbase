@@ -42,11 +42,11 @@
     "@moonrepo/cli": "^2.6.5",
     "git-cliff": "^2.14.2",
     "golar": "^0.1.11",
-    "oxfmt": "^0.78.0",
-    "oxlint": "^1.93.0",
-    "oxlint-tsgolint": "^7.0.2006",
-    "playwright": "^1.65.0",
-    "takumi-js": "^2.20.0"
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.95.0",
+    "playwright": "^1.65.1",
+    "takumi-js": "^2.20.0",
+    "tsrs": "7.1.0-beta.tsrs5"
   },
   "packageManager": "pnpm@12.6.0"
 }

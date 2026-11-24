@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "nitro": "3.0.261103-rc",
-    "ocache": "0.3.1",
+    "ocache": "0.3.2",
     "rou3": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   }
 }

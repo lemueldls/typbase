@@ -111,7 +111,7 @@ const locales: LocaleObject[] = [
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   srcDir: "src",
-  compatibilityDate: "2026-11-01",
+  compatibilityDate: "2026-11-23",
   devtools: { enabled: false },
   modules: ["@nuxtjs/i18n", "@vueuse/nuxt/module", "reka-ui/nuxt"],
   typescript: {
