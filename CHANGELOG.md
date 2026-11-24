@@ -1,5 +1,58 @@
 # Changelog
 
+## [0.5.0] - 2026-11-24
+
+### New
+
+- Support the 2026-10-29 alpha
+- Refreshed and shareable themes
+- Expansive search queries
+- Option complete account signup
+- Better theme thumb
+- Complete local search
+- Fallback language fonts
+- Add privacy page
+- Mono font for scripting
+- Agnostic codemirror theme
+- New default brand fonts
+- Support the 2026-11-17 alpha
+- Link account dialog to sync settings
+- Add credential-aware cross-account client
+- Share workspaces across accounts
+- Show websites in public profile
+
+### Fixed
+
+- Remote cursor display
+- Update WASM stack size
+- Sync all workspace assets
+- Synchronize settings on workspace open
+- Keep overlays inside replaced frames
+- Compress oversized sync records
+- Clear request files when a page unmounts
+- Show chrome in the empty pane
+- Consumable back nav
+- Active visual indicators
+- Permalink workspace ids
+- Consistent dialog confirms
+- Normalize dialog close
+- Set the bundle publisher
+- Custom font loading
+- Hide menu edge separators
+- Minimize svg render jump
+- Tooltip rendering
+- Theme `on` colors
+- Normalize chip/badge components
+- Dialog style order
+- Back nav from layer
+- Crdt batch delta editing
+- Site graph font
+
+### Improved
+
+- Share svg defs markup
+- Frame svg cache and hydration
+
 ## [0.4.8] - 2026-10-29
 
 ### New
