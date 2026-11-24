@@ -2857,6 +2857,37 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("keeps the graph toolbar readable on a phone", async () => {
+    const page = await createPage(undefined, {
+      hasTouch: true,
+      viewport: { width: 360, height: 800 },
+    });
+    await openApp(page);
+
+    await page.evaluate(() => window.__typbase.openGraph());
+    await page.waitForSelector(".graph__toolbar .ui-switch__label", { timeout: 60_000 });
+
+    const metrics = await page.evaluate(() => {
+      const field = document.querySelector<HTMLElement>(".graph__toolbar .ui-text-field");
+      const label = document.querySelector<HTMLElement>(".graph__toolbar .ui-switch__label");
+      if (!field || !label) return null;
+
+      const range = document.createRange();
+      range.selectNodeContents(label);
+
+      return {
+        fieldWidth: field.getBoundingClientRect().width,
+        labelLines: range.getClientRects().length,
+      };
+    });
+
+    // The search gets its own row, so it is no longer squeezed to ~100px.
+    expect(metrics?.fieldWidth ?? 0).toBeGreaterThan(200);
+    expect(metrics?.labelLines).toBe(1);
+
+    await page.close();
+  });
+
   it("closes the floating links rail with a swipe", async () => {
     const page = await createPage(undefined, {
       hasTouch: true,

@@ -359,6 +359,8 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
   background: var(--color-surface);
+  container-type: inline-size;
+  container-name: graph;
 }
 
 .graph__header {
@@ -458,11 +460,35 @@ onBeforeUnmount(() => {
 
 .graph__search {
   flex: 1 1 160px;
+  min-width: 0;
   max-width: 320px;
 }
 
+/* The local toggle and the filters button are controls, not flexible text.
+   Without this the toggle label squeezes into two lines before the search
+   field gives up its space. */
+.graph__toolbar .ui-switch,
+.graph__toolbar .ui-switch__label,
+.graph__toolbar .button {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* A narrow graph pane gets two rows: search across the top, controls under it.
+   The one-row layout left the search field around 100px on a phone. */
+@container graph (max-width: 34rem) {
+  .graph__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .graph__search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+
 /* Filters live in a popover: each select gets a visible label, and the
-   toolbar stays one line on narrow panes. */
+   toolbar keeps its controls readable on narrow panes. */
 .graph__filters {
   display: flex;
   flex-direction: column;
