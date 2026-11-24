@@ -77,6 +77,7 @@ pub mod world;
 mod tests;
 
 mod alloc;
+mod complete;
 mod utils;
 
 /// Records allocation failures so the app can tell OOM from a normal panic.

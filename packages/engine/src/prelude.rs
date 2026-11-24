@@ -52,7 +52,14 @@ pub const TYPBASE_LIB: &str = r#"
 //   "content"     -> { id, title, path, text } for a page id or daily date
 //   "plugin-data" -> one plugin instance's stored collections
 // The app synthesizes the JSON from the workspace while it compiles.
-#let query(kind, filter: none) = {
+#let query(
+  /// The workspace data to load. One of `config`, `pages`, `categories`,
+  /// `daily`, `backlinks`, `sections`, `content`, or `plugin-data`.
+  kind,
+  /// Optional filter, such as `by-id/<page-id>`, `by-category/<category-id>`,
+  /// or `by-month/<YYYY-MM>`.
+  filter: none,
+) = {
   let target = if filter == none {
     "/typbase/query/" + kind + ".json"
   } else {
@@ -65,7 +72,12 @@ pub const TYPBASE_LIB: &str = r#"
 // page and a `none` target render the word "none" instead of failing the
 // compile, so `#typbase.page-link(note.next)` works when there is no next
 // day. The app turns `typbase://page/<id>` clicks into page opens.
-#let page-link(page-id, body: none) = {
+#let page-link(
+  /// The target page id, or `none` for an empty link.
+  page-id,
+  /// Link text. Defaults to the target page's title.
+  body: none,
+) = {
   let id = if page-id == none { "none" } else { str(page-id) }
   let meta = json("/typbase/query/pages/by-id/" + id + ".json")
   if meta == none {
@@ -80,12 +92,20 @@ pub const TYPBASE_LIB: &str = r#"
 // Unlike `page-link`, the other page compiles as part of this one. It is
 // evaluated as its own module, so it can call `typbase` but not the host
 // page's `note`, `theme`, or `sys.inputs`.
-#let embed(id) = if id == none { [] } else { include("/typbase/src/" + str(id) + ".typ") }
+#let embed(
+  /// The page id to include, or `none` for nothing.
+  id,
+) = if id == none { [] } else { include("/typbase/src/" + str(id) + ".typ") }
 
 // A named block for app-side consumers: the kind and source range land in the
 // page's section list, which the AI context and plugins read. The body renders
 // where it sits.
-#let section(kind: none, body) = body
+#let section(
+  /// Section kind, used by app-side consumers.
+  kind: none,
+  /// The section body.
+  body,
+) = body
 "#;
 
 // The import and the request paths are root-absolute: pages compile from their

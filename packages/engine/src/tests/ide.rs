@@ -374,3 +374,142 @@ fn jump_maps_repaired_positions_to_raw() {
         other => panic!("jump did not map to a raw file position: {other:?}"),
     }
 }
+
+/// Runs a completion query with the cursor at the end of `marker`, which
+/// includes the text already typed at the completion site.
+fn query_result(
+    text: &str,
+    marker: &str,
+) -> Option<(usize, Vec<crate::bindings::TypstCompletion>)> {
+    let start = text.find(marker).expect("marker missing from source");
+    let cursor = utf16_offset(text, start + marker.len());
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "query_completion");
+    let _ = harness::compile(&mut state, &id, text);
+
+    state.autocomplete_at(&id, cursor, true).map(|result| {
+        let completions = result.completions.into_vec();
+        (result.offset, completions)
+    })
+}
+
+fn query_completion(text: &str, marker: &str) -> Option<(usize, Vec<(String, Option<String>)>)> {
+    query_result(text, marker).map(|(offset, completions)| {
+        (
+            offset,
+            completions
+                .iter()
+                .map(|completion| (completion.label.clone(), completion.apply.clone()))
+                .collect(),
+        )
+    })
+}
+
+fn labels(options: &[(String, Option<String>)]) -> Vec<&str> {
+    options.iter().map(|(label, _)| label.as_str()).collect()
+}
+
+#[test]
+fn query_kind_completions_fill_a_closed_string() {
+    let text = "Before.\n\n#typbase.query(\"pa\")";
+    let (offset, options) =
+        query_completion(text, "#typbase.query(\"pa").expect("completion missing");
+
+    let content = utf16_offset(text, text.find("\"pa").unwrap() + 1);
+    assert_eq!(offset, content, "replacement starts inside the quote");
+    assert_eq!(options.len(), 8, "every query kind is offered");
+    assert!(
+        options.contains(&(String::from("pages"), Some(String::from("pages")))),
+        "pages completes without doubling the existing closing quote: {options:?}",
+    );
+}
+
+#[test]
+fn query_kind_completions_close_an_unfinished_string() {
+    let text = "Before.\n\n#typbase.query(\"pa)";
+    let (offset, options) =
+        query_completion(text, "#typbase.query(\"pa").expect("completion missing");
+
+    let content = utf16_offset(text, text.find("\"pa").unwrap() + 1);
+    assert_eq!(offset, content);
+    assert!(
+        options.contains(&(String::from("pages"), Some(String::from("pages\"")))),
+        "the replacement supplies the missing quote: {options:?}",
+    );
+}
+
+#[test]
+fn query_kind_completions_at_an_empty_argument() {
+    let text = "Before.\n\n#typbase.query()";
+    let marker = "#typbase.query(";
+    let cursor = utf16_offset(text, text.find(marker).unwrap() + marker.len());
+    let (offset, options) = query_completion(text, marker).expect("completion missing");
+
+    assert_eq!(offset, cursor, "an empty slot replaces nothing");
+    assert!(
+        options.contains(&(String::from("pages"), Some(String::from("\"pages\"")))),
+        "an empty slot gets both quotes: {options:?}",
+    );
+}
+
+#[test]
+fn query_filter_completions_follow_the_kind() {
+    let pages = "Before.\n\n#typbase.query(\"pages\", filter: \"by\")";
+    let (_, pages) =
+        query_completion(pages, "#typbase.query(\"pages\", filter: \"by").expect("completion");
+    assert_eq!(labels(&pages), ["by-id/", "by-category/"]);
+
+    let daily = "Before.\n\n#typbase.query(\"daily\", filter: \"by\")";
+    let (_, daily) =
+        query_completion(daily, "#typbase.query(\"daily\", filter: \"by").expect("completion");
+    assert_eq!(labels(&daily), ["by-month/"]);
+
+    let config = "Before.\n\n#typbase.query(\"config\", filter: \"by\")";
+    let (_, config) = query_completion(config, "#typbase.query(\"config\", filter: \"by")
+        .expect("completion call");
+    assert!(config.is_empty(), "config takes no filter: {config:?}");
+}
+
+#[test]
+fn query_filter_completions_at_an_empty_value() {
+    let text = "Before.\n\n#typbase.query(\"pages\", filter: )";
+    let (_, options) =
+        query_completion(text, "#typbase.query(\"pages\", filter: ").expect("completion missing");
+
+    assert!(
+        options.contains(&(String::from("by-id/"), Some(String::from("\"by-id/\"")))),
+        "an empty filter slot gets the quotes: {options:?}",
+    );
+}
+
+#[test]
+fn query_completion_leaves_other_strings_alone() {
+    let text = "Before.\n\n#text(\"pa\")";
+    let (_, options) = query_completion(text, "#text(\"pa").expect("completion call");
+    assert!(
+        !labels(&options).contains(&"pages"),
+        "a plain text call must not get query kinds: {options:?}",
+    );
+}
+
+#[test]
+fn query_parameter_completion_still_works() {
+    let text = "Before.\n\n#typbase.query(\"pages\", )";
+    let (_, completions) =
+        query_result(text, "#typbase.query(\"pages\", ").expect("completion missing");
+
+    let filter = completions
+        .iter()
+        .find(|completion| completion.label == "filter")
+        .expect("the second slot still offers the filter parameter");
+
+    assert!(
+        filter
+            .detail
+            .as_deref()
+            .is_some_and(|detail| detail.contains("Optional filter")),
+        "the parameter detail comes from the stdlib doc comment: {:?}",
+        filter.detail,
+    );
+}

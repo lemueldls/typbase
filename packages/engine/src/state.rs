@@ -588,19 +588,40 @@ impl TypstState {
         explicit: bool,
     ) -> Option<Autocomplete> {
         let synth_id = self.source_context_map.get(id)?.synth_id;
-        let raw_source = self.source_context_map.get(id)?.raw_source(&self.world)?;
-        let raw_cursor = Self::raw_cursor_byte(raw_source, raw_cursor_utf16);
+        let raw_cursor = {
+            let raw_source = self.source_context_map.get(id)?.raw_source(&self.world)?;
+            Self::raw_cursor_byte(raw_source, raw_cursor_utf16)
+        };
 
         let (main_id, parse_source) = self.ide_query_sources(id, raw_cursor)?;
 
         self.world.main_id = Some(main_id);
 
         let result = (|| {
-            let context = self.source_context_map.get(id)?;
-
-            let raw_source = context.raw_source(&self.world)?;
+            let raw_source = self
+                .source_context_map
+                .get(id)?
+                .raw_source(&self.world)?
+                .clone();
             let raw_lines = raw_source.lines();
-            let raw_cursor = Self::raw_cursor_byte(raw_source, raw_cursor_utf16);
+            let raw_cursor = Self::raw_cursor_byte(&raw_source, raw_cursor_utf16);
+            let raw_root = self
+                .source_context_map
+                .get_mut(id)?
+                .parse_cached(raw_source.text());
+
+            // The stdlib's string arguments are not expressions Typst's IDE can
+            // resolve, so they get a dedicated pass first.
+            if let Some((raw_offset, completions)) =
+                crate::complete::query_completions(&raw_root, raw_cursor)
+            {
+                return Some(Autocomplete {
+                    offset: raw_lines.byte_to_utf16(raw_offset)?,
+                    completions: completions.into(),
+                });
+            }
+
+            let context = self.source_context_map.get(id)?;
             // `Before` keeps the cursor at the end of the copied text. `After`
             // jumps past a generated block separator, which lands the cursor in
             // markup and kills completion at the end of a block.
