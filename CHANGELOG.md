@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.2] - 2026-11-24
+
+### New
+
+- Navigation gestures
+
+### Fixed
+
+- Bundle icon font
+- Align custom font
+- Graph toolbar mobile wrapping
+- Nix build cargo hash
+
 ## [0.5.1] - 2026-11-24
 
 ### New

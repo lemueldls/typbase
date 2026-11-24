@@ -1,6 +1,6 @@
 {
   "name": "@typbase/skin",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Typbase skin schema, validation, color math, and theme-file helpers.",
   "license": "Apache-2.0",
   "repository": {
