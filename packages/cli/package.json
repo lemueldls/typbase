@@ -32,7 +32,7 @@
     "@typbase/spaces": "workspace:*",
     "@typbase/typing": "workspace:*",
     "@types/node": "^26.6.6",
-    "airspace": "github:lemueldls/airspace#a38c919a2e938cb7d85c0a548ac34fe00d5b6754",
+    "airspace": "file:../../vendor/airspace-0.1.8.tgz",
     "tsdown": "0.23.7",
     "typescript": "^7.0.2"
   },

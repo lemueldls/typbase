@@ -341,8 +341,8 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0(vue-router@5.4.0(@vue/compiler-sfc@3.5.45)(rolldown@1.3.1)(rollup@4.68.2)(vite@8.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3)))(vue@3.5.45(typescript@6.0.3))
       airspace:
-        specifier: github:lemueldls/airspace#a38c919a2e938cb7d85c0a548ac34fe00d5b6754
-        version: https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754(@atproto/oauth-client-browser@0.5.14)
+        specifier: file:../../vendor/airspace-0.1.8.tgz
+        version: file:vendor/airspace-0.1.8.tgz(@atproto/oauth-client-browser@0.5.14)
       d3-force:
         specifier: ^3.0.1
         version: 3.0.1
@@ -429,8 +429,8 @@ importers:
         specifier: ^26.6.6
         version: 26.6.6
       airspace:
-        specifier: github:lemueldls/airspace#a38c919a2e938cb7d85c0a548ac34fe00d5b6754
-        version: https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754(@atproto/oauth-client-browser@0.5.14)
+        specifier: file:../../vendor/airspace-0.1.8.tgz
+        version: file:vendor/airspace-0.1.8.tgz(@atproto/oauth-client-browser@0.5.14)
       tsdown:
         specifier: 0.23.7
         version: 0.23.7(@vue/language-core@3.3.13)(typescript@7.0.2)
@@ -524,8 +524,8 @@ importers:
         specifier: workspace:*
         version: link:../typing
       airspace:
-        specifier: github:lemueldls/airspace#a38c919a2e938cb7d85c0a548ac34fe00d5b6754
-        version: https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754(@atproto/oauth-client-browser@0.5.14)
+        specifier: file:../../vendor/airspace-0.1.8.tgz
+        version: file:vendor/airspace-0.1.8.tgz(@atproto/oauth-client-browser@0.5.14)
     devDependencies:
       '@types/node':
         specifier: ^26.6.6
@@ -4127,8 +4127,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754:
-    resolution: {gitHosted: true, integrity: sha512-yvXfr8dcwkcgrCyGHuiHKNtgNjuM/pUXvKnCnts2tvyFpCkqNHHkrJCOqgFbblKT1JAG9DpR4Ljejb/1NrQcpA==, tarball: https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754}
+  airspace@file:vendor/airspace-0.1.8.tgz:
+    resolution: {integrity: sha512-SyC0YXrgOUz0+u4bRnRxxg2ELx2wVPf8DH/+rbwAgphjmvzcA/3vUgaJ5/mBtudcjZirmuBTNaaW3Kzak3uIWw==, tarball: file:vendor/airspace-0.1.8.tgz}
     version: 0.1.8
     engines: {node: '>=22.0.0'}
     hasBin: true
@@ -10703,7 +10703,7 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  airspace@https://codeload.github.com/lemueldls/airspace/tar.gz/a38c919a2e938cb7d85c0a548ac34fe00d5b6754(@atproto/oauth-client-browser@0.5.14):
+  airspace@file:vendor/airspace-0.1.8.tgz(@atproto/oauth-client-browser@0.5.14):
     dependencies:
       '@atproto/lex-client': 0.0.0-spaces-alpha-20261117141222
       '@atproto/lex-data': 0.0.0-spaces-alpha-20261117141222
