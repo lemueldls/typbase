@@ -108,6 +108,13 @@ function mountGraph() {
   const muted = color("--site-muted", "#6b7280");
   const border = color("--site-border", "#d1d5db");
   const surface = color("--site-surface", "#f3f4f6");
+  // Canvas text does not inherit CSS. Site body reads --site-text-font, the
+  // workspace text font, so labels match the page text around them.
+  const fontFamily = getComputedStyle(body).fontFamily || "system-ui, sans-serif";
+
+  function font(size: number, weight = 400): string {
+    return `${weight} ${size}px ${fontFamily}`;
+  }
 
   function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
@@ -166,7 +173,7 @@ function mountGraph() {
     context.fillRect(0, 0, previewWidth, previewHeight);
     if (!nodes.length) {
       context.fillStyle = muted;
-      context.font = "12px system-ui, sans-serif";
+      context.font = font(12);
       context.textAlign = "center";
       context.textBaseline = "middle";
       context.fillText(
@@ -218,7 +225,7 @@ function mountGraph() {
       context.stroke();
     }
 
-    context.font = "9px system-ui, sans-serif";
+    context.font = font(9);
     context.textAlign = "center";
     context.textBaseline = "top";
     for (const node of labels) {
@@ -274,14 +281,14 @@ function mountGraph() {
     ctx.clearRect(0, 0, width, height);
     if (loading) {
       ctx.fillStyle = muted;
-      ctx.font = "14px system-ui, sans-serif";
+      ctx.font = font(14);
       ctx.textAlign = "center";
       ctx.fillText("Loading graph...", width / 2, height / 2);
       return;
     }
     if (!nodes.length) {
       ctx.fillStyle = muted;
-      ctx.font = "14px system-ui, sans-serif";
+      ctx.font = font(14);
       ctx.textAlign = "center";
       ctx.fillText("No public page links yet.", width / 2, height / 2);
       return;
@@ -312,7 +319,7 @@ function mountGraph() {
       ctx.stroke();
       if (showLabels) {
         ctx.fillStyle = active ? text : muted;
-        ctx.font = (active ? "600 " : "400 ") + "12px system-ui, sans-serif";
+        ctx.font = font(12, active ? 600 : 400);
         ctx.textAlign = "left";
         const title = node.title.length > 34 ? `${node.title.slice(0, 31)}...` : node.title;
         ctx.fillText(title, p.x + radius + 5, p.y + 4);
@@ -561,6 +568,16 @@ function mountGraph() {
     drag = null;
     setCursor("grab");
   });
+
+  // Labels are painted with the site font, which can swap in after the
+  // simulation settled. Repaint once the faces land so labels do not keep the
+  // fallback family.
+  function redrawForFonts(): void {
+    draw();
+    drawPreview();
+  }
+  void document.fonts.ready.then(redrawForFonts);
+  document.fonts.addEventListener("loadingdone", redrawForFonts);
 }
 
 mountGraph();
