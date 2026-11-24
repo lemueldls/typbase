@@ -478,11 +478,6 @@ function openProject(): void {
   openExternal(PROJECT_URL);
 }
 
-function openProfile(did: string): void {
-  open.value = false;
-  navigateFromLayer(`/u/${did}`);
-}
-
 /** The shortcut list lives outside Settings. Close this and show it. */
 function openShortcuts(): void {
   open.value = false;
@@ -1943,11 +1938,7 @@ async function renameWorkspace(event: Event) {
             class="settings__tabpanel"
             data-settings-tab="sync"
           >
-            <SettingsSection :title="$t('settings.tabSync')">
-              <div class="settings__panel-body">
-                <SyncPanel @open-profile="openProfile" />
-              </div>
-            </SettingsSection>
+            <SyncPanel />
           </section>
 
           <section

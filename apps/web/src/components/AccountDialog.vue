@@ -5,6 +5,8 @@ import type { ActorSuggestion } from "~/lib/actor";
 import type { AtprotoAccount } from "~/lib/atproto";
 
 import AccountDataLabel from "~/components/account/AccountDataLabel.vue";
+import ActorTypeahead from "~/components/account/ActorTypeahead.vue";
+import SyncStatus from "~/components/account/SyncStatus.vue";
 import { pushToast } from "~/composables/toasts";
 import { normalizeAccountHandle, shortDid } from "~/lib/accountHandle";
 import {
@@ -14,7 +16,6 @@ import {
   defaultAccountHost,
 } from "~/lib/accountHosts";
 import { ACCOUNT_SCOPE_GROUPS } from "~/lib/accountScopes";
-import { searchPublicActors } from "~/lib/actor";
 import { openExternal } from "~/lib/openExternal";
 
 const { t, locale } = useI18n();
@@ -26,9 +27,6 @@ const identifier = ref("");
 const busy = ref(false);
 const error = ref("");
 const unknownHandle = ref(false);
-const suggestions = ref<ActorSuggestion[]>([]);
-const suggestionsOpen = ref(false);
-let searchSequence = 0;
 
 const selectedHost = ref<AccountHost | null>(null);
 const hostsOpen = ref(false);
@@ -72,6 +70,17 @@ const activeHandle = computed(
 const activeAvatar = computed(
   () => atprotoStatus.value.profile?.avatar ?? activeAccount.value?.avatar ?? null,
 );
+const sharedRole = computed(() => {
+  const role = atprotoStatus.value.spaceRole;
+
+  return role === "editor" || role === "viewer" ? role : null;
+});
+const sharedRoleLabel = computed(() => {
+  if (sharedRole.value === "editor") return t("settings.syncEditor");
+  if (sharedRole.value === "viewer") return t("settings.syncViewer");
+
+  return "";
+});
 
 /** Accounts without a session belong on the sign-in view. */
 const effectiveView = computed<AccountView>(() =>
@@ -106,22 +115,6 @@ const { start: resetBusy } = useTimeoutFn(
   { immediate: false },
 );
 
-const runSearch = useDebounceFn(async (value: string) => {
-  const sequence = ++searchSequence;
-  const results = await searchPublicActors(value);
-  if (sequence !== searchSequence) return;
-  suggestions.value = results;
-  suggestionsOpen.value = results.length > 0;
-}, 180);
-
-watch(identifier, (value) => {
-  suggestions.value = [];
-  suggestionsOpen.value = false;
-  searchSequence++;
-  if (value.trim().length < 2 || value.trim().startsWith("did:")) return;
-  void runSearch(value);
-});
-
 watch(
   () => atprotoStatus.value.did,
   (did) => {
@@ -138,12 +131,9 @@ watch(open, (isOpen) => {
 });
 
 function resetSignIn(): void {
-  searchSequence++;
   identifier.value = "";
   error.value = "";
   unknownHandle.value = false;
-  suggestions.value = [];
-  suggestionsOpen.value = false;
   busy.value = false;
   accountError.value = "";
 }
@@ -186,8 +176,6 @@ function startSignIn(): void {
   identifier.value = handle;
   error.value = "";
   unknownHandle.value = false;
-  searchSequence++;
-  suggestionsOpen.value = false;
   view.value = "permissions";
 }
 
@@ -344,72 +332,22 @@ function ago(timestamp: number): string {
       </p>
 
       <form class="account-dialog__form" @submit.prevent="startSignIn">
-        <ComboboxRoot
-          v-model:open="suggestionsOpen"
-          class="account-dialog__field"
-          ignore-filter
-          :reset-search-term-on-blur="false"
-          :reset-search-term-on-select="false"
-          :disabled="busy || !atprotoReady"
-        >
+        <div class="account-dialog__field">
           <label class="account-dialog__field-label" for="account-handle">
             {{ $t("account.handle") }}
           </label>
-          <ComboboxAnchor as-child>
-            <span class="account-dialog__handle-field">
-              <ComboboxInput
-                id="account-handle"
-                v-model="identifier"
-                class="account-dialog__handle-field-input"
-                :placeholder="$t('account.handlePlaceholder')"
-                autocomplete="username"
-                autocapitalize="none"
-                spellcheck="false"
-                :disabled="busy || !atprotoReady"
-                :aria-label="$t('account.handle')"
-              />
-            </span>
-          </ComboboxAnchor>
-          <ComboboxPortal>
-            <ComboboxContent
-              class="account-dialog__suggestions"
-              position="popper"
-              align="start"
-              :side-offset="4"
-              :body-lock="false"
-              hide-when-empty
-            >
-              <ComboboxViewport class="account-dialog__suggestion-list">
-                <ComboboxItem
-                  v-for="suggestion in suggestions"
-                  :key="suggestion.did"
-                  :value="suggestion.did"
-                  class="account-dialog__suggestion"
-                  @select.prevent="pickSuggestion(suggestion)"
-                >
-                  <img
-                    v-if="suggestion.avatar"
-                    class="account-dialog__suggestion-avatar"
-                    :src="suggestion.avatar"
-                    alt=""
-                  />
-                  <MsIcon
-                    v-else
-                    class="account-dialog__suggestion-avatar account-dialog__suggestion-avatar--icon"
-                    name="account_circle"
-                    :size="28"
-                  />
-                  <span class="account-dialog__suggestion-copy">
-                    <span class="account-dialog__suggestion-name">
-                      {{ suggestion.displayName || suggestion.handle }}
-                    </span>
-                    <span class="account-dialog__suggestion-handle">@{{ suggestion.handle }}</span>
-                  </span>
-                </ComboboxItem>
-              </ComboboxViewport>
-            </ComboboxContent>
-          </ComboboxPortal>
-        </ComboboxRoot>
+          <ActorTypeahead
+            id="account-handle"
+            v-model="identifier"
+            :label="$t('account.handle')"
+            :placeholder="$t('account.handlePlaceholder')"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            :disabled="busy || !atprotoReady"
+            @select="pickSuggestion"
+          />
+        </div>
 
         <UiButton
           type="submit"
@@ -613,12 +551,29 @@ function ago(timestamp: number): string {
         <UiButton variant="plain" icon="open_in_new" @click="openProfile">
           {{ $t("account.viewProfile") }}
         </UiButton>
-        <UiButton variant="plain" icon="sync" @click="openSyncSettings">
-          {{ $t("account.syncSettings") }}
-        </UiButton>
         <!-- <UiButton variant="plain" @click="openData">
           {{ $t("account.whatWrites") }}
         </UiButton> -->
+      </div>
+
+      <div class="account-dialog__section">
+        <div class="account-dialog__section-head">
+          <h3 class="account-dialog__section-title">{{ $t("settings.tabSync") }}</h3>
+          <UiButton variant="plain" icon="settings" @click="openSyncSettings">
+            {{ $t("account.syncSettings") }}
+          </UiButton>
+        </div>
+
+        <SyncStatus plain />
+
+        <div v-if="sharedRole" class="account-dialog__sync-tags">
+          <UiBadge tone="accent">{{ sharedRoleLabel }}</UiBadge>
+        </div>
+
+        <p v-if="atprotoStatus.readOnly" class="account-dialog__warning">
+          <MsIcon name="lock" :size="18" />
+          <span>{{ $t("settings.syncReadOnly") }}</span>
+        </p>
       </div>
 
       <div class="account-dialog__section">
@@ -787,115 +742,6 @@ function ago(timestamp: number): string {
 .account-dialog__field-label {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-}
-
-/* The handle field is a combobox input, not a UiTextField, so the field chrome
-   lives here. It matches the app's default text field. */
-.account-dialog__handle-field {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: var(--control-md);
-  padding: 0 var(--space-3);
-  font-size: var(--text-md);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.account-dialog__handle-field:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
-}
-
-.account-dialog__handle-field:has(> .account-dialog__handle-field-input:disabled) {
-  opacity: 0.55;
-}
-
-.account-dialog__handle-field-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-  background: transparent;
-  border: none;
-  outline: none;
-}
-
-.account-dialog__handle-field-input::placeholder {
-  color: var(--color-text-secondary);
-}
-
-.account-dialog__suggestions {
-  z-index: var(--z-menu);
-  width: var(--reka-combobox-trigger-width);
-  padding: var(--space-1);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-2);
-  animation: ui-overlay-fade-in var(--motion-fast);
-}
-
-.account-dialog__suggestions[data-state="closed"] {
-  animation: ui-overlay-fade-out var(--motion-exit);
-}
-
-.account-dialog__suggestion-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-  max-height: 14rem;
-  overflow-y: auto;
-}
-
-.account-dialog__suggestion {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-2);
-  text-align: left;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  user-select: none;
-}
-
-.account-dialog__suggestion:hover,
-.account-dialog__suggestion[data-highlighted] {
-  background: var(--color-accent-soft);
-}
-
-.account-dialog__suggestion-avatar {
-  width: 28px;
-  height: 28px;
-  flex: none;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-.account-dialog__suggestion-avatar--icon {
-  color: var(--color-text-tertiary);
-}
-
-.account-dialog__suggestion-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.account-dialog__suggestion-name {
-  font-size: var(--text-sm);
-  color: var(--color-text);
-}
-
-.account-dialog__suggestion-handle {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  overflow-wrap: anywhere;
 }
 
 .account-dialog__error {
@@ -1173,6 +1019,30 @@ function ago(timestamp: number): string {
   gap: var(--space-2);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
+}
+
+.account-dialog__sync-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.account-dialog__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+
+.account-dialog__warning .ms-icon {
+  flex: none;
+  margin-top: 0.1rem;
 }
 
 .account-dialog__inline-confirm {

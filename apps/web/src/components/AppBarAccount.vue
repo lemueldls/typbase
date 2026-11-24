@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import SyncStatus from "~/components/account/SyncStatus.vue";
+
 const { atprotoStatus, atprotoReady } = useWorkspace();
 const accountDialog = useAccountDialog();
+const settingsDialog = useSettingsDialog();
 
 const { t } = useI18n();
 const open = ref(false);
@@ -24,15 +27,12 @@ const accountName = computed(
     "",
 );
 const handle = computed(() => profile.value?.handle ?? activeAccount.value?.handle ?? null);
+const roleLabel = computed(() => {
+  const role = atprotoStatus.value.spaceRole;
+  if (role === "editor") return t("settings.syncEditor");
+  if (role === "viewer") return t("settings.syncViewer");
 
-const statusLine = computed(() => {
-  if (atprotoStatus.value.error) return atprotoStatus.value.error;
-  if (!atprotoStatus.value.syncing) return t("settings.syncOff");
-  if (atprotoStatus.value.pendingUpdates > 0) {
-    return t("settings.syncPendingCount", { count: atprotoStatus.value.pendingUpdates });
-  }
-
-  return t("settings.syncInSync");
+  return null;
 });
 
 function manageAccount(): void {
@@ -46,6 +46,11 @@ function openProfile(): void {
 
   open.value = false;
   navigateFromLayer(`/u/${did}`);
+}
+
+function openSyncSettings(): void {
+  open.value = false;
+  settingsDialog.show("sync");
 }
 
 const icon = computed<"account_circle" | "cloud_done" | "sync" | "sync_disabled">(() => {
@@ -115,7 +120,15 @@ const label = computed(() => {
         </div>
       </div>
 
-      <p class="app-bar-account__status">{{ statusLine }}</p>
+      <SyncStatus plain />
+
+      <div v-if="roleLabel || atprotoStatus.readOnly" class="app-bar-account__tags">
+        <UiBadge v-if="roleLabel" tone="accent">{{ roleLabel }}</UiBadge>
+        <UiBadge v-if="atprotoStatus.readOnly" tone="warning">
+          <MsIcon name="lock" :size="12" />
+          {{ $t("settings.syncReadOnlyBadge") }}
+        </UiBadge>
+      </div>
 
       <UiButton variant="primary" class="app-bar-account__wide" @click="manageAccount">
         {{ $t("account.manage") }}
@@ -124,6 +137,9 @@ const label = computed(() => {
       <div class="app-bar-account__links">
         <button type="button" class="app-bar-account__link" @click="openProfile">
           {{ $t("account.viewProfile") }}
+        </button>
+        <button type="button" class="app-bar-account__link" @click="openSyncSettings">
+          {{ $t("settings.tabSync") }}
         </button>
       </div>
     </div>
@@ -209,12 +225,10 @@ const label = computed(() => {
   overflow-wrap: anywhere;
 }
 
-.app-bar-account__status {
-  margin: 0;
-  font-size: var(--text-sm);
-  line-height: var(--leading-normal);
-  color: var(--color-text-secondary);
-  overflow-wrap: anywhere;
+.app-bar-account__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
 .app-bar-account__wide {

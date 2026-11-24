@@ -66,6 +66,17 @@ export async function searchPublicActors(query: string): Promise<ActorSuggestion
   }
 }
 
+/** Resolve a handle or DID to a DID. Returns null when the handle does not resolve. */
+export async function resolveActorDid(identity: string): Promise<string | null> {
+  const value = identity.trim();
+  if (!value) return null;
+  if (value.startsWith("did:")) return value;
+
+  const profile = await fetchPublicProfile(value);
+
+  return profile?.did ?? null;
+}
+
 /**
  * Read an account's public profile. The AppView is optional: an account on a
  * PDS that is not indexed there still has a handle, and callers fall back to
