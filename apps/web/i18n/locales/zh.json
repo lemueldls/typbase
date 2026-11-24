@@ -666,9 +666,11 @@
     "updated": "更新于 {date}",
     "viewSource": "查看源码",
     "publishedCount": "{count} 篇已发布笔记 | {count} 篇已发布笔记",
-    "description": "{name} 在 Typbase 上发布的笔记。",
+    "description": "{name} 在 Typbase 上发布的笔记和网站。",
     "openTypbase": "打开 Typbase",
-    "viewBluesky": "在 Bluesky 查看"
+    "viewBluesky": "在 Bluesky 查看",
+    "websites": "网站",
+    "websiteCount": "{count} 个网站 | {count} 个网站"
   },
   "formatting": {
     "title": "格式",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { PostValue } from "@typbase/spaces";
+import type { PostValue, PublicSite } from "@typbase/spaces";
 
-import { createPublicPostsClient } from "@typbase/spaces";
+import { createPublicPostsClient, listPublicSites } from "@typbase/spaces";
 
 import type { PublicProfile } from "~/lib/actor";
 
@@ -28,6 +28,7 @@ const posts = ref<
     html: string;
   }>
 >([]);
+const sites = ref<PublicSite[]>([]);
 
 watchImmediate(routeDid, async (input) => {
   if (!input) {
@@ -52,17 +53,22 @@ watchImmediate(routeDid, async (input) => {
       banner: rich?.banner ?? null,
     };
 
-    const records = await Promise.all(
-      (await client.post.list()).map(async (record) => {
-        const url = await client.blobs.url(record.value.html);
-        if (!url) return null;
+    const [siteList, records] = await Promise.all([
+      listPublicSites(identity).catch(() => []),
+      Promise.all(
+        (await client.post.list()).map(async (record) => {
+          const url = await client.blobs.url(record.value.html);
+          if (!url) return null;
 
-        const response = await fetch(url);
-        if (!response.ok) return null;
+          const response = await fetch(url);
+          if (!response.ok) return null;
 
-        return { uri: record.uri, value: record.value, html: await response.text() };
-      }),
-    );
+          return { uri: record.uri, value: record.value, html: await response.text() };
+        }),
+      ),
+    ]);
+
+    sites.value = siteList;
 
     // Post keys are page ids, not TIDs, so order by the record's timestamps.
     posts.value = records
@@ -156,6 +162,9 @@ definePageMeta({ ssr: false });
             >
               {{ $t("profile.viewBluesky") }}
             </a> -->
+            <span v-if="sites.length" class="profile__count">
+              {{ $t("profile.websiteCount", { count: sites.length }, sites.length) }}
+            </span>
             <span v-if="posts.length" class="profile__count">
               {{ $t("profile.publishedCount", { count: posts.length }, posts.length) }}
             </span>
@@ -166,44 +175,73 @@ definePageMeta({ ssr: false });
 
     <p v-if="loading" class="profile__status">Loading...</p>
     <p v-else-if="error" class="profile__error">{{ error }}</p>
-    <p v-else-if="posts.length === 0" class="profile__status">
-      {{ $t("profile.nothing") }}
-    </p>
 
-    <section v-else class="profile__posts">
-      <article v-for="post in posts" :key="post.uri" class="profile__post">
-        <div class="profile__post-head">
-          <h2>{{ post.value.title }}</h2>
-          <div class="profile__meta">
-            <span v-if="post.value.updatedAt">{{
-              $t("profile.updated", { date: formatDate(post.value.updatedAt) })
-            }}</span>
+    <template v-else>
+      <section v-if="sites.length" class="profile__sites">
+        <h2 class="profile__section-title">{{ $t("profile.websites") }}</h2>
+        <ul class="profile__site-list">
+          <li v-for="site in sites" :key="site.uri" class="profile__site">
             <a
-              v-if="post.value.sourceUri"
-              class="profile__link"
-              :href="String(post.value.sourceUri)"
-              rel="noopener"
+              class="profile__site-link"
+              :href="site.url"
+              rel="noopener noreferrer"
+              @click.prevent="openExternal(site.url)"
             >
-              {{ $t("profile.viewSource") }}
+              <span class="profile__site-icon" aria-hidden="true">
+                <MsIcon name="public" :size="20" />
+              </span>
+              <span class="profile__site-copy">
+                <span class="profile__site-name">{{ site.name }}</span>
+                <span class="profile__site-url">{{ site.url }}</span>
+                <span v-if="site.description" class="profile__site-description">
+                  {{ site.description }}
+                </span>
+              </span>
+              <MsIcon class="profile__site-open" name="open_in_new" :size="20" />
             </a>
+          </li>
+        </ul>
+      </section>
+
+      <p v-if="!sites.length && posts.length === 0" class="profile__status">
+        {{ $t("profile.nothing") }}
+      </p>
+
+      <section v-if="posts.length" class="profile__posts">
+        <article v-for="post in posts" :key="post.uri" class="profile__post">
+          <div class="profile__post-head">
+            <h2>{{ post.value.title }}</h2>
+            <div class="profile__meta">
+              <span v-if="post.value.updatedAt">{{
+                $t("profile.updated", { date: formatDate(post.value.updatedAt) })
+              }}</span>
+              <a
+                v-if="post.value.sourceUri"
+                class="profile__link"
+                :href="String(post.value.sourceUri)"
+                rel="noopener"
+              >
+                {{ $t("profile.viewSource") }}
+              </a>
+            </div>
           </div>
-        </div>
-        <div v-if="post.value.summary" class="profile__summary">
-          {{ post.value.summary }}
-        </div>
-        <div class="profile__tags">
-          <span v-for="tag in tagList(post.value.tags)" :key="tag" class="profile__tag">
-            #{{ tag }}
-          </span>
-        </div>
-        <iframe
-          class="profile__frame"
-          :srcdoc="post.html"
-          sandbox="allow-same-origin allow-scripts"
-          loading="lazy"
-        />
-      </article>
-    </section>
+          <div v-if="post.value.summary" class="profile__summary">
+            {{ post.value.summary }}
+          </div>
+          <div class="profile__tags">
+            <span v-for="tag in tagList(post.value.tags)" :key="tag" class="profile__tag">
+              #{{ tag }}
+            </span>
+          </div>
+          <iframe
+            class="profile__frame"
+            :srcdoc="post.html"
+            sandbox="allow-same-origin allow-scripts"
+            loading="lazy"
+          />
+        </article>
+      </section>
+    </template>
   </main>
 </template>
 
@@ -343,6 +381,84 @@ definePageMeta({ ssr: false });
   margin: var(--space-6) 0 0;
   color: var(--color-danger);
   text-align: center;
+}
+
+.profile__sites {
+  margin-top: var(--space-5);
+}
+
+.profile__section-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+
+.profile__site-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile__site-link {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.profile__site-link:hover {
+  border-color: var(--color-border-strong);
+}
+
+.profile__site-icon {
+  display: grid;
+  flex: none;
+  width: var(--control-md);
+  height: var(--control-md);
+  place-content: center;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
+}
+
+.profile__site-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile__site-name {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.profile__site-url {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.profile__site-description {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.profile__site-open {
+  flex: none;
+  /* margin-top: 0.2rem; */
+  color: var(--color-text-tertiary);
 }
 
 .profile__posts {

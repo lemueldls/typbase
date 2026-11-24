@@ -666,9 +666,11 @@
     "updated": "Actualizado el {date}",
     "viewSource": "ver fuente",
     "publishedCount": "una nota publicada | {count} notas publicadas",
-    "description": "Notas publicadas por {name} en Typbase.",
+    "description": "Notas y sitios web publicados por {name} en Typbase.",
     "openTypbase": "Abrir Typbase",
-    "viewBluesky": "Ver en Bluesky"
+    "viewBluesky": "Ver en Bluesky",
+    "websites": "Sitios web",
+    "websiteCount": "un sitio web | {count} sitios web"
   },
   "formatting": {
     "title": "Formato",

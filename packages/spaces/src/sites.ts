@@ -1014,3 +1014,88 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+
+/** One published website, as listed on a public profile. */
+export interface PublicSite {
+  uri: string;
+  name: string;
+  description: string | null;
+  url: string;
+}
+
+/**
+ * Lists the `site.standard.publication` records an account published. These
+ * are the discoverable website records, so they include the site name and
+ * description that the Wisp manifest does not store.
+ */
+export async function listPublicSites(identity: {
+  did: string;
+  service: string;
+}): Promise<PublicSite[]> {
+  const sites: PublicSite[] = [];
+  const seen = new Set<string>();
+  let cursor: string | undefined;
+
+  do {
+    const params = new URLSearchParams({
+      repo: identity.did,
+      collection: STANDARD_PUBLICATION,
+      limit: "100",
+    });
+    if (cursor) params.set("cursor", cursor);
+
+    const response = await fetch(
+      `${identity.service.replace(/\/+$/, "")}/xrpc/com.atproto.repo.listRecords?${params.toString()}`,
+      {
+        signal:
+          typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+            ? AbortSignal.timeout(15_000)
+            : undefined,
+      },
+    );
+    if (!response.ok) throw new Error(`Listing published sites failed (${response.status})`);
+
+    const body = (await response.json()) as {
+      records?: Array<{
+        uri?: string;
+        value?: { url?: unknown; name?: unknown; description?: unknown };
+      }>;
+      cursor?: string;
+    };
+
+    for (const record of body.records ?? []) {
+      const url = safeSiteUrl(record.value?.url);
+      if (!record.uri || !url) continue;
+
+      const key = url.replace(/\/+$/, "");
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const name = typeof record.value?.name === "string" ? record.value.name.trim() : "";
+      const description =
+        typeof record.value?.description === "string" ? record.value.description.trim() : "";
+      sites.push({
+        uri: record.uri,
+        url,
+        name: name || new URL(url).hostname,
+        description: description || null,
+      });
+    }
+    cursor = body.cursor;
+  } while (cursor);
+
+  return sites;
+}
+
+function safeSiteUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}

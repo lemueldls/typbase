@@ -666,9 +666,11 @@
     "updated": "Updated {date}",
     "viewSource": "view source",
     "publishedCount": "one published note | {count} published notes",
-    "description": "Published notes by {name} on Typbase.",
+    "description": "Published notes and websites by {name} on Typbase.",
     "viewBluesky": "View on Bluesky",
-    "openTypbase": "Open Typbase"
+    "openTypbase": "Open Typbase",
+    "websites": "Websites",
+    "websiteCount": "one website | {count} websites"
   },
   "notebook": {
     "addCell": "Add cell",
