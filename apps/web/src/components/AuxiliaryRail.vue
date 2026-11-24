@@ -35,6 +35,19 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
+const rail = ref<HTMLElement | null>(null);
+const backdrop = ref<HTMLElement | null>(null);
+useSwipeDrawer({
+  side: computed(() => props.side),
+  open: computed(() => props.open),
+  drawer: rail,
+  backdrop,
+  enabled: computed(() => props.floating),
+  onChange: (open) => {
+    if (!open) emit("close");
+  },
+});
+
 const showTabs = computed(() => props.panels.length > 1);
 
 const moveLabel = computed(() => (props.side === "left" ? t("aux.moveRight") : t("aux.moveLeft")));
@@ -90,13 +103,18 @@ function endDrag(event: PointerEvent): void {
 <template>
   <div class="aux-rail__layer">
     <button
-      v-if="floating && open"
+      v-if="floating"
+      ref="backdrop"
       type="button"
       class="aux-rail__backdrop"
+      :class="{ 'aux-rail__backdrop--open': open }"
+      :tabindex="open ? 0 : -1"
+      :aria-hidden="open ? undefined : 'true'"
       :aria-label="$t('common.close')"
       @click="emit('close')"
     />
     <aside
+      ref="rail"
       class="aux-rail"
       :class="[
         `aux-rail--${side}`,
@@ -215,22 +233,28 @@ function endDrag(event: PointerEvent): void {
   box-shadow: var(--shadow-3);
   overflow: hidden;
   transition: transform var(--motion-base);
+  overscroll-behavior: contain;
 }
 
 .aux-rail--floating.aux-rail--left {
   left: 0;
-  transform: translateX(-100%);
+  transform: translateX(calc(-100% + var(--drawer-swipe-x, 0px)));
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
 .aux-rail--floating.aux-rail--right {
   right: 0;
-  transform: translateX(100%);
+  transform: translateX(calc(100% + var(--drawer-swipe-x, 0px)));
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 
 .aux-rail--floating.aux-rail--open {
-  transform: translateX(0);
+  transform: translateX(var(--drawer-swipe-x, 0px));
+}
+
+.aux-rail--floating[data-swiping] {
+  transition: none;
+  will-change: transform;
 }
 
 .aux-rail--flat {
@@ -248,6 +272,20 @@ function endDrag(event: PointerEvent): void {
   padding: 0;
   background: var(--color-overlay);
   border: 0;
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transition: opacity var(--motion-fast);
+}
+
+.aux-rail__backdrop--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.aux-rail__backdrop[data-swiping] {
+  opacity: var(--drawer-progress, 0);
+  transition: none;
 }
 
 .aux-rail__grip {

@@ -136,6 +136,21 @@ const {
   replaceRoute: () => syncRoute("replace"),
 });
 
+const navDrawer = ref<HTMLElement | null>(null);
+const navBackdrop = ref<HTMLElement | null>(null);
+useSwipeDrawer({
+  side: computed(() => "left"),
+  open: navOpen,
+  drawer: navDrawer,
+  backdrop: navBackdrop,
+  enabled: computed(() => !isDesktop.value),
+  edge: 24,
+  // The drawer itself is one layer. Anything above it, or a floating rail,
+  // gets the touch first.
+  canStart: () => backLayerDepth().value === (navOpen.value ? 1 : 0) && !floatingAuxOpen.value,
+  onChange: (open) => (navOpen.value = open),
+});
+
 const { ensure: ensureSearch, search: searchManager, status: searchStatus } = useSearch();
 const chat = useChat();
 const appUpdates = useAppUpdates();
@@ -1379,9 +1394,11 @@ definePageMeta({
           <!-- Mobile drawer + main pane. -->
           <template v-else>
             <div
+              ref="navDrawer"
               class="app__nav"
               :class="{ 'app__nav--open': navOpen }"
-              :aria-hidden="navOpen ? 'false' : undefined"
+              :aria-hidden="navOpen ? undefined : 'true'"
+              :inert="navOpen ? undefined : true"
             >
               <Sidebar
                 :store="workspace"
@@ -1402,9 +1419,12 @@ definePageMeta({
             </div>
 
             <button
-              v-if="navOpen"
+              ref="navBackdrop"
               type="button"
               class="app__backdrop"
+              :class="{ 'app__backdrop--open': navOpen }"
+              :tabindex="navOpen ? 0 : -1"
+              :aria-hidden="navOpen ? undefined : 'true'"
               :aria-label="$t('boot.closeNav')"
               @click="navOpen = false"
             />

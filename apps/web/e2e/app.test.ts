@@ -2811,6 +2811,94 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("opens and closes the mobile drawer with a swipe", async () => {
+    const page = await createPage(undefined, {
+      hasTouch: true,
+      viewport: { width: 420, height: 800 },
+    });
+    await openApp(page);
+
+    const client = await page.context().newCDPSession(page);
+
+    /** A real touch drag on the page. */
+    async function drag(fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ x: fromX, y: fromY }],
+      });
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: (fromX + toX) / 2, y: (fromY + toY) / 2 }],
+      });
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: toX, y: toY }],
+      });
+      await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    }
+
+    // A vertical drag near the edge is a scroll, not a drawer gesture.
+    await drag(8, 300, 12, 180);
+    await page.waitForTimeout(100);
+    expect(await page.locator(".app__nav--open").count()).toBe(0);
+
+    // Start inside the left edge, where the closed drawer listens.
+    await drag(8, 400, 240, 400);
+    await page.waitForSelector(".app__nav--open", { timeout: 30_000 });
+    // Let the panel finish sliding in before grabbing it.
+    await page.waitForTimeout(300);
+
+    // A drag on the panel goes back out the same edge.
+    await drag(280, 400, 20, 400);
+    await page.waitForFunction(() => document.querySelector(".app__nav--open") === null, null, {
+      timeout: 30_000,
+    });
+
+    await page.close();
+  });
+
+  it("closes the floating links rail with a swipe", async () => {
+    const page = await createPage(undefined, {
+      hasTouch: true,
+      viewport: { width: 420, height: 800 },
+    });
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Swipe rail",
+      content: "= Rail\n\nA paragraph.\n",
+    });
+    await showPage(page, id, "write");
+
+    await page.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Backlinks" }).click();
+    await page.waitForSelector(".aux-rail--floating.aux-rail--open", { timeout: 30_000 });
+    await page.waitForTimeout(300);
+
+    const client = await page.context().newCDPSession(page);
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: 100, y: 400 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 250, y: 400 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 400, y: 400 }],
+    });
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+
+    await page.waitForFunction(
+      () => document.querySelector(".aux-rail--floating.aux-rail--open") === null,
+      null,
+      { timeout: 30_000 },
+    );
+
+    await page.close();
+  });
+
   it("replaces the drawer entry when a page is picked", async () => {
     const page = await createPage();
     await page.setViewportSize({ width: 420, height: 800 });
