@@ -43,7 +43,7 @@ in
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typbase";
-  version = "0.5.0";
+  version = "0.5.1";
 
   src = fetchFromGitHub {
     owner = "lemueldls";

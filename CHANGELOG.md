@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.1] - 2026-11-24
+
+### New
+
+- Initial custom autocomplete
+- Host-supplied autocompletion
+- Page id aware spellcheck
+
+### Fixed
+
+- Static font loading path
+- Nix flake build
+
 ## [0.5.0] - 2026-11-24
 
 ### New
