@@ -1,6 +1,6 @@
 [workspace]
 members = ["apps/native", "packages/engine"]
-package.authors = ["Lemuel"]
+package.authors = ["Lemuel De Los Santos"]
 package.categories = []
 package.description = "Local-first knowledge base made for Typst and the Atmosphere."
 package.edition = "2024"
