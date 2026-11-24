@@ -16,5 +16,5 @@ chmod 600 "$HOME/.ssh/id_ed25519"
 
 git config --global gpg.format ssh
 git config --global user.signingKey "$HOME/.ssh/id_ed25519"
-git config --global user.name "${GIT_AUTHOR_NAME:-Lemuel DLS}"
+git config --global user.name "${GIT_AUTHOR_NAME:-Lemuel}"
 git config --global user.email "${GIT_AUTHOR_EMAIL:-noreply@git.lemueldls.dev}"
