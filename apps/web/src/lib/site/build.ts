@@ -1,8 +1,6 @@
 import type { WorkspaceStore } from "@typbase/storage";
 import type { PageMeta, SitePageSettings, SiteSettings, ThemePaletteTokens } from "@typbase/typing";
 
-import iconFontUrl from "material-symbols/material-symbols-rounded.woff2?url";
-
 import { fontFacesOf } from "~/lib/customFonts";
 import { fontFiles } from "~/lib/exportPage";
 import { pageContext, typstContextBinding } from "~/lib/pageContext";
@@ -872,13 +870,15 @@ let materialSymbolsPromise: Promise<Uint8Array> | undefined;
 
 async function materialSymbolsBytes(): Promise<Uint8Array> {
   if (!materialSymbolsPromise) {
-    materialSymbolsPromise = fetch(iconFontUrl).then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`Could not load the Material Symbols font (${response.status}).`);
-      }
+    materialSymbolsPromise = fetch("/fonts/icon/MaterialSymbolsRounded.woff2").then(
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`Could not load the Material Symbols font (${response.status}).`);
+        }
 
-      return new Uint8Array(await response.arrayBuffer());
-    });
+        return new Uint8Array(await response.arrayBuffer());
+      },
+    );
   }
 
   return materialSymbolsPromise;
