@@ -108,6 +108,7 @@ export async function publishPrelude(
     effectiveLocale(settings),
     settings.typography.ligatures,
     settings.typography.kerning,
+    settings.documentStyle,
   );
 
   const page = options.paged

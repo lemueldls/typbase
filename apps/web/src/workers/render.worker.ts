@@ -70,8 +70,18 @@ self.addEventListener(
 
     currentId = message.id;
     insertedKeys = new Set();
-    const { pagePath, source, prelude, wants, merged, preserveLines, spaceId, pageId, theme } =
-      message;
+    const {
+      pagePath,
+      source,
+      prelude,
+      wants,
+      merged,
+      preserveLines,
+      documentStyle,
+      spaceId,
+      pageId,
+      theme,
+    } = message;
 
     try {
       const typstState = await ensureState();
@@ -90,6 +100,7 @@ self.addEventListener(
       // Install the export palette so the engine's prelude (and the code-block
       // theme file it references) matches the caller prelude.
       if (theme) typstState.setTheme(file, themeColorsFromPalette(theme));
+      typstState.setDocumentStyle(file, documentStyle ?? true);
 
       if (wants === "svg") {
         await runPasses(

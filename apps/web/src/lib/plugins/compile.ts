@@ -21,6 +21,7 @@ function applyStyle(typstState: TypstState, input: PluginSurfaceInput): void {
   typstState.setMathFont(configId, input.style.mathFont);
   typstState.setCodeFont(configId, input.style.codeFont);
   typstState.setTextSize(configId, input.style.textSize);
+  typstState.setDocumentStyle(configId, input.style.documentStyle);
   typstState.setTheme(configId, themeColorsFromPalette(input.style.palette));
 }
 

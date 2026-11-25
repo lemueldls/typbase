@@ -375,6 +375,8 @@ export function applyWorkspaceStyle(
     kerning: boolean;
     /** App locale, which becomes the document's `text(lang:)`. */
     locale: string;
+    /** Apply Typbase's document rules for headings, links, code, and quotes. */
+    documentStyle: boolean;
     /** Renderer palette for the current workspace theme. */
     themeColors: ThemeColors;
   },
@@ -385,6 +387,7 @@ export function applyWorkspaceStyle(
   typstState.setTextSize(configId, settings.textSize);
   typstState.setTypography(configId, settings.ligatures, settings.kerning);
   typstState.setLocale(configId, settings.locale);
+  typstState.setDocumentStyle(configId, settings.documentStyle);
   // Frame crops start at the editor's line box, so a rendered block and the
   // source text it replaces share a baseline.
   typstState.setLineHeightRatio(configId, TYPST_EDITOR_LINE_HEIGHT);
@@ -519,6 +522,7 @@ export async function applyWorkspaceStyleToTypst(
     ligatures: settings.typography.ligatures,
     kerning: settings.typography.kerning,
     locale: effectiveLocale(settings),
+    documentStyle: settings.documentStyle,
     themeColors: currentThemeColors(settings),
   });
 }

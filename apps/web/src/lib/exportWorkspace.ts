@@ -61,6 +61,7 @@ export async function buildWorkspaceExport(
     pageSize: options.pageSize,
   } as const;
   const palette = publishThemePalette(store.getSettings(), themeOptions);
+  const documentStyle = store.getSettings().documentStyle;
   const encoder = new TextEncoder();
   const files: ExportFile[] = [];
   const names = new Set<string>();
@@ -132,6 +133,7 @@ export async function buildWorkspaceExport(
         prelude: htmlPrelude,
         wants: "html",
         preserveLines: options.preserveNewlines,
+        documentStyle,
         spaceId: store.workspaceId,
         pageId,
         theme: palette,
@@ -155,6 +157,7 @@ export async function buildWorkspaceExport(
         prelude: pagedPrelude,
         wants: "pdf",
         preserveLines: options.preserveNewlines,
+        documentStyle,
         spaceId: store.workspaceId,
         pageId,
         theme: palette,
@@ -175,6 +178,7 @@ export async function buildWorkspaceExport(
         wants: "svg",
         merged: options.svgMerged,
         preserveLines: options.preserveNewlines,
+        documentStyle,
         spaceId: store.workspaceId,
         pageId,
         theme: palette,
@@ -270,6 +274,7 @@ export async function buildWorkspaceExport(
         prelude: htmlPrelude,
         wants: "html",
         preserveLines: options.preserveNewlines,
+        documentStyle,
         spaceId: store.workspaceId,
         pageId: null,
         theme: palette,
@@ -293,6 +298,7 @@ export async function buildWorkspaceExport(
         prelude: pagedPrelude,
         wants: "pdf",
         preserveLines: options.preserveNewlines,
+        documentStyle,
         spaceId: store.workspaceId,
         pageId: null,
         theme: palette,
@@ -313,6 +319,7 @@ export async function buildWorkspaceExport(
         wants: "svg",
         merged: options.svgMerged,
         preserveLines: options.preserveNewlines,
+        documentStyle,
         spaceId: store.workspaceId,
         pageId: null,
         theme: palette,

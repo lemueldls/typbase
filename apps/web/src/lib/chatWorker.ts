@@ -16,6 +16,7 @@ export interface ChatWorkerStyle {
   textSize: number;
   ligatures: boolean;
   kerning: boolean;
+  documentStyle: boolean;
   palette: ThemePaletteTokens;
 }
 

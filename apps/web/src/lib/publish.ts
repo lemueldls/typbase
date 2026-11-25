@@ -67,6 +67,7 @@ export async function publishPage(
     source,
     prelude: htmlPrelude,
     wants: "html",
+    documentStyle: appSettings.documentStyle,
     spaceId: store.workspaceId,
     pageId,
     theme: palette,
@@ -87,6 +88,7 @@ export async function publishPage(
       source,
       prelude: pdfPrelude,
       wants: "pdf",
+      documentStyle: appSettings.documentStyle,
       spaceId: store.workspaceId,
       theme: palette,
     });

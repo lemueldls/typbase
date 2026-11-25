@@ -156,10 +156,12 @@
 .typ-link {
   color: var(--typst-color-accent);
   text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .typ-raw {
-  color: var(--typst-color-warning);
+  color: var(--typst-color-text-secondary);
+  font-size: 0.875em;
 }
 
 /* Source in code, math, and raw blocks gets the code face even though the

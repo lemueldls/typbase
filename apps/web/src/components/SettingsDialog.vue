@@ -508,6 +508,9 @@ function onDailyTemplateChange(value: string) {
 function onPagePreludeChange(value: string) {
   props.store.updateSettings({ pagePrelude: value });
 }
+function onDocumentStyleChange(value: boolean) {
+  props.store.updateSettings({ documentStyle: value });
+}
 
 // Selects run through UiSelect, so each setting gets an options list and a
 // writable computed instead of a change-event handler.
@@ -1217,6 +1220,17 @@ async function renameWorkspace(event: Event) {
             </SettingsSection>
 
             <SettingsSection :title="$t('settings.sectionPageSource')" anchor="page-source">
+              <SettingsRow
+                :label="$t('settings.documentStyle')"
+                :hint="$t('settings.documentStyleHint')"
+                anchor="document-style"
+              >
+                <UiSwitch
+                  :model-value="settings.documentStyle !== false"
+                  :aria-label="$t('settings.documentStyle')"
+                  @update:model-value="onDocumentStyleChange"
+                />
+              </SettingsRow>
               <SettingsRow
                 :label="$t('settings.prelude')"
                 :hint="$t('settings.preludeHint')"

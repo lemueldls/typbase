@@ -362,6 +362,12 @@ export interface WorkspaceSettings {
    * and views written in Typst. Theme/fonts stay in their own settings.
    */
   pagePrelude: string;
+  /**
+   * Apply Typbase's heading, link, quote, shape, math, and code-block rules.
+   * Off keeps the workspace theme, fonts, and syntax highlighting, and leaves
+   * element styling to `pagePrelude`.
+   */
+  documentStyle: boolean;
   /** UI language and date formatting locale. "auto" follows the browser. */
   locale: string;
   font: string;
@@ -453,6 +459,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     "",
   ].join("\n"),
   pagePrelude: "",
+  documentStyle: true,
   locale: "auto",
   font: "Iosevka Concrete Text",
   mathFont: "Concrete Math",

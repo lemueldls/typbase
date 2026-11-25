@@ -892,6 +892,7 @@ export function usePluginHost() {
         mathFont: settings.mathFont,
         codeFont: settings.codeFont,
         textSize: settings.textSize,
+        documentStyle: settings.documentStyle,
         palette: resolveAppTheme(settings).palette,
       });
 

@@ -287,6 +287,8 @@
     "uiRadiusHint": "Skaliert abgerundete Ecken.",
     "template": "Tägliche Notiz-Vorlage",
     "templateHint": "Startquelle für neue Tagesnotizen. `note` liefert Titel, Datum und Nachbartage.",
+    "documentStyle": "Typbase-Dokumentstil",
+    "documentStyleHint": "Gestaltet Überschriften, Links, Code und Zitate.",
     "prelude": "Seiten-Prelude",
     "preludeHint": "Wird jeder Seitenkompilierung vorangestellt. Eigene Ansichten entstehen über Typst-Funktionen oder Regeln.",
     "spellcheck": "Rechtschreibprüfung",

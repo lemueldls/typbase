@@ -99,6 +99,7 @@ function useChatState() {
       textSize: settings.textSize,
       ligatures: settings.typography.ligatures,
       kerning: settings.typography.kerning,
+      documentStyle: settings.documentStyle,
       palette: palette ?? resolveAppTheme(settings).palette,
     };
     const key = JSON.stringify(style);

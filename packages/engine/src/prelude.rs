@@ -115,11 +115,11 @@ const TYPBASE_PRELUDE: &str = r#"
     #import "/typbase/lib.typ" as typbase
 "#;
 
-/// The canonical document style: theme, body text, headings, links, shape
-/// strokes, math and raw fonts, and the code-block theme. Live compiles append
-/// the render-target page config in [`TypstState::prelude`]. Exports and the
-/// project mirror call it through the `stylePrelude` binding, so the app and
-/// the files it writes cannot drift.
+/// The canonical document style: theme, body text, fonts, and the code-block
+/// theme. `styled` adds the Typbase rules for headings, links, quotes, shapes,
+/// math, and code blocks. Live compiles append the render-target page config in
+/// [`TypstState::prelude`]. Exports and the project mirror call it through the
+/// `stylePrelude` binding, so the app and the files it writes cannot drift.
 fn style_prelude(
     theme: &ThemeColors,
     text_size: f64,
@@ -129,6 +129,7 @@ fn style_prelude(
     locale: &str,
     ligatures: bool,
     kerning: bool,
+    styled: bool,
 ) -> String {
     let h1 = text_size * 2.0;
     let h2 = text_size * 1.75;
@@ -137,38 +138,89 @@ fn style_prelude(
     let h5 = text_size;
     let h6 = text_size * 0.875;
 
+    let decorations = if styled {
+        formatdoc!(
+            r#"
+                #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
+                #show heading.where(level:2):set text(fill:theme.violet,size:{h2}pt,weight:400)
+                #show heading.where(level:3):set text(fill:theme.cyan,size:{h3}pt,weight:400)
+                #show heading.where(level:4):set text(fill:theme.green,size:{h4}pt,weight:400)
+                #show heading.where(level:5):set text(fill:theme.yellow,size:{h5}pt,weight:500)
+                #show heading.where(level:6):set text(fill:theme.red,size:{h6}pt,weight:500)
+
+                #show link:set text(fill:theme.accent)
+                #show link:it=>underline(offset:0.15em,it)
+
+                #show quote.where(block:true):it=>{{
+                  if sys.inputs.at("target",default:"") == "html" {{
+                    let quote=html.elem("blockquote",it.body)
+                    if it.attribution == none {{
+                      quote
+                    }} else {{
+                      quote+html.elem("footer",attrs:(class:"quote-attribution"),[— #it.attribution])
+                    }}
+                  }} else {{
+                    let quote=block(
+                      width:100%,
+                      stroke:(left:3pt+theme.accent),
+                      inset:(left:1em,right:1em,top:0.1em,bottom:0.1em),
+                      above:1.5em,
+                      below:1.5em,
+                    )[#text(fill:theme.text-secondary,it.body)]
+                    if it.attribution == none {{
+                      quote
+                    }} else {{
+                      quote+v(0.9em,weak:true)+align(right)[— #it.attribution]
+                    }}
+                  }}
+                }}
+
+                #set line(stroke:theme.border)
+                #set table(stroke:theme.border)
+                #set circle(stroke:theme.border)
+                #set ellipse(stroke:theme.border)
+                #set curve(stroke:theme.border)
+                #set polygon(stroke:theme.border)
+                #set rect(stroke:theme.border)
+                #set square(stroke:theme.border)
+
+                #show math.equation:set text(size:1.125em)
+                #show math.equation.where(block:true):set text(size:1em)
+                #show math.equation.where(block:true):set par(leading:0.5em)
+
+                #show raw:set text(size:1.125em)
+                #show raw.where(block:false):it=>box(
+                  fill:theme.code,
+                  inset:(x:0.3em,y:0.1em),
+                  radius:0.25em,
+                  it,
+                )
+                #show raw.where(block:true):it=>block(
+                  fill:theme.code,
+                  stroke:1pt+theme.border,
+                  inset:1em,
+                  radius:0.5em,
+                  width:100%,
+                  it,
+                )
+            "#
+        )
+    } else {
+        String::new()
+    };
+
     formatdoc!(
         r#"
             #let theme={theme}
 
             #set text(fill:theme.text,size:{text_size}pt,lang:"{locale}",font:"{font}",ligatures:{ligatures},kerning:{kerning})
 
-            #show heading.where(level:1):set text(fill:theme.accent,size:{h1}pt,weight:400)
-            #show heading.where(level:2):set text(fill:theme.violet,size:{h2}pt,weight:400)
-            #show heading.where(level:3):set text(fill:theme.cyan,size:{h3}pt,weight:400)
-            #show heading.where(level:4):set text(fill:theme.green,size:{h4}pt,weight:400)
-            #show heading.where(level:5):set text(fill:theme.yellow,size:{h5}pt,weight:500)
-            #show heading.where(level:6):set text(fill:theme.red,size:{h6}pt,weight:500)
-
-            #show link:set text(fill:theme.accent)
-            #show link:underline
-
-            #set line(stroke:theme.border)
-            #set table(stroke:theme.border)
-            #set circle(stroke:theme.border)
-            #set ellipse(stroke:theme.border)
-            #set curve(stroke:theme.border)
-            #set polygon(stroke:theme.border)
-            #set rect(stroke:theme.border)
-            #set square(stroke:theme.border)
-
-            #show math.equation:set text(font:"{math_font}",size:1.125em)
-            #show math.equation.where(block:true):set text(size:1em)
-            #show math.equation.where(block:true):set par(leading:0.5em)
+            #show math.equation:set text(font:"{math_font}")
 
             #set raw(lang:"typst",theme:"/{syntax_theme}")
-            #show raw:set text(font:"{code_font}",size:1.25em)
-            #show raw.where(block:true):it=>block(fill:theme.code,inset:8pt,radius:4pt,width:100%,it)
+            #show raw:set text(font:"{code_font}")
+
+            {decorations}
 
             {typbase_prelude}
         "#,
@@ -216,6 +268,7 @@ impl TypstState {
             &space_ctx.locale,
             space_ctx.ligatures,
             space_ctx.kerning,
+            space_ctx.document_style,
         );
 
         formatdoc!(
@@ -250,6 +303,7 @@ impl TypstState {
         locale: String,
         ligatures: bool,
         kerning: bool,
+        styled: bool,
     ) -> String {
         style_prelude(
             &theme,
@@ -260,6 +314,7 @@ impl TypstState {
             &locale,
             ligatures,
             kerning,
+            styled,
         )
     }
 }

@@ -34,6 +34,8 @@ export interface RenderWorkerRequest {
   merged?: boolean;
   /** Keep the editor's per-line block spacing instead of natural Typst layout. */
   preserveLines?: boolean;
+  /** Apply Typbase's document rules for headings, links, code, and quotes. */
+  documentStyle?: boolean;
   spaceId: string;
   /** Page id for `sys.inputs`. Null for a combined document. */
   pageId?: string | null;
@@ -270,6 +272,7 @@ export function renderInWorker(input: {
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
   preserveLines?: boolean;
+  documentStyle?: boolean;
   spaceId: string;
   pageId?: string | null;
   theme?: ThemePaletteTokens;
@@ -296,6 +299,7 @@ async function renderOnce(input: {
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
   preserveLines?: boolean;
+  documentStyle?: boolean;
   spaceId: string;
   pageId?: string | null;
   theme?: ThemePaletteTokens;

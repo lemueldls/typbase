@@ -8,6 +8,6 @@ expression: summarize(&render.tooltips)
       9,
       21
     ],
-    "items": 10
+    "items": 11
   }
 ]

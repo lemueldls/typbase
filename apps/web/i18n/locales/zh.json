@@ -287,6 +287,8 @@
     "uiRadiusHint": "缩放圆角。",
     "template": "每日笔记模板",
     "templateHint": "新建每日笔记的起始源码；`note` 提供标题、日期和相邻日记。",
+    "documentStyle": "Typbase 文档样式",
+    "documentStyleHint": "设置标题、链接、代码和引用的样式。",
     "prelude": "页面前置",
     "preludeHint": "每次编译前追加；用 Typst 函数或规则构建自定义视图。",
     "spellcheck": "拼写检查",

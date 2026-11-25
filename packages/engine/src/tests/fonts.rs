@@ -94,6 +94,7 @@ fn style(ligatures: bool, kerning: bool) -> String {
         String::from("en"),
         ligatures,
         kerning,
+        true,
     )
 }
 

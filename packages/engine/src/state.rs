@@ -120,6 +120,18 @@ impl TypstState {
         self.revision += 1;
     }
 
+    /// Applies or omits the Typbase document rules for headings, links,
+    /// quotes, shapes, math, and code blocks. The theme, fonts, and syntax
+    /// theme stay either way.
+    #[wasm_bindgen(js_name = "setDocumentStyle")]
+    pub fn set_document_style(&mut self, id: &TypstFileId, styled: bool) {
+        let context = self.get_space_context_mut(id);
+        if context.document_style != styled {
+            context.document_style = styled;
+            self.revision += 1;
+        }
+    }
+
     /// Host values for `sys.inputs`: the compiling page and workspace (both
     /// optional), the compile reason (`editor`, `resolve`, `render`, `chat`),
     /// and the output target (`html` or `paged`). The library bakes them into

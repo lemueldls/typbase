@@ -399,3 +399,66 @@ fn source_layout_renders_natural_paragraphs() {
         "paragraphs were split:\n{html}"
     );
 }
+
+/// Turning the document style off keeps the theme, text, fonts, and syntax
+/// theme, and drops the decorative rules.
+#[test]
+fn plain_document_style_omits_decorations() {
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "plain_style");
+
+    let styled = state.prelude(&id, RenderTarget::Svg);
+    assert!(styled.contains("#show heading"));
+    assert!(styled.contains("#show link"));
+    assert!(styled.contains("#show raw.where(block:true)"));
+
+    state.set_document_style(&id, false);
+    let plain = state.prelude(&id, RenderTarget::Svg);
+    assert!(!plain.contains("#show heading"));
+    assert!(!plain.contains("#show link"));
+    assert!(!plain.contains("#show raw.where(block:true)"));
+    assert!(plain.contains("#set text("));
+    assert!(plain.contains("#set raw("));
+}
+
+/// The HTML target has to keep Typst's `<blockquote>` element. The paged
+/// layout styles a quote as a bordered block, which would otherwise become a
+/// plain div in the website output.
+#[test]
+fn html_quotes_keep_the_blockquote_element() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    state.set_inputs(None, None, "render".into(), "html".into());
+    let id = harness::page(&mut state, "source_layout_quote");
+    let text = "#quote(block: true, attribution: [Plato])[A quote.]\n";
+
+    let result = sync_source_state_with_layout(
+        &id,
+        text,
+        "",
+        RenderTarget::Html,
+        SynthLayout::Source,
+        &mut state,
+    );
+    let mut ctx = state.render_context(&id).unwrap();
+    let (document, diagnostics) =
+        crate::renderer::html::document::render_html_ctx(&mut ctx, &result.blocks);
+    let html = document.expect("quote did not produce HTML");
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {diagnostics:?}"
+    );
+    assert!(
+        html.contains("<blockquote>"),
+        "quote lost its element:\n{html}"
+    );
+    assert!(
+        html.contains("quote-attribution"),
+        "attribution missing:\n{html}"
+    );
+}

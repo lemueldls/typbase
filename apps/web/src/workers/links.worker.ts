@@ -46,6 +46,7 @@ function applyStyle(typstState: TypstState, next: LinkWorkerStyle, spaceId: stri
   typstState.setMathFont(config, next.mathFont);
   typstState.setCodeFont(config, next.codeFont);
   typstState.setTextSize(config, next.textSize);
+  typstState.setDocumentStyle(config, next.documentStyle);
   // The code-block theme file referenced by the prelude is generated from the
   // palette. Setting it installs that file into the world.
   typstState.setTheme(config, themeColorsFromPalette(next.palette));

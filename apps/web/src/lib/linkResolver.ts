@@ -19,6 +19,7 @@ export interface LinkWorkerStyle {
   mathFont: string | null;
   codeFont: string | null;
   textSize: number;
+  documentStyle: boolean;
   palette: ThemePaletteTokens;
 }
 

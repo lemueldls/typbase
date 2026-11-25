@@ -45,6 +45,10 @@ pub struct SpaceContext {
     /// The editor's line-height as a multiple of the text size. See
     /// [`DEFAULT_LINE_HEIGHT_RATIO`].
     pub line_height_ratio: f64,
+    /// Apply Typbase's heading, link, quote, shape, math, and code-block
+    /// rules. Off keeps the theme, fonts, and syntax theme, and leaves the
+    /// rest to the page prelude.
+    pub document_style: bool,
 }
 
 impl SpaceContext {
@@ -60,6 +64,7 @@ impl SpaceContext {
             ligatures: true,
             kerning: true,
             line_height_ratio: DEFAULT_LINE_HEIGHT_RATIO,
+            document_style: true,
         }
     }
 }

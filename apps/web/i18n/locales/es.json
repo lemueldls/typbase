@@ -287,6 +287,8 @@
     "uiRadiusHint": "Escala las esquinas redondeadas.",
     "template": "Plantilla de nota diaria",
     "templateHint": "Origen de las notas diarias nuevas. `note` aporta título, fecha y vecinas.",
+    "documentStyle": "Estilo de documento de Typbase",
+    "documentStyleHint": "Da estilo a títulos, enlaces, código y citas.",
     "prelude": "Preludio de página",
     "preludeHint": "Se añade a cada compilación. Usa funciones o reglas Typst para vistas propias.",
     "spellcheck": "Corrección ortográfica",

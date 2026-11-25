@@ -58,11 +58,12 @@ html[data-layout="docs"] {
 
 a {
   color: var(--site-accent);
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 a:hover {
-  text-decoration: underline;
+  text-decoration-thickness: 2px;
 }
 
 img {
@@ -83,25 +84,33 @@ pre {
   border-radius: var(--site-radius-md);
   padding: 1rem;
   overflow: auto;
-  font-size: 0.875rem;
+  font-size: 0.875em;
 }
 
 code {
   background: var(--site-code);
   border-radius: var(--site-radius-xs);
   padding: 0.1em 0.3em;
+  font-size: 0.875em;
 }
 
 pre code {
   padding: 0;
   background: transparent;
+  font-size: inherit;
 }
 
 blockquote {
   border-left: 3px solid var(--site-accent);
   margin: 1.5rem 0;
-  padding: 0.1rem 0 0.1rem 1rem;
+  padding: 0.1rem 1rem;
   color: var(--site-muted);
+}
+
+.quote-attribution {
+  margin: -1rem 0 1.5rem;
+  color: var(--site-muted);
+  text-align: right;
 }
 
 hr {

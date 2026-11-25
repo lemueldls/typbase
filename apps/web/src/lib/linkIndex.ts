@@ -71,6 +71,7 @@ function createResolver(store: WorkspaceStore) {
       mathFont: settings.mathFont,
       codeFont: settings.codeFont,
       textSize: settings.textSize,
+      documentStyle: settings.documentStyle,
       palette: resolveAppTheme(settings).palette,
     });
     const prelude = await publishPrelude(settings, {

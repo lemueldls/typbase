@@ -287,6 +287,8 @@
     "uiRadiusHint": "Scales corner rounding.",
     "template": "Daily note template",
     "templateHint": "Starting source for daily notes. `note` has title, date, and daily neighbors.",
+    "documentStyle": "Typbase document style",
+    "documentStyleHint": "Style headings, links, code, and quotes.",
     "prelude": "Page prelude",
     "preludeHint": "Prepended to every page compile. Add Typst functions or rules for custom views.",
     "spellcheck": "Spellcheck",

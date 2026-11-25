@@ -287,6 +287,8 @@
     "uiRadiusHint": "Met à l'échelle les coins arrondis.",
     "template": "Modèle de note quotidienne",
     "templateHint": "Source de départ des notes quotidiennes. `note` fournit titre, date et voisines.",
+    "documentStyle": "Style de document Typbase",
+    "documentStyleHint": "Met en forme titres, liens, code et citations.",
     "prelude": "Prélude de page",
     "preludeHint": "Ajouté à chaque compilation. Des fonctions ou règles Typst créent des vues personnalisées.",
     "spellcheck": "Vérification orthographique",
