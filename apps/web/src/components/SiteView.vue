@@ -1796,6 +1796,10 @@ function copy(value: string): Promise<void> {
   min-width: 0;
 }
 
+.site-view__heading > .site-view__title-group:first-child {
+  margin-left: var(--space-2);
+}
+
 .site-view__title-copy {
   flex: 1;
   min-width: 0;

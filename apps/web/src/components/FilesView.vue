@@ -46,6 +46,10 @@ const emit = defineEmits<{ (e: "close"): void }>();
   white-space: nowrap;
 }
 
+.files-view__toolbar .files-view__title:first-child {
+  margin-left: var(--space-2);
+}
+
 .files-view__actions {
   display: inline-flex;
   align-items: center;
@@ -55,7 +59,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
 .files-view__body {
   flex: 1;
   min-height: 0;
-  padding: var(--space-3);
+  padding: var(--pane-header-pad-x);
   overflow-y: auto;
   background: var(--color-surface);
 }

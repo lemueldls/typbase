@@ -73,6 +73,10 @@ const hasWindow = computed(() =>
   font-weight: 600;
 }
 
+.plugin-view__toolbar .plugin-view__title:first-child {
+  margin-left: var(--space-2);
+}
+
 .plugin-view__actions {
   margin-left: auto;
   display: inline-flex;
