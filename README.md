@@ -15,9 +15,9 @@ Local-first knowledge base made for [Typst](https://typst.app) and the [Atmosphe
 
 ## What is Typst and the Atmosphere?
 
-**[Typst](https://typst.app)** is a document language. You write plain text with markup, math, and small programs, and Typst compiles it into PDF or HTML. Typbase treats a note as a Typst document, so pages, queries, math, exports, and plugin interfaces all share the same language.
+**[Typst](https://typst.app)** is a document language. You write plain text with markup, math, and entire programs, and Typst compiles it into PDF or HTML. A Typbase page is a Typst document, so the editor, queries, exports, and plugin interfaces share one syntax.
 
-**The [Atmosphere](https://atproto.com)** is an open network of accounts and apps built on the AT Protocol. Your account is portable instead of belonging to one app. Its data lives in a personal data server (PDS) that authorized apps can read or write, so Typbase's sync, publishing, and plugins travel with your account rather than one installation.
+**The [Atmosphere](https://atproto.com)** is a network of accounts and apps built on the AT Protocol. Your account is portable instead of belonging to one app. Its data lives in a personal data server (PDS) that authorized apps can read or write, so your synced pages, published sites, and installed plugins follow your account to any device you sign in on.
 
 ## Installation
 
