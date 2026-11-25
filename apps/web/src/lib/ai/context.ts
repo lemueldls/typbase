@@ -61,7 +61,8 @@ preview packages that are installed in this workspace. Prefer:
 - \`= Heading\`, lists, bold/emphasis for structure;
 - \`$\` math \`$\` for formulas;
 - \`\`\`\`raw blocks\`\`\`\` for code;
-- \`#typbase.page-link("<id>")\` to link a note by its real id;
+- \`#typbase.page-link("<id>")\` to link a note by its real id, or
+  \`#typbase.page-link("<id>")[text]\` for custom link text;
 - \`#typbase.embed("<id>")\` to include another note;
 - \`#typbase.section(kind: "...")[ ... ]\` for a named block other tools read;
 - \`note\` for the current page's own data: \`title\`, \`path\`,
@@ -92,7 +93,7 @@ function librarySource(typstState: TypstState): string {
     return [
       '#let query(kind, filter: none) = json("/typbase/query/" + kind + ".json")',
       '#let embed(id) = include("/typbase/src/" + str(id) + ".typ")',
-      "#let page-link(page-id, body: none) = [#page-id]",
+      "#let page-link(page-id, body: none, ..rest) = [#page-id]",
       "#let section(kind: none, body) = body",
     ].join("\n");
   }

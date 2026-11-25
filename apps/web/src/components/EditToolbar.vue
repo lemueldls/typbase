@@ -126,7 +126,7 @@ function insertPageLink(pageId: string): void {
   const { from, to } = view.state.selection.main;
   const text = view.state.sliceDoc(from, to);
   const insert = text
-    ? `#typbase.page-link("${pageId}", body: [${text}])`
+    ? `#typbase.page-link("${pageId}")[${text}]`
     : `#typbase.page-link("${pageId}")`;
 
   view.dispatch({

@@ -2187,7 +2187,7 @@ export class WorkspaceStore {
       '#let pages = typbase.query("pages")',
       "",
       "#for page in pages [",
-      "  - #page.title (#typbase.page-link(page.id, body: page.path))",
+      "  - #page.title (#typbase.page-link(page.id, page.path))",
       "]",
       "",
       "== Try this",

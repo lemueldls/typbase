@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn target_range_excludes_quotes() {
-        let text = "#typbase.page-link(\"page-a\", body: [A note])";
+        let text = "#typbase.page-link(\"page-a\")[A note]";
         let link = &extract_links(text)[0];
         assert_eq!(&text[link.target_from..link.target_to], "page-a");
         assert_eq!(&text[link.from..link.to], text);
@@ -235,9 +235,19 @@ mod tests {
     }
 
     #[test]
-    fn named_arguments_are_not_targets() {
-        let text = "#typbase.page-link(body: \"not-a-target\", other: 1)\n";
-        assert!(extract_links(text).is_empty());
+    fn named_body_is_not_a_target() {
+        let text = "#typbase.page-link(\"page-a\", body: \"not-a-target\")\n";
+        let links = extract_links(text);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].target, "page-a");
+    }
+
+    #[test]
+    fn positional_body_is_not_a_target() {
+        let text = "#typbase.page-link(\"page-a\", \"not-a-target\")\n";
+        let links = extract_links(text);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].target, "page-a");
     }
 
     #[test]
@@ -260,7 +270,7 @@ mod tests {
         let text = concat!(
             "#typbase.embed(myId)\n\n",
             "#link(base + \"/page\")\n\n",
-            "#typbase.page-link(pageId, body: [x])\n",
+            "#typbase.page-link(pageId)[x]\n",
         );
         let links = extract_links(text);
         assert_eq!(links.len(), 3);
@@ -272,7 +282,7 @@ mod tests {
             &text[links[1].target_from..links[1].target_to],
             "base + \"/page\""
         );
-        // A dynamic first argument beats a string in a later position.
+        // A dynamic first argument stays the target when a body follows.
         assert_eq!(&text[links[2].target_from..links[2].target_to], "pageId");
     }
 

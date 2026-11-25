@@ -68,16 +68,16 @@ pub const TYPBASE_LIB: &str = r#"
   json(target)
 }
 
-// A link to another page: the page's title, or `body` when given. A missing
-// page and a `none` target render the word "none" instead of failing the
-// compile, so `#typbase.page-link(note.next)` works when there is no next
-// day. The app turns `typbase://page/<id>` clicks into page opens.
+// A link to another page.
 #let page-link(
   /// The target page id, or `none` for an empty link.
   page-id,
   /// Link text. Defaults to the target page's title.
   body: none,
+  /// A trailing content block, used instead of `body` when present.
+  ..rest,
 ) = {
+  let body = rest.pos().at(0, default: body)
   let id = if page-id == none { "none" } else { str(page-id) }
   let meta = json("/typbase/query/pages/by-id/" + id + ".json")
   if meta == none {

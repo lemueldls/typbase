@@ -625,10 +625,10 @@ fn embed_completions_use_host_pages() {
 
 #[test]
 fn page_link_body_does_not_complete_page_ids() {
-    let text = "Before.\n\n#typbase.page-link(\"page-welcome\", body: \"Re\")";
+    let text = "Before.\n\n#typbase.page-link(\"page-welcome\", \"Re\")";
     let (_, options) = query_completion_data(
         text,
-        "#typbase.page-link(\"page-welcome\", body: \"Re",
+        "#typbase.page-link(\"page-welcome\", \"Re",
         sample_completions(),
     )
     .expect("completion call");
