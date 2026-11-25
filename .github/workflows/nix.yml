@@ -58,7 +58,7 @@ jobs:
   nixpkgs-pr:
     name: 📦 nixpkgs PR
     needs: update-flake
-    if: vars.NIXPKGS_FORK != ''
+    if: ${{ github.repository_owner == 'lemueldls' || vars.NIXPKGS_FORK != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -87,6 +87,6 @@ jobs:
 
       - name: 📦 Update the nixpkgs fork
         env:
-          NIXPKGS_FORK: ${{ vars.NIXPKGS_FORK }}
+          NIXPKGS_FORK: ${{ vars.NIXPKGS_FORK || 'lemueldls/nixpkgs' }}
           NIXPKGS_TOKEN: ${{ secrets.NIXPKGS_TOKEN }}
         run: bash scripts/ci/nix-update-nixpkgs.sh "${{ steps.version.outputs.version }}"

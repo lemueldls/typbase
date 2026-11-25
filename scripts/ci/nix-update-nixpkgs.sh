@@ -30,14 +30,16 @@ cd "$work"
 git remote add upstream https://github.com/NixOS/nixpkgs.git
 git fetch --depth=1 upstream master
 git reset --hard upstream/master
+
+if [[ ! -f pkgs/by-name/ty/typbase/package.nix ]]; then
+    echo "typbase is not in nixpkgs yet; skipping the update PR."
+    exit 0
+fi
+
 git checkout -b "typbase-$version"
 
-mkdir -p pkgs/by-name/ty/typbase
 cp "$repo_root/nix/nixpkgs/typbase.nix" pkgs/by-name/ty/typbase/package.nix
 
-# The derivation already sets <version> (the bump workflow writes it), so
-# nix-update would skip the hash updates along with the version. `skip` updates
-# only the hashes.
 nix-update --version=skip --build typbase
 
 git config user.name "lemueldls"

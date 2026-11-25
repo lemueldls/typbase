@@ -4,6 +4,7 @@
 
   binaryen,
   buildWasmBindgenCli,
+  cargo,
   cargo-tauri,
   cmake,
   curl,
@@ -23,6 +24,7 @@
   wrapGAppsHook4,
 
   appUrl ? "https://typbase.at",
+  proxyUrl ? "https://proxy.typbase.at",
 }:
 
 let
@@ -61,8 +63,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
-    fetcherVersion = 3;
-    hash = "sha256-DJdneVayczV6uMh+La6jw5P/MQw101vvYivczneTXqA=";
+    fetcherVersion = 4;
+    hash = "sha256-8+GS7eeQB3ef38KUGLi5TCjkZh5x3BgxZjFKZfOcKrs=";
+    nativeBuildInputs = [ cargo ];
   };
 
   nativeBuildInputs = [
@@ -113,6 +116,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
     NUXT_TELEMETRY_DISABLED = 1;
     NUXT_PUBLIC_APP_URL = appUrl;
+    NUXT_PUBLIC_PROXY_URL = proxyUrl;
   };
 
   meta = {

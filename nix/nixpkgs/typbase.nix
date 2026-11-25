@@ -4,12 +4,15 @@
 
   binaryen,
   buildWasmBindgenCli,
+  cargo,
   cargo-tauri,
   cmake,
   curl,
   fetchCrate,
   fetchFromGitHub,
   glib-networking,
+  lld,
+  nix-update-script,
   nodejs,
   openssl,
   pkg-config,
@@ -23,8 +26,6 @@
 }:
 
 let
-  # wasm-pack runs the CLI that matches the wasm-bindgen crate in Cargo.lock, so
-  # this pin has to move with it. Bump the version and both hashes together.
   wasmBindgenSrc = fetchCrate {
     pname = "wasm-bindgen-cli";
     version = "0.2.130";
@@ -49,23 +50,25 @@ rustPlatform.buildRustPackage (finalAttrs: {
     owner = "lemueldls";
     repo = "typbase";
     tag = "typbase-v${finalAttrs.version}";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-ZnyPhu7vlAIzICstmusDzRgV/0G7VZ/2GNURdizj7Ns=";
   };
 
-  cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  cargoHash = "sha256-3PwnsFEoOT1zKBrYif5vovC9JlSk4nxKJKYyyyzX1XE=";
 
   buildAndTestSubdir = "apps/native";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
-    fetcherVersion = 3;
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    fetcherVersion = 4;
+    hash = "sha256-aVLWvPfl+VSV07XYyfYzDnW8AGf9DMTUnzBD5w6oSoM=";
+    nativeBuildInputs = [ cargo ];
   };
 
   nativeBuildInputs = [
     binaryen
     cargo-tauri.hook
     cmake
+    lld
     nodejs
     pkg-config
     pnpmConfigHook
@@ -108,6 +111,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
     NUXT_TELEMETRY_DISABLED = 1;
     NUXT_PUBLIC_APP_URL = "https://typbase.at";
+    NUXT_PUBLIC_PROXY_URL = "https://proxy.typbase.at";
+  };
+
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--version-regex"
+      "typbase-v(.*)"
+    ];
   };
 
   meta = {
@@ -116,6 +127,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     changelog = "https://github.com/lemueldls/typbase/releases/tag/typbase-v${finalAttrs.version}";
     license = lib.licenses.asl20;
     mainProgram = "typbase";
+    maintainers = [ lib.maintainers.lemueldls ];
     platforms = lib.platforms.linux;
   };
 })
