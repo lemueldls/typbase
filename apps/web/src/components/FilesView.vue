@@ -7,7 +7,6 @@ const emit = defineEmits<{ (e: "close"): void }>();
     <div class="files-view__toolbar" data-tauri-drag-region="deep">
       <slot name="nav-toggle" />
       <slot name="scope" />
-      <MsIcon name="folder_open" :size="20" />
       <span class="files-view__title">{{ $t("explorer.title") }}</span>
       <div class="files-view__actions">
         <UiIconButton icon="close" :label="$t('common.close')" @click="emit('close')" />
@@ -15,7 +14,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
     </div>
 
     <div class="files-view__body">
-      <StorageExplorer initial-view="files" />
+      <StorageExplorer bare initial-view="files" />
     </div>
   </div>
 </template>
@@ -58,7 +57,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
   min-height: 0;
   padding: var(--space-3);
   overflow-y: auto;
-  background: var(--color-surface-2);
+  background: var(--color-surface);
 }
 
 .files-view__body .explorer {

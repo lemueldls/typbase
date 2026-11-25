@@ -34,12 +34,39 @@ const { backend, storageLocation, workspaces, activeWorkspaceId, workspace, dele
 const { t, locale } = useI18n();
 const { confirm } = useConfirm();
 
-const props = defineProps<{ initialView?: "data" | "files" | "assets" }>();
+const props = withDefaults(
+  defineProps<{
+    initialView?: "data" | "files" | "assets";
+    /** Flat layout for a pane that already provides chrome. */
+    bare?: boolean;
+  }>(),
+  { initialView: "data", bare: false },
+);
 
-const view = ref<"data" | "files" | "assets">(props.initialView ?? "data");
+const view = ref<"data" | "files" | "assets">(props.initialView);
 const loading = ref(false);
 const error = ref("");
 const assetBrowser = useTemplateRef<{ refresh: () => Promise<void> }>("assetBrowser");
+
+const explorerTabs = [
+  { id: "data", labelKey: "explorer.tabData" },
+  { id: "files", labelKey: "explorer.tabFiles" },
+  { id: "assets", labelKey: "explorer.tabAssets" },
+] as const;
+
+function onTabKeydown(event: KeyboardEvent): void {
+  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+  event.preventDefault();
+
+  const index = explorerTabs.findIndex((tab) => tab.id === view.value);
+  const delta = event.key === "ArrowRight" ? 1 : -1;
+  const next = explorerTabs[(index + delta + explorerTabs.length) % explorerTabs.length]!;
+  view.value = next.id;
+  const tabs = (event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>(
+    '[role="tab"]',
+  );
+  tabs[explorerTabs.indexOf(next)]?.focus();
+}
 
 const isNative = computed(() => storageLocation.value.environment === "native");
 
@@ -381,56 +408,72 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="explorer">
+  <section class="explorer" :class="{ 'explorer--bare': bare }" :aria-busy="loading || undefined">
     <header class="explorer__header">
-      <h2 class="explorer__title">{{ $t("explorer.title") }}</h2>
-      <div class="explorer__tabs">
+      <h2 v-if="!bare" class="explorer__title">{{ $t("explorer.title") }}</h2>
+
+      <div
+        class="explorer__tabs"
+        role="tablist"
+        :aria-label="$t('explorer.title')"
+        @keydown="onTabKeydown"
+      >
         <button
+          v-for="tab in explorerTabs"
+          :id="`explorer-tab-${tab.id}`"
+          :key="tab.id"
           type="button"
+          role="tab"
           class="explorer__tab"
-          :class="{ 'explorer__tab--active': view === 'data' }"
-          @click="view = 'data'"
+          :class="{ 'explorer__tab--active': view === tab.id }"
+          :aria-selected="view === tab.id"
+          :aria-controls="`explorer-panel-${tab.id}`"
+          :tabindex="view === tab.id ? 0 : -1"
+          @click="view = tab.id"
         >
-          {{ $t("explorer.tabData") }}
-        </button>
-        <button
-          type="button"
-          class="explorer__tab"
-          :class="{ 'explorer__tab--active': view === 'files' }"
-          @click="view = 'files'"
-        >
-          {{ $t("explorer.tabFiles") }}
-        </button>
-        <button
-          type="button"
-          class="explorer__tab"
-          :class="{ 'explorer__tab--active': view === 'assets' }"
-          @click="view = 'assets'"
-        >
-          {{ $t("explorer.tabAssets") }}
+          {{ $t(tab.labelKey) }}
         </button>
       </div>
-      <UiButton size="small" :disabled="loading" @click="refresh">
-        {{ loading ? $t("explorer.refreshing") : $t("explorer.refresh") }}
-      </UiButton>
+
+      <UiIconButton
+        icon="refresh"
+        class="explorer__refresh"
+        :label="loading ? $t('explorer.refreshing') : $t('explorer.refresh')"
+        :disabled="loading"
+        @click="refresh"
+      />
     </header>
 
-    <p class="explorer__location">
-      <span>{{ storageLocation.label }}</span>
-      <span v-if="storageLocation.path" class="explorer__path">{{ storageLocation.path }}</span>
+    <div class="explorer__meta">
+      <p class="explorer__location">
+        <span>{{ storageLocation.label }}</span>
+        <span v-if="storageLocation.path" class="explorer__path">{{ storageLocation.path }}</span>
+      </p>
+
+      <!-- <UiButton v-if="view === 'files'" as="label" size="small" class="explorer__upload">
+        {{ $t("explorer.upload") }}
+        <input type="file" hidden @change="upload" />
+      </UiButton> -->
+
       <UiButton
+        v-if="isNative && storageLocation.path"
         variant="ghost"
         size="small"
-        v-if="isNative && storageLocation.path"
         @click="reveal('')"
       >
         {{ $t("explorer.reveal") }}
       </UiButton>
-    </p>
+    </div>
 
     <p v-if="error" class="explorer__error" role="alert">{{ error }}</p>
 
-    <div v-if="view === 'data'" class="explorer__panel">
+    <div
+      v-if="view === 'data'"
+      id="explorer-panel-data"
+      class="explorer__panel"
+      role="tabpanel"
+      aria-labelledby="explorer-tab-data"
+    >
       <p v-if="!workspaces.length" class="explorer__empty">{{ $t("explorer.noWorkspaces") }}</p>
 
       <div v-for="info in workspaces" :key="info.id" class="explorer__workspace">
@@ -503,12 +546,13 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-else-if="view === 'files'" class="explorer__panel">
-      <UiButton as="label" size="small" class="explorer__upload">
-        {{ $t("explorer.upload") }}
-        <input type="file" hidden @change="upload" />
-      </UiButton>
-
+    <div
+      v-else-if="view === 'files'"
+      id="explorer-panel-files"
+      class="explorer__panel"
+      role="tabpanel"
+      aria-labelledby="explorer-tab-files"
+    >
       <div
         v-for="entry in flatNodes"
         :key="entry.node.path"
@@ -580,11 +624,17 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-else class="explorer__panel">
+    <div
+      v-else
+      id="explorer-panel-assets"
+      class="explorer__panel"
+      role="tabpanel"
+      aria-labelledby="explorer-tab-assets"
+    >
       <AssetBrowser ref="assetBrowser" />
     </div>
 
-    <p class="explorer__hint">{{ $t("explorer.hint") }}</p>
+    <p v-if="view === 'files'" class="explorer__hint">{{ $t("explorer.hint") }}</p>
   </section>
 </template>
 
@@ -592,53 +642,104 @@ onBeforeUnmount(() => {
 .explorer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  gap: var(--space-3);
   padding: var(--space-3);
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* The Files pane already has a header and content surface, so it uses the
+   explorer as a flat section instead of a second card. */
+.explorer--bare {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .explorer__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
 
 .explorer__title {
+  flex: 1 1 auto;
   margin: 0;
   font-size: var(--text-lg);
-  flex: 1;
 }
 
 .explorer__tabs {
-  display: flex;
-  gap: var(--space-1);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-0-5);
+  padding: var(--space-0-5);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-md);
 }
 
 .explorer__tab {
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: inherit;
-  border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-2-5);
+  height: var(--control-sm);
+  padding: 0 var(--space-2-5);
+  font-family: inherit;
   font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  border-radius: max(0px, calc(var(--radius-md) - var(--space-0-5)));
   cursor: pointer;
 }
 
+.explorer__tab:hover:not(.explorer__tab--active) {
+  color: var(--color-text);
+}
+
 .explorer__tab--active {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.explorer__refresh {
+  margin-left: auto;
+}
+
+.explorer__refresh:disabled .ms-icon {
+  animation: explorer-spin 0.8s linear infinite;
+}
+
+@keyframes explorer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.explorer__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .explorer__location {
   display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  flex-wrap: wrap;
+}
+
+.explorer__location > :first-child {
+  color: var(--color-text);
+  font-weight: 500;
 }
 
 .explorer__path {
@@ -664,6 +765,7 @@ onBeforeUnmount(() => {
 
 .explorer__error {
   color: var(--color-danger);
+  overflow-wrap: anywhere;
 }
 
 .explorer__workspace {
@@ -831,7 +933,7 @@ onBeforeUnmount(() => {
 }
 
 .explorer__upload {
-  align-self: flex-start;
+  flex: none;
   cursor: pointer;
 }
 </style>

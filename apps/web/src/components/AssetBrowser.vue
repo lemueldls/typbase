@@ -186,11 +186,11 @@ async function pruneUnused(): Promise<void> {
 <template>
   <div class="assets">
     <div class="assets__toolbar">
-      <UiButton as="label" size="small">
+      <UiButton as="label">
         {{ $t("explorer.assetUpload") }}
         <input type="file" hidden @change="upload" />
       </UiButton>
-      <UiButton size="small" @click="pruneUnused">
+      <UiButton @click="pruneUnused">
         {{ $t("explorer.assetPrune") }}
       </UiButton>
       <span class="assets__status">{{ status }}</span>
