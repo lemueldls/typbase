@@ -1162,10 +1162,6 @@ definePageMeta({
         :aria-busy="switching ? true : undefined"
         :inert="switching ? true : undefined"
       >
-        <!-- Window-level chrome. Narrow windows keep the mobile layout whole,
-             so the bar goes with them rather than eating the editor's height.
-             Focus mode changes the shell's padding in the same tick, so it
-             hides the bar without the row-collapse transition. -->
         <Transition :css="isDesktop && !zen" name="app-bar">
           <AppBar
             v-if="isDesktop && appBarVisible && !zen"

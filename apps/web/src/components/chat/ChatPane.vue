@@ -373,6 +373,7 @@ function applySuggestion(text: string): void {
 .chat-pane__toolbar {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: var(--pane-header-height);
   padding: var(--pane-header-pad-x);
   background: var(--color-surface-2);
@@ -383,8 +384,13 @@ function applySuggestion(text: string): void {
   min-width: 0;
   font-size: var(--text-xl);
   font-weight: 600;
-  margin-left: var(--space-2);
   white-space: nowrap;
+}
+
+/* With no nav toggle or crumb before it, keep the inset the toolbar gap
+   gives when they are present. */
+.chat-pane__toolbar .chat-pane__title:first-child {
+  margin-left: var(--space-2);
 }
 
 .chat-pane__context {
