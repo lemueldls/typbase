@@ -229,6 +229,38 @@ async function openToday(): Promise<void> {
   min-height: var(--app-bar-height);
 }
 
+/* Showing and hiding collapse the bar's row instead of dropping it in one
+   frame. The negative margin gives back the content gap in the same step, so
+   the body rises with the bar rather than jumping when the node leaves. */
+.app-bar-enter-active,
+.app-bar-leave-active {
+  align-content: center;
+  overflow: hidden;
+  min-height: 0;
+  transition:
+    height var(--motion-base),
+    margin-bottom var(--motion-base),
+    opacity var(--motion-fast);
+}
+
+.app-bar-leave-active {
+  pointer-events: none;
+}
+
+.app-bar-enter-from,
+.app-bar-leave-to {
+  height: 0;
+  margin-bottom: calc(-1 * var(--island-gap));
+  opacity: 0;
+}
+
+.app-bar-enter-to,
+.app-bar-leave-from {
+  height: var(--app-bar-height);
+  margin-bottom: 0;
+  opacity: 1;
+}
+
 .app-bar__side {
   display: flex;
   align-items: center;
