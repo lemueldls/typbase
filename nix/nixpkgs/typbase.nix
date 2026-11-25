@@ -46,6 +46,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typbase";
   version = "0.5.3";
 
+  __structuredAttrs = true;
+
   src = fetchFromGitHub {
     owner = "lemueldls";
     repo = "typbase";
