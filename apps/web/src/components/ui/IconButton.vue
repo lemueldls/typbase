@@ -15,11 +15,19 @@ withDefaults(
     variant?: "plain" | "ghost" | "primary";
     /** Colors the button as destructive (red icon and hover tint). */
     danger?: boolean;
+    /** Control box tier. `size` only changes the glyph. */
+    control?: "default" | "small" | "tiny";
     /** Glyph size in px. */
     size?: number;
     tooltipSide?: "top" | "right" | "bottom" | "left";
   }>(),
-  { variant: "ghost", danger: false, size: 20, tooltipSide: "bottom" },
+  {
+    variant: "ghost",
+    danger: false,
+    control: "default",
+    size: 20,
+    tooltipSide: "bottom",
+  },
 );
 </script>
 
@@ -34,6 +42,8 @@ withDefaults(
         'button--primary': variant === 'primary',
         'button--danger-icon': danger,
         'button--icon-muted': variant !== 'primary' && !danger,
+        'button--small': control === 'small',
+        'button--tiny': control === 'tiny',
       }"
       :aria-label="label"
       :aria-pressed="pressed"

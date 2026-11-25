@@ -526,30 +526,81 @@ pub struct CellAttribute {
 /// what an attribute line with no `kind=` says.
 const CELL_KINDS: &[&str] = &["prose", "code", "log", "hidden"];
 
-/// Reads a cell attribute line
+/// Reads a quoted attribute value, returning the text and the rest of the line
+/// after the closing quote. An unclosed quote takes the rest of the line, so a
+/// half-typed name keeps its cell.
+fn quoted_value(input: &str) -> (String, &str) {
+    let mut value = String::new();
+    let mut chars = input.char_indices();
+    while let Some((index, ch)) = chars.next() {
+        match ch {
+            '"' => return (value, &input[index + ch.len_utf8()..]),
+            '\\' => {
+                match chars.next() {
+                    Some((_, '"')) => value.push('"'),
+                    Some((_, '\\')) => value.push('\\'),
+                    Some((_, other)) => {
+                        value.push('\\');
+                        value.push(other);
+                    }
+                    None => value.push('\\'),
+                }
+            }
+            other => value.push(other),
+        }
+    }
+
+    (value, "")
+}
+
+/// Reads a cell attribute line. The `//%` marker alone makes the boundary;
+/// fields are optional metadata. Unknown fields are ignored and an unknown or
+/// half-typed kind reads as prose, so editing a line never changes where the
+/// cell starts. A name can be bare or double-quoted, which is how it keeps
+/// spaces.
 fn cell_attribute(comment: &str) -> Option<CellAttribute> {
-    let attrs = comment
-        .strip_prefix("//")?
-        .trim_start()
-        .strip_prefix('%')?
-        .trim();
+    let mut rest = comment.strip_prefix("//%")?.trim();
 
     let mut kind: Option<String> = None;
     let mut name: Option<String> = None;
-    for field in attrs.split_whitespace() {
-        let (key, value) = field.split_once('=')?;
+    while !rest.is_empty() {
+        let key_end = rest
+            .find(|ch: char| ch == '=' || ch.is_whitespace())
+            .unwrap_or(rest.len());
+        let key = &rest[..key_end];
+        let after_key = rest[key_end..].trim_start();
+        let Some(after_equals) = after_key.strip_prefix('=') else {
+            // No assignment: drop the token and keep reading the line.
+            rest = rest[key_end..].trim_start();
+            continue;
+        };
+        let value_input = after_equals.trim_start();
+
+        let (value, tail) = if let Some(quoted) = value_input.strip_prefix('"') {
+            quoted_value(quoted)
+        } else {
+            let end = value_input
+                .find(char::is_whitespace)
+                .unwrap_or(value_input.len());
+            (value_input[..end].to_string(), &value_input[end..])
+        };
 
         match key.to_ascii_lowercase().as_str() {
             "kind" => {
                 let value = value.to_ascii_lowercase();
-                if !CELL_KINDS.contains(&value.as_str()) {
-                    return None;
+                if CELL_KINDS.contains(&value.as_str()) {
+                    kind = Some(value);
                 }
-                kind = Some(value);
             }
-            "name" => name = Some(value.to_string()),
-            _ => return None,
+            "name" => {
+                if !value.is_empty() {
+                    name = Some(value);
+                }
+            }
+            _ => {}
         }
+
+        rest = tail.trim_start();
     }
 
     Some(CellAttribute {
@@ -591,8 +642,8 @@ pub fn extract_cells_root(root: &typst_syntax::SyntaxNode, text: &str) -> Vec<Ce
     let mut boundaries: Vec<Boundary> = Vec::new();
 
     for child in linked.children() {
-        // A heading has no attribute, so `None` here means "prose". A
-        // comment has to name a known kind or it is just a comment.
+        // A heading has no attribute, so `None` here means "prose". Any
+        // `//%` comment is a boundary; its fields are optional metadata.
         let attribute = match child.kind() {
             SyntaxKind::Heading => None,
             SyntaxKind::LineComment => {
@@ -914,11 +965,13 @@ mod tests {
     }
 
     #[test]
-    fn unknown_kinds_are_comments() {
+    fn unknown_kinds_keep_the_boundary() {
         let text = "//% kind=widget\n#let x = 1\n";
         let cells = extract_cells(text);
         assert_eq!(cells.len(), 1);
-        assert_eq!(cells[0].content_start, 0);
+        assert_eq!(cells[0].kind, "prose");
+        assert_eq!(cells[0].marker_start, 0);
+        assert_eq!(cells[0].content_start, "//% kind=widget\n".len());
     }
 
     #[test]

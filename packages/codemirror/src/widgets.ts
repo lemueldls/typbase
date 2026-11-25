@@ -21,7 +21,7 @@ import {
   TypstWidget,
 } from "./frames";
 import { cellIndexAt, notebookRefreshEffect } from "./notebook";
-import { decorateNotebook } from "./notebook-widgets";
+import { decorateNotebook, notebookRailMenuOpen } from "./notebook-widgets";
 
 /**
  * Compiled frames per cache key, where the key is `path:revision:appRevision`.
@@ -624,7 +624,8 @@ export const typstViewPlugin = (
           }
         }
 
-        if (update.docChanged || update.selectionSet || update.focusChanged || forced || refresh) {
+        const focusChanged = update.focusChanged && !(options.notebook && notebookRailMenuOpen());
+        if (update.docChanged || update.selectionSet || focusChanged || forced || refresh) {
           queueMicrotask(() => {
             let result: DecorateResult;
             try {

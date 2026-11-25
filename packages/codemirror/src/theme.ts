@@ -59,6 +59,7 @@ export const typstTheme = EditorView.theme({
   },
   ".cm-content": {
     fontFamily: "var(--typst-font-text)",
+    padding: "4px 0",
   },
   ".cm-line": {
     padding: "0",
@@ -131,7 +132,7 @@ export const typstTheme = EditorView.theme({
     color: "var(--typst-color-text)",
   },
   ".cm-gutter-lint": {
-    width: "1.25rem",
+    width: "0.75rem",
   },
   ".cm-gutters .cm-gutter-lint .cm-gutterElement": {
     display: "flex",
@@ -141,20 +142,32 @@ export const typstTheme = EditorView.theme({
   },
   ".cm-lint-marker": {
     content: "none",
-    width: "2px",
+    position: "relative",
+    width: "100%",
     height: "100%",
     backgroundImage: "none",
+    backgroundColor: "transparent",
   },
-  ".cm-lint-marker-error": {
+  ".cm-lint-marker::after": {
+    content: '""',
+    position: "absolute",
+    top: "0",
+    bottom: "0",
+    left: "50%",
+    width: "2px",
+    backgroundColor: "var(--typst-color-text-secondary)",
+    transform: "translateX(-50%)",
+  },
+  ".cm-lint-marker-error::after": {
     backgroundColor: "var(--typst-color-danger)",
   },
-  ".cm-lint-marker-warning": {
+  ".cm-lint-marker-warning::after": {
     backgroundColor: "var(--typst-color-warning)",
   },
-  ".cm-lint-marker-info": {
+  ".cm-lint-marker-info::after": {
     backgroundColor: "var(--typst-color-accent)",
   },
-  ".cm-lint-marker-hint": {
+  ".cm-lint-marker-hint::after": {
     backgroundColor: "var(--typst-color-text-secondary)",
   },
 
@@ -393,6 +406,12 @@ export const typstTheme = EditorView.theme({
     padding: "0",
     margin: "0",
     listStyle: "none",
+  },
+  ".cm-tooltip.cm-tooltip-lint": {
+    padding: "var(--typst-space-2) var(--typst-space-2-5)",
+    maxHeight: "min(70vh, 32rem)",
+    overflowY: "auto",
+    overscrollBehavior: "contain",
   },
 
   // Lint ranges and diagnostics.

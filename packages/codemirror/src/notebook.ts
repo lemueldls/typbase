@@ -62,6 +62,8 @@ export interface NotebookLabels {
   prose: string;
   log: string;
   hidden: string;
+  /** Accessible name for the cell's kind menu. */
+  cellType: string;
   menu: string;
   split: string;
   merge: string;
@@ -102,6 +104,8 @@ export interface NotebookOptions {
   onStateChange?: () => void;
   /** A command from the rail's overflow menu, so the app handles the actions. */
   onCommand?: (command: string, index: number) => void;
+  /** A kind picked from a cell's header, so the app can rewrite its attribute. */
+  onSetType?: (index: number, type: NotebookCellType) => void;
   /** Read-only pages show cells without source or chrome. */
   readOnly?: () => boolean;
 }
@@ -153,14 +157,21 @@ function blockEnd(cells: NotebookCell[], index: number, text: string): number {
   return next ? cellStart(next) : text.length;
 }
 
+/** Quotes a name only when the bare form would not survive the field parser. */
+function attributeName(name: string): string {
+  return /^[^\s"\\]+$/.test(name) ? name : `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
 /**
  * The attribute line for a cell type. Prose needs no `kind=`, so a plain cell is
- * three characters.
+ * three characters. A name with spaces is quoted, which the engine's field
+ * parser reads back as one value.
  */
 export function attributeText(type: NotebookCellType, name?: string | null): string {
-  const fields = [name ? `name=${name}` : "", type === "prose" ? "" : `kind=${type}`].filter(
-    Boolean,
-  );
+  const fields = [
+    name ? `name=${attributeName(name)}` : "",
+    type === "prose" ? "" : `kind=${type}`,
+  ].filter(Boolean);
 
   return fields.length ? `//% ${fields.join(" ")}` : "//%";
 }
@@ -277,8 +288,9 @@ export function insertCellText(
   index: number,
   type: NotebookCellType,
   content = "",
+  name?: string | null,
 ): CellEdit | null {
-  const attribute = attributeText(type);
+  const attribute = attributeText(type, name);
   const at = blockEnd(cells, index, text);
   const prefix = text.slice(Math.max(0, at - 2), at).includes("\n\n") || at === 0 ? "" : "\n\n";
   const insert = `${prefix}${attribute}\n${content}\n\n`;
@@ -323,7 +335,7 @@ export function duplicateCellText(
 
   const body = text.slice(cell.content_start, cell.content_end);
 
-  return insertCellText(text, cells, index, cell.kind, body);
+  return insertCellText(text, cells, index, cell.kind, body, cell.name);
 }
 
 function dispatchEdit(view: EditorView, edit: CellEdit): boolean {
@@ -336,7 +348,8 @@ function dispatchEdit(view: EditorView, edit: CellEdit): boolean {
   return true;
 }
 
-/** Selects a cell's content so the keyboard commands act on it. */
+/** Selects a cell's start, or its content end. The start is the attribute line
+ * when the cell has one, so clicking a header can put the caret on `//%`. */
 export function focusCell(
   view: EditorView,
   index: number,
@@ -346,7 +359,7 @@ export function focusCell(
   const cell = cells[index];
   if (!cell) return false;
 
-  const pos = edge === "start" ? cell.content_start : cell.content_end;
+  const pos = edge === "start" ? cellStart(cell) : cell.content_end;
   view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
   view.focus();
 
@@ -388,19 +401,19 @@ export function deleteCell(view: EditorView, index = -1): boolean {
   return edit ? dispatchEdit(view, edit) : false;
 }
 
-/** Moves the active cell up or down. */
-export function moveCell(view: EditorView, delta: number): boolean {
+/** Moves the cell at `index` up or down, defaulting to the cell under the caret. */
+export function moveCell(view: EditorView, delta: number, index = -1): boolean {
   const cells = cellsOf(view.state);
-  const index = currentCell(view);
-  const next = index + delta;
-  if (next < 0 || next >= cells.length || index < 0) return false;
+  const at = index >= 0 ? index : currentCell(view);
+  const next = at + delta;
+  if (next < 0 || next >= cells.length || at < 0) return false;
 
   const text = view.state.doc.toString();
-  const first = cells[index]!;
+  const first = cells[at]!;
   const second = cells[next]!;
   const from = cellStart(first);
   const to = cellStart(second);
-  const firstEnd = blockEnd(cells, index, text);
+  const firstEnd = blockEnd(cells, at, text);
   const secondEnd = blockEnd(cells, next, text);
 
   // Two changes rather than one splice, so the gap between the two cells keeps
@@ -410,7 +423,7 @@ export function moveCell(view: EditorView, delta: number): boolean {
       { from, to: firstEnd, insert: text.slice(to, secondEnd) },
       { from: to, to: secondEnd, insert: text.slice(from, firstEnd) },
     ],
-    selection: { anchor: from },
+    selection: { anchor: Math.min(from, to) },
     scrollIntoView: true,
   });
 
@@ -424,22 +437,24 @@ export function setCellType(view: EditorView, index: number, type: NotebookCellT
   return edit ? dispatchEdit(view, edit) : false;
 }
 
-export function splitCell(view: EditorView): boolean {
+/** Splits a cell at the caret when it is inside `index`, otherwise at its end. */
+export function splitCell(view: EditorView, index = -1): boolean {
   const cells = cellsOf(view.state);
-  const index = currentCell(view);
-  const edit = splitCellText(
-    view.state.doc.toString(),
-    cells,
-    index,
-    view.state.selection.main.from,
-  );
+  const at = index >= 0 ? index : currentCell(view);
+  const cell = cells[at];
+  if (!cell) return false;
+
+  const caret = view.state.selection.main.from;
+  const pos = caret >= cell.content_start && caret <= cell.content_end ? caret : cell.content_end;
+  const edit = splitCellText(view.state.doc.toString(), cells, at, pos);
 
   return edit ? dispatchEdit(view, edit) : false;
 }
 
-export function mergeCell(view: EditorView): boolean {
+export function mergeCell(view: EditorView, index = -1): boolean {
   const cells = cellsOf(view.state);
-  const edit = mergeCellText(cells, currentCell(view));
+  const at = index >= 0 ? index : currentCell(view);
+  const edit = mergeCellText(cells, at);
 
   return edit ? dispatchEdit(view, edit) : false;
 }

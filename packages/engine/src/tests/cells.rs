@@ -76,22 +76,65 @@ fn a_name_is_carried_through() {
     assert_eq!(cells[0].kind, "hidden");
 }
 
-/// An unknown kind is a plain comment, so a typo never silently changes how the
-/// cell renders and the next attribute still splits the page.
+/// The `//%` marker makes the boundary even when a field is unknown or
+/// half-typed. The cell reads as prose until the kind is valid, so the divider
+/// never jumps while the line is edited.
 #[test]
-fn an_unknown_kind_is_not_an_attribute() {
+fn an_unknown_kind_keeps_the_boundary_and_reads_as_prose() {
     let text = "//% kind=prose\nA.\n\n//% kind=nope\nB.\n\n//% kind=code\n#let x = 1\n";
 
-    assert_eq!(kinds(text), vec!["prose", "code"]);
-    assert_eq!(contents(text), vec![
-        "A.\n\n//% kind=nope\nB.",
-        "#let x = 1"
-    ]);
+    assert_eq!(kinds(text), vec!["prose", "prose", "code"]);
+    assert_eq!(contents(text), vec!["A.", "B.", "#let x = 1"]);
 }
 
 #[test]
-fn an_unknown_field_is_not_an_attribute() {
-    assert_eq!(kinds("//% kind=code lang=python\nx\n"), vec!["prose"]);
+fn a_partial_kind_keeps_the_cell() {
+    let text = "//% kind=co\nBody.\n";
+    let cells = extract_cells(text);
+
+    assert_eq!(cells.len(), 1);
+    assert_eq!(cells[0].kind, "prose");
+    assert_eq!(
+        &text[cells[0].marker_start..cells[0].marker_end],
+        "//% kind=co"
+    );
+    assert_eq!(&text[cells[0].content_start..cells[0].content_end], "Body.");
+}
+
+#[test]
+fn unknown_fields_are_ignored() {
+    let cells = extract_cells("//% kind=code lang=python\nx\n");
+
+    assert_eq!(cells.len(), 1);
+    assert_eq!(cells[0].kind, "code");
+}
+
+/// A double-quoted name keeps its spaces, and an unclosed quote keeps the cell
+/// while the name is still being typed.
+#[test]
+fn a_quoted_name_keeps_spaces() {
+    let cells = extract_cells("//% kind=code name=\"my setup\"\nx\n");
+
+    assert_eq!(cells.len(), 1);
+    assert_eq!(cells[0].kind, "code");
+    assert_eq!(cells[0].name.as_deref(), Some("my setup"));
+}
+
+#[test]
+fn a_quoted_name_holds_escaped_quotes_and_equals() {
+    let cells = extract_cells("//% name=\"my \\\"x\\\" = 1\"\nx\n");
+
+    assert_eq!(cells[0].name.as_deref(), Some("my \"x\" = 1"));
+}
+
+#[test]
+fn an_unclosed_name_quote_keeps_the_cell() {
+    let text = "//% name=\"half\nBody.\n";
+    let cells = extract_cells(text);
+
+    assert_eq!(cells.len(), 1);
+    assert_eq!(cells[0].name.as_deref(), Some("half"));
+    assert_eq!(&text[cells[0].content_start..cells[0].content_end], "Body.");
 }
 
 /// An attribute sharing its line with content is not an attribute: the cell's

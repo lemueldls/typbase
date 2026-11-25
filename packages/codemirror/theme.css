@@ -272,37 +272,123 @@
   color: var(--typst-color-danger);
 }
 
-/* Notebook cells. A cell marker rides the attribute line when the cell has
-   one and otherwise takes a line of its own. */
 .tb-cell-rail {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--typst-space-1);
+  width: auto;
   min-height: 1.6rem;
-  padding: 0 var(--typst-space-1);
-  margin-right: var(--typst-space-2);
+  margin-right: var(--typst-space-1);
   color: var(--typst-color-text-secondary);
   font-size: var(--typst-text-xs);
   line-height: 1;
   user-select: none;
   vertical-align: middle;
-  opacity: 0.55;
+  opacity: 0.75;
   transition: opacity var(--typst-motion-fast);
 }
 
+@media (hover: none) {
+  .tb-cell-rail {
+    opacity: 0.9;
+  }
+}
+
 .tb-cell-rail:hover,
-.tb-cell-rail:focus-within {
+.tb-cell-rail:focus-within,
+.tb-cell-rail--active {
   opacity: 1;
+}
+
+.tb-cell-number {
+  flex: none;
+  min-width: 1.25rem;
+  color: var(--typst-color-text-secondary);
+  font-family: var(--typst-font-mono);
+  font-size: var(--typst-text-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tb-cell-rail--active .tb-cell-number {
+  color: var(--typst-color-accent);
 }
 
 .tb-cell-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--typst-space-1);
+  min-width: 0;
+  max-width: min(18rem, 60vw);
+  padding: var(--typst-space-0-5) var(--typst-space-1-5);
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-radius: var(--typst-radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--typst-motion-fast),
+    background-color var(--typst-motion-fast);
+}
+
+.tb-cell-chip:hover {
+  background: var(--typst-color-surface-2);
+}
+
+.tb-cell-chip[aria-expanded="true"] {
+  background: var(--typst-color-surface-3);
+}
+
+.tb-cell-chip:focus-visible {
+  outline: 2px solid var(--typst-color-accent);
+  outline-offset: 1px;
+}
+
+.tb-cell-rail--active .tb-cell-chip {
+  color: var(--typst-color-accent);
+  background: var(--typst-color-accent-soft);
+}
+
+.tb-cell-kind {
+  flex: none;
+}
+
+.tb-cell-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--typst-color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-cell-name::before {
+  content: "·";
+  margin-right: var(--typst-space-1);
+}
+
+.tb-cell-rail--active .tb-cell-name {
+  color: inherit;
+}
+
+.tb-cell-chevron {
+  flex: none;
+  color: var(--typst-color-text-secondary);
+}
+
+.tb-cell-rail--active .tb-cell-chevron {
+  color: inherit;
 }
 
 .tb-cell-held {
+  flex: none;
+  padding: var(--typst-space-0-5) var(--typst-space-1-5);
   color: var(--typst-color-warning);
+  font-size: var(--typst-text-xs);
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--typst-color-warning) 12%, transparent);
+  border-radius: var(--typst-radius-full);
 }
 
 .tb-cell-btn {
@@ -333,27 +419,22 @@
   outline-offset: 1px;
 }
 
-.tb-cell-active {
-  border-left: 2px solid var(--typst-color-accent) !important;
-  margin-left: calc(-1 * var(--typst-space-2) - 2px);
-  padding-left: var(--typst-space-2) !important;
-}
-
 .tb-cell-attribute {
   color: var(--typst-color-text-secondary);
-  font-size: var(--typst-text-xs);
+  font-family: var(--typst-font-mono);
+  font-size: var(--typst-text-md);
 }
 
-.tb-cell-attribute.cm-line {
-  margin-left: calc(-1 * var(--typst-space-2) - 2px);
-  padding-left: var(--typst-space-2);
-  border-left: 2px solid var(--typst-color-border-strong);
+.tb-cell-separator {
+  height: calc(var(--typst-space-3) + var(--typst-space-2));
+  margin-right: var(--typst-space-3);
+  border-top: 1px solid var(--typst-color-border);
 }
 
 .tb-cell-output {
-  margin: var(--typst-space-1) 0 var(--typst-space-3);
-  padding-left: var(--typst-space-3);
-  border-left: 2px solid var(--typst-color-border);
+  margin: 0;
+  padding: var(--typst-space-1) 0 var(--typst-space-3);
+  /* border-left: 2px solid var(--typst-color-border); */
 }
 
 .tb-cell-output--cleared,
@@ -401,9 +482,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--typst-space-1);
-  margin: var(--typst-space-1) 0 var(--typst-space-2);
-  padding-left: var(--typst-space-3);
-  border-left: 2px solid var(--typst-color-border);
+  padding: var(--typst-space-1) 0 var(--typst-space-2);
 }
 
 .tb-cell-diagnostic {
@@ -436,14 +515,16 @@
   color: var(--typst-color-text-secondary);
 }
 
-/* The rail's overflow menu is portaled to the body. A host that already styles
-   `.menu` wins these defaults; a host without one still gets a usable menu. */
 .tb-cell-menu {
   display: flex;
   flex-direction: column;
   gap: var(--typst-space-0-5);
   min-width: 10rem;
+  max-width: calc(100vw - var(--typst-space-4));
+  max-height: calc(100dvh - var(--typst-space-8));
   padding: var(--typst-space-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   color: var(--typst-color-text);
   font-family: var(--typst-font-text);
   font-size: var(--typst-text-md);
@@ -452,6 +533,25 @@
   border-radius: var(--typst-radius-md);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
   z-index: var(--typst-z-menu);
+}
+
+.tb-cell-menu .menu__separator {
+  height: 1px;
+  margin: var(--typst-space-0-5) 0;
+  background: var(--typst-color-border);
+}
+
+.tb-cell-menu-check {
+  margin-left: auto;
+  color: var(--typst-color-accent);
+}
+
+.tb-cell-menu .menu__danger {
+  color: var(--typst-color-danger);
+}
+
+.tb-cell-menu .menu__danger:hover {
+  background: color-mix(in srgb, var(--typst-color-danger) 12%, transparent);
 }
 
 .tb-cell-menu :where(.menu__item) {

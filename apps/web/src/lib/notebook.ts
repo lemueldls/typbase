@@ -103,8 +103,10 @@ export function createNotebookController(args: {
   readOnly: () => boolean;
   /** Runs a cell command from the rail's overflow menu. */
   onCommand: (command: string, index: number) => void;
+  /** Changes a cell's kind from its header menu. */
+  onSetType: (index: number, type: NotebookCellType) => void;
 }): NotebookController {
-  const { typstState, fileId, session, labels, readOnly, onCommand } = args;
+  const { typstState, fileId, session, labels, readOnly, onCommand, onSetType } = args;
 
   const refresh = (view: EditorView | undefined): void => {
     view?.dispatch({ effects: notebookRefreshEffect.of(null) });
@@ -150,6 +152,7 @@ export function createNotebookController(args: {
       // picks the change up through `state()` on the next decoration pass.
     },
     onCommand,
+    onSetType,
   };
 
   return {

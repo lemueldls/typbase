@@ -17,7 +17,6 @@ import {
   moveCell,
   setCellType,
   splitCell,
-  type NotebookCellType,
   type NotebookLabels,
 } from "@typbase/codemirror";
 import { blobReference, sniffMime } from "@typbase/storage";
@@ -186,6 +185,7 @@ const notebookLabels = computed<NotebookLabels>(() => ({
   prose: t("notebook.prose"),
   log: t("notebook.log"),
   hidden: t("notebook.hidden"),
+  cellType: t("notebook.cellType"),
   menu: t("notebook.menu"),
   split: t("notebook.split"),
   merge: t("notebook.merge"),
@@ -205,9 +205,6 @@ const notebookLabels = computed<NotebookLabels>(() => ({
 function notebookView(): EditorView | undefined {
   return editorPane.value?.view;
 }
-
-/** The cell the toolbar and the rail act on. */
-const notebookActive = computed<number | null>(() => notebookSession.active);
 
 /** The cell's body text, for a copy action. */
 function cellText(index: number): string {
@@ -233,16 +230,16 @@ function runNotebookCommand(command: string, index: number): void {
       session.collapsed[index] = !(session.collapsed[index] ?? false);
       break;
     case "split":
-      if (view) splitCell(view);
+      if (view) splitCell(view, index);
       break;
     case "merge":
-      if (view) mergeCell(view);
+      if (view) mergeCell(view, index);
       break;
     case "moveUp":
-      if (view) moveCell(view, -1);
+      if (view) moveCell(view, -1, index);
       break;
     case "moveDown":
-      if (view) moveCell(view, 1);
+      if (view) moveCell(view, 1, index);
       break;
     case "hold":
       session.held[index] = true;
@@ -281,6 +278,10 @@ function syncNotebookController(): void {
     labels: notebookLabels.value,
     readOnly: () => props.modelValue === "read",
     onCommand: runNotebookCommand,
+    onSetType: (index, type) => {
+      const view = notebookView();
+      if (view) setCellType(view, index, type);
+    },
   });
 }
 
@@ -289,25 +290,8 @@ function addNotebookCell(): void {
   if (view) insertCell(view, "prose");
 }
 
-function splitNotebookCell(): void {
-  const view = notebookView();
-  if (view) splitCell(view);
-}
-
-function mergeNotebookCell(): void {
-  const view = notebookView();
-  if (view) mergeCell(view);
-}
-
 function releaseAllNotebook(): void {
   notebookController.value?.releaseAll(notebookView());
-}
-
-/** The toolbar's type menu, on the cell under the caret. */
-function setNotebookCellType(type: NotebookCellType): void {
-  const view = notebookView();
-  const index = notebookSession.active;
-  if (view && index !== null && index >= 0) setCellType(view, index, type);
 }
 
 // Bumped when a wasm panic forces a brand-new TypstState. Children keyed on
@@ -2057,16 +2041,12 @@ function onModeKeydown(event: KeyboardEvent) {
     </div>
 
     <NotebookToolbar
-      v-if="store && meta?.kind === 'notebook'"
+      v-if="store && meta?.kind === 'notebook' && modelValue !== 'read'"
       :session="notebookSession"
-      :active="notebookActive"
-      :disabled="!ready || degraded"
+      :disabled="!ready || degraded || store.readOnly || atprotoStatus.readOnly"
       :compact="coarsePointer"
       @add-cell="addNotebookCell"
-      @split="splitNotebookCell"
-      @merge="mergeNotebookCell"
       @release-all="releaseAllNotebook"
-      @set-type="setNotebookCellType"
     />
 
     <div v-if="modelValue !== 'read' && formatOpen" class="page-view__format">

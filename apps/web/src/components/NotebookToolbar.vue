@@ -1,90 +1,44 @@
 <script setup lang="ts">
-import { NOTEBOOK_CELL_TYPES } from "@typbase/codemirror";
-
-import type { NotebookCellType, NotebookSession } from "~/lib/notebook";
+import type { NotebookSession } from "~/lib/notebook";
 
 const props = defineProps<{
   session: NotebookSession;
-  /** The cell the actions apply to, or null when there is none. */
-  active: number | null;
   disabled: boolean;
   compact: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "addCell"): void;
-  (e: "split"): void;
-  (e: "merge"): void;
   (e: "releaseAll"): void;
-  (e: "setType", type: NotebookCellType): void;
 }>();
-
-const typeLabels: Record<NotebookCellType, string> = {
-  prose: "notebook.prose",
-  code: "notebook.code",
-  log: "notebook.log",
-  hidden: "notebook.hidden",
-};
-
-const activeType = computed<NotebookCellType>(
-  () => props.session.cells[props.active ?? -1]?.kind ?? "prose",
-);
-
-const hasCell = computed(() => props.active !== null);
 </script>
 
 <template>
   <div class="notebook-toolbar" :class="{ 'notebook-toolbar--compact': compact }">
-    <UiIconButton
+    <UiButton
+      variant="ghost"
+      size="small"
       icon="add"
-      :label="$t('notebook.addCell')"
+      class="notebook-toolbar__add"
+      :aria-label="$t('notebook.addCell')"
       :disabled="disabled"
+      data-notebook-add-cell
       @click="emit('addCell')"
-    />
+    >
+      <span class="notebook-toolbar__add-label">{{ $t("notebook.addCell") }}</span>
+    </UiButton>
 
-    <UiMenu align="start">
-      <template #trigger>
-        <UiIconButton
-          icon="category"
-          :label="$t('notebook.cellType')"
-          :disabled="disabled || !hasCell"
-        />
-      </template>
-      <DropdownMenuRadioGroup
-        :model-value="activeType"
-        @update:model-value="(value) => emit('setType', value as NotebookCellType)"
-      >
-        <DropdownMenuRadioItem
-          v-for="type in NOTEBOOK_CELL_TYPES"
-          :key="type"
-          :value="type"
-          class="menu__item"
-          :disabled="disabled || !hasCell"
-        >
-          {{ $t(typeLabels[type]) }}
-          <MsIcon name="check" :size="16" class="menu__item-check" />
-        </DropdownMenuRadioItem>
-      </DropdownMenuRadioGroup>
-    </UiMenu>
-
-    <UiIconButton
-      icon="call_split"
-      :label="$t('notebook.split')"
-      :disabled="disabled || !hasCell"
-      @click="emit('split')"
-    />
-    <UiIconButton
-      icon="merge_type"
-      :label="$t('notebook.merge')"
-      :disabled="disabled || props.active === null || props.active === 0"
-      @click="emit('merge')"
-    />
-    <UiIconButton
-      icon="play_arrow"
-      :label="$t('notebook.releaseAll')"
-      :disabled="disabled || Object.keys(session.held).length === 0"
-      @click="emit('releaseAll')"
-    />
+    <div class="notebook-toolbar__actions">
+      <UiIconButton
+        variant="ghost"
+        control="small"
+        :size="18"
+        icon="play_arrow"
+        :label="$t('notebook.releaseAll')"
+        :disabled="disabled || Object.keys(props.session.held).length === 0"
+        @click="emit('releaseAll')"
+      />
+    </div>
   </div>
 </template>
 
@@ -92,10 +46,9 @@ const hasCell = computed(() => props.active !== null);
 .notebook-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  gap: var(--space-2);
+  padding: 0 var(--pane-header-pad-x) var(--space-2);
+  background: var(--color-surface-2);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -104,12 +57,24 @@ const hasCell = computed(() => props.active !== null);
   display: none;
 }
 
-.notebook-toolbar--compact {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  border-top: 1px solid var(--color-border);
-  border-bottom: none;
-  padding-bottom: calc(var(--safe-bottom) + var(--space-1));
+.notebook-toolbar > * {
+  flex: none;
+}
+
+.notebook-toolbar__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.notebook-toolbar--compact .notebook-toolbar__add {
+  width: var(--control-sm);
+  padding: 0;
+  gap: 0;
+}
+
+.notebook-toolbar--compact .notebook-toolbar__add-label {
+  display: none;
 }
 </style>

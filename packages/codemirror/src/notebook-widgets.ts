@@ -6,8 +6,13 @@ import type { FileId, SvgRangedFrame, TypstDiagnostic, TypstState } from "@typba
 import { Decoration, WidgetType } from "@codemirror/view";
 
 import type { ExternalLinkOpener } from "./frames";
-import type { NotebookCell } from "./notebook";
-import type { NotebookCellState, NotebookLabels, NotebookOptions } from "./notebook";
+import type {
+  NotebookCell,
+  NotebookCellState,
+  NotebookCellType,
+  NotebookLabels,
+  NotebookOptions,
+} from "./notebook";
 
 import {
   attachFrameInteractions,
@@ -18,14 +23,28 @@ import {
   TypstWidget,
 } from "./frames";
 import {
+  NOTEBOOK_CELL_TYPES,
   cellIndexAt,
   cellStart,
   focusCell,
   hasAttribute,
   hasOutput,
   hidesSource,
+  notebookRefreshEffect,
   rendersInPlace,
 } from "./notebook";
+
+/**
+ * Open cell action menus. The editor's focus leaves the rail while one is open
+ * (the menu takes focus), and a focus-driven re-decorate would rebuild the
+ * rail and remove the menu under the pointer. The plugin holds still while a
+ * menu is open; closing one asks for the pass it skipped.
+ */
+const openRailMenus = new Set<HTMLElement>();
+
+export function notebookRailMenuOpen(): boolean {
+  return openRailMenus.size > 0;
+}
 
 function icon(name: string, size?: number): HTMLElement {
   const span = document.createElement("span");
@@ -76,8 +95,22 @@ const KIND_PRESENTATION: Record<NotebookCell["kind"], string> = {
   hidden: "visibility_off",
 };
 
+interface RailMenuItem {
+  label: string;
+  name: string;
+  command?: string;
+  type?: NotebookCellType;
+  checked?: boolean;
+  danger?: boolean;
+}
+
 class NotebookRailWidget extends WidgetType {
   private menu: HTMLElement | null = null;
+  private menuKind: "actions" | "type" | null = null;
+  private menuTrigger: HTMLElement | null = null;
+  private chip: HTMLButtonElement | null = null;
+  private actionsTrigger: HTMLButtonElement | null = null;
+  private dismiss: ((event: Event) => void) | null = null;
 
   public constructor(
     private readonly view: EditorView,
@@ -87,8 +120,10 @@ class NotebookRailWidget extends WidgetType {
       name?: string | null;
       collapsed: boolean;
       held: boolean;
+      active: boolean;
       labels: NotebookLabels;
       onCommand: (command: string, index: number) => void;
+      onSetType?: (index: number, type: NotebookCellType) => void;
     },
   ) {
     super();
@@ -104,27 +139,64 @@ class NotebookRailWidget extends WidgetType {
       a.name === b.name &&
       a.collapsed === b.collapsed &&
       a.held === b.held &&
+      a.active === b.active &&
       a.labels === b.labels
     );
   }
 
   public override ignoreEvent(event: Event): boolean {
-    return (
-      event.type === "mousedown" && (event.target as HTMLElement).classList.contains("tb-cell-rail")
-    );
+    const target = event.target as HTMLElement | null;
+
+    return event.type === "mousedown" && !!target?.closest(".tb-cell-rail");
   }
 
   public toDOM() {
-    const { index, kind, name, labels } = this.args;
+    const { index, kind, name, labels, active } = this.args;
     const rail = document.createElement("div");
     rail.className = "tb-cell-rail";
     rail.dataset.kind = kind;
     rail.dataset.cell = String(index);
+    rail.classList.toggle("tb-cell-rail--active", active);
 
-    const chip = document.createElement("span");
+    // const number = document.createElement("span");
+    // number.className = "tb-cell-number";
+    // number.textContent = String(index + 1);
+    // rail.append(number);
+
+    const chip = document.createElement("button");
+    chip.type = "button";
     chip.className = "tb-cell-chip";
+    chip.setAttribute("aria-haspopup", "menu");
+    chip.setAttribute("aria-expanded", "false");
+    chip.setAttribute(
+      "aria-label",
+      name ? `${labels.cellType}: ${labels[kind]}, ${name}` : `${labels.cellType}: ${labels[kind]}`,
+    );
+    chip.title = labels.cellType;
     chip.append(icon(KIND_PRESENTATION[kind], RAIL_ICON_SIZE));
-    chip.append(document.createTextNode(name || labels[kind]));
+
+    const kindLabel = document.createElement("span");
+    kindLabel.className = "tb-cell-kind";
+    kindLabel.textContent = labels[kind];
+    chip.append(kindLabel);
+
+    if (name) {
+      const nameLabel = document.createElement("span");
+      nameLabel.className = "tb-cell-name";
+      nameLabel.textContent = name;
+      chip.append(nameLabel);
+    }
+
+    const chevron = icon("arrow_drop_down", 16);
+    chevron.classList.add("tb-cell-chevron");
+    chip.append(chevron);
+    chip.addEventListener("mousedown", (event) => event.preventDefault());
+    chip.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleMenu(chip, "type");
+    });
+    this.chip = chip;
     rail.append(chip);
 
     if (this.args.held) {
@@ -134,8 +206,16 @@ class NotebookRailWidget extends WidgetType {
       rail.append(held);
     }
 
-    const menu = button("more_vert", labels.menu, () => this.toggleMenu(rail), "tb-cell-btn--menu");
-    rail.append(menu);
+    const actions = button(
+      "more_vert",
+      labels.menu,
+      () => this.toggleMenu(actions, "actions"),
+      "tb-cell-btn--menu",
+    );
+    actions.setAttribute("aria-haspopup", "menu");
+    actions.setAttribute("aria-expanded", "false");
+    this.actionsTrigger = actions;
+    rail.append(actions);
 
     rail.addEventListener("mousedown", (event) => {
       if ((event.target as HTMLElement).closest("button")) return;
@@ -146,92 +226,202 @@ class NotebookRailWidget extends WidgetType {
     return rail;
   }
 
-  private toggleMenu(anchor: HTMLElement): void {
+  private toggleMenu(trigger: HTMLElement, kind: "actions" | "type"): void {
     if (this.menu) {
-      this.closeMenu();
+      if (this.menuKind === kind) {
+        this.closeMenu();
+        this.view.focus();
 
-      return;
+        return;
+      }
+
+      // Another rail menu was open. Replace it without scheduling the focus
+      // refresh the close path would normally ask for.
+      this.closeMenu(false);
     }
 
     const { labels, index, collapsed, held } = this.args;
-    const items: Array<{ command: string; label: string; name: string }> = [
-      {
-        command: "toggleSource",
-        label: labels.toggleSource,
-        name: collapsed ? "unfold_more" : "unfold_less",
-      },
-      { command: "split", label: labels.split, name: "call_split" },
-      { command: "merge", label: labels.merge, name: "merge_type" },
-      {
-        command: "moveUp",
-        label: labels.moveUp,
-        name: "keyboard_double_arrow_up",
-      },
-      {
-        command: "moveDown",
-        label: labels.moveDown,
-        name: "keyboard_double_arrow_down",
-      },
-      { command: "duplicate", label: labels.duplicate, name: "content_copy" },
-      { command: "copy", label: labels.copy, name: "content_paste" },
-      {
-        command: held ? "release" : "hold",
-        label: held ? labels.release : labels.hold,
-        name: held ? "play_arrow" : "pause",
-      },
-      {
-        command: "clearOutput",
-        label: labels.clearOutput,
-        name: "delete_sweep",
-      },
-      { command: "remove", label: labels.remove, name: "delete" },
-    ];
+    const groups: RailMenuItem[][] =
+      kind === "type"
+        ? [
+            NOTEBOOK_CELL_TYPES.map((type) => ({
+              label: labels[type],
+              name: KIND_PRESENTATION[type],
+              type,
+              checked: type === this.args.kind,
+            })),
+          ]
+        : [
+            [
+              {
+                command: "toggleSource",
+                label: labels.toggleSource,
+                name: collapsed ? "unfold_more" : "unfold_less",
+              },
+              { command: "split", label: labels.split, name: "call_split" },
+              { command: "merge", label: labels.merge, name: "merge_type" },
+            ],
+            [
+              { command: "moveUp", label: labels.moveUp, name: "keyboard_double_arrow_up" },
+              { command: "moveDown", label: labels.moveDown, name: "keyboard_double_arrow_down" },
+            ],
+            [
+              { command: "duplicate", label: labels.duplicate, name: "content_copy" },
+              { command: "copy", label: labels.copy, name: "content_paste" },
+            ],
+            [
+              {
+                command: held ? "release" : "hold",
+                label: held ? labels.release : labels.hold,
+                name: held ? "play_arrow" : "pause",
+              },
+              { command: "clearOutput", label: labels.clearOutput, name: "delete_sweep" },
+            ],
+            [{ command: "remove", label: labels.remove, name: "delete", danger: true }],
+          ];
 
     const menu = document.createElement("div");
     menu.className = "menu tb-cell-menu";
     menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", kind === "type" ? labels.cellType : labels.menu);
 
-    for (const item of items) {
-      const entry = document.createElement("button");
-      entry.type = "button";
-      entry.className = "menu__item";
-      entry.setAttribute("role", "menuitem");
-      entry.append(icon(item.name, RAIL_ICON_SIZE));
-      entry.append(document.createTextNode(item.label));
-      entry.addEventListener("click", () => {
-        this.closeMenu();
-        this.args.onCommand(item.command, index);
-      });
-      menu.append(entry);
+    const entries: HTMLButtonElement[] = [];
+    for (const [groupIndex, group] of groups.entries()) {
+      if (groupIndex > 0) {
+        const separator = document.createElement("div");
+        separator.className = "menu__separator";
+        separator.setAttribute("role", "separator");
+        menu.append(separator);
+      }
+
+      for (const item of group) {
+        const entry = document.createElement("button");
+        entry.type = "button";
+        entry.className = item.danger ? "menu__item menu__danger" : "menu__item";
+        entry.setAttribute("role", "menuitem");
+        entry.append(icon(item.name, RAIL_ICON_SIZE));
+        entry.append(document.createTextNode(item.label));
+        if (item.checked) {
+          const check = icon("check", RAIL_ICON_SIZE);
+          check.classList.add("tb-cell-menu-check");
+          entry.append(check);
+        }
+        // Keep the editor's focus and selection while the menu is clicked. A
+        // focus change here used to rebuild the decorations and take the menu
+        // out from under the pointer before the click landed.
+        entry.addEventListener("mousedown", (event) => event.preventDefault());
+        entry.addEventListener("click", () => {
+          this.closeMenu();
+          if (item.type) this.args.onSetType?.(index, item.type);
+          else if (item.command) this.args.onCommand(item.command, index);
+          this.view.focus();
+        });
+        entries.push(entry);
+        menu.append(entry);
+      }
     }
 
+    menu.addEventListener("keydown", (event) => {
+      const current = entries.indexOf(document.activeElement as HTMLButtonElement);
+      let next: HTMLButtonElement | undefined;
+      if (event.key === "ArrowDown")
+        next = entries[current < 0 ? 0 : (current + 1) % entries.length];
+      else if (event.key === "ArrowUp")
+        next =
+          entries[
+            current < 0 ? entries.length - 1 : (current - 1 + entries.length) % entries.length
+          ];
+      else if (event.key === "Home") next = entries[0];
+      else if (event.key === "End") next = entries.at(-1);
+      if (next) {
+        event.preventDefault();
+        next.focus({ preventScroll: true });
+      }
+    });
+
     document.body.append(menu);
-    const box = anchor.getBoundingClientRect();
     menu.style.position = "fixed";
-    menu.style.left = `${Math.round(box.left)}px`;
-    menu.style.top = `${Math.round(box.bottom + 4)}px`;
+
+    const box = trigger.getBoundingClientRect();
+    const rect = menu.getBoundingClientRect();
+    const margin = 8;
+    const maxLeft = Math.max(margin, document.documentElement.clientWidth - rect.width - margin);
+    let top = box.bottom + 4;
+    if (top + rect.height > window.innerHeight - margin) {
+      const above = box.top - rect.height - 4;
+      top = above >= margin ? above : Math.max(margin, window.innerHeight - rect.height - margin);
+    }
+
+    menu.style.left = `${Math.round(Math.min(Math.max(box.left, margin), maxLeft))}px`;
+    menu.style.top = `${Math.round(top)}px`;
     this.menu = menu;
+    this.menuKind = kind;
+    this.menuTrigger = trigger;
+    openRailMenus.add(menu);
+    trigger.setAttribute("aria-expanded", "true");
+    entries[0]?.focus({ preventScroll: true });
 
     const dismiss = (event: Event): void => {
-      if (menu.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (
+        menu.contains(target) ||
+        this.chip?.contains(target) ||
+        this.actionsTrigger?.contains(target)
+      ) {
+        return;
+      }
       this.closeMenu();
     };
-    setTimeout(() => document.addEventListener("mousedown", dismiss), 0);
+    this.dismiss = dismiss;
+    setTimeout(() => {
+      if (this.menu === menu && this.dismiss === dismiss) {
+        document.addEventListener("mousedown", dismiss);
+      }
+    }, 0);
     document.addEventListener("keyup", this.onEscape);
+    this.view.scrollDOM.addEventListener("scroll", this.onScroll);
+    window.addEventListener("resize", this.onResize);
   }
 
   private readonly onEscape = (event: KeyboardEvent): void => {
-    if (event.key === "Escape") this.closeMenu();
+    if (event.key !== "Escape") return;
+    this.closeMenu();
+    this.view.focus();
   };
 
-  private closeMenu(): void {
-    this.menu?.remove();
+  private readonly onScroll = (): void => {
+    this.closeMenu();
+  };
+
+  private readonly onResize = (): void => {
+    this.closeMenu();
+  };
+
+  private closeMenu(refresh = true): void {
+    const menu = this.menu;
+    if (menu) openRailMenus.delete(menu);
+    if (this.dismiss) {
+      document.removeEventListener("mousedown", this.dismiss);
+      this.dismiss = null;
+    }
+    this.menuTrigger?.setAttribute("aria-expanded", "false");
+    menu?.remove();
     this.menu = null;
+    this.menuKind = null;
+    this.menuTrigger = null;
     document.removeEventListener("keyup", this.onEscape);
+    this.view.scrollDOM.removeEventListener("scroll", this.onScroll);
+    window.removeEventListener("resize", this.onResize);
+
+    // Focus moved while the menu held the editor, and the plugin skipped that
+    // pass. Run it now that the menu is gone.
+    if (menu && refresh && openRailMenus.size === 0 && this.view.dom.isConnected) {
+      this.view.dispatch({ effects: notebookRefreshEffect.of(null) });
+    }
   }
 
   public override destroy(): void {
-    this.closeMenu();
+    this.closeMenu(false);
   }
 }
 
@@ -242,6 +432,8 @@ interface OutputArgs {
   cleared: boolean;
   /** The cell is held, so what is shown is its last output. */
   held: boolean;
+  /** Read-only cells have no rail to carry the held badge. */
+  readOnly: boolean;
   labels: NotebookLabels;
 }
 
@@ -269,7 +461,7 @@ class NotebookOutputWidget extends WidgetType {
       .join(",");
     const diagnostics = this.args.diagnostics.map((diagnostic) => diagnostic.message).join("|");
 
-    return `${this.args.index}:${this.args.cleared}:${this.args.held}:${frames}:${diagnostics}`;
+    return `${this.args.index}:${this.args.cleared}:${this.args.held}:${this.args.readOnly}:${frames}:${diagnostics}`;
   }
 
   public override eq(other: NotebookOutputWidget) {
@@ -322,7 +514,7 @@ class NotebookOutputWidget extends WidgetType {
       body.append(holder);
     }
 
-    if (held) {
+    if (held && this.args.readOnly) {
       const note = document.createElement("div");
       note.className = "tb-cell-stale";
       note.textContent = labels.held;
@@ -368,6 +560,21 @@ class NotebookOutputSpacer extends WidgetType {
 
   public override get estimatedHeight() {
     return this.height;
+  }
+}
+
+/** The horizontal rule that separates one cell from the next. */
+class NotebookSeparatorWidget extends WidgetType {
+  public override eq(_other: NotebookSeparatorWidget) {
+    return true;
+  }
+
+  public toDOM() {
+    const root = document.createElement("div");
+    root.className = "tb-cell-separator";
+    root.setAttribute("role", "separator");
+
+    return root;
   }
 }
 
@@ -438,7 +645,19 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
     const own = cellState(index);
     const firstLine = state.doc.lineAt(cellStart(cell)).from;
 
+    if (index > 0) {
+      decorations.push(
+        Decoration.widget({
+          widget: new NotebookSeparatorWidget(),
+          block: true,
+          side: -1,
+        }).range(firstLine),
+      );
+    }
+
     if (index === activeIndex) {
+      // The rail chip carries the visible state. The line class stays as the
+      // stable hook for tests and anything that needs the active cell's start.
       decorations.push(Decoration.line({ class: "tb-cell-active" }).range(firstLine));
     }
 
@@ -451,8 +670,10 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
             name: cell.name,
             collapsed: own.collapsed ?? false,
             held: own.held ?? false,
+            active: index === activeIndex,
             labels,
             onCommand,
+            onSetType: options.onSetType,
           }),
           block: !hasAttribute(cell),
           side: -1,
@@ -475,15 +696,21 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
       decorations.push(Decoration.replace({}).range(contentStart, contentEnd));
     }
 
+    if (!renderFrames) {
+      // Source and split editing still get the cell's diagnostics under it,
+      // because there is no lint gutter in a notebook.
+      pushDiagnostics(decorations, state, cell, diagnostics);
+
+      return;
+    }
+
     if (hideSource) {
-      if (renderFrames) pushDiagnostics(decorations, state, cell, diagnostics);
+      pushDiagnostics(decorations, state, cell, diagnostics);
 
       return;
     }
 
     if (rendersInPlace(cell.kind)) {
-      if (!renderFrames) return;
-
       for (const frame of byCell[index] ?? []) {
         const { start, end } = frame.range;
         if (!frame.render || end <= start) continue;
@@ -500,15 +727,17 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
         }
       }
 
-      if (renderFrames) pushDiagnostics(decorations, state, cell, diagnostics);
+      pushDiagnostics(decorations, state, cell, diagnostics);
 
       return;
     }
 
     if (!hasOutput(cell.kind)) return;
-    if (!renderFrames) return;
 
-    const outputPos = contentEnd > contentStart ? state.doc.lineAt(contentEnd).to : contentStart;
+    // The output sits at the cell's block end, after any trailing blank lines.
+    // Typing in that gap then stays above it instead of pushing it down.
+    const next = cells[index + 1];
+    const outputPos = next ? cellStart(next) : state.doc.length;
     const held = own.held ?? false;
     const output = held
       ? (own.frozen ?? { frames: [], diagnostics: [] })
@@ -522,7 +751,7 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
         Decoration.widget({
           widget: new NotebookOutputSpacer(outputHeight(output.frames)),
           block: true,
-          side: 1,
+          side: -2,
         }).range(outputPos),
       );
 
@@ -541,12 +770,13 @@ export function decorateNotebook(args: NotebookDecorateArgs): Range<Decoration>[
             diagnostics: output.diagnostics,
             cleared: own.cleared ?? false,
             held,
+            readOnly,
             labels,
           },
           onExternalLink,
         ),
         block: true,
-        side: 1,
+        side: -2,
       }).range(outputPos),
     );
   });
@@ -604,9 +834,14 @@ class NotebookDiagnosticsWidget extends WidgetType {
   public override eq(other: NotebookDiagnosticsWidget) {
     return (
       this.diagnostics.length === other.diagnostics.length &&
-      this.diagnostics.every(
-        (diagnostic, index) => diagnostic.message === other.diagnostics[index]?.message,
-      )
+      this.diagnostics.every((diagnostic, index) => {
+        const previous = other.diagnostics[index];
+
+        return (
+          diagnostic.message === previous?.message &&
+          diagnostic.hints.join("\n") === previous?.hints.join("\n")
+        );
+      })
     );
   }
 
@@ -618,6 +853,15 @@ class NotebookDiagnosticsWidget extends WidgetType {
       const item = document.createElement("div");
       item.className = `tb-cell-diagnostic tb-cell-diagnostic--${diagnostic.severity}`;
       item.textContent = diagnostic.message;
+      if (diagnostic.hints.length) {
+        const hints = document.createElement("ul");
+        for (const hint of diagnostic.hints) {
+          const entry = document.createElement("li");
+          entry.textContent = hint;
+          hints.append(entry);
+        }
+        item.append(hints);
+      }
       root.append(item);
     }
 
@@ -625,7 +869,10 @@ class NotebookDiagnosticsWidget extends WidgetType {
   }
 
   public override get estimatedHeight() {
-    return this.diagnostics.length * 22 + 8;
+    let height = 8;
+    for (const diagnostic of this.diagnostics) height += 22 + diagnostic.hints.length * 18;
+
+    return height;
   }
 }
 
@@ -634,6 +881,7 @@ const FALLBACK_LABELS: NotebookLabels = {
   prose: "Text",
   log: "Log",
   hidden: "Hidden",
+  cellType: "Cell type",
   menu: "Cell actions",
   split: "Split cell",
   merge: "Merge with the cell above",

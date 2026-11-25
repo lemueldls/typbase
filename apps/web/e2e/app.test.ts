@@ -863,6 +863,54 @@ describe("typbase app", async () => {
     await page.close();
   });
 
+  it("keeps a cell's output at the cell bottom when typing in the gap", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Output bottom",
+      kind: "notebook",
+      content: ["//% kind=code", "#let n = 6 * 7", "#n", "", "//% kind=log", "done", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-output svg", { timeout: 60_000 });
+
+    // Type on the blank line between the code and the next cell. The output
+    // stays below that line and above the next cell's header.
+    await page.evaluate(() => {
+      const view = window.__typbase.view;
+      if (!view) return;
+      const text = view.state.doc.toString();
+      const at = text.indexOf("\n\n//% kind=log") + 1;
+      view.dispatch({ changes: { from: at, insert: "#n + 1" } });
+      view.dispatch({ selection: { anchor: at + 7 } });
+      view.focus();
+    });
+    await page.waitForTimeout(1400);
+
+    const measured = await page.evaluate(() => {
+      const top = (element: Element | null) =>
+        element ? Math.round(element.getBoundingClientRect().top) : null;
+      const lines = [...document.querySelectorAll<HTMLElement>(".cm-line")];
+
+      return {
+        typed: top(lines.find((line) => line.innerText.includes("#n + 1")) ?? null),
+        output: top(document.querySelector(".tb-cell-output")),
+        nextHeader: top(lines.find((line) => line.innerText.includes("//% kind=log")) ?? null),
+        separator: top(document.querySelector(".tb-cell-separator")),
+      };
+    });
+
+    expect(measured.typed).not.toBeNull();
+    expect(measured.output).not.toBeNull();
+    expect(measured.nextHeader).not.toBeNull();
+    expect(measured.typed ?? 0).toBeLessThan(measured.output ?? 0);
+    expect(measured.output ?? 0).toBeLessThan(measured.separator ?? 0);
+    expect(measured.separator ?? 0).toBeLessThan(measured.nextHeader ?? 0);
+
+    await page.close();
+  });
+
   it("holds a cell's output until it is released", async () => {
     const page = await createPage();
     await openApp(page);
@@ -881,7 +929,7 @@ describe("typbase app", async () => {
       page.locator(".tb-cell-output .typst-render").first().getAttribute("data-hash");
     const before = await hash();
 
-    await page.locator(".tb-cell-rail button").first().click();
+    await page.locator(".tb-cell-rail .tb-cell-btn--menu").first().click();
     await page.locator(".menu__item", { hasText: "Hold output" }).click();
     await page.waitForSelector(".tb-cell-held", { timeout: 30_000 });
 
@@ -894,100 +942,328 @@ describe("typbase app", async () => {
     expect(await hash()).toBe(before);
 
     // Releasing repaints from the current source.
-    await page.locator(".tb-cell-rail button").first().click();
+    await page.locator(".tb-cell-rail .tb-cell-btn--menu").first().click();
     await page.locator(".menu__item", { hasText: "Release output" }).click();
     await expect.poll(hash, { timeout: 30_000 }).not.toBe(before);
 
     await page.close();
   });
 
-  it("picks a cell's type from the toolbar menu", async () => {
+  it("picks a cell's type from its header", async () => {
     const page = await createPage();
     await openApp(page);
 
     const id = await createTestPage(page, {
       title: "Cell types",
       kind: "notebook",
-      content: ["//% kind=code", "#let x = 1", "", "//% kind=log", "done", ""].join("\n"),
+      content: [
+        "//% kind=code",
+        "#let x = 1",
+        "",
+        '//% kind=log name="done deal"',
+        "done",
+        "",
+      ].join("\n"),
     });
     await showPage(page, id, "write");
     await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
 
-    // The rail labels each cell without offering to toggle it: the four kinds
-    // differ in where the output goes, so picking one is a deliberate action.
-    const chip = async (index: number): Promise<string> => {
-      const text = await page.locator(".tb-cell-chip").nth(index).innerText();
-
-      return (text.split("\n").at(-1) ?? "").trim();
-    };
+    // The rail labels each cell and its chip is the type menu for that cell.
+    const chip = async (index: number): Promise<string> =>
+      page.locator(".tb-cell-kind").nth(index).innerText();
     expect([await chip(0), await chip(1)]).toEqual(["Code", "Log"]);
+    // A name is a cell attribute, so it reads beside the kind instead of
+    // replacing it. Quotes keep its spaces.
+    expect(await page.locator(".tb-cell-name").innerText()).toBe("done deal");
 
-    // Put the caret in the second cell, then change it from the menu.
-    await page.locator(".cm-content").click();
-    await page.keyboard.press("Control+End");
-    await page.locator(".notebook-toolbar button[aria-label='Cell type']").click();
+    // Leave the caret in the first cell and change the second from its own
+    // header. The menu targets the cell it belongs to, not the caret cell.
+    await page.evaluate(() => {
+      const view = window.__typbase.view;
+      view?.dispatch({ selection: { anchor: 0 } });
+      view?.focus();
+    });
+    const typeTrigger = page.locator(".tb-cell-chip").nth(1);
+    expect(await typeTrigger.getAttribute("aria-label")).toBe("Cell type: Log, done deal");
+    await typeTrigger.click();
     await page.locator(".menu__item", { hasText: "Text" }).click();
 
     await expect.poll(() => chip(1), { timeout: 30_000 }).toBe("Text");
-    // The change is a rewrite of the attribute line, so it is on the undo stack.
-    expect(await page.evaluate(() => window.__typbase.view?.state.doc.toString())).toContain("//%");
+    await expect
+      .poll(() => typeTrigger.getAttribute("aria-label"), { timeout: 30_000 })
+      .toBe("Cell type: Text, done deal");
+    // The change is a rewrite of the attribute line, so it is on the undo stack
+    // and the spaced name keeps its quotes.
+    const source = await page.evaluate(() => window.__typbase.view?.state.doc.toString() ?? "");
+    expect(source).toContain("//%");
+    expect(source).toContain('name="done deal"');
 
     await page.close();
   });
 
-  it("gives the active cell's rule a gap and shifts no content", async () => {
+  it("puts the caret on a cell's attribute line when its header is clicked", async () => {
     const page = await createPage();
     await openApp(page);
 
     const id = await createTestPage(page, {
-      title: "Active rule",
+      title: "Plain marker",
       kind: "notebook",
-      content: ["//% kind=code", "#let n = 6 * 7", "#n", ""].join("\n"),
+      content: ["//%", "Body", "", "//% kind=code", "#let n = 1", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-number", { timeout: 60_000 });
+
+    // Move the caret into the second cell, then click the first cell's number.
+    // The header click belongs to that cell's attribute line, not its content.
+    await page.evaluate(() => {
+      const view = window.__typbase.view;
+      if (!view) return;
+      const pos = view.state.doc.toString().indexOf("#let n");
+      view.dispatch({ selection: { anchor: pos } });
+      view.focus();
+    });
+    await page.locator(".tb-cell-number").first().click();
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const view = window.__typbase.view;
+            return view ? view.state.doc.lineAt(view.state.selection.main.head).text : null;
+          }),
+        { timeout: 30_000 },
+      )
+      .toBe("//%");
+
+    await page.close();
+  });
+
+  it("marks the active cell from its header and keeps it clear of the gutter", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Active cell",
+      kind: "notebook",
+      content: ["= Heading", "", "//% kind=code", "#let n = 6 * 7", "#n", ""].join("\n"),
     });
     await showPage(page, id, "write");
     await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
 
-    // Put the caret in the code cell so its line has the active class.
-    await page.locator(".cm-content").click();
-    await page.waitForSelector(".cm-line.tb-cell-active", { timeout: 30_000 });
+    // Put the caret in the code cell without depending on where a click lands.
+    await page.evaluate(() => {
+      const view = window.__typbase.view;
+      if (!view) return;
+      const pos = view.state.doc.toString().indexOf("#let n");
+      view.dispatch({ selection: { anchor: pos } });
+      view.focus();
+    });
+    await page.waitForSelector(".tb-cell-rail--active", { timeout: 30_000 });
     await page.waitForTimeout(500);
 
     const measured = await page.evaluate(() => {
       const left = (element: Element | null) =>
         element ? Math.round(element.getBoundingClientRect().left) : null;
+      const right = (element: Element | null) =>
+        element ? Math.round(element.getBoundingClientRect().right) : null;
 
       const active = document.querySelector(".cm-line.tb-cell-active");
-      // The cell's own text, not the rail's chip: the rail is an inline widget at
-      // the start of the line, so the first span on an attribute line belongs to
-      // it. `#let n` is the cell's content.
+      const attribute = document.querySelector(".cm-line.tb-cell-attribute");
+      const rail = document.querySelector(".tb-cell-rail--active");
+      const chip = rail?.querySelector(".tb-cell-chip");
       const lines = [...document.querySelectorAll<HTMLElement>(".cm-line")];
       const codeLine = lines.find((line) => line.innerText.includes("#let n"));
       const other = lines.find(
-        (line) => !line.classList.contains("tb-cell-active") && line.innerText.trim().length > 0,
+        (line) =>
+          line !== active && !line.classList.contains("tb-cell-active") && line.innerText.trim(),
       );
       const firstToken = (line: Element | undefined) =>
         line?.querySelector("span:not(.ms-icon):not(.tb-cell-chip *)") ?? null;
 
       return {
-        ruleLeft: left(active),
+        railInAttribute: !!attribute && !!rail && attribute.contains(rail),
+        chipBackground: chip ? getComputedStyle(chip).backgroundColor : null,
+        activeBorder: active ? getComputedStyle(active).borderLeftWidth : null,
+        activeMargin: active ? getComputedStyle(active).marginLeft : null,
+        gutterRight: right(document.querySelector(".cm-gutter-lint")),
+        activeLeft: left(active),
         codeTextLeft: left(firstToken(codeLine)),
         otherLineLeft: left(other ?? null),
         otherTextLeft: left(firstToken(other ?? undefined)),
         outputLeft: left(document.querySelector(".tb-cell-output")),
+        separators: document.querySelectorAll(".tb-cell-separator").length,
       };
     });
 
-    expect(measured.ruleLeft).not.toBeNull();
+    // The header is one row: the rail sits on the attribute line rather than
+    // adding a second header line above it.
+    expect(measured.railInAttribute).toBe(true);
+    // The active cell reads from its chip, not from a rule that would share the
+    // gutter column with the diagnostic marker.
+    expect(measured.chipBackground).not.toBe("rgba(0, 0, 0, 0)");
+    expect(measured.activeBorder).toBe("0px");
+    expect(measured.activeMargin).toBe("0px");
+    expect(measured.gutterRight).not.toBeNull();
+    expect(measured.activeLeft ?? 0).toBeGreaterThanOrEqual(measured.gutterRight ?? 0);
+    // Every cell's text stays on the same left edge, including the render.
     expect(measured.codeTextLeft).not.toBeNull();
-    // The rule sits clear of the content. Measured from the line's own box rather
-    // than a derived px count: CodeMirror's syntax tokens start a little after the
-    // line's padding, so a token's left edge is not the padding edge.
-    expect((measured.codeTextLeft ?? 0) - (measured.ruleLeft ?? 0)).toBeGreaterThanOrEqual(8);
-    // The negative margin and the padding cancel, so the cell's text lands where an
-    // inactive line's text starts and where its own render starts.
     expect(measured.otherLineLeft).toBe(measured.codeTextLeft);
     expect(measured.otherTextLeft).toBe(measured.codeTextLeft);
     expect(measured.outputLeft).toBe(measured.codeTextLeft);
+    // Two cells, one rule between them. The first cell starts at the document top.
+    expect(measured.separators).toBe(1);
+
+    await page.close();
+  });
+
+  it("keeps notebook diagnostics inline and the gutter marker on its line", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Inline errors",
+      kind: "notebook",
+      content: [
+        "//% kind=code",
+        "#let n = 6 * 7",
+        "#n",
+        "",
+        "//% kind=code",
+        "#let x = nope",
+        "",
+      ].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-diagnostic", { timeout: 60_000 });
+
+    const check = () =>
+      page.evaluate(() => {
+        const top = (element: Element | null) =>
+          element ? Math.round(element.getBoundingClientRect().top) : null;
+        const errorLine = [...document.querySelectorAll(".cm-line")].find((line) =>
+          line.textContent.includes("#let x"),
+        );
+
+        return {
+          gutter: document.querySelectorAll(".cm-gutter-lint").length,
+          markers: document.querySelectorAll(".cm-lint-marker").length,
+          markerTop: top(document.querySelector(".cm-lint-marker-error")),
+          errorTop: top(errorLine ?? null),
+          messages: [...document.querySelectorAll(".tb-cell-diagnostic")].map((el) =>
+            el.textContent?.trim(),
+          ),
+        };
+      });
+
+    const write = await check();
+    expect(write.gutter).toBe(1);
+    expect(write.markers).toBe(1);
+    // Block widgets above the cell once shifted this marker to the previous
+    // line. The marker box and the error line must start at the same y.
+    expect(write.markerTop).not.toBeNull();
+    expect(write.markerTop).toBe(write.errorTop);
+    expect(write.messages.some((message) => message?.includes("unknown variable"))).toBe(true);
+
+    // The gutter marker is a severity bar again, not a dot.
+    const bar = await page.evaluate(() => {
+      const marker = document.querySelector(".cm-lint-marker-error");
+      if (!marker) return null;
+      const style = getComputedStyle(marker, "::after");
+
+      return { width: style.width, radius: style.borderRadius };
+    });
+    expect(bar).toEqual({ width: "2px", radius: "0px" });
+
+    // Hovering the marker opens the gutter tooltip, which is the list itself
+    // rather than a hover section. It still needs the same inset.
+    await page.locator(".cm-lint-marker-error").hover();
+    await page.waitForSelector(".cm-tooltip-lint", { timeout: 10_000 });
+    const tooltipPadding = await page
+      .locator(".cm-tooltip-lint")
+      .evaluate((el) => getComputedStyle(el).padding);
+    expect(tooltipPadding).toBe("8px 10px");
+
+    await page.evaluate(() => window.__typbase.setMode("source"));
+    await expect
+      .poll(
+        async () => {
+          const state = await check();
+
+          return state.messages.some((message) => message?.includes("unknown variable"));
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+    const source = await check();
+    expect(source.gutter).toBe(1);
+    expect(source.markers).toBe(1);
+    expect(source.markerTop).toBe(source.errorTop);
+
+    await page.close();
+  });
+
+  it("runs a cell action on the cell whose menu was opened", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Cell target",
+      kind: "notebook",
+      content: ["//% kind=code", "#let a = 1", "", "//% kind=log", "done", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+
+    // Leave the caret in the first cell, then act on the second cell's menu.
+    await page.evaluate(() => {
+      const view = window.__typbase.view;
+      if (!view) return;
+      const pos = view.state.doc.toString().indexOf("#let a") + 3;
+      view.dispatch({ selection: { anchor: pos } });
+      view.focus();
+    });
+    await page.locator(".tb-cell-rail .tb-cell-btn--menu").nth(1).click();
+    await page.locator(".menu__item", { hasText: "Move cell up" }).click();
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() =>
+            [...document.querySelectorAll(".tb-cell-kind")].map((el) => el.textContent),
+          ),
+        { timeout: 30_000 },
+      )
+      .toEqual(["Log", "Code"]);
+
+    await page.close();
+  });
+
+  it("keeps a cell action menu under the pointer until the click lands", async () => {
+    const page = await createPage();
+    await openApp(page);
+
+    const id = await createTestPage(page, {
+      title: "Cell menu",
+      kind: "notebook",
+      content: ["//% kind=code", "#let n = 1", ""].join("\n"),
+    });
+    await showPage(page, id, "write");
+    await page.waitForSelector(".tb-cell-rail", { timeout: 60_000 });
+
+    await page.locator(".tb-cell-rail .tb-cell-btn--menu").first().click();
+    await page.waitForSelector(".tb-cell-menu", { timeout: 10_000 });
+    const duplicate = page.locator(".tb-cell-menu .menu__item", { hasText: "Duplicate cell" });
+    const box = await duplicate.boundingBox();
+    expect(box).not.toBeNull();
+
+    await page.mouse.move((box?.x ?? 0) + 4, (box?.y ?? 0) + 4);
+    await page.mouse.down();
+    // The menu stays mounted while the button is held. It used to lose focus on
+    // mousedown, rebuild the rail, and remove the menu before mouseup.
+    expect(await page.locator(".tb-cell-menu").count()).toBe(1);
+    await page.mouse.up();
+
+    await expect.poll(() => page.locator(".tb-cell-rail").count(), { timeout: 30_000 }).toBe(2);
 
     await page.close();
   });
@@ -1018,15 +1294,16 @@ describe("typbase app", async () => {
         );
       }, selector);
 
-    // Every glyph on the rail is pinned to 20px at the default interface size.
-    // Left alone they are 1em of `--text-xs`, which is 12px, so the chip's glyph
-    // sat next to the overflow button's at a third of the size.
-    const rail = await pinnedSizes(".tb-cell-rail .ms-icon");
+    // The rail's kind glyph and overflow button are pinned to 20px at the
+    // default interface size. Left alone they are 1em of `--text-xs`, which is
+    // 12px. The kind menu's chevron is intentionally smaller.
+    const rail = await pinnedSizes(".tb-cell-rail .ms-icon:not(.tb-cell-chevron)");
     expect(rail.length).toBeGreaterThanOrEqual(2);
     expect(rail).toEqual(rail.map(() => 20));
+    expect(await pinnedSizes(".tb-cell-chevron")).toEqual([16]);
 
     // The menu's items match the app's other menus, which `UiMenuItem` pins to 20.
-    await page.locator(".tb-cell-rail button").first().click();
+    await page.locator(".tb-cell-rail .tb-cell-btn--menu").first().click();
     await page.waitForSelector(".tb-cell-menu", { timeout: 10_000 });
     const menu = await pinnedSizes(".tb-cell-menu .ms-icon");
     expect(menu.length).toBeGreaterThan(0);
@@ -1049,8 +1326,7 @@ describe("typbase app", async () => {
 
     // The line must not be filled. An opaque `background-color`, or any
     // `background-image`, paints over CodeMirror's selection and the selected
-    // attribute text loses its highlight. The boundary reads from a border,
-    // which sits outside the content box and so cannot cover the text.
+    // attribute text loses its highlight.
     const style = await page.evaluate(() => {
       const line = document.querySelector(".cm-line.tb-cell-attribute");
       if (!line) return null;
@@ -1066,7 +1342,8 @@ describe("typbase app", async () => {
     // `rgba(0, 0, 0, 0)` is the computed form of `transparent`.
     expect(style?.backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(style?.backgroundImage).toBe("none");
-    expect(style?.borderLeftWidth).not.toBe("0px");
+    // Cell identity lives in the rail's chip, so the line carries no rule.
+    expect(style?.borderLeftWidth).toBe("0px");
 
     // And the selection itself survives, which is the part a computed style
     // cannot promise: the highlight is painted by the browser, so this reads the
@@ -1084,7 +1361,8 @@ describe("typbase app", async () => {
       const box = line.getBoundingClientRect();
       const rects = [...range.getClientRects()];
 
-      // The selection has to start inside the line, not on the rail above it.
+      // The selection has to start inside the line, not in the rail's inline
+      // widget, which shares the line with the attribute text.
       const inside = rects.some((r) => r.top >= box.top && r.bottom <= box.bottom + 1);
 
       return { inside, background: cs.backgroundColor, text: range.toString() };
