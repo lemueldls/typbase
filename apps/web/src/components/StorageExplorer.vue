@@ -86,7 +86,7 @@ function formatTime(timestamp: number | undefined): string {
 /* Data view: registry entries plus a lazily opened store per workspace. */
 
 const workspaceSizes = ref(new Map<string, number>());
-const expandedWorkspaceId = ref<string | null>(null);
+const expandedWorkspaceId = ref<string>();
 const expandedPages = ref<PageMeta[]>([]);
 const pageSizes = ref(new Map<string, number>());
 const storeCache = new Map<string, WorkspaceStore>();
@@ -121,14 +121,9 @@ async function refreshData(): Promise<void> {
   workspaceSizes.value = sizes;
 }
 
-async function toggleWorkspace(info: WorkspaceInfo): Promise<void> {
+async function loadWorkspacePages(info: WorkspaceInfo): Promise<void> {
   const active = backend.value;
   if (!active) return;
-
-  if (expandedWorkspaceId.value === info.id) {
-    expandedWorkspaceId.value = null;
-    return;
-  }
 
   error.value = "";
   try {
@@ -146,10 +141,13 @@ async function toggleWorkspace(info: WorkspaceInfo): Promise<void> {
       const stat = await active.stat(pagePath(info.id, page.id));
       if (stat) sizes.set(page.id, stat.size);
     }
+
+    // A slower open can land after another row, so only fill the one on screen.
+    if (expandedWorkspaceId.value !== info.id) return;
     expandedPages.value = pages;
     pageSizes.value = sizes;
-    expandedWorkspaceId.value = info.id;
   } catch (cause) {
+    if (expandedWorkspaceId.value !== info.id) return;
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
 }
@@ -177,16 +175,17 @@ async function deletePageEntry(info: WorkspaceInfo, page: PageMeta): Promise<voi
       storeCache.set(info.id, store);
       await store.deletePage(page.id);
     }
-    await toggleWorkspaceReopen(info);
+    await reloadWorkspacePages(info);
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
 }
 
 /** Refreshes the expanded page list without collapsing the row. */
-async function toggleWorkspaceReopen(info: WorkspaceInfo): Promise<void> {
-  expandedWorkspaceId.value = null;
-  await toggleWorkspace(info);
+async function reloadWorkspacePages(info: WorkspaceInfo): Promise<void> {
+  expandedPages.value = [];
+  pageSizes.value = new Map();
+  await loadWorkspacePages(info);
 }
 
 async function deleteWorkspaceEntry(info: WorkspaceInfo): Promise<void> {
@@ -200,7 +199,7 @@ async function deleteWorkspaceEntry(info: WorkspaceInfo): Promise<void> {
   try {
     await deleteWorkspace(info.id);
     storeCache.delete(info.id);
-    expandedWorkspaceId.value = null;
+    if (expandedWorkspaceId.value === info.id) expandedWorkspaceId.value = undefined;
     await refreshData();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -395,9 +394,15 @@ async function refresh(): Promise<void> {
 }
 
 watch(view, () => void refresh());
+watch(expandedWorkspaceId, (id) => {
+  expandedPages.value = [];
+  pageSizes.value = new Map();
+  const info = workspaces.value.find((entry) => entry.id === id);
+  if (info) void loadWorkspacePages(info);
+});
 watch(backend, () => {
   storeCache.clear();
-  expandedWorkspaceId.value = null;
+  expandedWorkspaceId.value = undefined;
   void refresh();
 });
 
@@ -476,33 +481,29 @@ onBeforeUnmount(() => {
     >
       <p v-if="!workspaces.length" class="explorer__empty">{{ $t("explorer.noWorkspaces") }}</p>
 
-      <div v-for="info in workspaces" :key="info.id" class="explorer__workspace">
-        <div class="explorer__row">
-          <UiTooltip
-            :text="
-              expandedWorkspaceId === info.id ? $t('explorer.collapse') : $t('explorer.expand')
-            "
-          >
-            <button type="button" class="explorer__expand" @click="toggleWorkspace(info)">
-              <MsIcon
-                :name="expandedWorkspaceId === info.id ? 'keyboard_arrow_down' : 'chevron_right'"
-                :size="20"
-              />
-            </button>
-          </UiTooltip>
-          <button type="button" class="explorer__name" @click="toggleWorkspace(info)">
-            <span class="explorer__name-main">{{ info.name }}</span>
-            <span class="explorer__name-meta">
-              {{ info.id }} · {{ formatBytes(workspaceSizes.get(info.id) ?? 0) }}
-              <template v-if="info.lastOpenedAt">
-                · {{ $t("explorer.opened", { when: formatTime(info.lastOpenedAt) }) }}
-              </template>
-              <template v-if="info.id === activeWorkspaceId">
-                · {{ $t("explorer.active") }}
-              </template>
+      <UiAccordion v-model="expandedWorkspaceId">
+        <UiAccordionItem
+          v-for="info in workspaces"
+          :key="info.id"
+          :value="info.id"
+          class="explorer__workspace"
+        >
+          <template #trigger>
+            <span class="explorer__name">
+              <span class="explorer__name-main">{{ info.name }}</span>
+              <span class="explorer__name-meta">
+                {{ info.id }} · {{ formatBytes(workspaceSizes.get(info.id) ?? 0) }}
+                <template v-if="info.lastOpenedAt">
+                  · {{ $t("explorer.opened", { when: formatTime(info.lastOpenedAt) }) }}
+                </template>
+                <template v-if="info.id === activeWorkspaceId">
+                  · {{ $t("explorer.active") }}
+                </template>
+              </span>
             </span>
-          </button>
-          <span class="explorer__actions">
+          </template>
+
+          <template #actions>
             <UiIconButton
               v-if="isNative"
               icon="folder_open"
@@ -521,29 +522,29 @@ onBeforeUnmount(() => {
               class="button--tiny"
               @click="deleteWorkspaceEntry(info)"
             />
-          </span>
-        </div>
+          </template>
 
-        <ul v-if="expandedWorkspaceId === info.id" class="explorer__pages">
-          <li v-for="page in expandedPages" :key="page.id" class="explorer__page">
-            <span class="explorer__page-title">{{ page.title }}</span>
-            <span class="explorer__page-path">{{ page.path }}</span>
-            <span class="explorer__page-meta">
-              {{ formatBytes(pageSizes.get(page.id) ?? 0) }}
-              <template v-if="page.updatedAt"> · {{ formatTime(page.updatedAt) }}</template>
-            </span>
-            <UiIconButton
-              icon="delete"
-              :size="20"
-              :label="$t('common.delete')"
-              variant="ghost"
-              danger
-              class="button--tiny"
-              @click="deletePageEntry(info, page)"
-            />
-          </li>
-        </ul>
-      </div>
+          <ul class="explorer__pages">
+            <li v-for="page in expandedPages" :key="page.id" class="explorer__page">
+              <span class="explorer__page-title">{{ page.title }}</span>
+              <span class="explorer__page-path">{{ page.path }}</span>
+              <span class="explorer__page-meta">
+                {{ formatBytes(pageSizes.get(page.id) ?? 0) }}
+                <template v-if="page.updatedAt"> · {{ formatTime(page.updatedAt) }}</template>
+              </span>
+              <UiIconButton
+                icon="delete"
+                :size="20"
+                :label="$t('common.delete')"
+                variant="ghost"
+                danger
+                class="button--tiny"
+                @click="deletePageEntry(info, page)"
+              />
+            </li>
+          </ul>
+        </UiAccordionItem>
+      </UiAccordion>
     </div>
 
     <div
@@ -768,24 +769,20 @@ onBeforeUnmount(() => {
   overflow-wrap: anywhere;
 }
 
-.explorer__workspace {
+.explorer__workspace:not(:last-child) {
   border-bottom: 1px solid var(--color-border);
 }
 
-.explorer__row,
-.explorer__node {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  min-width: 0;
-}
-
-.explorer__row {
+.explorer__workspace .ui-accordion__header {
   padding: var(--space-1) 0;
 }
 
 .explorer__node {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
   padding: var(--space-1) 0 var(--space-1) calc(var(--space-1-5) + var(--depth, 0) * var(--space-4));
 }
 
@@ -840,12 +837,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-0-5);
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  padding: 0;
 }
 
 .explorer__name-main {

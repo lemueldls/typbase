@@ -3628,6 +3628,15 @@ describe("typbase app", async () => {
     await page.keyboard.press("Control+Shift+E");
     await page.waitForSelector(".files-view .explorer", { timeout: 30_000 });
 
+    // The Workspaces accordion opens a row to its page list, then closes it.
+    await page.locator(".explorer__tab", { hasText: "Workspaces" }).click();
+    const workspaceRow = page.locator(".explorer__workspace .ui-accordion__trigger").first();
+    await workspaceRow.click();
+    await expect.poll(() => page.locator(".explorer__page").count()).toBeGreaterThan(0);
+    await expect.poll(() => workspaceRow.getAttribute("aria-expanded")).toBe("true");
+    await workspaceRow.click();
+    await expect.poll(() => workspaceRow.getAttribute("aria-expanded")).toBe("false");
+
     await page.locator(".explorer__tab", { hasText: "Files" }).click();
     await page.waitForSelector(".explorer__node", { timeout: 30_000 });
 
