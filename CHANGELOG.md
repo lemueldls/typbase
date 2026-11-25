@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.3] - 2026-11-25
+
+### New
+
+- Option preserve newlines in document and website exports
+- Animate showing/hiding the app bar
+
+### Fixed
+
+- Align styling of prelude, editor, and website
+- Normalize website export article items spacing
+- Resolve discrepancies in mobile header padding
+- Website links render
+- Normalize desktop header padding
+- Backlink graph toolbar padding
+
 ## [0.5.2] - 2026-11-24
 
 ### New
