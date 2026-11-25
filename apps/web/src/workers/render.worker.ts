@@ -70,7 +70,8 @@ self.addEventListener(
 
     currentId = message.id;
     insertedKeys = new Set();
-    const { pagePath, source, prelude, wants, merged, spaceId, pageId, theme } = message;
+    const { pagePath, source, prelude, wants, merged, preserveLines, spaceId, pageId, theme } =
+      message;
 
     try {
       const typstState = await ensureState();
@@ -92,7 +93,7 @@ self.addEventListener(
 
       if (wants === "svg") {
         await runPasses(
-          () => typstState.renderSvg(file, source, prelude, merged ?? false),
+          () => typstState.renderSvg(file, source, prelude, merged ?? false, preserveLines),
           (rendered) =>
             post({
               id: currentId,
@@ -126,6 +127,7 @@ self.addEventListener(
             id: typeof file,
             text: string,
             prelude: string,
+            preserveLines: boolean | undefined,
           ): {
             bytes?: Uint8Array;
             diagnostics?: unknown[];
@@ -134,7 +136,7 @@ self.addEventListener(
         };
 
         await runPasses(
-          () => pdfState.renderPdf(file, source, prelude),
+          () => pdfState.renderPdf(file, source, prelude, preserveLines),
           (rendered) =>
             post({
               id: currentId,
@@ -149,7 +151,7 @@ self.addEventListener(
       }
 
       await runPasses(
-        () => typstState.renderHtml(file, source, prelude),
+        () => typstState.renderHtml(file, source, prelude, preserveLines),
         (rendered) =>
           post({
             id: currentId,

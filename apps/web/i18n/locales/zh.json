@@ -717,6 +717,7 @@
     "project": "Typst 项目（源文件、库、数据）",
     "stripMarkers": "干净源码（移除笔记本单元格标记）",
     "fonts": "包含字体",
+    "preserveNewlines": "保留行距",
     "dialogHint": "在应用外编译：typst compile --root . --font-path typbase/fonts。",
     "theme": "主题",
     "themeLight": "浅色（易读）",

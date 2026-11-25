@@ -65,6 +65,32 @@ pub enum RenderTarget {
     Html,
 }
 
+/// How the synth arranges top-level source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SynthLayout {
+    /// Each top-level line becomes a `#block` wrapper. The paged editor uses
+    /// the wrapper boundaries to stack one frame per source line. The wrappers
+    /// also add Typst's uniform block spacing between lines.
+    Blocks,
+    /// The source is copied as written, so Typst lays out paragraphs, headings,
+    /// and lists with the spacing the source asks for. Document output uses
+    /// this; it matches what `typst compile` produces from the project source.
+    Source,
+}
+
+impl SynthLayout {
+    /// Layout for document output. `preserve_lines` keeps the editor's wrapped
+    /// blocks; without it the page compiles as ordinary Typst.
+    #[must_use]
+    pub const fn document(preserve_lines: bool) -> Self {
+        if preserve_lines {
+            Self::Blocks
+        } else {
+            Self::Source
+        }
+    }
+}
+
 #[typst_macros::time]
 pub fn sync_source_state(
     id: &TypstFileId,
@@ -73,10 +99,24 @@ pub fn sync_source_state(
     render_target: RenderTarget,
     state: &mut TypstState,
 ) -> SynthResult {
+    sync_source_state_with_layout(id, text, prelude, render_target, SynthLayout::Blocks, state)
+}
+
+/// [`sync_source_state`] with an explicit block layout. Document output passes
+/// [`SynthLayout::Source`]; editor renders keep the wrapped blocks.
+#[typst_macros::time]
+pub fn sync_source_state_with_layout(
+    id: &TypstFileId,
+    text: &str,
+    prelude: &str,
+    render_target: RenderTarget,
+    layout: SynthLayout,
+    state: &mut TypstState,
+) -> SynthResult {
     let prelude = state.prelude(id, render_target) + prelude + "\n";
     let context = state.source_context_map.get_mut(id).unwrap();
 
-    sync_source_context(text, prelude, context, &mut state.world)
+    sync_source_context_with_layout(text, prelude, context, &mut state.world, layout)
 }
 
 /// Builds all source files for a note and updates its maps.
@@ -101,6 +141,18 @@ pub fn sync_source_context(
     context: &mut SourceContext,
     world: &mut TypstWorld,
 ) -> SynthResult {
+    sync_source_context_with_layout(text, prelude, context, world, SynthLayout::Blocks)
+}
+
+/// [`sync_source_context`] with an explicit block layout.
+#[typst_macros::time]
+pub fn sync_source_context_with_layout(
+    text: &str,
+    prelude: String,
+    context: &mut SourceContext,
+    world: &mut TypstWorld,
+    layout: SynthLayout,
+) -> SynthResult {
     // A compile with the same raw text and prelude rebuilds nothing. Restore
     // the pristine sources and map that recovery may have rewritten, then
     // hand back the cached structure. The prelude includes the pane width,
@@ -112,6 +164,7 @@ pub fn sync_source_context(
     if let Some(last) = &context.last_sync
         && last.raw == text
         && last.prelude == prelude
+        && last.layout == layout
     {
         if context.restore_sources_changed() {
             context.bump_source_revision();
@@ -146,10 +199,20 @@ pub fn sync_source_context(
     let pristine = if fixups.is_empty() {
         None
     } else {
-        Some(build_synth_in(&context.parse_cached(text), text, &prelude))
+        Some(build_synth_in(
+            &context.parse_cached(text),
+            text,
+            &prelude,
+            layout,
+        ))
     };
 
-    let render = build_synth_in(&context.parse_cached(&repaired), &repaired, &prelude);
+    let render = build_synth_in(
+        &context.parse_cached(&repaired),
+        &repaired,
+        &prelude,
+        layout,
+    );
 
     context.raw_source_mut(world).unwrap().replace(text);
 
@@ -176,6 +239,7 @@ pub fn sync_source_context(
     context.last_sync = Some(SyncedInput {
         raw: text.to_string(),
         prelude,
+        layout,
         blocks: render.blocks.clone(),
         equation_ranges: render.equation_ranges.clone(),
         render_map: render.map,
@@ -251,7 +315,16 @@ struct SynthBuild {
 /// inline category.
 #[typst_macros::time]
 /// Builds the synth from an already-parsed tree of `text`.
-fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) -> SynthBuild {
+///
+/// The block walk runs for both layouts because recovery needs the block
+/// ranges. Only [`SynthLayout::Blocks`] writes wrappers into the output;
+/// [`SynthLayout::Source`] copies the text as written after the walk.
+fn build_synth_in(
+    root: &typst_syntax::SyntaxNode,
+    text: &str,
+    prelude: &str,
+    layout: SynthLayout,
+) -> SynthBuild {
     let mut builder = SourceBuilder::new(text);
     builder.prefix(prelude);
 
@@ -287,7 +360,12 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
 
                 if let Some(last_block) = blocks.last_mut() {
                     last_block.range.end = (last_block.range.end + until_newline).min(range.end);
-                    wrap_block(&mut builder, last_block, last_content_kind.or(last_kind));
+                    finish_block(
+                        &mut builder,
+                        last_block,
+                        last_content_kind.or(last_kind),
+                        layout,
+                    );
                 }
             } else if !leaf.trim().is_empty() {
                 last_kind = Some(node.kind());
@@ -328,7 +406,16 @@ fn build_synth_in(root: &typst_syntax::SyntaxNode, text: &str, prelude: &str) ->
     if let Some(last_block) = blocks.last_mut()
         && in_block
     {
-        wrap_block(&mut builder, last_block, last_content_kind.or(last_kind));
+        finish_block(
+            &mut builder,
+            last_block,
+            last_content_kind.or(last_kind),
+            layout,
+        );
+    }
+
+    if layout == SynthLayout::Source {
+        builder.copy(0..text.len());
     }
 
     let (synth, map) = builder.finish();
@@ -374,6 +461,18 @@ fn deep_equation_ranges(text: &str, root: &LinkedNode) -> Vec<Range<usize>> {
 
     ranges.sort_by_key(|range| range.start);
     ranges
+}
+
+/// Writes one discovered block in the selected layout.
+fn finish_block(
+    builder: &mut SourceBuilder,
+    block: &mut SynthBlock,
+    kind: Option<SyntaxKind>,
+    layout: SynthLayout,
+) {
+    if layout == SynthLayout::Blocks {
+        wrap_block(builder, block, kind);
+    }
 }
 
 /// Wraps a block of Typst source for rendering, recording the copy and the

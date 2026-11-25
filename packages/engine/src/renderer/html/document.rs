@@ -23,7 +23,7 @@ use crate::{
             split_unmappable,
         },
     },
-    source::{RenderTarget, SynthBlock, SynthResult, sync_source_state},
+    source::{RenderTarget, SynthBlock, SynthLayout, SynthResult, sync_source_state_with_layout},
     state::{RenderContext, TypstState},
 };
 
@@ -31,16 +31,24 @@ use crate::{
 impl TypstState {
     /// Renders the whole note to one HTML document, with recovery. Used by
     /// publish, export, and chat. The editor's inline frames use
-    /// `compileHTML` instead.
+    /// `compileHTML` instead. `preserve_lines` asks for the editor's wrapped
+    /// block layout; otherwise the source compiles as written.
     #[wasm_bindgen(js_name = renderHtml)]
     pub fn render_html(
         &mut self,
         id: &TypstFileId,
         text: &str,
         prelude: &str,
+        preserve_lines: Option<bool>,
     ) -> Result<Ts<RenderHtmlResult>, JsError> {
-        let SynthResult { blocks, .. } =
-            sync_source_state(id, text, prelude, RenderTarget::Html, self);
+        let SynthResult { blocks, .. } = sync_source_state_with_layout(
+            id,
+            text,
+            prelude,
+            RenderTarget::Html,
+            SynthLayout::document(preserve_lines.unwrap_or(false)),
+            self,
+        );
 
         let mut ctx = self.render_context(id).unwrap();
         let (document, diagnostics) = render_html_ctx(&mut ctx, &blocks);
@@ -61,7 +69,14 @@ impl TypstState {
         text: &str,
         prelude: &str,
     ) -> Result<Ts<CheckResult>, JsError> {
-        sync_source_state(id, text, prelude, RenderTarget::Html, self);
+        sync_source_state_with_layout(
+            id,
+            text,
+            prelude,
+            RenderTarget::Html,
+            SynthLayout::Source,
+            self,
+        );
 
         let mut ctx = self.render_context(id).unwrap();
         let diagnostics = check_html_ctx(&mut ctx);

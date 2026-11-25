@@ -45,4 +45,7 @@ pub use frame_text::{
     FrameText, FrameTextFrame, FrameTextGlyph, FrameTextRun, layout_hash, source_hash,
 };
 pub use map::{Segment, SegmentKind, Side, SourceBuilder, SourceMap};
-pub use synth::{RenderTarget, SynthBlock, SynthResult, sync_source_context, sync_source_state};
+pub use synth::{
+    RenderTarget, SynthBlock, SynthLayout, SynthResult, sync_source_context,
+    sync_source_context_with_layout, sync_source_state, sync_source_state_with_layout,
+};

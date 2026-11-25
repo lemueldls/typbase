@@ -32,6 +32,8 @@ export interface ExportOptions {
   /** "light" (default) normalizes colors for reading/printing. */
   theme: "light" | "workspace";
   pageSize: "a4" | "letter";
+  /** Keep the editor's per-line block spacing in rendered artifacts. */
+  preserveNewlines: boolean;
 }
 
 export interface ExportFile {
@@ -145,6 +147,7 @@ export async function buildExport(
       source,
       prelude: htmlPrelude,
       wants: "html",
+      preserveLines: options.preserveNewlines,
       spaceId: store.workspaceId,
       pageId,
       theme: palette,
@@ -167,6 +170,7 @@ export async function buildExport(
       source,
       prelude: pagedPrelude,
       wants: "pdf",
+      preserveLines: options.preserveNewlines,
       spaceId: store.workspaceId,
       pageId,
       theme: palette,
@@ -187,6 +191,7 @@ export async function buildExport(
       prelude: pagedPrelude,
       wants: "svg",
       merged: options.svgMerged,
+      preserveLines: options.preserveNewlines,
       spaceId: store.workspaceId,
       pageId,
       theme: palette,

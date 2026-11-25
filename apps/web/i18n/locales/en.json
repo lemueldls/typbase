@@ -740,6 +740,7 @@
     "project": "Typst project (source, library, data)",
     "stripMarkers": "Clean source (strip notebook cell markers)",
     "fonts": "Include fonts",
+    "preserveNewlines": "Preserve line spacing",
     "dialogHint": "Compile outside the app with typst compile --root . --font-path typbase/fonts.",
     "theme": "Theme",
     "themeLight": "Light (readable)",

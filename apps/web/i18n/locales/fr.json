@@ -717,6 +717,7 @@
     "project": "Projet Typst (source, bibliothèque, données)",
     "stripMarkers": "Source propre (retirer les marqueurs de cellule)",
     "fonts": "Inclure les polices",
+    "preserveNewlines": "Conserver l’espacement des lignes",
     "dialogHint": "À compiler hors de l'app : typst compile --root . --font-path typbase/fonts.",
     "theme": "Thème",
     "themeLight": "Clair (lisible)",

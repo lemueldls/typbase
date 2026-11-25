@@ -109,6 +109,7 @@ export function bindPageTestApi(options: PageTestApiOptions): void {
       fonts: false,
       theme: "light",
       pageSize: "a4",
+      preserveNewlines: false,
       ...(exportOptions as Partial<ExportOptions>),
     });
 
@@ -129,6 +130,7 @@ export function bindPageTestApi(options: PageTestApiOptions): void {
         fonts: false,
         theme: "light",
         pageSize: "a4",
+        preserveNewlines: false,
         separate: true,
         combined: false,
         ...(exportOptions as Partial<WorkspaceExportOptions>),

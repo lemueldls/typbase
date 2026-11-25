@@ -10,7 +10,7 @@ use typst_layout::PagedDocument;
 use typst_syntax::{FileId, LinkedNode, RootedPath, Source, Span};
 
 use crate::{
-    source::{FrameText, RawFixups, Side, SourceMap, SynthBlock},
+    source::{FrameText, RawFixups, Side, SourceMap, SynthBlock, SynthLayout},
     theme::ThemeColors,
     world::TypstWorld,
 };
@@ -81,6 +81,9 @@ pub(crate) struct SyncedInput {
     pub(crate) raw: String,
     /// Full prelude: space settings plus the caller's prelude.
     pub(crate) prelude: String,
+    /// Block layout the synth was built with. Editor and document output can
+    /// share a raw text and prelude but not a synth.
+    pub(crate) layout: SynthLayout,
     /// Top-level blocks, in repaired-source bytes.
     pub(crate) blocks: Vec<SynthBlock>,
     /// Equation ranges, in repaired-source bytes.

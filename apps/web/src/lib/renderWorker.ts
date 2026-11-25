@@ -32,6 +32,8 @@ export interface RenderWorkerRequest {
   wants: "html" | "pdf" | "svg";
   /** SVG only: merge all pages into a single document. */
   merged?: boolean;
+  /** Keep the editor's per-line block spacing instead of natural Typst layout. */
+  preserveLines?: boolean;
   spaceId: string;
   /** Page id for `sys.inputs`. Null for a combined document. */
   pageId?: string | null;
@@ -267,6 +269,7 @@ export function renderInWorker(input: {
   prelude: string;
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
+  preserveLines?: boolean;
   spaceId: string;
   pageId?: string | null;
   theme?: ThemePaletteTokens;
@@ -292,6 +295,7 @@ async function renderOnce(input: {
   prelude: string;
   wants: "html" | "pdf" | "svg";
   merged?: boolean;
+  preserveLines?: boolean;
   spaceId: string;
   pageId?: string | null;
   theme?: ThemePaletteTokens;

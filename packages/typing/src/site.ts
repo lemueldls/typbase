@@ -110,9 +110,9 @@ export interface SiteSettings {
   /** Show an interactive graph of links between public pages. */
   showGraph: boolean;
   /**
-   * Keep the editor's line spacing between source lines. The synth renders
-   * each top-level line as its own block. The site CSS otherwise leaves those
-   * divs tight.
+   * Render each source line as its own block, keeping the editor's line
+   * spacing. Without it pages compile as ordinary Typst, so single line
+   * breaks join and blank lines separate paragraphs.
    */
   preserveNewlines: boolean;
   /** Write sitemap.xml and robots.txt. */

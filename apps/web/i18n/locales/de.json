@@ -717,6 +717,7 @@
     "project": "Typst-Projekt (Quelltext, Bibliothek, Daten)",
     "stripMarkers": "Saubere Quelle (Notizbuch-Zellenmarker entfernen)",
     "fonts": "Schriften mitliefern",
+    "preserveNewlines": "Zeilenabstände beibehalten",
     "dialogHint": "Außerhalb der App kompilieren: typst compile --root . --font-path typbase/fonts.",
     "theme": "Design",
     "themeLight": "Hell (lesbar)",

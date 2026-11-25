@@ -1,7 +1,7 @@
 //! Synth building: block discovery, wrapping, and equation ranges.
 
 use crate::{
-    source::{RenderTarget, sync_source_state},
+    source::{RenderTarget, SynthLayout, sync_source_state, sync_source_state_with_layout},
     tests::{fixtures, harness},
 };
 
@@ -331,5 +331,71 @@ fn blank_lines_add_no_generated_spacing() {
     assert!(
         !leading.contains("#v("),
         "leading blank lines added space before the first block:\n{leading}",
+    );
+}
+
+/// Document output compiles the source as written. The wrapper spacing that
+/// the editor needs would otherwise add a block gap between every source line.
+#[test]
+fn source_layout_keeps_the_source_as_written() {
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "source_layout");
+    let text = "First line\nsecond line.\n\nSecond paragraph.\n";
+
+    let result = sync_source_state_with_layout(
+        &id,
+        text,
+        "",
+        RenderTarget::Html,
+        SynthLayout::Source,
+        &mut state,
+    );
+    let render = harness::render_text(&state, &id);
+
+    assert!(
+        !render.contains("#block(stroke:0pt,width:100%)["),
+        "source layout wrapped a line:\n{render}",
+    );
+    assert!(
+        render.ends_with(text),
+        "source layout changed the source:\n{render}",
+    );
+    assert_eq!(result.blocks.len(), 3, "block discovery changed");
+}
+
+/// The HTML export that publishing uses keeps Typst's paragraph structure.
+/// The wrapped layout turned every source line into its own div.
+#[test]
+fn source_layout_renders_natural_paragraphs() {
+    if !harness::fonts_available() {
+        eprintln!("skipping: bundled fonts missing");
+        return;
+    }
+
+    let mut state = harness::state();
+    let id = harness::page(&mut state, "source_layout_html");
+    let text = "First line\nsecond line.\n\nSecond paragraph.\n";
+
+    let result = sync_source_state_with_layout(
+        &id,
+        text,
+        "",
+        RenderTarget::Html,
+        SynthLayout::Source,
+        &mut state,
+    );
+    let mut ctx = state.render_context(&id).unwrap();
+    let (document, diagnostics) =
+        crate::renderer::html::document::render_html_ctx(&mut ctx, &result.blocks);
+    let html = document.expect("source layout did not produce HTML");
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {diagnostics:?}"
+    );
+    assert_eq!(
+        html.matches("<p>").count(),
+        2,
+        "paragraphs were split:\n{html}"
     );
 }

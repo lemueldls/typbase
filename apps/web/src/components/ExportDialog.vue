@@ -43,6 +43,7 @@ const DEFAULTS: ExportOptions = {
   fonts: true,
   theme: "light",
   pageSize: "a4",
+  preserveNewlines: false,
 };
 
 const stored = useLocalStorage<ExportOptions>("typbase:exportOptions", DEFAULTS);
@@ -114,6 +115,11 @@ async function run(): Promise<void> {
         :label="$t('exportPage.stripMarkers')"
         :disabled="!options.project"
       /> -->
+      <UiCheckbox
+        v-model="options.preserveNewlines"
+        :label="$t('exportPage.preserveNewlines')"
+        :disabled="!options.html && !options.pdf && !options.svg"
+      />
       <UiCheckbox
         v-model="options.fonts"
         :label="$t('exportPage.fonts')"

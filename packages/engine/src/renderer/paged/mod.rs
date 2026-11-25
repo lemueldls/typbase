@@ -24,7 +24,10 @@ use wasm_bindgen::prelude::*;
 use crate::bindings::RenderPdfResult;
 use crate::{
     bindings::{CheckResult, CompilePagedResult, TypstDiagnostic, TypstFileId},
-    source::{FrameText, FrameTextFrame, RenderTarget, sync_source_state},
+    source::{
+        FrameText, FrameTextFrame, RenderTarget, SynthLayout, sync_source_state,
+        sync_source_state_with_layout,
+    },
     state::{RenderContext, TypstState},
 };
 
@@ -229,6 +232,7 @@ impl TypstState {
     /// SVG export of the paged document: one entry per page, or a single
     /// merged document. Uses the PDF page geometry so the sheets match the
     /// PDF export. The caller sets the page width through `resize`.
+    /// `preserve_lines` keeps the editor's wrapped block layout.
     #[wasm_bindgen(js_name = "renderSvg")]
     pub fn render_svg(
         &mut self,
@@ -236,8 +240,16 @@ impl TypstState {
         text: &str,
         prelude: &str,
         merged: bool,
+        preserve_lines: Option<bool>,
     ) -> Result<Ts<crate::bindings::RenderSvgResult>, JsError> {
-        sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
+        sync_source_state_with_layout(
+            id,
+            text,
+            prelude,
+            RenderTarget::Pdf,
+            SynthLayout::document(preserve_lines.unwrap_or(false)),
+            self,
+        );
 
         let mut ctx = self.render_context(id).unwrap();
         // Same render source as the PDF export so the SVG sheets and the PDF
@@ -278,10 +290,18 @@ impl TypstState {
         id: &TypstFileId,
         text: &str,
         prelude: &str,
+        preserve_lines: Option<bool>,
     ) -> Result<Ts<RenderPdfResult>, JsError> {
         use typst_pdf::{PdfOptions, pdf};
 
-        sync_source_state(id, text, prelude, RenderTarget::Pdf, self);
+        sync_source_state_with_layout(
+            id,
+            text,
+            prelude,
+            RenderTarget::Pdf,
+            SynthLayout::document(preserve_lines.unwrap_or(false)),
+            self,
+        );
 
         let mut ctx = self.render_context(id).unwrap();
         // Exports get the delimiter repair too. They compile the render source.

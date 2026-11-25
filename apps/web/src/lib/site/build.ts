@@ -315,6 +315,7 @@ export async function buildSite(
       source,
       prelude,
       wants: "html",
+      preserveLines: site.preserveNewlines,
       spaceId: store.workspaceId,
       pageId: page.id,
       theme: palette,
