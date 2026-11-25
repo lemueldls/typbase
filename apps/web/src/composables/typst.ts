@@ -40,6 +40,10 @@ export function getTypstFontImports() {
 let statePromise: Promise<TypstState> | undefined;
 
 export async function createTypstState(): Promise<TypstState> {
+  // Idempotent once the module is loaded, and it retries after a failed first
+  // download. Recovery calls this directly, so it must not assume the module
+  // was initialized.
+  await init({ module_or_path: wasmBinaryUrl });
   const typstState = new TypstState();
 
   for (const fontImports of getTypstFontImports()) {
@@ -70,7 +74,12 @@ export async function createTypstState(): Promise<TypstState> {
  * so it loads lazily the first time an editor mounts, on the client.
  */
 export function useTypst() {
-  statePromise ??= init({ module_or_path: wasmBinaryUrl }).then(createTypstState);
+  statePromise ??= createTypstState().catch((cause) => {
+    // Drop a failed load so the next caller starts over instead of replaying
+    // the same rejection.
+    statePromise = undefined;
+    throw cause;
+  });
 
   return statePromise;
 }

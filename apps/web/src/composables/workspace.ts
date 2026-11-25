@@ -74,18 +74,17 @@ class StorageSetupPending extends Error {
   }
 }
 
-// Boot progress. The load gate waits only for storage + the workspace doc.
-// The atproto session boots in the background (bootAtproto) bounded by a
-// timeout, so a slow OAuth init can never stall the editor.
+// Boot progress. The load gate waits for storage, the workspace doc, and the
+// wasm engine the first page compiles with. The atproto session boots in the
+// background (bootAtproto) bounded by a timeout, so a slow OAuth init never
+// stalls the editor.
 
-export type BootStepId = "storage" | "workspace" | "atproto";
+export type BootStepId = "storage" | "workspace" | "engine";
 
 export interface BootStepState {
   id: BootStepId;
   label: string;
   status: "pending" | "active" | "done" | "error";
-  /** Extra context, e.g. how many pages loaded or why a step failed. */
-  detail?: string;
 }
 
 interface CursorLike {
@@ -96,9 +95,11 @@ interface CursorLike {
 
 function initialBootSteps(t: (key: string) => string): BootStepState[] {
   return [
-    { id: "storage", label: t("boot.storage"), status: "pending" },
+    // Active before boot runs: this also covers the wait for the app bundle,
+    // which is still downloading while the server-rendered splash is on screen.
+    { id: "storage", label: t("boot.storage"), status: "active" },
     { id: "workspace", label: t("boot.workspace"), status: "pending" },
-    { id: "atproto", label: t("boot.atproto"), status: "pending" },
+    { id: "engine", label: t("boot.engine"), status: "pending" },
   ];
 }
 
@@ -226,6 +227,30 @@ function useWorkspaceState() {
     );
   }
 
+  /**
+   * Waits for the wasm engine and its bundled fonts. `useTypst` is memoized,
+   * so the same promise started alongside the workspace doc is reused here.
+   * A rejected load is dropped from the cache by `useTypst`, so the splash's
+   * Retry can start over instead of replaying the failure.
+   */
+  async function prepareEditor(): Promise<void> {
+    updateBootStep("engine", { status: "active" });
+    try {
+      await useTypst();
+    } catch (cause) {
+      updateBootStep("engine", { status: "error" });
+      throw cause;
+    }
+    updateBootStep("engine", { status: "done" });
+  }
+
+  /** Puts a failed boot on the splash: reason, plus the step that was running. */
+  function markBootFailure(reason: unknown): void {
+    error.value = reason;
+    const active = bootProgress.value.find((step) => step.status === "active");
+    if (active) updateBootStep(active.id, { status: "error" });
+  }
+
   function nativeLocation(state: TauriStorageState): StorageLocation {
     const keys: Record<TauriStorageMode, string> = {
       app: "storage.modeApp",
@@ -312,7 +337,14 @@ function useWorkspaceState() {
   }
 
   async function ensureBackend(): Promise<StorageBackend> {
-    if (backendRef.value) return backendRef.value;
+    if (backendRef.value) {
+      // A retry after a later boot failure reuses the open backend, but the
+      // step list starts over, so close storage again instead of leaving it
+      // spinning above the real failure.
+      updateBootStep("storage", { status: "done" });
+
+      return backendRef.value;
+    }
 
     updateBootStep("storage", { status: "active" });
 
@@ -342,7 +374,7 @@ function useWorkspaceState() {
       // runnable at the cost of durability.
       console.warn("[storage] persistent storage unavailable:", reason);
       backendRef.value = new MemoryBackend();
-      bootNote.value = "Persistent storage is unavailable; this session is not saved.";
+      bootNote.value = t("boot.temporaryStorage" as never);
       storageLocation.value = {
         environment: "memory",
         label: t("storage.modeTemporary" as never),
@@ -448,7 +480,6 @@ function useWorkspaceState() {
     info: WorkspaceInfo,
   ): Promise<void> {
     const token = ++openingSeq;
-    updateBootStep("atproto", { status: "active", detail: t("boot.inBackground") });
     try {
       // AI keys are device-only state. Load once. Writes go through the
       // setter so settings UI and generators see the same object.
@@ -490,18 +521,10 @@ function useWorkspaceState() {
       window.addEventListener("pagehide", () => void local.flush());
       atproto.value = service;
       atprotoReady.value = true;
-
-      updateBootStep("atproto", {
-        status: "done",
-        detail: service.status.signedIn ? t("boot.syncAvailable") : t("boot.guest"),
-      });
     } catch (cause) {
       console.warn("[atproto] disabled:", cause);
-      bootNote.value = `Sync unavailable (${cause instanceof Error ? cause.message : String(cause)}). The workspace runs as a guest.`;
-      updateBootStep("atproto", {
-        status: "error",
-        detail: t("boot.withoutSync"),
-      });
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      bootNote.value = t("boot.syncUnavailable" as never, { reason });
     }
   }
 
@@ -551,13 +574,6 @@ function useWorkspaceState() {
 
     try {
       teardownActive();
-      // Storage already succeeded before a workspace opens. Resetting it would
-      // show a finished step flipping back to pending in the boot list.
-      const storage = bootProgress.value.find((step) => step.id === "storage");
-      bootProgress.value = initialBootSteps((key) => t(key as never)).map((step) =>
-        step.id === "storage" && storage ? storage : step,
-      );
-      bootNote.value = "";
 
       const reg = await ensureRegistry();
       const info = await reg.get(id);
@@ -595,11 +611,7 @@ function useWorkspaceState() {
       ) {
         await reg.save({ ...info, lastOpenedAt: Date.now(), name, icon, accent });
       }
-      const pageCount = store.listPages().length;
-      updateBootStep("workspace", {
-        status: "done",
-        detail: t("boot.pageCount", { count: pageCount }, pageCount),
-      });
+      updateBootStep("workspace", { status: "done" });
 
       // The engine's memo caches belong to the previous workspace's docs.
       evictTypstCaches();
@@ -721,10 +733,29 @@ function useWorkspaceState() {
   }
 
   async function ensure(preferredId = ""): Promise<WorkspaceStore | null> {
-    if (workspace.value) return workspace.value;
+    if (workspace.value) {
+      // A failed engine load leaves the workspace open. Retry finishes that
+      // step instead of showing an editor that cannot bind. Every later
+      // caller finds the step done and returns without touching it.
+      const engine = bootProgress.value.find((step) => step.id === "engine");
+      if (engine?.status === "error") {
+        error.value = undefined;
+        try {
+          await prepareEditor();
+        } catch (reason) {
+          markBootFailure(reason);
+          throw reason;
+        }
+      }
+
+      return workspace.value;
+    }
     if (preferredId) bootWorkspaceId = preferredId;
 
     ensurePromise ??= (async () => {
+      bootProgress.value = initialBootSteps((key) => t(key as never));
+      bootNote.value = "";
+      error.value = undefined;
       await ensureBackend();
       // One-time move off the pre-restructure layout. See
       // `packages/storage/src/migrate.ts` for the removal recipe.
@@ -733,8 +764,17 @@ function useWorkspaceState() {
       const id = await chooseWorkspaceId(reg, bootWorkspaceId);
       if (!id) return null; // nothing to open. The shell shows the chooser
 
+      // The editor cannot bind without wasm, so start the download while the
+      // workspace doc opens. Both are wasm modules; whichever is slower sets
+      // the wait.
+      const engineLoad = useTypst();
+      void engineLoad.catch(() => undefined);
       const store = await openWorkspace(id);
       bootWorkspaceId = "";
+      // prepareEditor owns the step and reports a failed load through the
+      // splash, whose Retry starts the wasm download again.
+      await prepareEditor();
+
       return store;
     })().catch((reason) => {
       if (reason instanceof StorageSetupPending) {
@@ -743,7 +783,7 @@ function useWorkspaceState() {
         return null;
       }
 
-      error.value = reason;
+      markBootFailure(reason);
       throw reason;
     });
 

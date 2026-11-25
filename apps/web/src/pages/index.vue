@@ -1141,50 +1141,15 @@ definePageMeta({
     </div>
 
     <Transition name="splash">
-      <div v-if="!loaded" class="app__splash" role="status" aria-live="polite">
-        <h1 class="app__splash-title">{{ $t("boot.title") }}</h1>
-        <div class="app__splash-bar" aria-hidden="true"><span /></div>
-
-        <ol class="app__splash-steps">
-          <li
-            v-for="step in bootProgress"
-            :key="step.id"
-            class="app__splash-step"
-            :class="`app__splash-step--${step.status}`"
-          >
-            <span
-              class="app__splash-step-mark"
-              :class="`app__splash-step-mark--${step.status}`"
-              aria-hidden="true"
-            >
-              <svg v-if="step.status === 'done'" class="app__splash-step-check" viewBox="0 0 16 16">
-                <path
-                  d="M3.5 8.5l3 3 6-7"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </span>
-            <span class="app__splash-step-label">{{ step.label }}</span>
-            <!-- <span v-if="step.detail" class="app__splash-step-detail">{{ step.detail }}</span> -->
-          </li>
-        </ol>
-
-        <p v-if="bootNote" class="app__splash-note">{{ bootNote }}</p>
-
-        <template v-if="error">
-          <p class="app__splash-error">{{ error }}</p>
-          <div class="app__splash-actions">
-            <UiButton variant="primary" :disabled="retryingBoot" @click="retryBoot">
-              {{ retryingBoot ? $t("boot.retrying") : $t("boot.retry") }}
-            </UiButton>
-            <UiButton variant="ghost" @click="reloadApp">{{ $t("engine.reload") }}</UiButton>
-          </div>
-        </template>
-      </div>
+      <BootSplash
+        v-if="!loaded"
+        :steps="bootProgress"
+        :note="bootNote"
+        :error="error"
+        :retrying="retryingBoot"
+        @retry="retryBoot"
+        @reload="reloadApp"
+      />
     </Transition>
 
     <StorageSetup v-if="loaded && storageSetup" :setup="storageSetup" />
@@ -1198,21 +1163,25 @@ definePageMeta({
         :inert="switching ? true : undefined"
       >
         <!-- Window-level chrome. Narrow windows keep the mobile layout whole,
-             so the bar goes with them rather than eating the editor's height. -->
-        <AppBar
-          v-if="isDesktop && appBarVisible && !zen"
-          :store="workspace"
-          :back-label="backLabel"
-          :forward-label="forwardLabel"
-          :sidebar-visible="!sidebarCollapsed"
-          :zen="zen"
-          @open-page="openPage"
-          @toggle-sidebar="toggleSidebar"
-          @open-files="openFiles"
-          @open-site="openSite"
-          @open-graph="openGraph()"
-          @toggle-zen="setZen(!zen)"
-        />
+             so the bar goes with them rather than eating the editor's height.
+             Focus mode changes the shell's padding in the same tick, so it
+             hides the bar without the row-collapse transition. -->
+        <Transition :css="isDesktop && !zen" name="app-bar">
+          <AppBar
+            v-if="isDesktop && appBarVisible && !zen"
+            :store="workspace"
+            :back-label="backLabel"
+            :forward-label="forwardLabel"
+            :sidebar-visible="!sidebarCollapsed"
+            :zen="zen"
+            @open-page="openPage"
+            @toggle-sidebar="toggleSidebar"
+            @open-files="openFiles"
+            @open-site="openSite"
+            @open-graph="openGraph()"
+            @toggle-zen="setZen(!zen)"
+          />
+        </Transition>
 
         <div class="app__body">
           <div
