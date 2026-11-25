@@ -283,7 +283,7 @@ export const typstTheme = EditorView.theme({
 
   // Tooltips: hover previews, completions, diagnostics.
   ".cm-tooltip": {
-    maxWidth: "min(50vw, 28rem)",
+    maxWidth: "min(28rem, calc(100vw - var(--typst-space-4)))",
     fontFamily: "var(--typst-font-text)",
     fontSize: "var(--typst-text-md)",
     color: "var(--typst-color-text)",
@@ -301,10 +301,14 @@ export const typstTheme = EditorView.theme({
     borderTop: "1px solid var(--typst-color-border)",
   },
   ".cm-tooltip-hover": {
-    padding: "var(--typst-space-2)",
+    padding: "0",
     maxHeight: "min(70vh, 32rem)",
     overflow: "auto",
     overscrollBehavior: "contain",
+  },
+  // Docs and diagnostics share one inset, so text lines up when both show.
+  ".cm-tooltip-hover > .cm-tooltip-section": {
+    padding: "var(--typst-space-2) var(--typst-space-2-5)",
   },
   // Docs hovers arrive as <pre>. Wrap instead of scrolling sideways.
   ".cm-tooltip pre": {
@@ -382,9 +386,10 @@ export const typstTheme = EditorView.theme({
     backgroundColor: "color-mix(in srgb, var(--typst-color-accent) 22%, transparent)",
   },
 
-  // The lint hover tooltip is a section inside the hover host. The host's
-  // max-height and overflow handle long diagnostic lists.
   ".cm-tooltip-lint": {
+    display: "flex",
+    flexDirection: "column",
+    gap: "var(--typst-space-2)",
     padding: "0",
     margin: "0",
     listStyle: "none",
@@ -420,32 +425,42 @@ export const typstTheme = EditorView.theme({
     backgroundColor: "color-mix(in srgb, var(--typst-color-warning) 18%, transparent)",
   },
   ".cm-diagnostic": {
-    padding: "var(--typst-space-1-5) var(--typst-space-2-5)",
+    position: "relative",
+    padding: "0 0 0 calc(var(--typst-space-1-5) + var(--typst-space-2))",
+    margin: "0",
+    border: "none",
     fontFamily: "var(--typst-font-text)",
+    color: "var(--typst-color-text)",
+  },
+  ".cm-diagnostic::before": {
+    content: '""',
+    position: "absolute",
+    top: "0.4em",
+    left: "0",
+    width: "var(--typst-space-1-5)",
+    height: "var(--typst-space-1-5)",
+    borderRadius: "var(--typst-radius-full)",
+    backgroundColor: "var(--typst-color-text-secondary)",
   },
   ".cm-diagnosticText": {
     display: "block",
   },
-  ".cm-diagnostic-error": {
-    color: "var(--typst-color-danger)",
-    borderLeft: "3px solid var(--typst-color-danger)",
+  ".cm-diagnostic-error::before": {
+    backgroundColor: "var(--typst-color-danger)",
   },
-  ".cm-diagnostic-warning": {
-    color: "var(--typst-color-warning)",
-    borderLeft: "3px solid var(--typst-color-warning)",
+  ".cm-diagnostic-warning::before": {
+    backgroundColor: "var(--typst-color-warning)",
   },
-  ".cm-diagnostic-info": {
-    color: "var(--typst-color-accent)",
-    borderLeft: "3px solid var(--typst-color-accent)",
+  ".cm-diagnostic-info::before": {
+    backgroundColor: "var(--typst-color-accent)",
   },
-  ".cm-diagnostic-hint": {
-    color: "var(--typst-color-text-secondary)",
-    borderLeft: "3px solid var(--typst-color-border-strong)",
+  ".cm-diagnostic-hint::before": {
+    backgroundColor: "var(--typst-color-text-secondary)",
   },
   ".cm-diagnosticSource": {
     marginTop: "var(--typst-space-1)",
-    fontSize: "0.75em",
-    opacity: "0.75",
+    fontSize: "var(--typst-text-xs)",
+    color: "var(--typst-color-text-secondary)",
   },
   ".cm-diagnosticAction": {
     margin: "var(--typst-space-1-5) var(--typst-space-1-5) 0 0",

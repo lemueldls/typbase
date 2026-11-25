@@ -131,8 +131,10 @@
 
 /* Hints under a diagnostic message. */
 .typst-hints {
+  margin: var(--typst-space-1) 0 0;
+  padding-inline-start: var(--typst-space-4);
   color: var(--typst-color-text-secondary);
-  font-size: var(--typst-text-md);
+  font-size: var(--typst-text-sm);
 }
 
 /* Typst tokens from the engine highlighter and the static fallback. */
