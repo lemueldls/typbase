@@ -27,6 +27,10 @@
   "boot": {
     "title": "Ouverture de l'espace de travail",
     "failedTitle": "Impossible d’ouvrir l’espace de travail",
+    "errorHint": "Vos notes sont toujours sur cet appareil. Réessayez, rechargez l’application ou ouvrez un autre espace de travail.",
+    "slowHint": "Cela prend plus de temps que d’habitude. Vous pouvez patienter, recharger l’application ou ouvrir un autre espace de travail.",
+    "errorDetails": "Détails techniques",
+    "chooseWorkspace": "Choisir un espace de travail",
     "switching": "Changement d'espace de travail…",
     "switchingTo": "Bascule vers {name}…",
     "storage": "Ouverture du stockage local",

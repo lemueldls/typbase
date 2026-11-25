@@ -84,6 +84,9 @@ export function useTypst() {
   return statePromise;
 }
 
+/** Longest boot or recovery waits for the wasm module and bundled fonts. */
+export const ENGINE_LOAD_TIMEOUT_MS = 20_000;
+
 /**
  * Replaces the cached instance after a wasm panic. Future useTypst() callers
  * get the fresh state. Open panes recompile through their own remount keys.

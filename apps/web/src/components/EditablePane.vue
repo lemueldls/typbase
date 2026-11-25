@@ -66,7 +66,7 @@ import {
 import { testApi } from "~/lib/testApi";
 
 const props = defineProps<{
-  fileId: FileId;
+  fileId?: FileId;
   spaceId: string;
   path: string;
   text: TextRef;
@@ -108,7 +108,7 @@ const props = defineProps<{
   onAddSpellcheckWord?: (word: string) => void;
   /** Silences one lint in the workspace (the lint tooltip action). */
   onIgnoreSpellcheckLint?: (lint: IgnoredSpellcheckLint) => void;
-  typstState: TypstState;
+  typstState?: TypstState;
   onRequests?: (requests: TypstRequest[], spaceId: string) => Promise<boolean> | boolean;
   revision?: () => string | number | undefined;
   /** Extra CodeMirror extensions (presence cursors, AI menus, search scroll). */
@@ -319,7 +319,7 @@ const createView = () => {
   });
 
   testApi.view = view.value;
-  testApi.fileId = props.fileId;
+  testApi.fileId = props.fileId ?? null;
   updateCursorPosition(view.value.state);
   attachVim();
 };
@@ -586,13 +586,15 @@ watch(
 
 function createStateConfig(): EditorStateConfig {
   const extensions: Extension[] = [];
+  const fileId = props.fileId;
+  const typstState = props.typstState;
 
   // Injected after CM's runtime base theme, so token-based colors win over
   // the defaults (cursor, tooltip, selection, gutters). The app theme comes
   // last for its own overrides.
   extensions.push(typstTheme, typstEditorTheme);
 
-  if (props.degraded) {
+  if (props.degraded || !fileId || !typstState) {
     // Engine-free editing: keep text sync, keymap, language data, and
     // spellcheck. Drop everything that calls into the wasm state. The static
     // highlighter keeps the source readable while previews are gone.
@@ -608,50 +610,41 @@ function createStateConfig(): EditorStateConfig {
     );
   } else if (props.wysiwyg || props.notebook) {
     extensions.push(
-      typstPlugin(
-        props.fileId,
-        props.spaceId,
-        props.path,
-        props.text,
-        props.prelude,
-        false,
-        props.typstState,
-        {
-          onRequests: props.onRequests,
-          revision: props.revision,
-          onPanic: props.onPanic,
-          onCompile: () => {
-            props.onCompile?.();
-            props.onPagedCompile?.();
-          },
-          onExternalLink: openExternalLink,
-          notebook: props.notebook,
-          renderFrames: props.wysiwyg,
+      typstPlugin(fileId, props.spaceId, props.path, props.text, props.prelude, false, typstState, {
+        onRequests: props.onRequests,
+        revision: props.revision,
+        onPanic: props.onPanic,
+        onCompile: () => {
+          props.onCompile?.();
+          props.onPagedCompile?.();
         },
-      ),
+        onExternalLink: openExternalLink,
+        notebook: props.notebook,
+        renderFrames: props.wysiwyg,
+      }),
     );
   } else {
     extensions.push(
       EditorView.updateListener.of((update) => {
         if (update.docChanged) props.text.value = update.state.doc.toString();
       }),
-      typstSyntaxHighlighting(props.fileId, props.typstState),
-      typstHoverTooltip(props.fileId, props.typstState),
-      typstSourceSync(props.fileId, props.prelude, props.typstState),
+      typstSyntaxHighlighting(fileId, typstState),
+      typstHoverTooltip(fileId, typstState),
+      typstSourceSync(fileId, props.prelude, typstState),
       typstKeymap,
       typstLanguageData,
       typstEditingExtensions,
       autocompletion({
-        override: [(context) => autocomplete(context, props.fileId, props.typstState)],
+        override: [(context) => autocomplete(context, fileId, typstState)],
       }),
     );
   }
 
   extensions.push(
-    ...(props.degraded
+    ...(props.degraded || !fileId || !typstState
       ? []
       : [
-          typstLinter(props.fileId, props.spaceId, props.path, props.prelude, props.typstState, {
+          typstLinter(fileId, props.spaceId, props.path, props.prelude, typstState, {
             onRequests: props.onRequests,
             onPanic: props.onPanic,
             onCompile: props.onCompile,

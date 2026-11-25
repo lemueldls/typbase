@@ -14,13 +14,10 @@ fn main() {
         println!("cargo:rustc-env=WASM_BINDGEN_EXTERNREF_XFORM=1");
     }
 
-    // WASM-specific link arguments for size optimization. These are wasm-ld
-    // flags. Passing them to the host linker breaks `cargo bench` and any
-    // other host build of the cdylib.
     if is_wasm && profile == "release" {
         println!("cargo:rustc-link-arg=--no-entry");
         println!("cargo:rustc-link-arg=--gc-sections");
-        println!("cargo:rustc-link-arg=--strip-all");
+        println!("cargo:rustc-link-arg=--strip-debug");
     }
 
     if is_wasm {

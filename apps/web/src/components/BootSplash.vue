@@ -3,12 +3,16 @@ import type { BootStepState } from "~/composables/workspace";
 
 const props = defineProps<{
   steps: BootStepState[];
+  workspace?: string;
   note?: string;
   error?: unknown;
+  slow?: boolean;
   retrying?: boolean;
 }>();
 
-const emit = defineEmits<{ retry: []; reload: [] }>();
+const emit = defineEmits<{ retry: []; reload: []; chooseWorkspace: [] }>();
+
+const detailsOpen = ref(false);
 
 const errorMessage = computed(() => {
   if (!props.error) return "";
@@ -20,11 +24,19 @@ const errorMessage = computed(() => {
 <template>
   <div class="app__splash" role="status" aria-live="polite">
     <div class="app__splash-inner">
-      <h1 class="app__splash-title">
-        {{ error ? $t("boot.failedTitle") : $t("boot.title") }}
-      </h1>
+      <div class="app__splash-heading">
+        <h1 class="app__splash-title">
+          {{ error ? $t("boot.failedTitle") : $t("boot.title") }}
+        </h1>
+        <p class="app__splash-workspace">
+          <span v-if="workspace">{{ workspace }}</span>
+          <span v-else class="app__splash-workspace-skeleton" aria-hidden="true" />
+        </p>
+      </div>
 
-      <div v-if="!error" class="app__splash-bar" aria-hidden="true"><span /></div>
+      <div class="app__splash-bar" :class="{ 'app__splash-bar--idle': error }" aria-hidden="true">
+        <span />
+      </div>
 
       <ol class="app__splash-steps">
         <li
@@ -66,14 +78,43 @@ const errorMessage = computed(() => {
         </li>
       </ol>
 
-      <p v-if="errorMessage" class="app__splash-error">{{ errorMessage }}</p>
-      <p v-if="note" class="app__splash-note">{{ note }}</p>
+      <div class="app__splash-status">
+        <template v-if="error">
+          <p class="app__splash-error">{{ $t("boot.errorHint") }}</p>
 
-      <div v-if="error" class="app__splash-actions">
-        <UiButton variant="primary" :disabled="retrying" @click="emit('retry')">
-          {{ retrying ? $t("boot.retrying") : $t("boot.retry") }}
-        </UiButton>
-        <UiButton variant="ghost" @click="emit('reload')">{{ $t("engine.reload") }}</UiButton>
+          <UiCollapsible v-if="errorMessage" v-model:open="detailsOpen" class="app__splash-details">
+            <template #trigger>
+              <span>{{ $t("boot.errorDetails") }}</span>
+            </template>
+            <p class="app__splash-detail-text">{{ errorMessage }}</p>
+          </UiCollapsible>
+
+          <div class="app__splash-actions">
+            <UiButton variant="primary" :disabled="retrying" @click="emit('retry')">
+              {{ retrying ? $t("boot.retrying") : $t("boot.retry") }}
+            </UiButton>
+            <UiButton variant="ghost" @click="emit('chooseWorkspace')">
+              {{ $t("boot.chooseWorkspace") }}
+            </UiButton>
+            <UiButton variant="ghost" @click="emit('reload')">{{ $t("engine.reload") }}</UiButton>
+          </div>
+        </template>
+
+        <template v-else>
+          <p v-if="note" class="app__splash-note">{{ note }}</p>
+
+          <template v-if="slow">
+            <p class="app__splash-note">{{ $t("boot.slowHint") }}</p>
+            <div class="app__splash-actions">
+              <UiButton variant="primary" @click="emit('reload')">
+                {{ $t("engine.reload") }}
+              </UiButton>
+              <UiButton variant="ghost" @click="emit('chooseWorkspace')">
+                {{ $t("boot.chooseWorkspace") }}
+              </UiButton>
+            </div>
+          </template>
+        </template>
       </div>
     </div>
   </div>
@@ -98,24 +139,69 @@ const errorMessage = computed(() => {
   display: grid;
   justify-items: center;
   gap: var(--space-4);
-  width: min(20rem, 100%);
+  width: min(22rem, 100%);
+}
+
+.app__splash-heading {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
 }
 
 .app__splash-title {
+  display: grid;
+  align-content: end;
+  min-height: calc(var(--text-2xl) * 2 * var(--leading-tight));
   margin: 0;
   font-size: var(--text-2xl);
   font-weight: 600;
   letter-spacing: 0.01em;
+  line-height: var(--leading-tight);
   text-align: center;
+}
+
+.app__splash-workspace {
+  max-width: 100%;
+  min-height: calc(var(--text-lg) * var(--leading-snug));
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  line-height: var(--leading-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app__splash-workspace-skeleton {
+  display: inline-block;
+  width: 7rem;
+  height: 0.7em;
+  vertical-align: middle;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  animation: app-splash-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes app-splash-pulse {
+  50% {
+    opacity: 0.45;
+  }
 }
 
 .app__splash-bar {
   position: relative;
-  width: 100%;
+  width: 11rem;
+  max-width: 100%;
   height: 0.25rem;
   overflow: hidden;
   background: var(--color-border);
   border-radius: var(--radius-full);
+}
+
+.app__splash-bar--idle {
+  visibility: hidden;
 }
 
 .app__splash-bar span {
@@ -142,7 +228,8 @@ const errorMessage = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -214,22 +301,82 @@ const errorMessage = computed(() => {
   }
 }
 
+.app__splash-status {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 9.5rem;
+}
+
 .app__splash-error,
 .app__splash-note {
+  display: -webkit-box;
   max-width: 100%;
   margin: 0;
+  overflow: hidden;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
   text-align: center;
 }
 
 .app__splash-error {
-  color: var(--color-danger);
+  color: var(--color-text-secondary);
 }
 
 .app__splash-note {
   color: var(--color-text-secondary);
+}
+
+.app__splash-details {
+  width: 100%;
+}
+
+.app__splash-details .ui-collapsible__trigger {
+  justify-content: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.app__splash-details .ui-collapsible__trigger:hover {
+  color: var(--color-text);
+}
+
+.app__splash-details .ui-collapsible__content[data-state="open"] {
+  animation: app-splash-details-in var(--motion-fast);
+}
+
+@keyframes app-splash-details-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.app__splash-detail-text {
+  max-height: 7rem;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  overflow: auto;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  line-height: var(--leading-snug);
+  text-align: left;
+  overflow-wrap: anywhere;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
 .app__splash-actions {

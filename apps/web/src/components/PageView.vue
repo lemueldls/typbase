@@ -674,13 +674,9 @@ async function setupPage() {
     .join("\n");
 
   if (engineHealth.value.status === "failed") {
-    // No wasm calls while failed. The text is loaded and the font watcher
-    // from the previous page goes away. `handlePanic` rebinds the open page
-    // when the user retries.
     unsubscribeFontScan?.();
     unsubscribeFontScan = undefined;
-    fileId.value = undefined;
-    ready.value = false;
+    bindSourceOnlyPage(pageId, token);
 
     return;
   }
@@ -735,44 +731,35 @@ async function setupPage() {
 }
 
 /**
- * Binds the open page to the current wasm state: request service page, file
- * id and source, text listener, and readiness. `meta` and `text` must already
- * describe `pageId`. Recovery calls this again after swapping in a fresh
- * state, so a page opened while the engine was down gets its listener too.
+ * Binds an open page without a wasm state. The source editor, save path, and
+ * remote text listener still work; previews, diagnostics, and completions stay
+ * off until Retry rebuilds the engine.
  */
-function bindPage(pageId: string, page: PageMeta, token: number): void {
-  const state = typstState.value;
-  if (!store || !state) return;
-
-  applyCompletionData(state, store);
+function bindSourceOnlyPage(pageId: string, token: number): void {
   boundPageId = pageId;
-  requestService?.setCurrentPage(pageId);
   fontNoticeDismissed.value = false;
-  setTypstInputs(state, {
-    pageId,
-    workspaceId: workspaceId.value,
-    reason: "editor",
-    target: "paged",
-  });
-  syncNotebookController();
-
-  fileId.value = state.createSourceId(page.path, workspaceId.value);
-  // Recovery can rebind a page whose text changed while the engine was down.
-  const current = store.getPageText(pageId);
-  if (current !== text.value) text.value = current;
-  state.insertSource(fileId.value, text.value);
-
+  fileId.value = undefined;
+  notebookController.value = undefined;
+  missingScripts.value = [];
   unsubscribeFontScan?.();
-  unsubscribeFontScan = watch(text, scanSourceFonts);
+  unsubscribeFontScan = undefined;
+  subscribePageText(pageId, token);
+  ready.value = true;
+}
+
+/** Mirrors page-doc changes into the open editor. Works with or without wasm. */
+function subscribePageText(pageId: string, token: number): void {
+  const currentStore = store;
+  if (!currentStore) return;
 
   unsubscribePageText?.();
-  void store
+  void currentStore
     .onPageTextChange(pageId, (event) => {
       // The editor's own splices are already in its buffer and its update
       // listener already refreshed `text`. Skip the full-document read.
       if (event.origin === "editor") return;
 
-      const nextText = store.getPageText(pageId);
+      const nextText = currentStore.getPageText(pageId);
       // A full-text fallback write can echo back text the editor already has.
       // Applying its delta again would duplicate the edit.
       if (nextText === text.value) return;
@@ -803,9 +790,43 @@ function bindPage(pageId: string, page: PageMeta, token: number): void {
 
       unsubscribePageText = stop;
       // Catch a change that landed between the text read and this listener.
-      const nextText = store.getPageText(pageId);
+      const nextText = currentStore.getPageText(pageId);
       if (nextText !== text.value) text.value = nextText;
     });
+}
+
+/**
+ * Binds the open page to the current wasm state: request service page, file
+ * id and source, text listener, and readiness. `meta` and `text` must already
+ * describe `pageId`. Recovery calls this again after swapping in a fresh
+ * state, so a page opened while the engine was down gets its listener too.
+ */
+function bindPage(pageId: string, page: PageMeta, token: number): void {
+  const state = typstState.value;
+  if (!store || !state) return;
+
+  applyCompletionData(state, store);
+  boundPageId = pageId;
+  requestService?.setCurrentPage(pageId);
+  fontNoticeDismissed.value = false;
+  setTypstInputs(state, {
+    pageId,
+    workspaceId: workspaceId.value,
+    reason: "editor",
+    target: "paged",
+  });
+  syncNotebookController();
+
+  fileId.value = state.createSourceId(page.path, workspaceId.value);
+  // Recovery can rebind a page whose text changed while the engine was down.
+  const current = store.getPageText(pageId);
+  if (current !== text.value) text.value = current;
+  state.insertSource(fileId.value, text.value);
+
+  unsubscribeFontScan?.();
+  unsubscribeFontScan = watch(text, scanSourceFonts);
+
+  subscribePageText(pageId, token);
 
   ready.value = true;
   ensureSourceFonts();
@@ -2079,7 +2100,7 @@ function onModeKeydown(event: KeyboardEvent) {
     >
       <Transition :css="animateEditor" name="editor-fade" @after-enter="animateEditor = false">
         <EditablePane
-          v-if="boundFileId"
+          v-if="boundFileId || degraded"
           :key="`${pageId}:${stateGeneration}`"
           v-show="modelValue !== 'read'"
           v-bind="sharedState"

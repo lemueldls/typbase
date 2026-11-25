@@ -24,15 +24,35 @@ const {
   resetEnsure,
   dataRevision,
   bootProgress,
+  bootWorkspaceName,
   bootNote,
   workspaceGeneration,
   switching,
   switchWorkspace,
+  closeActiveWorkspace,
   storageSetup,
   atprotoStatus,
 } = useWorkspace();
 
 const loaded = ref(false);
+/** True when boot has outlasted a normal load and the splash offers escapes. */
+const bootSlow = ref(false);
+let bootSlowTimer: ReturnType<typeof setTimeout> | undefined;
+
+function startBootWatch(): void {
+  clearTimeout(bootSlowTimer);
+  bootSlow.value = false;
+  bootSlowTimer = setTimeout(() => {
+    bootSlow.value = true;
+  }, 12_000);
+}
+
+function stopBootWatch(): void {
+  clearTimeout(bootSlowTimer);
+  bootSlowTimer = undefined;
+  bootSlow.value = false;
+}
+
 const currentPageId = ref<string>("");
 const currentPluginId = ref<string | null>(null);
 const currentChatId = ref<string | null>(null);
@@ -514,23 +534,54 @@ function afterBoot(): void {
 }
 
 async function boot(): Promise<void> {
-  await ensure(workspaceIdFromPath(route.path));
+  startBootWatch();
+  try {
+    await ensure(workspaceIdFromPath(route.path));
+  } finally {
+    stopBootWatch();
+  }
   loaded.value = true;
   if (!workspace.value && !storageSetup.value && route.path !== "/") {
     void router.replace({ path: "/", query: route.query });
   }
+  if (workspace.value) finishBoot();
+  else afterBoot();
+}
+
+/** `afterBoot` sets app-wide wiring, so it runs once per successful open. */
+let bootFinished = false;
+
+function finishBoot(): void {
+  if (bootFinished || !workspace.value) return;
+  bootFinished = true;
   afterBoot();
 }
 
-onMounted(() => {
-  void boot();
+// A workspace can arrive after boot: storage setup finishes, or the splash's
+// error state opens the chooser. Run the shell wiring then.
+watch([loaded, workspace], () => {
+  if (loaded.value) finishBoot();
 });
+
+onMounted(() => {
+  void boot().catch(() => {});
+});
+
+onBeforeUnmount(stopBootWatch);
 
 const retryingBoot = ref(false);
 
 /** The escape hatch when a retry cannot work either, e.g. a wedged storage handle. */
 function reloadApp(): void {
   window.location.reload();
+}
+
+/** Leaves a failed boot behind for the full workspace chooser. */
+function chooseAnotherWorkspace(): void {
+  stopBootWatch();
+  error.value = undefined;
+  closeActiveWorkspace();
+  loaded.value = true;
 }
 
 /** Retries a boot that failed. The splash shows the reason. This is the way out. */
@@ -1144,10 +1195,13 @@ definePageMeta({
       <BootSplash
         v-if="!loaded"
         :steps="bootProgress"
+        :workspace="bootWorkspaceName"
         :note="bootNote"
         :error="error"
+        :slow="bootSlow"
         :retrying="retryingBoot"
         @retry="retryBoot"
+        @choose-workspace="chooseAnotherWorkspace"
         @reload="reloadApp"
       />
     </Transition>

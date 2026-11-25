@@ -27,6 +27,10 @@
   "boot": {
     "title": "Abriendo espacio de trabajo",
     "failedTitle": "No se pudo abrir el espacio de trabajo",
+    "errorHint": "Tus notas siguen en este dispositivo. Reintenta, recarga la aplicación o abre otro espacio de trabajo.",
+    "slowHint": "Está tardando más de lo habitual. Puedes esperar, recargar la aplicación o abrir otro espacio de trabajo.",
+    "errorDetails": "Detalles técnicos",
+    "chooseWorkspace": "Elegir espacio de trabajo",
     "switching": "Cambiando de espacio de trabajo…",
     "switchingTo": "Cambiando a {name}…",
     "storage": "Abriendo almacenamiento local",

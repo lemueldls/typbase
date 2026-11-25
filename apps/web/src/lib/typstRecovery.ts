@@ -1,6 +1,7 @@
 import { takeOomGlobal, takePanicGlobal, type TypstState } from "@typbase/engine";
 
-import { createTypstState, replaceTypstState } from "~/composables/typst";
+import { ENGINE_LOAD_TIMEOUT_MS, createTypstState, replaceTypstState } from "~/composables/typst";
+import { withTimeout } from "~/lib/timeout";
 
 /**
  * Panic recovery for the wasm compiler. On wasm32-unknown-unknown a Rust
@@ -51,7 +52,7 @@ let recovering: Promise<TypstState> | undefined;
  * returns it. Concurrent panics share one recovery.
  */
 export function recreateTypstState(): Promise<TypstState> {
-  recovering ??= createTypstState()
+  recovering ??= withTimeout(createTypstState(), ENGINE_LOAD_TIMEOUT_MS, "Engine restart")
     .then((fresh) => {
       replaceTypstState(fresh);
       return fresh;

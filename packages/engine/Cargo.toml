@@ -63,4 +63,4 @@ workspace = true
 wasm-opt = false
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-Oz", "-all"]
+wasm-opt = ["-Oz"]

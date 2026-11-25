@@ -30,6 +30,7 @@ import type { AtprotoService, AtprotoStatus } from "~/lib/atproto";
 
 import { initAiKeys, type AiKeyState } from "~/lib/ai/keys";
 import { AtprotoService as Atproto } from "~/lib/atproto";
+import { failEngine } from "~/lib/engineHealth";
 import { clearCachedTheme, clearThemeCaches, resolveTheme } from "~/lib/themes";
 import { withTimeout } from "~/lib/timeout";
 import { LAST_WORKSPACE_KEY } from "~/lib/workspaceRoute";
@@ -181,6 +182,8 @@ function useWorkspaceState() {
   const { t } = useI18n();
   const runtimeConfig = useRuntimeConfig();
   const bootProgress = ref<BootStepState[]>(initialBootSteps((key) => t(key as never)));
+  /** Name of the workspace the boot is opening, shown on the splash. */
+  const bootWorkspaceName = ref("");
   /** Non-fatal boot notes (storage fell back to memory, atproto disabled, ...). */
   const bootNote = ref("");
 
@@ -194,6 +197,8 @@ function useWorkspaceState() {
   const backendRef = shallowRef<StorageBackend>();
   let registry: WorkspaceRegistry | undefined;
   let openingSeq = 0;
+  /** Invalidates an in-flight `ensure` when the chooser takes over. */
+  let bootAttempt = 0;
   /** Disposer for the active workspace's source watcher, if the backend has one. */
   let unwatchSources: (() => void) | undefined;
   /**
@@ -230,16 +235,26 @@ function useWorkspaceState() {
   /**
    * Waits for the wasm engine and its bundled fonts. `useTypst` is memoized,
    * so the same promise started alongside the workspace doc is reused here.
-   * A rejected load is dropped from the cache by `useTypst`, so the splash's
-   * Retry can start over instead of replaying the failure.
+   * A rejected load is dropped from the cache by `useTypst`. Boot still
+   * finishes: the shell opens in degraded source mode and Retry can start the
+   * wasm download again.
    */
   async function prepareEditor(): Promise<void> {
     updateBootStep("engine", { status: "active" });
     try {
-      await useTypst();
+      // The bundled fonts alone are a few megabytes. A hung fetch must not
+      // leave the loader up forever; boot opens in source mode instead.
+      await withTimeout(useTypst(), ENGINE_LOAD_TIMEOUT_MS, "Engine initialization");
     } catch (cause) {
+      console.warn("[typst] engine load failed:", cause);
+      failEngine("rebuild-failed", cause instanceof Error ? cause.message : String(cause), {
+        // The open page's engine strip carries the same notice. A toast here
+        // would sit on top of it and never expire.
+        toast: false,
+      });
       updateBootStep("engine", { status: "error" });
-      throw cause;
+
+      return;
     }
     updateBootStep("engine", { status: "done" });
   }
@@ -395,6 +410,7 @@ function useWorkspaceState() {
 
   /** Restarts storage after a location change: flush, drop, and re-open. */
   async function afterStorageChange(): Promise<void> {
+    bootAttempt += 1;
     teardownActive();
     workspace.value = undefined;
     backendRef.value = undefined;
@@ -579,6 +595,7 @@ function useWorkspaceState() {
       const info = await reg.get(id);
       if (!info) throw new Error(`No workspace named ${id}`);
 
+      bootWorkspaceName.value = info.name;
       await reg.save({ ...info, lastOpenedAt: Date.now() });
       if (token !== openingSeq) throw new Error("Superseded by another workspace switch");
 
@@ -733,35 +750,24 @@ function useWorkspaceState() {
   }
 
   async function ensure(preferredId = ""): Promise<WorkspaceStore | null> {
-    if (workspace.value) {
-      // A failed engine load leaves the workspace open. Retry finishes that
-      // step instead of showing an editor that cannot bind. Every later
-      // caller finds the step done and returns without touching it.
-      const engine = bootProgress.value.find((step) => step.id === "engine");
-      if (engine?.status === "error") {
-        error.value = undefined;
-        try {
-          await prepareEditor();
-        } catch (reason) {
-          markBootFailure(reason);
-          throw reason;
-        }
-      }
-
-      return workspace.value;
-    }
+    if (workspace.value) return workspace.value;
     if (preferredId) bootWorkspaceId = preferredId;
 
     ensurePromise ??= (async () => {
+      const attempt = ++bootAttempt;
       bootProgress.value = initialBootSteps((key) => t(key as never));
+      bootWorkspaceName.value = "";
       bootNote.value = "";
       error.value = undefined;
       await ensureBackend();
+      if (attempt !== bootAttempt) return null;
       // One-time move off the pre-restructure layout. See
       // `packages/storage/src/migrate.ts` for the removal recipe.
       await migrateLayout(backendRef.value!);
+      if (attempt !== bootAttempt) return null;
       const reg = await ensureRegistry();
       const id = await chooseWorkspaceId(reg, bootWorkspaceId);
+      if (attempt !== bootAttempt) return null;
       if (!id) return null; // nothing to open. The shell shows the chooser
 
       // The editor cannot bind without wasm, so start the download while the
@@ -770,9 +776,9 @@ function useWorkspaceState() {
       const engineLoad = useTypst();
       void engineLoad.catch(() => undefined);
       const store = await openWorkspace(id);
+      if (attempt !== bootAttempt) return null;
       bootWorkspaceId = "";
-      // prepareEditor owns the step and reports a failed load through the
-      // splash, whose Retry starts the wasm download again.
+      // A failed engine degrades to source editing; it never blocks local data.
       await prepareEditor();
 
       return store;
@@ -811,6 +817,27 @@ function useWorkspaceState() {
       error.value = reason;
       throw reason;
     }
+  }
+
+  /**
+   * Drops the open workspace without deleting it, so the shell can show the
+   * chooser after a failed boot. Nothing is flushed: the failure may be why
+   * the store cannot be written.
+   */
+  function closeActiveWorkspace(): void {
+    // Supersede an open still in flight so it cannot install its store behind
+    // the chooser when this is used from a slow or failed boot.
+    bootAttempt += 1;
+    openingSeq += 1;
+    switchingSeq += 1;
+    switching.value = null;
+    teardownActive({ flush: false });
+    workspace.value = undefined;
+    activeWorkspaceId.value = null;
+    workspaceGeneration.value += 1;
+    bootWorkspaceName.value = "";
+    localStorage.removeItem(LAST_WORKSPACE_KEY);
+    ensurePromise = undefined;
   }
 
   async function createWorkspace(name: string, icon?: string): Promise<WorkspaceInfo> {
@@ -1025,6 +1052,7 @@ function useWorkspaceState() {
     atprotoReady,
     presence,
     bootProgress,
+    bootWorkspaceName,
     bootNote,
     workspaces,
     activeWorkspaceId,
@@ -1032,6 +1060,7 @@ function useWorkspaceState() {
     joinWorkspace,
     workspaceGeneration,
     switchWorkspace,
+    closeActiveWorkspace,
     createWorkspace,
     renameWorkspace,
     setWorkspaceIcon,

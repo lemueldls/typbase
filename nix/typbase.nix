@@ -101,7 +101,16 @@ rustPlatform.buildRustPackage (finalAttrs: {
   preBuild = ''
     (cd packages/engine && printf '{}' > pkg/package.json \
       && wasm-pack build --mode no-install --release --target web --scope typbase --no-opt .)
-    wasm-opt -O4 -all packages/engine/pkg/engine_bg.wasm \
+    wasm-opt -O4 \
+      --enable-bulk-memory \
+      --enable-bulk-memory-opt \
+      --enable-call-indirect-overlong \
+      --enable-multivalue \
+      --enable-mutable-globals \
+      --enable-nontrapping-float-to-int \
+      --enable-reference-types \
+      --enable-sign-ext \
+      packages/engine/pkg/engine_bg.wasm \
       -o packages/engine/pkg/engine_bg.opt.wasm
     mv packages/engine/pkg/engine_bg.opt.wasm packages/engine/pkg/engine_bg.wasm
 

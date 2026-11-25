@@ -65,11 +65,15 @@ export function beginRecovery(reason: EngineFailure): void {
   });
 }
 
-export function failEngine(reason: EngineFailure, message: string): void {
+export function failEngine(
+  reason: EngineFailure,
+  message: string,
+  { toast = true }: { toast?: boolean } = {},
+): void {
   health.value.status = "failed";
   health.value.reason = reason;
   health.value.message = message;
-  pushFailedToast();
+  if (toast) pushFailedToast();
 }
 
 function pushFailedToast(): void {

@@ -27,6 +27,10 @@
   "boot": {
     "title": "Arbeitsbereich wird geöffnet",
     "failedTitle": "Arbeitsbereich konnte nicht geöffnet werden",
+    "errorHint": "Deine Notizen sind weiterhin auf diesem Gerät. Versuche es erneut, lade die App neu oder öffne einen anderen Arbeitsbereich.",
+    "slowHint": "Das dauert länger als üblich. Du kannst warten, neu laden oder einen anderen Arbeitsbereich öffnen.",
+    "errorDetails": "Technische Details",
+    "chooseWorkspace": "Arbeitsbereich wählen",
     "switching": "Arbeitsbereich wird gewechselt…",
     "switchingTo": "Wechsle zu {name}…",
     "storage": "Lokalen Speicher öffnen",
