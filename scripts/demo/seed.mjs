@@ -104,6 +104,12 @@ export function dailyNotes() {
 }
 
 /**
+ * Nuxt serves the Vite dev module graph under `/_nuxt/`, so the bare `/@id/`
+ * URL returns 404. Keep this in sync with the app's Vite base.
+ */
+const DEV_MODULE_BASE = "/_nuxt/";
+
+/**
  * Seeds the demo workspace and returns the page ids the capture script needs.
  * Runs against the app's own `@typbase/storage` module, so the workspace is
  * exactly what the app would have written itself.
@@ -112,8 +118,8 @@ export async function seedWorkspace(page, { workspaceId }) {
   const dailyPlan = dailyNotes();
 
   return page.evaluate(
-    async ({ workspaceId: id, home, attention, fibonacci, lens, daily }) => {
-      const { WorkspaceStore, OPFSBackend } = await import("/@id/@typbase/storage");
+    async ({ workspaceId: id, home, attention, fibonacci, lens, daily, moduleBase }) => {
+      const { WorkspaceStore, OPFSBackend } = await import(`${moduleBase}@id/@typbase/storage`);
 
       const backend = await OPFSBackend.open();
       const store = await WorkspaceStore.open(backend, id, { name: "Demo" });
@@ -197,6 +203,7 @@ export async function seedWorkspace(page, { workspaceId }) {
       fibonacci: FIBONACCI,
       lens: LENS,
       daily: dailyPlan,
+      moduleBase: DEV_MODULE_BASE,
     },
   );
 }
