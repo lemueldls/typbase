@@ -107,10 +107,6 @@ async function openToday(): Promise<void> {
 
           <UiMenubarSeparator />
 
-          <UiMenubarItem icon="settings" @select="settings.show()">
-            <span class="app-bar__menu-label">{{ $t("sidebar.workspaceSettings") }}</span>
-            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
-          </UiMenubarItem>
           <UiMenubarItem icon="public" @select="emit('openSite')">
             <span class="app-bar__menu-label">{{ $t("site.title") }}</span>
           </UiMenubarItem>
@@ -120,6 +116,10 @@ async function openToday(): Promise<void> {
           </UiMenubarItem>
           <UiMenubarItem icon="package_2" @select="packagesOpen = true">
             <span class="app-bar__menu-label">{{ $t("packages.title") }}</span>
+          </UiMenubarItem>
+          <UiMenubarItem icon="settings" @select="settings.show()">
+            <span class="app-bar__menu-label">{{ $t("sidebar.workspaceSettings") }}</span>
+            <UiKbd class="app-bar__menu-key">{{ shortcutLabel("settings") }}</UiKbd>
           </UiMenubarItem>
         </UiMenubarMenu>
 

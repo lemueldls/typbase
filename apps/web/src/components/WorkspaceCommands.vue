@@ -72,6 +72,9 @@ async function copyWorkspaceId(): Promise<void> {
     <MsIcon name="search" :size="20" />
     <span class="workspace-commands__label">{{ $t("palette.title") }}</span>
   </button>
+
+  <div class="menu__separator" />
+
   <button type="button" class="menu__item" @click="run(() => emit('graph'))">
     <MsIcon name="hub" :size="20" />
     <span class="workspace-commands__label">{{ $t("graph.title") }}</span>
@@ -83,10 +86,6 @@ async function copyWorkspaceId(): Promise<void> {
 
   <div class="menu__separator" />
 
-  <button type="button" class="menu__item" @click="run(() => settingsDialog.show())">
-    <MsIcon name="settings" :size="20" />
-    <span class="workspace-commands__label">{{ $t("sidebar.workspaceSettings") }}</span>
-  </button>
   <button type="button" class="menu__item" @click="run(() => emit('site'))">
     <MsIcon name="public" :size="20" />
     <span class="workspace-commands__label">{{ $t("site.title") }}</span>
@@ -98,6 +97,10 @@ async function copyWorkspaceId(): Promise<void> {
   <button type="button" class="menu__item" @click="openPackageBrowser">
     <MsIcon name="package_2" :size="20" />
     <span class="workspace-commands__label">{{ $t("packages.title") }}</span>
+  </button>
+  <button type="button" class="menu__item" @click="run(() => settingsDialog.show())">
+    <MsIcon name="settings" :size="20" />
+    <span class="workspace-commands__label">{{ $t("sidebar.workspaceSettings") }}</span>
   </button>
 
   <div class="menu__separator" />
