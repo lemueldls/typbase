@@ -85,6 +85,7 @@ pre {
   padding: 1rem;
   overflow: auto;
   font-size: 0.875em;
+  margin: 0;
 }
 
 code {
@@ -102,13 +103,12 @@ pre code {
 
 blockquote {
   border-left: 3px solid var(--site-accent);
-  margin: 1.5rem 0;
+  margin: 0;
   padding: 0.1rem 1rem;
   color: var(--site-muted);
 }
 
 .quote-attribution {
-  margin: -1rem 0 1.5rem;
   color: var(--site-muted);
   text-align: right;
 }
@@ -116,13 +116,13 @@ blockquote {
 hr {
   border: 0;
   border-top: 1px solid var(--site-border);
-  margin: 2rem 0;
+  margin: 0;
 }
 
 table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1.5rem 0;
+  margin: 0;
 }
 
 th,
@@ -562,19 +562,72 @@ body[data-nav="none"] .site-sidebar {
 }
 
 .site-page {
+  --site-flow: 1.2rem;
+  --site-flow-tight: 0.65rem;
   flex: 1;
 }
 
+/* Direct children own the flow. Top margins only means a last paragraph
+   cannot add trailing space, and nested lists do not inherit the gap. */
+.site-page > * {
+  margin-block: 0;
+}
+
+.site-page :where(p, ul, ol, dl, table, blockquote, h1, h2, h3, h4, h5, h6) {
+  margin-block: 0;
+}
+
+.site-page :where(figure) {
+  margin: 0;
+}
+
+.site-page > * + * {
+  margin-block-start: var(--site-flow);
+}
+
+.site-page > :is(h1, h2) {
+  margin-block-start: 2.5rem;
+}
+
+.site-page > :is(h3, h4) {
+  margin-block-start: 2rem;
+}
+
+.site-page > :is(h5, h6) {
+  margin-block-start: 1.5rem;
+}
+
+.site-page > :is(h1, h2, h3, h4, h5, h6) + * {
+  margin-block-start: var(--site-flow-tight);
+}
+
 .site-page > :first-child {
-  margin-top: 0;
+  margin-block-start: 0;
+}
+
+.site-page > :last-child {
+  margin-block-end: 0;
+}
+
+.site-page > hr {
+  margin-block: 2.5em;
+}
+
+.site-page > hr + * {
+  margin-block-start: 2.5em;
+}
+
+.site-page > .quote-attribution {
+  margin-block: 0.35rem 0;
 }
 
 .site-page h1,
 .site-page h2,
 .site-page h3,
-.site-page h4 {
+.site-page h4,
+.site-page h5,
+.site-page h6 {
   line-height: 1.25;
-  margin: 2.2em 0 0.65em;
   font-weight: 650;
 }
 
@@ -592,26 +645,62 @@ body[data-nav="none"] .site-sidebar {
   font-size: 1.25em;
 }
 
-.site-page p {
-  margin: 0 0 1.1em;
+.site-page h5 {
+  font-size: 1.05em;
 }
 
-.site-page--preserve-newlines > div {
-  margin: 0 0 1.1em;
+.site-page h6 {
+  font-size: 0.95em;
+  color: var(--site-muted);
 }
 
 .site-page ul,
 .site-page ol {
   padding-left: 1.4em;
-  margin: 0 0 1.1em;
 }
 
 .site-page li {
-  margin: 0.25em 0;
+  margin: 0;
 }
 
-.site-page hr {
-  margin: 2.5rem 0;
+.site-page li + li {
+  margin-block-start: 0.25em;
+}
+
+.site-page :where(blockquote, figure, li) > * + * {
+  margin-block-start: 0.55em;
+}
+
+.site-page li > :is(ul, ol) {
+  margin-block-start: 0.35em;
+}
+
+.site-page dt {
+  font-weight: 600;
+}
+
+.site-page dt + dt {
+  margin-block-start: 0.35em;
+}
+
+.site-page dd {
+  margin: 0.15em 0 0 1.4em;
+}
+
+.site-page dd + dt {
+  margin-block-start: 0.9em;
+}
+
+.site-page figcaption,
+.site-page caption {
+  margin-block-start: 0.55em;
+  color: var(--site-muted);
+  font-size: 0.9em;
+}
+
+.site-page caption {
+  caption-side: bottom;
+  text-align: left;
 }
 
 .site-page .tb-surface {
