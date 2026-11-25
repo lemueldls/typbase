@@ -453,8 +453,9 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  min-height: var(--pane-header-height);
-  padding: var(--space-1-5) var(--pane-header-pad-x);
+  /* min-height: var(--pane-header-height); */
+  padding: var(--pane-header-pad-x);
+  padding-top: 0;
   background: var(--color-surface-2);
 }
 
